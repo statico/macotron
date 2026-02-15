@@ -10,8 +10,10 @@ BUNDLE_ID = com.macotron.app
 build:
 	swift build --build-path $(BUILD_DIR)
 
-# Compile + bundle + run
+# Compile + bundle + run (kills existing instance first)
 run: bundle
+	@pkill -x $(APP_NAME) 2>/dev/null || true
+	@sleep 0.3
 	open $(BUNDLE)
 
 # Compile + bundle + run with debug server on :7777
