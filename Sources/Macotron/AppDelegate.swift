@@ -13,6 +13,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var snippetManager: SnippetManager!
     private var menuBarManager: MenuBarManager!
     private var launcherPanel: LauncherPanel!
+    private var launcherHotkey: GlobalHotkey?
+    private var snippetAutoFixer: SnippetAutoFix?
 
     #if DEBUG
     private var debugServer: DebugServer?
@@ -31,6 +33,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine = Engine()
         snippetManager = SnippetManager(engine: engine, configDir: configDir)
         snippetManager.ensureDirectoryStructure()
+
+        // Set up snippet auto-fix (bridges MacotronEngine → AI target)
+        setupAutoFix()
 
         // Set up menubar
         menuBarManager = MenuBarManager()
@@ -52,6 +57,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onSearch: { [weak self] query in
                 self?.search(query) ?? []
+            },
+            onChat: { @Sendable [weak self] message in
+                guard let self else { return "Macotron is not available." }
+                return await self.handleChatMessage(message)
             }
         )
         let hostingView = NSHostingView(rootView: launcherView)
@@ -67,6 +76,19 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Initial load
         snippetManager.reloadAll()
+
+        // Set up global hotkey for launcher toggle
+        let launcherCombo: String
+        if let launcher = engine.configStore["launcher"] as? [String: Any],
+           let hotkey = launcher["hotkey"] as? String {
+            launcherCombo = hotkey
+        } else {
+            launcherCombo = "cmd+space"
+        }
+        launcherHotkey = GlobalHotkey(combo: launcherCombo) { [weak self] in
+            self?.launcherPanel.toggle()
+        }
+
         snippetManager.startWatching()
 
         // Request accessibility on first launch
@@ -123,6 +145,81 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             _ = JS_Call(engine.context, cmd.callback, QJS_Undefined(), 0, &undef)
             engine.drainJobQueue()
         }
+    }
+
+    // MARK: - Snippet Auto-Fix
+
+    /// Wire the snippet auto-fix handler. This bridges SnippetManager (MacotronEngine)
+    /// to SnippetAutoFix (AI) via a closure, since MacotronEngine cannot import AI.
+    private func setupAutoFix() {
+        snippetManager.autoFixHandler = { @Sendable [weak self] filename, source, error in
+            await self?.autoFixSnippet(filename: filename, source: source, error: error)
+        }
+    }
+
+    /// Called by the auto-fix handler closure. Lazily creates the SnippetAutoFix instance
+    /// (requires an API key) and delegates the fix attempt.
+    private func autoFixSnippet(filename: String, source: String, error: String) async -> String? {
+        // Lazily create the auto-fixer when first needed (requires API key)
+        if snippetAutoFixer == nil {
+            guard let apiKey = resolveAIAPIKey() else {
+                return nil
+            }
+            let provider = ClaudeProvider(apiKey: apiKey)
+            snippetAutoFixer = SnippetAutoFix(provider: provider)
+        }
+
+        guard let fixer = snippetAutoFixer else { return nil }
+        return await fixer.attemptFix(filename: filename, source: source, error: error)
+    }
+
+    // MARK: - AI Chat
+
+    private func handleChatMessage(_ message: String) async -> String {
+        // Resolve the Claude API key: check config, then Keychain, then environment
+        guard let apiKey = resolveAIAPIKey() else {
+            return "No AI API key configured. Add one via:\n"
+                + "  macotron.keychain.set(\"anthropic-api-key\", \"sk-ant-...\")\n"
+                + "in your config.js, or set the ANTHROPIC_API_KEY environment variable."
+        }
+
+        let provider = ClaudeProvider(apiKey: apiKey)
+        let session = ChatSession(provider: provider, snippetManager: snippetManager)
+
+        do {
+            return try await session.processMessage(message)
+        } catch let error as AIProviderError {
+            return "AI error: \(error.localizedDescription)"
+        } catch {
+            return "Error: \(error.localizedDescription)"
+        }
+    }
+
+    /// Resolve the AI API key from multiple sources (in priority order):
+    /// 1. Config store (set via macotron.config({ ai: { apiKey: "..." } }))
+    /// 2. Keychain (set via macotron.keychain.set("anthropic-api-key", "..."))
+    /// 3. Environment variable ANTHROPIC_API_KEY
+    private func resolveAIAPIKey() -> String? {
+        // 1. Check config store
+        if let aiConfig = engine.configStore["ai"] as? [String: Any],
+           let key = aiConfig["apiKey"] as? String, !key.isEmpty {
+            return key
+        }
+
+        // 2. Check Keychain via the engine's KeychainModule
+        let keychainKeys = ["anthropic-api-key", "claude-api-key", "ai-api-key"]
+        for keyName in keychainKeys {
+            if let key = KeychainModule.readFromKeychain(key: keyName), !key.isEmpty {
+                return key
+            }
+        }
+
+        // 3. Check environment variable
+        if let key = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"], !key.isEmpty {
+            return key
+        }
+
+        return nil
     }
 
     private func search(_ query: String) -> [SearchResult] {
