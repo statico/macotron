@@ -15,6 +15,28 @@ public final class KeychainModule: NativeModule {
 
     public init() {}
 
+    // MARK: - Static Helpers
+
+    /// Read a value from the Keychain by key name. Usable from Swift without a JS context.
+    public static func readFromKeychain(key: String) -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceName,
+            kSecAttrAccount as String: key,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+        if status == errSecSuccess, let data = result as? Data,
+           let str = String(data: data, encoding: .utf8) {
+            return str
+        }
+        return nil
+    }
+
     // MARK: - NativeModule
 
     public func register(in engine: Engine, options: [String: Any]) {

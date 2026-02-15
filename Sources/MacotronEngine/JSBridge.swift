@@ -128,4 +128,65 @@ public enum JSBridge {
         JS_FreeValue(ctx, exception)
         return str
     }
+
+    // MARK: - JS → Swift (deep conversion)
+
+    /// Recursively convert a JSValue to a Swift Any (String, Int, Double, Bool, [Any], [String:Any], or NSNull)
+    public static func jsToSwift(_ ctx: OpaquePointer, _ val: JSValue) -> Any {
+        if JS_IsString(val) {
+            return toString(ctx, val) ?? ""
+        }
+        if JS_IsBool(val) {
+            return toBool(ctx, val)
+        }
+        if JS_IsNumber(val) {
+            var i: Int32 = 0
+            if JS_ToInt32(ctx, &i, val) == 0 {
+                var d: Double = 0
+                JS_ToFloat64(ctx, &d, val)
+                if Double(i) == d { return Int(i) }
+                return d
+            }
+            return toDouble(ctx, val)
+        }
+        if JS_IsArray(val) {
+            let lenVal = JS_GetPropertyStr(ctx, val, "length")
+            let len = toInt32(ctx, lenVal)
+            JS_FreeValue(ctx, lenVal)
+            var arr: [Any] = []
+            for idx in 0..<len {
+                let elem = JS_GetPropertyUint32(ctx, val, UInt32(idx))
+                arr.append(jsToSwift(ctx, elem))
+                JS_FreeValue(ctx, elem)
+            }
+            return arr
+        }
+        if JS_IsObject(val) {
+            var dict: [String: Any] = [:]
+            var ptab: UnsafeMutablePointer<JSPropertyEnum>?
+            var plen: UInt32 = 0
+            let flags = Int32(JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY)
+            if JS_GetOwnPropertyNames(ctx, &ptab, &plen, val, flags) == 0, let ptab {
+                for i in 0..<Int(plen) {
+                    let prop = ptab[i]
+                    let keyAtom = prop.atom
+                    let keyCStr = JS_AtomToCString(ctx, keyAtom)
+                    if let keyCStr {
+                        let key = String(cString: keyCStr)
+                        JS_FreeCString(ctx, keyCStr)
+                        let propVal = JS_GetProperty(ctx, val, keyAtom)
+                        dict[key] = jsToSwift(ctx, propVal)
+                        JS_FreeValue(ctx, propVal)
+                    }
+                    JS_FreeAtom(ctx, keyAtom)
+                }
+                js_free(ctx, ptab)
+            }
+            return dict
+        }
+        if JS_IsNull(val) || JS_IsUndefined(val) {
+            return NSNull()
+        }
+        return NSNull()
+    }
 }
