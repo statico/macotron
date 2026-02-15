@@ -17,7 +17,7 @@ public final class ClaudeProvider: AIProvider, @unchecked Sendable {
         baseURL: String? = nil
     ) {
         self.apiKey = apiKey
-        self.defaultModel = model ?? "claude-sonnet-4-20250514"
+        self.defaultModel = model ?? "claude-opus-4-6"
         self.baseURL = baseURL ?? "https://api.anthropic.com"
     }
 
@@ -175,6 +175,53 @@ public final class ClaudeProvider: AIProvider, @unchecked Sendable {
         }
 
         return fullResponse
+    }
+
+    // MARK: - Key Validation
+
+    /// Validate an Anthropic API key by listing models and checking for the preferred model.
+    public static func validateKey(_ key: String) async -> AIKeyValidationResult {
+        let preferredModel = "claude-opus-4-6"
+        var request = URLRequest(url: URL(string: "https://api.anthropic.com/v1/models")!)
+        request.httpMethod = "GET"
+        request.setValue(key, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.timeoutInterval = 15
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            return .networkError(message: error.localizedDescription)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            return .networkError(message: "Invalid response")
+        }
+
+        if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+            return .invalidKey(message: "Invalid API key (HTTP \(httpResponse.statusCode))")
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            return .invalidKey(message: "HTTP \(httpResponse.statusCode): \(body)")
+        }
+
+        // Parse model list
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let modelsArray = json["data"] as? [[String: Any]] else {
+            return .networkError(message: "Could not parse models response")
+        }
+
+        let modelIDs = modelsArray.compactMap { $0["id"] as? String }
+
+        if modelIDs.contains(preferredModel) {
+            return .valid(models: modelIDs)
+        } else {
+            return .modelUnavailable(available: modelIDs)
+        }
     }
 
     // MARK: - Tool Use Chat

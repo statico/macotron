@@ -26,10 +26,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private let configDir: URL = {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        return home.appending(path: "Documents/Macotron")
+        return home.appending(path: "Library/Application Support/Macotron")
     }()
 
     private static let hotkeyDefaultsKey = "launcherHotkey"
+    private static let providerDefaultsKey = "aiProvider"
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
         // Menubar-only app (no Dock icon)
@@ -130,11 +131,40 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupSettings() {
         settingsState.configDirURL = configDir
 
-        settingsState.readAPIKey = {
-            KeychainModule.readFromKeychain(key: "anthropic-api-key")
+        settingsState.readProvider = {
+            UserDefaults.standard.string(forKey: AppDelegate.providerDefaultsKey) ?? "anthropic"
         }
-        settingsState.writeAPIKey = { value in
-            KeychainModule.writeToKeychain(key: "anthropic-api-key", value: value)
+        settingsState.writeProvider = { value in
+            UserDefaults.standard.set(value, forKey: AppDelegate.providerDefaultsKey)
+        }
+        settingsState.readAPIKey = { [weak self] in
+            let provider = self?.settingsState.selectedProvider ?? "anthropic"
+            let keychainKey = AppDelegate.keychainKey(for: provider)
+            return KeychainModule.readFromKeychain(key: keychainKey)
+        }
+        settingsState.writeAPIKey = { [weak self] value in
+            let provider = self?.settingsState.selectedProvider ?? "anthropic"
+            let keychainKey = AppDelegate.keychainKey(for: provider)
+            KeychainModule.writeToKeychain(key: keychainKey, value: value)
+        }
+        settingsState.validateAPIKey = { key, provider in
+            let result: AIKeyValidationResult
+            switch provider {
+            case "openai":
+                result = await OpenAIProvider.validateKey(key)
+            default:
+                result = await ClaudeProvider.validateKey(key)
+            }
+            switch result {
+            case .valid:
+                return .valid
+            case .invalidKey(let message):
+                return .invalidKey(message)
+            case .networkError(let message):
+                return .invalidKey("Network error: \(message)")
+            case .modelUnavailable:
+                return .modelUnavailable
+            }
         }
         settingsState.readHotkey = { [weak self] in
             self?.resolveHotkey() ?? "cmd+space"
@@ -145,6 +175,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         settingsWindow = SettingsWindow(state: settingsState)
+    }
+
+    /// Map provider name to its keychain key
+    private static func keychainKey(for provider: String) -> String {
+        switch provider {
+        case "openai": return "openai-api-key"
+        default: return "anthropic-api-key"
+        }
     }
 
     /// Resolve the launcher hotkey from multiple sources:
@@ -229,7 +267,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let apiKey = resolveAIAPIKey() else {
                 return nil
             }
-            let provider = ClaudeProvider(apiKey: apiKey)
+            let providerName = resolveSelectedProvider()
+            let provider = AIProviderFactory.create(name: providerName, config: .init(apiKey: apiKey))
             snippetAutoFixer = SnippetAutoFix(provider: provider)
         }
 
@@ -240,9 +279,21 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - AI Chat
 
     private func handleChatMessage(_ message: String) async -> String {
-        // Resolve the Claude API key: check config, then Keychain, then environment
         guard let apiKey = resolveAIAPIKey() else {
             return "No AI API key configured. Open Settings from the menubar to add one."
+        }
+
+        let providerName = resolveSelectedProvider()
+
+        // ChatSession requires ClaudeProvider for tool-use support.
+        // For non-Anthropic providers, fall back to a simple chat call.
+        guard providerName == "anthropic" || providerName == "claude" else {
+            let provider = AIProviderFactory.create(name: providerName, config: .init(apiKey: apiKey))
+            do {
+                return try await provider.chat(prompt: message, options: AIRequestOptions())
+            } catch {
+                return "AI error: \(error.localizedDescription)"
+            }
         }
 
         let provider = ClaudeProvider(apiKey: apiKey)
@@ -257,27 +308,41 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// The currently selected AI provider name
+    private func resolveSelectedProvider() -> String {
+        UserDefaults.standard.string(forKey: AppDelegate.providerDefaultsKey) ?? "anthropic"
+    }
+
     /// Resolve the AI API key from multiple sources (in priority order):
     /// 1. Config store (set via macotron.config({ ai: { apiKey: "..." } }))
-    /// 2. Keychain (set via macotron.keychain.set("anthropic-api-key", "..."))
-    /// 3. Environment variable ANTHROPIC_API_KEY
+    /// 2. Keychain (per-provider key)
+    /// 3. Environment variable (ANTHROPIC_API_KEY or OPENAI_API_KEY)
     private func resolveAIAPIKey() -> String? {
+        let provider = resolveSelectedProvider()
+
         // 1. Check config store
         if let aiConfig = engine.configStore["ai"] as? [String: Any],
            let key = aiConfig["apiKey"] as? String, !key.isEmpty {
             return key
         }
 
-        // 2. Check Keychain via the engine's KeychainModule
-        let keychainKeys = ["anthropic-api-key", "claude-api-key", "ai-api-key"]
-        for keyName in keychainKeys {
-            if let key = KeychainModule.readFromKeychain(key: keyName), !key.isEmpty {
-                return key
+        // 2. Check Keychain — provider-specific key first, then fallbacks
+        let primaryKey = AppDelegate.keychainKey(for: provider)
+        if let key = KeychainModule.readFromKeychain(key: primaryKey), !key.isEmpty {
+            return key
+        }
+        // Legacy fallback keys for Anthropic
+        if provider == "anthropic" {
+            for keyName in ["claude-api-key", "ai-api-key"] {
+                if let key = KeychainModule.readFromKeychain(key: keyName), !key.isEmpty {
+                    return key
+                }
             }
         }
 
         // 3. Check environment variable
-        if let key = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"], !key.isEmpty {
+        let envVar = provider == "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY"
+        if let key = ProcessInfo.processInfo.environment[envVar], !key.isEmpty {
             return key
         }
 

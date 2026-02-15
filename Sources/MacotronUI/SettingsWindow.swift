@@ -6,6 +6,7 @@ import SwiftUI
 public final class SettingsWindow {
     private var window: NSWindow?
     private let settingsState: SettingsState
+    private var closeObserver: Any?
 
     public init(state: SettingsState) {
         self.settingsState = state
@@ -17,6 +18,9 @@ public final class SettingsWindow {
             NSApp.activate()
             return
         }
+
+        // Switch to regular activation policy so the Edit menu appears (enables Cmd+V paste)
+        NSApp.setActivationPolicy(.regular)
 
         settingsState.load()
 
@@ -33,8 +37,24 @@ public final class SettingsWindow {
         w.contentView = hostingView
         w.center()
         w.isReleasedWhenClosed = false
+        w.level = .floating
         w.makeKeyAndOrderFront(nil)
         NSApp.activate()
+
+        // Observe close to switch back to accessory (menu-bar-only) mode
+        closeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: w,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                NSApp.setActivationPolicy(.accessory)
+                if let obs = self?.closeObserver {
+                    NotificationCenter.default.removeObserver(obs)
+                    self?.closeObserver = nil
+                }
+            }
+        }
 
         self.window = w
     }

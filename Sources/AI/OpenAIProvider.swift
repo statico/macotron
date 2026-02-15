@@ -21,6 +21,53 @@ public final class OpenAIProvider: AIProvider, @unchecked Sendable {
         self.baseURL = baseURL ?? "https://api.openai.com"
     }
 
+    // MARK: - Key Validation
+
+    /// Validate an OpenAI API key by listing models and checking for the preferred model.
+    public static func validateKey(_ key: String) async -> AIKeyValidationResult {
+        let preferredModel = "gpt-4o"
+        var request = URLRequest(url: URL(string: "https://api.openai.com/v1/models")!)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 15
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            return .networkError(message: error.localizedDescription)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            return .networkError(message: "Invalid response")
+        }
+
+        if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+            return .invalidKey(message: "Invalid API key (HTTP \(httpResponse.statusCode))")
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            return .invalidKey(message: "HTTP \(httpResponse.statusCode): \(body)")
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let modelsArray = json["data"] as? [[String: Any]] else {
+            return .networkError(message: "Could not parse models response")
+        }
+
+        let modelIDs = modelsArray.compactMap { $0["id"] as? String }
+
+        if modelIDs.contains(preferredModel) {
+            return .valid(models: modelIDs)
+        } else {
+            return .modelUnavailable(available: modelIDs)
+        }
+    }
+
+    // MARK: - Chat
+
     public func chat(prompt: String, options: AIRequestOptions) async throws -> String {
         guard let key = apiKey, !key.isEmpty else {
             throw AIProviderError.missingAPIKey
