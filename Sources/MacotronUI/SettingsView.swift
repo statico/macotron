@@ -1,32 +1,67 @@
 // SettingsView.swift — SwiftUI settings panel for API keys, hotkey, preferences
 import SwiftUI
 
+/// Validation status for the API key
+public enum ValidationStatus: Equatable {
+    case idle
+    case checking
+    case valid
+    case invalidKey(String)
+    case modelUnavailable
+}
+
 @MainActor
 public final class SettingsState: ObservableObject {
     @Published public var apiKey: String = ""
+    @Published public var selectedProvider: String = "anthropic"
     @Published public var launcherHotkey: String = "cmd+space"
     @Published public var showAPIKeyRequired: Bool = false
+    @Published public var validationStatus: ValidationStatus = .idle
 
     /// Read/write closures set by AppDelegate
     public var readAPIKey: (() -> String?)?
     public var writeAPIKey: ((String) -> Void)?
+    public var readProvider: (() -> String)?
+    public var writeProvider: ((String) -> Void)?
     public var readHotkey: (() -> String)?
     public var writeHotkey: ((String) -> Void)?
+    /// Async validation closure: (key, provider) -> ValidationStatus
+    public var validateAPIKey: ((_ key: String, _ provider: String) async -> ValidationStatus)?
     public var configDirURL: URL?
 
     public init() {}
 
     public func load() {
+        selectedProvider = readProvider?() ?? "anthropic"
         apiKey = readAPIKey?() ?? ""
         launcherHotkey = readHotkey?() ?? "cmd+space"
+        validationStatus = .idle
     }
 
     public func saveAPIKey() {
         writeAPIKey?(apiKey)
+        // Run validation async
+        let key = apiKey
+        let provider = selectedProvider
+        validationStatus = .checking
+        Task {
+            if let validate = validateAPIKey {
+                let result = await validate(key, provider)
+                self.validationStatus = result
+            }
+        }
     }
 
     public func saveHotkey() {
         writeHotkey?(launcherHotkey)
+    }
+
+    public func switchProvider(_ provider: String) {
+        selectedProvider = provider
+        writeProvider?(provider)
+        // Reload the API key for the new provider
+        apiKey = readAPIKey?() ?? ""
+        validationStatus = .idle
     }
 }
 
@@ -36,6 +71,27 @@ public struct SettingsView: View {
 
     public init(state: SettingsState) {
         self.state = state
+    }
+
+    private var providerDisplayName: String {
+        switch state.selectedProvider {
+        case "openai": return "OpenAI"
+        default: return "Anthropic"
+        }
+    }
+
+    private var modelName: String {
+        switch state.selectedProvider {
+        case "openai": return "gpt-4o"
+        default: return "claude-opus-4-6"
+        }
+    }
+
+    private var apiKeyPlaceholder: String {
+        switch state.selectedProvider {
+        case "openai": return "sk-..."
+        default: return "sk-ant-..."
+        }
     }
 
     public var body: some View {
@@ -70,21 +126,51 @@ public struct SettingsView: View {
                         .cornerRadius(8)
                     }
 
+                    // AI Provider
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("AI Provider")
+                            .font(.headline)
+                        Text("Macotron selects the best model for each provider.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Picker("Provider", selection: Binding(
+                            get: { state.selectedProvider },
+                            set: { state.switchProvider($0) }
+                        )) {
+                            Text("Anthropic").tag("anthropic")
+                            Text("OpenAI").tag("openai")
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 200)
+
+                        HStack(spacing: 4) {
+                            Image(systemName: "cpu")
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                            Text("Model: \(modelName)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Divider()
+
                     // AI API Key
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("AI API Key")
+                        Text("\(providerDisplayName) API Key")
                             .font(.headline)
-                        Text("Anthropic (Claude) API key for chat and snippet auto-fix.")
+                        Text("Used for chat and snippet auto-fix.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
                         HStack(spacing: 8) {
                             if apiKeyVisible {
-                                TextField("sk-ant-...", text: $state.apiKey)
+                                TextField(apiKeyPlaceholder, text: $state.apiKey)
                                     .textFieldStyle(.roundedBorder)
                                     .font(.system(.body, design: .monospaced))
                             } else {
-                                SecureField("sk-ant-...", text: $state.apiKey)
+                                SecureField(apiKeyPlaceholder, text: $state.apiKey)
                                     .textFieldStyle(.roundedBorder)
                                     .font(.system(.body, design: .monospaced))
                             }
@@ -96,21 +182,14 @@ public struct SettingsView: View {
                             .buttonStyle(.borderless)
                         }
 
-                        HStack {
+                        HStack(spacing: 6) {
                             Button("Save API Key") {
                                 state.saveAPIKey()
                                 state.showAPIKeyRequired = false
                             }
                             .disabled(state.apiKey.trimmingCharacters(in: .whitespaces).isEmpty)
 
-                            if !state.apiKey.isEmpty {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
-                                    .font(.caption)
-                                Text("Key stored in macOS Keychain")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                            validationStatusView
                         }
                     }
 
@@ -120,19 +199,12 @@ public struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Launcher Hotkey")
                             .font(.headline)
-                        Text("Global keyboard shortcut to toggle the launcher. Examples: cmd+space, ctrl+opt+l")
+                        Text("Click to record a new global keyboard shortcut.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        HStack(spacing: 8) {
-                            TextField("cmd+space", text: $state.launcherHotkey)
-                                .textFieldStyle(.roundedBorder)
-                                .font(.system(.body, design: .monospaced))
-                                .frame(width: 200)
-
-                            Button("Apply") {
-                                state.saveHotkey()
-                            }
+                        HotkeyRecorderView(combo: $state.launcherHotkey) {
+                            state.saveHotkey()
                         }
                     }
 
@@ -147,7 +219,7 @@ public struct SettingsView: View {
                             .foregroundStyle(.secondary)
 
                         HStack(spacing: 8) {
-                            Text(state.configDirURL?.path() ?? "~/Documents/Macotron")
+                            Text(state.configDirURL?.path() ?? "~/Library/Application Support/Macotron")
                                 .font(.system(.body, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
@@ -166,9 +238,52 @@ public struct SettingsView: View {
                 .padding()
             }
         }
-        .frame(width: 520, height: state.showAPIKeyRequired ? 440 : 400)
+        .frame(width: 520, height: state.showAPIKeyRequired ? 480 : 440)
         .onAppear {
             state.load()
+        }
+    }
+
+    @ViewBuilder
+    private var validationStatusView: some View {
+        switch state.validationStatus {
+        case .idle:
+            EmptyView()
+        case .checking:
+            HStack(spacing: 4) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Validating...")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        case .valid:
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .font(.caption)
+                Text("Key valid — \(modelName) available")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        case .invalidKey(let message):
+            HStack(spacing: 4) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.red)
+                    .font(.caption)
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        case .modelUnavailable:
+            HStack(spacing: 4) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.caption)
+                Text("Key valid but \(modelName) not available. Update Macotron to use the latest models.")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
         }
     }
 }

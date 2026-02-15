@@ -61,6 +61,14 @@ public enum AIProviderError: Error, LocalizedError {
     }
 }
 
+/// Result of validating an API key against a provider
+public enum AIKeyValidationResult: Sendable {
+    case valid(models: [String])
+    case invalidKey(message: String)
+    case networkError(message: String)
+    case modelUnavailable(available: [String])
+}
+
 /// Factory for creating AI provider instances
 public enum AIProviderFactory {
     /// Known provider configuration
