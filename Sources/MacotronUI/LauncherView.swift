@@ -85,12 +85,13 @@ public struct LauncherView: View {
             HStack(spacing: 10) {
                 Image(systemName: mode == .chat ? "bubble.left.fill" : "magnifyingglass")
                     .foregroundStyle(.tertiary)
-                    .font(.title2)
-                    .frame(width: 24)
+                    .font(.system(size: 20))
+                    .frame(width: 24, height: 24)
 
                 TextField("Search apps, commands, or ask a question...", text: $query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 20, weight: .regular))
+                    .frame(height: 24)
                     .onSubmit { execute() }
                     .disabled(isChatLoading)
 
@@ -107,6 +108,7 @@ public struct LauncherView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
+            .fixedSize(horizontal: false, vertical: true)
 
             Divider().opacity(0.5)
 

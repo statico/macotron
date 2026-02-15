@@ -155,6 +155,7 @@ private struct HotkeyCombo: Equatable, Sendable {
 private final class GlobalHotkeyState: @unchecked Sendable {
     let lock = NSLock()
     var combo: HotkeyCombo?
+    var eventTap: CFMachPort?
 
     static let shared = GlobalHotkeyState()
 }
@@ -218,6 +219,7 @@ public final class GlobalHotkey {
         let state = GlobalHotkeyState.shared
         state.lock.lock()
         state.combo = nil
+        state.eventTap = nil
         state.lock.unlock()
         logger.info("Global hotkey cleaned up")
     }
@@ -235,10 +237,12 @@ public final class GlobalHotkey {
         let tapCallback: CGEventTapCallBack = { proxy, type, event, refcon -> Unmanaged<CGEvent>? in
             // Re-enable the tap if the system disabled it
             if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-                if let refcon {
-                    let machPort = Unmanaged<AnyObject>.fromOpaque(refcon).takeUnretainedValue()
-                    // swiftlint:disable:next force_cast
-                    CGEvent.tapEnable(tap: (machPort as! CFMachPort), enable: true)
+                let state = GlobalHotkeyState.shared
+                state.lock.lock()
+                let tap = state.eventTap
+                state.lock.unlock()
+                if let tap {
+                    CGEvent.tapEnable(tap: tap, enable: true)
                 }
                 return Unmanaged.passRetained(event)
             }
@@ -277,6 +281,12 @@ public final class GlobalHotkey {
             logger.error("Failed to create CGEvent tap for global hotkey. Ensure Accessibility permission is granted.")
             return
         }
+
+        // Store the tap in shared state so the C callback can re-enable it
+        let state = GlobalHotkeyState.shared
+        state.lock.lock()
+        state.eventTap = eventTap
+        state.lock.unlock()
 
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
         if let runLoopSource {
