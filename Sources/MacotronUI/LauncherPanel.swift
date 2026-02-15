@@ -1,6 +1,16 @@
 // LauncherPanel.swift — Floating NSPanel for the launcher
 import AppKit
 
+private extension NSView {
+    func firstEditableTextField() -> NSTextField? {
+        if let tf = self as? NSTextField, tf.isEditable { return tf }
+        for subview in subviews {
+            if let found = subview.firstEditableTextField() { return found }
+        }
+        return nil
+    }
+}
+
 @MainActor
 public final class LauncherPanel: NSPanel {
     public init(contentView: NSView) {
@@ -61,6 +71,14 @@ public final class LauncherPanel: NSPanel {
             }
             makeKeyAndOrderFront(nil)
             NSApp.activate()
+
+            // Focus the search text field
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                if let textField = self.contentView?.firstEditableTextField() {
+                    self.makeFirstResponder(textField)
+                }
+            }
         }
     }
 }
