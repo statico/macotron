@@ -81,10 +81,11 @@ public enum AIProviderFactory {
         switch name.lowercased() {
         case "claude", "anthropic":
             return ClaudeProvider(apiKey: config.apiKey, model: config.model)
+        case "openai", "gpt":
+            return OpenAIProvider(apiKey: config.apiKey, model: config.model, baseURL: config.baseURL)
         case "local", "apple":
             return LocalProvider()
         default:
-            // Return a placeholder that explains the provider is not yet implemented
             return PlaceholderProvider(name: name)
         }
     }

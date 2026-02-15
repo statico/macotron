@@ -76,7 +76,9 @@ public final class USBModule: NativeModule {
                 // Fallback: use IOService name
                 var name = [CChar](repeating: 0, count: 256)
                 if IORegistryEntryGetName(service, &name) == KERN_SUCCESS {
-                    deviceName = String(cString: name)
+                    deviceName = name.withUnsafeBufferPointer {
+                        String(decoding: $0.prefix(while: { $0 != 0 }).map { UInt8(bitPattern: $0) }, as: UTF8.self)
+                    }
                 }
             }
 

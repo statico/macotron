@@ -74,13 +74,15 @@ public final class ShellModule: NativeModule {
             let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
 
             // Run process on a background queue, resolve/reject on main
+            let capturedArgs = args
+            nonisolated(unsafe) let capturedCtx = ctx
             DispatchQueue.global(qos: .userInitiated).async {
                 do {
                     let process = Process()
                     process.executableURL = URL(fileURLWithPath: "/bin/zsh")
                     // Build full command line: command + args
                     var fullCmd = command
-                    for arg in args {
+                    for arg in capturedArgs {
                         // Simple shell-escape: wrap each arg in single quotes
                         let escaped = arg.replacingOccurrences(of: "'", with: "'\\''")
                         fullCmd += " '\(escaped)'"
@@ -102,28 +104,28 @@ public final class ShellModule: NativeModule {
                     let exitCode = process.terminationStatus
 
                     DispatchQueue.main.async {
-                        let resultObj = JS_NewObject(ctx)
-                        JSBridge.setProperty(ctx, resultObj, "stdout",
-                                             JSBridge.newString(ctx, stdoutStr))
-                        JSBridge.setProperty(ctx, resultObj, "stderr",
-                                             JSBridge.newString(ctx, stderrStr))
-                        JSBridge.setProperty(ctx, resultObj, "exitCode",
-                                             JSBridge.newInt32(ctx, exitCode))
+                        let resultObj = JS_NewObject(capturedCtx)
+                        JSBridge.setProperty(capturedCtx, resultObj, "stdout",
+                                             JSBridge.newString(capturedCtx, stdoutStr))
+                        JSBridge.setProperty(capturedCtx, resultObj, "stderr",
+                                             JSBridge.newString(capturedCtx, stderrStr))
+                        JSBridge.setProperty(capturedCtx, resultObj, "exitCode",
+                                             JSBridge.newInt32(capturedCtx, exitCode))
 
                         var resultArg = resultObj
-                        _ = JS_Call(ctx, resolve, QJS_Undefined(), 1, &resultArg)
-                        JS_FreeValue(ctx, resolve)
-                        JS_FreeValue(ctx, reject)
-                        JS_FreeValue(ctx, resultObj)
+                        _ = JS_Call(capturedCtx, resolve, QJS_Undefined(), 1, &resultArg)
+                        JS_FreeValue(capturedCtx, resolve)
+                        JS_FreeValue(capturedCtx, reject)
+                        JS_FreeValue(capturedCtx, resultObj)
                         engine.drainJobQueue()
                     }
                 } catch {
                     DispatchQueue.main.async {
-                        var errArg = JSBridge.newString(ctx, "shell.run failed: \(error.localizedDescription)")
-                        _ = JS_Call(ctx, reject, QJS_Undefined(), 1, &errArg)
-                        JS_FreeValue(ctx, resolve)
-                        JS_FreeValue(ctx, reject)
-                        JS_FreeValue(ctx, errArg)
+                        var errArg = JSBridge.newString(capturedCtx, "shell.run failed: \(error.localizedDescription)")
+                        _ = JS_Call(capturedCtx, reject, QJS_Undefined(), 1, &errArg)
+                        JS_FreeValue(capturedCtx, resolve)
+                        JS_FreeValue(capturedCtx, reject)
+                        JS_FreeValue(capturedCtx, errArg)
                         engine.drainJobQueue()
                     }
                 }

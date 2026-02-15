@@ -63,7 +63,6 @@ public final class WindowModule: NativeModule {
     private static func allWindows() -> [(pid: pid_t, app: String, axWindow: AXUIElement)] {
         var results: [(pid_t, String, AXUIElement)] = []
 
-        let sysWide = AXUIElementCreateSystemWide()
         // Walk running apps that own windows
         let workspace = NSWorkspace.shared
         for runApp in workspace.runningApplications {

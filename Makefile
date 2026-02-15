@@ -1,13 +1,14 @@
 APP_NAME = Macotron
-BUNDLE = .build/$(APP_NAME).app
-BINARY = .build/debug/$(APP_NAME)
+BUILD_DIR = /tmp/macotron-build
+BUNDLE = $(BUILD_DIR)/$(APP_NAME).app
+BINARY = $(BUILD_DIR)/debug/$(APP_NAME)
 BUNDLE_ID = com.macotron.app
 
 .PHONY: build run bundle clean dev reload eval screenshot
 
 # Compile
 build:
-	swift build
+	swift build --build-path $(BUILD_DIR)
 
 # Compile + bundle + run
 run: bundle
@@ -47,10 +48,10 @@ commands:
 	@curl -s http://localhost:7777/commands | python3 -m json.tool
 
 clean:
-	swift package clean
+	swift package clean --build-path $(BUILD_DIR)
 	rm -rf $(BUNDLE)
 
 # Release build
 release:
-	swift build -c release
+	swift build -c release --build-path $(BUILD_DIR)
 	@echo "TODO: bundle, sign with Developer ID, notarize, create DMG"
