@@ -17,6 +17,27 @@ public final class KeychainModule: NativeModule {
 
     // MARK: - Static Helpers
 
+    /// Write a value to the Keychain. Usable from Swift without a JS context.
+    public static func writeToKeychain(key: String, value: String) {
+        guard let data = value.data(using: .utf8) else { return }
+
+        let searchQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceName,
+            kSecAttrAccount as String: key,
+        ]
+        let updateAttrs: [String: Any] = [
+            kSecValueData as String: data,
+        ]
+
+        let status = SecItemUpdate(searchQuery as CFDictionary, updateAttrs as CFDictionary)
+        if status == errSecItemNotFound {
+            var addQuery = searchQuery
+            addQuery[kSecValueData as String] = data
+            SecItemAdd(addQuery as CFDictionary, nil)
+        }
+    }
+
     /// Read a value from the Keychain by key name. Usable from Swift without a JS context.
     public static func readFromKeychain(key: String) -> String? {
         let query: [String: Any] = [

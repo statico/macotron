@@ -15,6 +15,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var launcherPanel: LauncherPanel!
     private var launcherHotkey: GlobalHotkey?
     private var snippetAutoFixer: SnippetAutoFix?
+    private var settingsWindow: SettingsWindow!
+    private let settingsState = SettingsState()
+    private var permissionWindow: PermissionWindow?
+    private var appSearchProvider: AppSearchProvider!
 
     #if DEBUG
     private var debugServer: DebugServer?
@@ -22,8 +26,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private let configDir: URL = {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        return home.appending(path: ".macotron")
+        return home.appending(path: "Documents/Macotron")
     }()
+
+    private static let hotkeyDefaultsKey = "launcherHotkey"
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
         // Menubar-only app (no Dock icon)
@@ -37,6 +43,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // Set up snippet auto-fix (bridges MacotronEngine → AI target)
         setupAutoFix()
 
+        // Set up settings
+        setupSettings()
+
         // Set up menubar
         menuBarManager = MenuBarManager()
         menuBarManager.onReload = { [weak self] in
@@ -49,11 +58,20 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBarManager.onToggleLauncher = { [weak self] in
             self?.launcherPanel.toggle()
         }
+        menuBarManager.onOpenSettings = { [weak self] in
+            self?.settingsWindow.show()
+        }
+
+        // Set up app search
+        appSearchProvider = AppSearchProvider()
 
         // Set up launcher panel
         let launcherView = LauncherView(
             onExecuteCommand: { [weak self] id in
                 self?.executeCommand(id)
+            },
+            onRevealInFinder: { [weak self] id in
+                self?.appSearchProvider.revealInFinder(bundleID: id)
             },
             onSearch: { [weak self] query in
                 self?.search(query) ?? []
@@ -78,22 +96,24 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         snippetManager.reloadAll()
 
         // Set up global hotkey for launcher toggle
-        let launcherCombo: String
-        if let launcher = engine.configStore["launcher"] as? [String: Any],
-           let hotkey = launcher["hotkey"] as? String {
-            launcherCombo = hotkey
-        } else {
-            launcherCombo = "cmd+space"
-        }
+        let launcherCombo = resolveHotkey()
         launcherHotkey = GlobalHotkey(combo: launcherCombo) { [weak self] in
             self?.launcherPanel.toggle()
         }
 
         snippetManager.startWatching()
 
-        // Request accessibility on first launch
+        // Check permissions on first launch — show a dialog with instructions
         if !Permissions.isAccessibilityGranted {
-            Permissions.requestAccessibility()
+            permissionWindow = PermissionWindow()
+            permissionWindow?.show {
+                Permissions.openAccessibilitySettings()
+            }
+        }
+
+        // If no API key is configured, open settings with a message
+        if resolveAIAPIKey() == nil {
+            settingsWindow.showWithAPIKeyRequired()
         }
 
         // Start debug server if requested
@@ -103,6 +123,43 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             debugServer?.start()
         }
         #endif
+    }
+
+    // MARK: - Settings
+
+    private func setupSettings() {
+        settingsState.configDirURL = configDir
+
+        settingsState.readAPIKey = {
+            KeychainModule.readFromKeychain(key: "anthropic-api-key")
+        }
+        settingsState.writeAPIKey = { value in
+            KeychainModule.writeToKeychain(key: "anthropic-api-key", value: value)
+        }
+        settingsState.readHotkey = { [weak self] in
+            self?.resolveHotkey() ?? "cmd+space"
+        }
+        settingsState.writeHotkey = { [weak self] combo in
+            UserDefaults.standard.set(combo, forKey: AppDelegate.hotkeyDefaultsKey)
+            self?.launcherHotkey?.updateHotkey(combo)
+        }
+
+        settingsWindow = SettingsWindow(state: settingsState)
+    }
+
+    /// Resolve the launcher hotkey from multiple sources:
+    /// 1. UserDefaults (set via Settings UI)
+    /// 2. Config store (set via config.js)
+    /// 3. Default "cmd+space"
+    private func resolveHotkey() -> String {
+        if let saved = UserDefaults.standard.string(forKey: AppDelegate.hotkeyDefaultsKey), !saved.isEmpty {
+            return saved
+        }
+        if let launcher = engine.configStore["launcher"] as? [String: Any],
+           let hotkey = launcher["hotkey"] as? String {
+            return hotkey
+        }
+        return "cmd+space"
     }
 
     private func registerModules() {
@@ -140,11 +197,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func executeCommand(_ id: String) {
+        // Try as a registered JS command first
         if let cmd = engine.commandRegistry[id] {
             var undef = QJS_Undefined()
             _ = JS_Call(engine.context, cmd.callback, QJS_Undefined(), 0, &undef)
             engine.drainJobQueue()
+            launcherPanel.toggle()
+            return
         }
+
+        // Try as an app bundle ID
+        appSearchProvider.launchApp(bundleID: id)
+        launcherPanel.toggle()
     }
 
     // MARK: - Snippet Auto-Fix
@@ -178,9 +242,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleChatMessage(_ message: String) async -> String {
         // Resolve the Claude API key: check config, then Keychain, then environment
         guard let apiKey = resolveAIAPIKey() else {
-            return "No AI API key configured. Add one via:\n"
-                + "  macotron.keychain.set(\"anthropic-api-key\", \"sk-ant-...\")\n"
-                + "in your config.js, or set the ANTHROPIC_API_KEY environment variable."
+            return "No AI API key configured. Open Settings from the menubar to add one."
         }
 
         let provider = ClaudeProvider(apiKey: apiKey)
@@ -223,41 +285,38 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func search(_ query: String) -> [SearchResult] {
-        guard !query.isEmpty else { return [] }
+        // Show default app results when no query
+        if query.isEmpty {
+            return appSearchProvider.search("")
+        }
+
         var results: [SearchResult] = []
 
-        // Search commands
+        // Search commands (prioritized)
         for (_, cmd) in engine.commandRegistry {
             if let score = FuzzyMatch.score(query: query, target: cmd.name), score > 0 {
                 results.append(SearchResult(
                     id: cmd.name,
                     title: cmd.name,
                     subtitle: cmd.description,
-                    icon: "command",
+                    icon: "terminal.fill",
                     type: .command
                 ))
             }
         }
 
-        // Search running apps
-        for app in NSWorkspace.shared.runningApplications {
-            guard let name = app.localizedName, !name.isEmpty else { continue }
-            if let score = FuzzyMatch.score(query: query, target: name), score > 0 {
-                results.append(SearchResult(
-                    id: app.bundleIdentifier ?? name,
-                    title: name,
-                    subtitle: app.bundleIdentifier ?? "",
-                    icon: "app",
-                    type: .app
-                ))
-            }
-        }
+        // Search installed apps with icons
+        let appResults = appSearchProvider.search(query)
+        results.append(contentsOf: appResults)
 
-        // Sort by relevance (fuzzy score)
+        // Sort by relevance (fuzzy score), commands first on tie
         results.sort { r1, r2 in
             let s1 = FuzzyMatch.score(query: query, target: r1.title) ?? 0
             let s2 = FuzzyMatch.score(query: query, target: r2.title) ?? 0
-            return s1 > s2
+            if s1 != s2 { return s1 > s2 }
+            // Commands rank above apps on tie
+            if r1.type == .command && r2.type != .command { return true }
+            return false
         }
 
         return Array(results.prefix(20))

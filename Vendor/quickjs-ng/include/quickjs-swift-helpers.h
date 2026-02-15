@@ -17,4 +17,17 @@ JS_EXTERN JSValue QJS_NewBool(JSContext *ctx, int val);
 JS_EXTERN JSValue QJS_ThrowTypeError(JSContext *ctx, const char *msg);
 JS_EXTERN JSValue QJS_ThrowInternalError(JSContext *ctx, const char *msg);
 
+// ES module support — compile source as a module, returning JSModuleDef*
+JS_EXTERN JSModuleDef *QJS_CompileModule(JSContext *ctx, const char *source, size_t source_len, const char *module_name);
+
+// Auto-detect module vs script and evaluate
+JS_EXTERN JSValue QJS_EvalAutoDetect(JSContext *ctx, const char *source, size_t source_len, const char *filename);
+
+// Bytecode compilation — compile to bytecode, returning malloc'd buffer
+JS_EXTERN uint8_t *QJS_CompileToBytecode(JSContext *ctx, const char *source, size_t source_len,
+                                          const char *filename, size_t *out_len);
+
+// Bytecode execution — load and execute bytecode
+JS_EXTERN JSValue QJS_EvalBytecode(JSContext *ctx, const uint8_t *buf, size_t buf_len);
+
 #endif

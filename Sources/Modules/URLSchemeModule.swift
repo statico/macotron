@@ -77,7 +77,7 @@ public final class URLSchemeModule: NativeModule {
         JS_SetPropertyStr(ctx, urlObj, "registerHandler",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-            let scheme = JSBridge.toString(ctx, argv[0]) ?? ""
+            let _ = JSBridge.toString(ctx, argv[0]) ?? ""
 
             let opaque = JS_GetContextOpaque(ctx)
             guard let opaque else { return QJS_Undefined() }

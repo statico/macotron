@@ -286,7 +286,7 @@ public final class FileSystemModule: NativeModule {
             guard let opaque else {
                 return QJS_ThrowInternalError(ctx, "fs.watch: engine not available")
             }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            let _ = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
 
             let expandedPath = NSString(string: path).expandingTildeInPath
 
@@ -373,7 +373,7 @@ public final class FileSystemModule: NativeModule {
             watcher.stream = stream
             module.activeWatchers[watcherID] = watcher
 
-            FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+            FSEventStreamSetDispatchQueue(stream, .main)
             FSEventStreamStart(stream)
 
             logger.info("fs.watch: watching \(expandedPath) (id=\(watcherID))")

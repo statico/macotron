@@ -124,9 +124,9 @@ public final class HTTPModule: NativeModule {
         }
 
         // Perform synchronous request
-        var responseData: Data?
-        var httpResponse: HTTPURLResponse?
-        var requestError: String?
+        nonisolated(unsafe) var responseData: Data?
+        nonisolated(unsafe) var httpResponse: HTTPURLResponse?
+        nonisolated(unsafe) var requestError: String?
 
         let semaphore = DispatchSemaphore(value: 0)
 

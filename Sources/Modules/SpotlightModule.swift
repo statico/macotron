@@ -49,7 +49,7 @@ public final class SpotlightModule: NativeModule {
         query.searchScopes = [NSMetadataQueryLocalComputerScope]
         // Limit results by collecting only the first 50 after gathering
 
-        var finished = false
+        nonisolated(unsafe) var finished = false
         let observer = NotificationCenter.default.addObserver(
             forName: .NSMetadataQueryDidFinishGathering,
             object: query,

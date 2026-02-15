@@ -1,4 +1,4 @@
-// SnippetManager.swift — Load, watch, execute snippets from ~/.macotron/
+// SnippetManager.swift — Load, watch, execute snippets from ~/Documents/Macotron/
 import CQuickJS
 import Foundation
 import os
@@ -26,18 +26,25 @@ public final class SnippetManager {
     /// Maximum auto-fix retry attempts per file per reload cycle.
     private let maxAutoFixAttemptsPerFile = 2
 
+    /// Bytecode cache directory
+    private let cacheDir: URL
+
     public init(engine: Engine, configDir: URL) {
         self.engine = engine
         self.configDir = configDir
         self.backup = ConfigBackup(configDir: configDir)
+        self.cacheDir = configDir.appending(path: ".cache")
+
+        // Set the module base dir so ES module imports resolve relative to config
+        engine.moduleBaseDir = configDir
     }
 
     // MARK: - Directory Setup
 
-    /// Create the ~/.macotron/ directory structure if it doesn't exist
+    /// Create the ~/Documents/Macotron/ directory structure if it doesn't exist
     public func ensureDirectoryStructure() {
         let fm = FileManager.default
-        let dirs = ["snippets", "commands", "plugins", "data", "backups", "logs"]
+        let dirs = ["snippets", "commands", "plugins", "data", "backups", "logs", ".cache"]
         for dir in dirs {
             let url = configDir.appending(path: dir)
             if !fm.fileExists(atPath: url.path()) {
@@ -117,7 +124,7 @@ public final class SnippetManager {
         logger.info("Loaded \(snippetFiles.count) snippets, \(commandFiles.count) commands. Ready.")
     }
 
-    /// Execute a single JS file with error isolation.
+    /// Execute a single JS file with error isolation and bytecode caching.
     /// If execution fails and an `autoFixHandler` is set, attempts to auto-fix
     /// the snippet (up to `maxAutoFixAttemptsPerFile` times per reload cycle).
     private func executeFile(_ file: URL) {
@@ -127,10 +134,33 @@ public final class SnippetManager {
         }
 
         let filename = file.lastPathComponent
-        let (_, error) = engine.evaluate(source, filename: filename)
+        let cachePath = cacheDir.appending(path: filename + ".bc")
+
+        // Try bytecode cache (skip if source is newer)
+        if let cacheData = try? Data(contentsOf: cachePath),
+           let cacheDate = try? FileManager.default.attributesOfItem(atPath: cachePath.path())[.modificationDate] as? Date,
+           let sourceDate = try? FileManager.default.attributesOfItem(atPath: file.path())[.modificationDate] as? Date,
+           cacheDate >= sourceDate {
+            let (_, error) = engine.evaluateBytecode(cacheData, filename: filename)
+            if let error {
+                logger.error("\(filename) (cached): \(error)")
+                // Cache might be stale, fall through to source evaluation
+            } else {
+                return
+            }
+        }
+
+        // Evaluate from source
+        let fullPath = file.path()
+        let (_, error) = engine.evaluate(source, filename: fullPath)
         if let error {
             logger.error("\(filename): \(error)")
             scheduleAutoFix(file: file, source: source, error: error)
+        } else {
+            // Cache the bytecode for next time
+            if let bytecode = engine.compileToBytecode(source, filename: fullPath) {
+                try? bytecode.write(to: cachePath)
+            }
         }
     }
 
@@ -238,7 +268,7 @@ public final class SnippetManager {
 
     // MARK: - File Watching
 
-    /// Watch ~/.macotron/ for changes, auto-reload
+    /// Watch ~/Documents/Macotron/ for changes, auto-reload
     public func startWatching() {
         let path = configDir.path()
 
@@ -270,7 +300,7 @@ public final class SnippetManager {
         )
 
         guard let stream = fsEventStream else { return }
-        FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+        FSEventStreamSetDispatchQueue(stream, .main)
         FSEventStreamStart(stream)
         logger.info("Watching \(path) for changes")
     }

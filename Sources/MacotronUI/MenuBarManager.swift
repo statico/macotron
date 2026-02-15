@@ -27,6 +27,7 @@ public final class MenuBarManager: NSObject {
     public var onReload: (() -> Void)?
     public var onOpenConfig: (() -> Void)?
     public var onToggleLauncher: (() -> Void)?
+    public var onOpenSettings: (() -> Void)?
 
     public override init() {
         super.init()
@@ -133,6 +134,10 @@ public final class MenuBarManager: NSObject {
         openConfig.target = self
         menu.addItem(openConfig)
 
+        let settings = NSMenuItem(title: "Settings...", action: #selector(openSettingsAction), keyEquivalent: "")
+        settings.target = self
+        menu.addItem(settings)
+
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Macotron", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
@@ -153,5 +158,9 @@ public final class MenuBarManager: NSObject {
 
     @objc private func openConfigAction() {
         onOpenConfig?()
+    }
+
+    @objc private func openSettingsAction() {
+        onOpenSettings?()
     }
 }
