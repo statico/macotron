@@ -1,0 +1,6 @@
+module CQuickJS {
+    header "quickjs.h"
+    header "quickjs-libc.h"
+    header "quickjs-swift-helpers.h"
+    export *
+}
