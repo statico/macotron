@@ -1,4 +1,4 @@
-// SnippetManager.swift — Load, watch, execute snippets from ~/Documents/Macotron/
+// SnippetManager.swift — Load, watch, execute snippets from ~/Library/Application Support/Macotron/
 import CQuickJS
 import Foundation
 import os
@@ -41,7 +41,7 @@ public final class SnippetManager {
 
     // MARK: - Directory Setup
 
-    /// Create the ~/Documents/Macotron/ directory structure if it doesn't exist
+    /// Create the ~/Library/Application Support/Macotron/ directory structure if it doesn't exist
     public func ensureDirectoryStructure() {
         let fm = FileManager.default
         let dirs = ["snippets", "commands", "plugins", "data", "backups", "logs", ".cache"]
@@ -268,7 +268,7 @@ public final class SnippetManager {
 
     // MARK: - File Watching
 
-    /// Watch ~/Documents/Macotron/ for changes, auto-reload
+    /// Watch ~/Library/Application Support/Macotron/ for changes, auto-reload
     public func startWatching() {
         let path = configDir.path()
 

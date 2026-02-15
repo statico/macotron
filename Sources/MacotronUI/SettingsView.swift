@@ -15,6 +15,8 @@ public final class SettingsState: ObservableObject {
     @Published public var apiKey: String = ""
     @Published public var selectedProvider: String = "anthropic"
     @Published public var launcherHotkey: String = "cmd+space"
+    @Published public var showDockIcon: Bool = true
+    @Published public var showMenuBarIcon: Bool = true
     @Published public var showAPIKeyRequired: Bool = false
     @Published public var validationStatus: ValidationStatus = .idle
 
@@ -25,6 +27,10 @@ public final class SettingsState: ObservableObject {
     public var writeProvider: ((String) -> Void)?
     public var readHotkey: (() -> String)?
     public var writeHotkey: ((String) -> Void)?
+    public var readShowDockIcon: (() -> Bool)?
+    public var writeShowDockIcon: ((Bool) -> Void)?
+    public var readShowMenuBarIcon: (() -> Bool)?
+    public var writeShowMenuBarIcon: ((Bool) -> Void)?
     /// Async validation closure: (key, provider) -> ValidationStatus
     public var validateAPIKey: ((_ key: String, _ provider: String) async -> ValidationStatus)?
     public var configDirURL: URL?
@@ -35,12 +41,13 @@ public final class SettingsState: ObservableObject {
         selectedProvider = readProvider?() ?? "anthropic"
         apiKey = readAPIKey?() ?? ""
         launcherHotkey = readHotkey?() ?? "cmd+space"
+        showDockIcon = readShowDockIcon?() ?? true
+        showMenuBarIcon = readShowMenuBarIcon?() ?? true
         validationStatus = .idle
     }
 
     public func saveAPIKey() {
         writeAPIKey?(apiKey)
-        // Run validation async
         let key = apiKey
         let provider = selectedProvider
         validationStatus = .checking
@@ -59,9 +66,18 @@ public final class SettingsState: ObservableObject {
     public func switchProvider(_ provider: String) {
         selectedProvider = provider
         writeProvider?(provider)
-        // Reload the API key for the new provider
         apiKey = readAPIKey?() ?? ""
         validationStatus = .idle
+    }
+
+    public func toggleDockIcon(_ value: Bool) {
+        showDockIcon = value
+        writeShowDockIcon?(value)
+    }
+
+    public func toggleMenuBarIcon(_ value: Bool) {
+        showMenuBarIcon = value
+        writeShowMenuBarIcon?(value)
     }
 }
 
@@ -71,13 +87,6 @@ public struct SettingsView: View {
 
     public init(state: SettingsState) {
         self.state = state
-    }
-
-    private var providerDisplayName: String {
-        switch state.selectedProvider {
-        case "openai": return "OpenAI"
-        default: return "Anthropic"
-        }
     }
 
     private var modelName: String {
@@ -94,155 +103,187 @@ public struct SettingsView: View {
         }
     }
 
+    private var configDirPath: String {
+        state.configDirURL?.path ?? "~/Library/Application Support/Macotron"
+    }
+
     public var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Image(systemName: "gearshape.fill")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-                Text("Macotron Settings")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                Spacer()
-            }
-            .padding()
-
-            Divider()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // API Key warning
-                    if state.showAPIKeyRequired {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                            Text("An AI API key is required for chat and auto-fix features.")
-                                .font(.callout)
-                        }
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.orange.opacity(0.1))
-                        .cornerRadius(8)
-                    }
-
-                    // AI Provider
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("AI Provider")
-                            .font(.headline)
-                        Text("Macotron selects the best model for each provider.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        Picker("Provider", selection: Binding(
-                            get: { state.selectedProvider },
-                            set: { state.switchProvider($0) }
-                        )) {
-                            Text("Anthropic").tag("anthropic")
-                            Text("OpenAI").tag("openai")
-                        }
-                        .pickerStyle(.menu)
-                        .frame(width: 200)
-
-                        HStack(spacing: 4) {
-                            Image(systemName: "cpu")
-                                .foregroundStyle(.secondary)
-                                .font(.caption)
-                            Text("Model: \(modelName)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Divider()
-
-                    // AI API Key
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("\(providerDisplayName) API Key")
-                            .font(.headline)
-                        Text("Used for chat and snippet auto-fix.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        HStack(spacing: 8) {
-                            if apiKeyVisible {
-                                TextField(apiKeyPlaceholder, text: $state.apiKey)
-                                    .textFieldStyle(.roundedBorder)
-                                    .font(.system(.body, design: .monospaced))
-                            } else {
-                                SecureField(apiKeyPlaceholder, text: $state.apiKey)
-                                    .textFieldStyle(.roundedBorder)
-                                    .font(.system(.body, design: .monospaced))
-                            }
-                            Button {
-                                apiKeyVisible.toggle()
-                            } label: {
-                                Image(systemName: apiKeyVisible ? "eye.slash" : "eye")
-                            }
-                            .buttonStyle(.borderless)
-                        }
-
-                        HStack(spacing: 6) {
-                            Button("Save API Key") {
-                                state.saveAPIKey()
-                                state.showAPIKeyRequired = false
-                            }
-                            .disabled(state.apiKey.trimmingCharacters(in: .whitespaces).isEmpty)
-
-                            validationStatusView
-                        }
-                    }
-
-                    Divider()
-
-                    // Launcher Hotkey
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Launcher Hotkey")
-                            .font(.headline)
-                        Text("Click to record a new global keyboard shortcut.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        HotkeyRecorderView(combo: $state.launcherHotkey) {
-                            state.saveHotkey()
-                        }
-                    }
-
-                    Divider()
-
-                    // Config Directory
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Config Directory")
-                            .font(.headline)
-                        Text("Snippets, commands, and configuration files are stored here.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        HStack(spacing: 8) {
-                            Text(state.configDirURL?.path() ?? "~/Library/Application Support/Macotron")
-                                .font(.system(.body, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-
-                            Spacer()
-
-                            Button("Open in Finder") {
-                                if let url = state.configDirURL {
-                                    NSWorkspace.shared.open(url)
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding()
-            }
+        TabView {
+            generalTab
+                .tabItem { Label("General", systemImage: "gearshape") }
+            aiTab
+                .tabItem { Label("AI", systemImage: "cpu") }
         }
-        .frame(width: 520, height: state.showAPIKeyRequired ? 480 : 440)
+        .frame(width: 480, height: 360)
         .onAppear {
             state.load()
         }
     }
+
+    // MARK: - General Tab
+
+    private var generalTab: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Launcher Hotkey
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Launcher Hotkey")
+                    .font(.headline)
+                Text("Click to record a new global keyboard shortcut.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HotkeyRecorderView(combo: $state.launcherHotkey) {
+                    state.saveHotkey()
+                }
+            }
+
+            Divider()
+
+            // Appearance
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Appearance")
+                    .font(.headline)
+                Text("At least one must be enabled.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Show Dock Icon", isOn: Binding(
+                    get: { state.showDockIcon },
+                    set: { state.toggleDockIcon($0) }
+                ))
+                .disabled(!state.showMenuBarIcon)
+
+                Toggle("Show Menu Bar Icon", isOn: Binding(
+                    get: { state.showMenuBarIcon },
+                    set: { state.toggleMenuBarIcon($0) }
+                ))
+                .disabled(!state.showDockIcon)
+            }
+
+            Divider()
+
+            // Config Directory
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Config Directory")
+                    .font(.headline)
+                Text("Snippets, commands, and configuration files.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 8) {
+                    Text(configDirPath)
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+
+                    Spacer()
+
+                    Button("Open in Finder") {
+                        if let url = state.configDirURL {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                }
+            }
+
+            Spacer()
+        }
+        .padding()
+    }
+
+    // MARK: - AI Tab
+
+    private var aiTab: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // API Key warning
+            if state.showAPIKeyRequired {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text("An AI API key is required for chat and auto-fix features.")
+                        .font(.callout)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.orange.opacity(0.1))
+                .cornerRadius(8)
+            }
+
+            // Provider + Model (inline)
+            HStack(spacing: 8) {
+                Picker("", selection: Binding(
+                    get: { state.selectedProvider },
+                    set: { state.switchProvider($0) }
+                )) {
+                    Text("Anthropic").tag("anthropic")
+                    Text("OpenAI").tag("openai")
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+
+                HStack(spacing: 4) {
+                    Image(systemName: "cpu")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                    Text(modelName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if state.validationStatus == .valid {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.caption)
+                }
+            }
+
+            Divider()
+
+            // API Key
+            VStack(alignment: .leading, spacing: 6) {
+                Text("API Key")
+                    .font(.headline)
+                Text("Used for chat and snippet auto-fix.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 8) {
+                    if apiKeyVisible {
+                        TextField(apiKeyPlaceholder, text: $state.apiKey)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(.body, design: .monospaced))
+                    } else {
+                        SecureField(apiKeyPlaceholder, text: $state.apiKey)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(.body, design: .monospaced))
+                    }
+                    Button {
+                        apiKeyVisible.toggle()
+                    } label: {
+                        Image(systemName: apiKeyVisible ? "eye.slash" : "eye")
+                    }
+                    .buttonStyle(.borderless)
+                }
+
+                HStack(spacing: 6) {
+                    Button("Save API Key") {
+                        state.saveAPIKey()
+                        state.showAPIKeyRequired = false
+                    }
+                    .disabled(state.apiKey.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                    validationStatusView
+                }
+            }
+
+            Spacer()
+        }
+        .padding()
+    }
+
+    // MARK: - Validation Status
 
     @ViewBuilder
     private var validationStatusView: some View {
@@ -280,7 +321,7 @@ public struct SettingsView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
                     .font(.caption)
-                Text("Key valid but \(modelName) not available. Update Macotron to use the latest models.")
+                Text("Key valid but \(modelName) not available.")
                     .font(.caption)
                     .foregroundStyle(.orange)
             }

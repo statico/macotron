@@ -28,7 +28,7 @@ public final class SettingsWindow {
         let hostingView = NSHostingView(rootView: settingsView)
 
         let w = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 440),
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 360),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -37,18 +37,20 @@ public final class SettingsWindow {
         w.contentView = hostingView
         w.center()
         w.isReleasedWhenClosed = false
-        w.level = .floating
         w.makeKeyAndOrderFront(nil)
         NSApp.activate()
 
-        // Observe close to switch back to accessory (menu-bar-only) mode
+        // Observe close to restore the correct activation policy
         closeObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: w,
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                NSApp.setActivationPolicy(.accessory)
+                // Only revert to accessory mode if the user doesn't want a dock icon
+                if !(self?.settingsState.showDockIcon ?? true) {
+                    NSApp.setActivationPolicy(.accessory)
+                }
                 if let obs = self?.closeObserver {
                     NotificationCenter.default.removeObserver(obs)
                     self?.closeObserver = nil

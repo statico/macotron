@@ -24,6 +24,9 @@ public final class MenuBarManager: NSObject {
     /// Items registered by JS snippets, keyed by ID
     private var dynamicItems: [(id: String, config: MenuItemConfig)] = []
 
+    /// Current launcher shortcut combo string (e.g. "cmd+space"), used for menu display
+    private var launcherShortcut: String = "cmd+space"
+
     public var onReload: (() -> Void)?
     public var onOpenConfig: (() -> Void)?
     public var onToggleLauncher: (() -> Void)?
@@ -83,7 +86,38 @@ public final class MenuBarManager: NSObject {
         statusItem.button?.title = text
     }
 
+    public func setVisible(_ visible: Bool) {
+        statusItem.isVisible = visible
+    }
+
+    public func updateLauncherShortcut(_ combo: String) {
+        launcherShortcut = combo
+        rebuildMenu()
+    }
+
     // MARK: - Menu Building
+
+    /// Parse a hotkey combo string (e.g. "cmd+shift+k") into an NSMenuItem key equivalent and modifier mask.
+    private func parseHotkey(_ combo: String) -> (key: String, modifiers: NSEvent.ModifierFlags) {
+        let parts = combo.lowercased().split(separator: "+")
+        var modifiers: NSEvent.ModifierFlags = []
+        var key = ""
+
+        for part in parts {
+            switch part {
+            case "cmd", "command": modifiers.insert(.command)
+            case "shift": modifiers.insert(.shift)
+            case "ctrl", "control": modifiers.insert(.control)
+            case "opt", "alt", "option": modifiers.insert(.option)
+            case "space": key = " "
+            case "return", "enter": key = "\r"
+            case "tab": key = "\t"
+            default: key = String(part)
+            }
+        }
+
+        return (key, modifiers)
+    }
 
     private func rebuildMenu() {
         menu.removeAllItems()
@@ -122,7 +156,9 @@ public final class MenuBarManager: NSObject {
         // Standard items at bottom
         menu.addItem(.separator())
 
-        let openLauncher = NSMenuItem(title: "Open Launcher", action: #selector(openLauncherAction), keyEquivalent: " ")
+        let (launcherKey, launcherMods) = parseHotkey(launcherShortcut)
+        let openLauncher = NSMenuItem(title: "Open Launcher", action: #selector(openLauncherAction), keyEquivalent: launcherKey)
+        openLauncher.keyEquivalentModifierMask = launcherMods
         openLauncher.target = self
         menu.addItem(openLauncher)
 
