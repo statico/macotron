@@ -35,6 +35,8 @@ public final class SettingsState: ObservableObject {
     public var validateAPIKey: ((_ key: String, _ provider: String) async -> ValidationStatus)?
     public var configDirURL: URL?
 
+    private var apiKeyDebounce: Task<Void, Never>?
+
     public init() {}
 
     public func load() {
@@ -46,14 +48,29 @@ public final class SettingsState: ObservableObject {
         validationStatus = .idle
     }
 
-    public func saveAPIKey() {
-        writeAPIKey?(apiKey)
+    /// Debounced save + validate. Called on every keystroke; waits for typing to stop.
+    public func debouncedSaveAPIKey() {
+        apiKeyDebounce?.cancel()
         let key = apiKey
         let provider = selectedProvider
-        validationStatus = .checking
-        Task {
+
+        // Don't save or validate empty keys
+        guard !key.trimmingCharacters(in: .whitespaces).isEmpty else {
+            validationStatus = .idle
+            return
+        }
+
+        apiKeyDebounce = Task {
+            try? await Task.sleep(nanoseconds: 800_000_000) // 0.8s
+            guard !Task.isCancelled else { return }
+
+            writeAPIKey?(key)
+            showAPIKeyRequired = false
+            validationStatus = .checking
+
             if let validate = validateAPIKey {
                 let result = await validate(key, provider)
+                guard !Task.isCancelled else { return }
                 self.validationStatus = result
             }
         }
@@ -83,7 +100,7 @@ public final class SettingsState: ObservableObject {
 
 public struct SettingsView: View {
     @ObservedObject var state: SettingsState
-    @State private var apiKeyVisible = false
+    @State private var selectedTab: Int = 0
 
     public init(state: SettingsState) {
         self.state = state
@@ -108,15 +125,20 @@ public struct SettingsView: View {
     }
 
     public var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             generalTab
-                .tabItem { Label("General", systemImage: "gearshape") }
+                .tabItem { Image(systemName: "gearshape") }
+                .tag(0)
             aiTab
-                .tabItem { Label("AI", systemImage: "cpu") }
+                .tabItem { Image(systemName: "cpu") }
+                .tag(1)
         }
         .frame(width: 480, height: 360)
         .onAppear {
             state.load()
+            if state.showAPIKeyRequired {
+                selectedTab = 1
+            }
         }
     }
 
@@ -210,7 +232,7 @@ public struct SettingsView: View {
                 .cornerRadius(8)
             }
 
-            // Provider + Model (inline)
+            // Provider
             HStack(spacing: 8) {
                 Picker("", selection: Binding(
                     get: { state.selectedProvider },
@@ -223,20 +245,12 @@ public struct SettingsView: View {
                 .pickerStyle(.menu)
                 .fixedSize()
 
-                HStack(spacing: 4) {
-                    Image(systemName: "cpu")
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
-                    Text(modelName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
                 if state.validationStatus == .valid {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
-                        .font(.caption)
                 }
+
+                validationStatusView
             }
 
             Divider()
@@ -245,37 +259,24 @@ public struct SettingsView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("API Key")
                     .font(.headline)
-                Text("Used for chat and snippet auto-fix.")
+                Text("Used for chat and snippet auto-fix. Saved automatically.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                HStack(spacing: 8) {
-                    if apiKeyVisible {
-                        TextField(apiKeyPlaceholder, text: $state.apiKey)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.system(.body, design: .monospaced))
-                    } else {
-                        SecureField(apiKeyPlaceholder, text: $state.apiKey)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.system(.body, design: .monospaced))
+                TextEditor(text: $state.apiKey)
+                    .font(.system(.body, design: .monospaced))
+                    .frame(height: 60)
+                    .scrollContentBackground(.hidden)
+                    .padding(4)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
+                    )
+                    .onChange(of: state.apiKey) {
+                        state.debouncedSaveAPIKey()
                     }
-                    Button {
-                        apiKeyVisible.toggle()
-                    } label: {
-                        Image(systemName: apiKeyVisible ? "eye.slash" : "eye")
-                    }
-                    .buttonStyle(.borderless)
-                }
-
-                HStack(spacing: 6) {
-                    Button("Save API Key") {
-                        state.saveAPIKey()
-                        state.showAPIKeyRequired = false
-                    }
-                    .disabled(state.apiKey.trimmingCharacters(in: .whitespaces).isEmpty)
-
-                    validationStatusView
-                }
             }
 
             Spacer()
@@ -299,14 +300,7 @@ public struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
         case .valid:
-            HStack(spacing: 4) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                    .font(.caption)
-                Text("Key valid — \(modelName) available")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            EmptyView() // checkmark shown inline next to provider
         case .invalidKey(let message):
             HStack(spacing: 4) {
                 Image(systemName: "xmark.circle.fill")
