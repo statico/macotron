@@ -127,10 +127,10 @@ public struct SettingsView: View {
     public var body: some View {
         TabView(selection: $selectedTab) {
             generalTab
-                .tabItem { Image(systemName: "gearshape") }
+                .tabItem { Label("General", systemImage: "gearshape") }
                 .tag(0)
             aiTab
-                .tabItem { Image(systemName: "cpu") }
+                .tabItem { Label("AI", systemImage: "cpu") }
                 .tag(1)
         }
         .frame(width: 480, height: 360)
@@ -233,25 +233,16 @@ public struct SettingsView: View {
             }
 
             // Provider
-            HStack(spacing: 8) {
-                Picker("", selection: Binding(
-                    get: { state.selectedProvider },
-                    set: { state.switchProvider($0) }
-                )) {
-                    Text("Anthropic").tag("anthropic")
-                    Text("OpenAI").tag("openai")
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .fixedSize()
-
-                if state.validationStatus == .valid {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                }
-
-                validationStatusView
+            Picker("", selection: Binding(
+                get: { state.selectedProvider },
+                set: { state.switchProvider($0) }
+            )) {
+                Text("Anthropic").tag("anthropic")
+                Text("OpenAI").tag("openai")
             }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .fixedSize()
 
             Divider()
 
@@ -277,6 +268,8 @@ public struct SettingsView: View {
                     .onChange(of: state.apiKey) {
                         state.debouncedSaveAPIKey()
                     }
+
+                validationStatusView
             }
 
             Spacer()
@@ -300,7 +293,14 @@ public struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
         case .valid:
-            EmptyView() // checkmark shown inline next to provider
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .font(.caption)
+                Text("API key valid — \(modelName) available")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         case .invalidKey(let message):
             HStack(spacing: 4) {
                 Image(systemName: "xmark.circle.fill")
