@@ -14,7 +14,7 @@ private let logger = Logger(subsystem: "com.macotron", category: "ai.autofix")
 /// - Fixed code is verified via `CapabilityReview` to ensure no capability escalation
 @MainActor
 public final class SnippetAutoFix {
-    private let provider: ClaudeProvider
+    private let provider: any AIProvider
 
     /// Timestamps of recent auto-fix attempts for rate limiting.
     /// Protected by MainActor isolation.
@@ -26,7 +26,7 @@ public final class SnippetAutoFix {
     /// Duration of the sliding rate-limit window.
     private let windowDuration: TimeInterval = 600 // 10 minutes
 
-    public init(provider: ClaudeProvider) {
+    public init(provider: any AIProvider) {
         self.provider = provider
     }
 
