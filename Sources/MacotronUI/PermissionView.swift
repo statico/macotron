@@ -91,6 +91,7 @@ public final class PermissionWindow {
         w.contentView = hostingView
         w.center()
         w.isReleasedWhenClosed = false
+        w.level = .floating
         w.makeKeyAndOrderFront(nil)
         NSApp.activate()
 

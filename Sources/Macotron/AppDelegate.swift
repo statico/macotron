@@ -31,10 +31,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private static let hotkeyDefaultsKey = "launcherHotkey"
     private static let providerDefaultsKey = "aiProvider"
+    private static let showDockIconKey = "showDockIcon"
+    private static let showMenuBarIconKey = "showMenuBarIcon"
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
-        // Menubar-only app (no Dock icon)
-        NSApp.setActivationPolicy(.accessory)
+        // Apply saved dock icon preference (default: show dock icon)
+        let showDock = AppDelegate.readDefaultsBool(AppDelegate.showDockIconKey, default: true)
+        NSApp.setActivationPolicy(showDock ? .regular : .accessory)
+
+        // Install a standard main menu (required for Cmd+V paste in text fields)
+        setupMainMenu()
 
         // Set up engine
         engine = Engine()
@@ -62,6 +68,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBarManager.onOpenSettings = { [weak self] in
             self?.settingsWindow.show()
         }
+
+        // Set the launcher shortcut display on the menu bar
+        menuBarManager.updateLauncherShortcut(resolveHotkey())
+
+        // Apply saved menu bar visibility preference
+        let showMenuBar = AppDelegate.readDefaultsBool(AppDelegate.showMenuBarIconKey, default: true)
+        menuBarManager.setVisible(showMenuBar)
 
         // Set up app search
         appSearchProvider = AppSearchProvider()
@@ -172,6 +185,26 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.writeHotkey = { [weak self] combo in
             UserDefaults.standard.set(combo, forKey: AppDelegate.hotkeyDefaultsKey)
             self?.launcherHotkey?.updateHotkey(combo)
+            self?.menuBarManager.updateLauncherShortcut(combo)
+        }
+
+        settingsState.readShowDockIcon = {
+            AppDelegate.readDefaultsBool(AppDelegate.showDockIconKey, default: true)
+        }
+        settingsState.writeShowDockIcon = { value in
+            UserDefaults.standard.set(value, forKey: AppDelegate.showDockIconKey)
+            NSApp.setActivationPolicy(value ? .regular : .accessory)
+            if value {
+                // Re-activate so the dock icon appears immediately
+                NSApp.activate()
+            }
+        }
+        settingsState.readShowMenuBarIcon = {
+            AppDelegate.readDefaultsBool(AppDelegate.showMenuBarIconKey, default: true)
+        }
+        settingsState.writeShowMenuBarIcon = { [weak self] value in
+            UserDefaults.standard.set(value, forKey: AppDelegate.showMenuBarIconKey)
+            self?.menuBarManager.setVisible(value)
         }
 
         settingsWindow = SettingsWindow(state: settingsState)
@@ -183,6 +216,40 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         case "openai": return "openai-api-key"
         default: return "anthropic-api-key"
         }
+    }
+
+    /// Install a standard main menu so that Cmd+V (paste), Cmd+C, etc. work in text fields.
+    private func setupMainMenu() {
+        let mainMenu = NSMenu()
+
+        // Application menu
+        let appMenuItem = NSMenuItem()
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "About Macotron", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Quit Macotron", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
+
+        // Edit menu (enables Cut/Copy/Paste/Select All in text fields)
+        let editMenuItem = NSMenuItem()
+        let editMenu = NSMenu(title: "Edit")
+        editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        editMenuItem.submenu = editMenu
+        mainMenu.addItem(editMenuItem)
+
+        NSApp.mainMenu = mainMenu
+    }
+
+    /// Read a Bool from UserDefaults, returning `defaultValue` if the key has never been set.
+    private static func readDefaultsBool(_ key: String, default defaultValue: Bool) -> Bool {
+        if UserDefaults.standard.object(forKey: key) == nil {
+            return defaultValue
+        }
+        return UserDefaults.standard.bool(forKey: key)
     }
 
     /// Resolve the launcher hotkey from multiple sources:
