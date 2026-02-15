@@ -26,12 +26,72 @@ public final class Engine {
     /// Log output handler
     public var logHandler: ((String) -> Void)?
 
+    /// Base directory for resolving ES module imports (set by SnippetManager)
+    public var moduleBaseDir: URL?
+
     public init() {
         runtime = JS_NewRuntime()
         context = JS_NewContext(runtime)
         setupInterruptHandler()
+        setupModuleLoader()
         setupTimerGlobals()
         setupCoreGlobals()
+    }
+
+    // MARK: - ES Module Loader
+
+    private func setupModuleLoader() {
+        let opaque = Unmanaged.passUnretained(self).toOpaque()
+
+        JS_SetModuleLoaderFunc(
+            runtime,
+            // Normalize: resolve module name relative to base
+            { ctx, baseName, moduleName, opaque -> UnsafeMutablePointer<CChar>? in
+                guard let moduleName else { return nil }
+                let name = String(cString: moduleName)
+
+                // Absolute paths pass through
+                if name.hasPrefix("/") {
+                    return strdup(moduleName)
+                }
+
+                // Resolve relative paths against the importing module's directory
+                if name.hasPrefix("."), let baseName {
+                    let base = String(cString: baseName)
+                    let baseURL = URL(fileURLWithPath: base).deletingLastPathComponent()
+                    var resolved = baseURL.appending(path: name).path()
+                    if !resolved.hasSuffix(".js") { resolved += ".js" }
+                    return strdup(resolved)
+                }
+
+                // Non-relative names: resolve against moduleBaseDir
+                if let opaque {
+                    let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+                    if let baseDir = engine.moduleBaseDir {
+                        var resolved = baseDir.appending(path: name).path()
+                        if !resolved.hasSuffix(".js") { resolved += ".js" }
+                        return strdup(resolved)
+                    }
+                }
+
+                return strdup(moduleName)
+            },
+            // Loader: read file and compile as ES module
+            { ctx, moduleName, opaque -> OpaquePointer? in
+                guard let ctx, let moduleName else { return nil }
+                let filePath = String(cString: moduleName)
+
+                guard let source = try? String(contentsOfFile: filePath, encoding: .utf8) else {
+                    logger.error("ES module not found: \(filePath)")
+                    return nil
+                }
+
+                return source.withCString { cStr in
+                    QJS_CompileModule(ctx, cStr, source.utf8.count, filePath)
+                }
+            },
+            opaque
+        )
     }
 
     // MARK: - Interrupt Handler
@@ -232,7 +292,7 @@ public final class Engine {
 
     // MARK: - Evaluate
 
-    /// Evaluate JS code. Returns (result, error).
+    /// Evaluate JS code, auto-detecting ES modules. Returns (result, error).
     @discardableResult
     public func evaluate(_ js: String, filename: String = "<eval>") -> (String?, String?) {
         // Set a 5-second interrupt deadline for user code
@@ -240,13 +300,49 @@ public final class Engine {
         defer { interruptDeadline = nil }
 
         let result = js.withCString { cStr in
-            JS_Eval(context, cStr, js.utf8.count, filename, Int32(JS_EVAL_TYPE_GLOBAL))
+            QJS_EvalAutoDetect(context, cStr, js.utf8.count, filename)
         }
         drainJobQueue()
 
         if JS_IsException(result) {
             let errStr = JSBridge.getExceptionString(context)
             logger.error("JS error in \(filename): \(errStr)")
+            return (nil, errStr)
+        }
+
+        let str = JS_ToCString(context, result)
+        let output = str != nil ? String(cString: str!) : nil
+        if let str { JS_FreeCString(context, str) }
+        JS_FreeValue(context, result)
+        return (output, nil)
+    }
+
+    /// Compile JS source to bytecode for caching.
+    public func compileToBytecode(_ js: String, filename: String) -> Data? {
+        var outLen: Int = 0
+        let buf = js.withCString { cStr in
+            QJS_CompileToBytecode(context, cStr, js.utf8.count, filename, &outLen)
+        }
+        guard let buf, outLen > 0 else { return nil }
+        let data = Data(bytes: buf, count: outLen)
+        js_free(context, buf)
+        return data
+    }
+
+    /// Evaluate cached bytecode. Returns (result, error).
+    @discardableResult
+    public func evaluateBytecode(_ data: Data, filename: String = "<bytecode>") -> (String?, String?) {
+        interruptDeadline = Date().addingTimeInterval(5)
+        defer { interruptDeadline = nil }
+
+        let result = data.withUnsafeBytes { rawBuf in
+            QJS_EvalBytecode(context, rawBuf.baseAddress!.assumingMemoryBound(to: UInt8.self), data.count)
+        }
+        drainJobQueue()
+
+        if JS_IsException(result) {
+            let errStr = JSBridge.getExceptionString(context)
+            logger.error("Bytecode error in \(filename): \(errStr)")
             return (nil, errStr)
         }
 
@@ -320,6 +416,7 @@ public final class Engine {
         JS_FreeContext(context)
         context = JS_NewContext(runtime)
         setupInterruptHandler()
+        setupModuleLoader()
         setupTimerGlobals()
         setupCoreGlobals()
         registerAllModules()

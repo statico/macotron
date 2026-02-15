@@ -1,4 +1,4 @@
-// ConfigBackup.swift — Compress & backup ~/.macotron/ before changes
+// ConfigBackup.swift — Compress & backup ~/Documents/Macotron/ before changes
 import Foundation
 import os
 

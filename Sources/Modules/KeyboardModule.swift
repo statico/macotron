@@ -291,10 +291,7 @@ public final class KeyboardModule: NativeModule {
             return
         }
 
-        // Pass the machPort as userInfo so the callback can re-enable it on timeout
-        let opaquePort = Unmanaged.passUnretained(eventTap).toOpaque()
-        // We need to recreate with userInfo — but CGEvent.tapCreate doesn't allow updating userInfo.
-        // Instead, store it in the shared state for the callback to reference if needed.
+        // Store the eventTap in shared state for the callback to reference if needed.
 
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
         if let runLoopSource {

@@ -17,7 +17,7 @@ public final class LauncherPanel: NSPanel {
         animationBehavior = .utilityWindow
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         becomesKeyOnlyIfNeeded = false
-        hidesOnDeactivate = false
+        hidesOnDeactivate = true
         center()
 
         // Vibrancy background
@@ -40,12 +40,25 @@ public final class LauncherPanel: NSPanel {
     public override var canBecomeKey: Bool { true }
     public override var canBecomeMain: Bool { false }
 
+    /// Dismiss on Escape key
+    public override func cancelOperation(_ sender: Any?) {
+        toggle()
+    }
+
     public func toggle() {
         if isVisible {
             orderOut(nil)
-            NSApp.hide(nil)
         } else {
-            center()
+            // Position in upper third of screen (like Raycast)
+            if let screen = NSScreen.main {
+                let screenFrame = screen.visibleFrame
+                let panelSize = frame.size
+                let x = screenFrame.midX - panelSize.width / 2
+                let y = screenFrame.maxY - panelSize.height - (screenFrame.height * 0.2)
+                setFrameOrigin(NSPoint(x: x, y: y))
+            } else {
+                center()
+            }
             makeKeyAndOrderFront(nil)
             NSApp.activate()
         }
