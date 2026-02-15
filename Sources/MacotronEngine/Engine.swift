@@ -162,6 +162,20 @@ public final class Engine {
                 return QJS_Undefined()
             }, "$$__registerCommand", 3))
 
+        // $$__config — called by macotron.config() to store user options
+        JS_SetPropertyStr(context, global, "$$__config",
+            JS_NewCFunction(context, { ctx, thisVal, argc, argv -> JSValue in
+                guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
+                let opaque = JS_GetContextOpaque(ctx)
+                guard let opaque else { return QJS_Undefined() }
+                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+
+                // Parse the JS object into configStore
+                let opts = argv[0]
+                engine.configStore = JSBridge.jsToSwift(ctx, opts) as? [String: Any] ?? [:]
+                return QJS_Undefined()
+            }, "$$__config", 1))
+
         JS_FreeValue(context, global)
     }
 

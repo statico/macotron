@@ -14,6 +14,18 @@ public final class SnippetManager {
     private var fsEventStream: FSEventStreamRef?
     private var reloadDebounceTask: Task<Void, Never>?
 
+    /// Optional handler for auto-fixing broken snippets via AI.
+    /// Parameters: (filename, source, errorMessage) -> fixed source or nil.
+    /// Set by the app target to bridge SnippetManager (MacotronEngine) to SnippetAutoFix (AI).
+    public var autoFixHandler: (@Sendable (String, String, String) async -> String?)?
+
+    /// Tracks how many auto-fix attempts each file has had during the current reload cycle.
+    /// Reset at the start of each `reloadAll()`.
+    private var autoFixAttempts: [String: Int] = [:]
+
+    /// Maximum auto-fix retry attempts per file per reload cycle.
+    private let maxAutoFixAttemptsPerFile = 2
+
     public init(engine: Engine, configDir: URL) {
         self.engine = engine
         self.configDir = configDir
@@ -66,23 +78,26 @@ public final class SnippetManager {
     public func reloadAll() {
         logger.info("Reloading all snippets...")
 
+        // Clear per-file auto-fix attempt counts for this reload cycle
+        autoFixAttempts.removeAll()
+
         // Reset engine (clears timers, events, commands, JS context)
         engine.reset()
 
-        // Load config.js first
-        let configFile = configDir.appending(path: "config.js")
-        if FileManager.default.fileExists(atPath: configFile.path()) {
-            executeFile(configFile)
-        }
-
-        // Load runtime JS
+        // Load runtime JS first (adds macotron.config, macotron.on, console, etc.)
         if let runtimeURL = Bundle.main.url(forResource: "macotron-runtime", withExtension: "js") {
             if let runtimeJS = try? String(contentsOf: runtimeURL, encoding: .utf8) {
                 engine.evaluate(runtimeJS, filename: "macotron-runtime.js")
             }
         }
 
-        // Re-register modules with config options
+        // Load config.js (calls macotron.config() to populate configStore)
+        let configFile = configDir.appending(path: "config.js")
+        if FileManager.default.fileExists(atPath: configFile.path()) {
+            executeFile(configFile)
+        }
+
+        // Re-register modules with config options now that config is loaded
         engine.registerAllModules()
 
         // Load snippets in alphabetical order
@@ -102,17 +117,64 @@ public final class SnippetManager {
         logger.info("Loaded \(snippetFiles.count) snippets, \(commandFiles.count) commands. Ready.")
     }
 
-    /// Execute a single JS file with error isolation
+    /// Execute a single JS file with error isolation.
+    /// If execution fails and an `autoFixHandler` is set, attempts to auto-fix
+    /// the snippet (up to `maxAutoFixAttemptsPerFile` times per reload cycle).
     private func executeFile(_ file: URL) {
         guard let source = try? String(contentsOf: file, encoding: .utf8) else {
             logger.error("Could not read file: \(file.lastPathComponent)")
             return
         }
 
-        let (_, error) = engine.evaluate(source, filename: file.lastPathComponent)
+        let filename = file.lastPathComponent
+        let (_, error) = engine.evaluate(source, filename: filename)
         if let error {
-            logger.error("\(file.lastPathComponent): \(error)")
-            // Auto-fix could be triggered here (Phase 3)
+            logger.error("\(filename): \(error)")
+            scheduleAutoFix(file: file, source: source, error: error)
+        }
+    }
+
+    /// Schedule an async auto-fix attempt for a failed snippet.
+    /// Respects the per-file attempt limit and writes the fix back to disk if successful.
+    private func scheduleAutoFix(file: URL, source: String, error: String) {
+        let filename = file.lastPathComponent
+
+        guard let handler = autoFixHandler else { return }
+
+        let attempts = autoFixAttempts[filename, default: 0]
+        guard attempts < maxAutoFixAttemptsPerFile else {
+            logger.warning("Auto-fix: exhausted \(self.maxAutoFixAttemptsPerFile) attempts for \(filename)")
+            return
+        }
+        autoFixAttempts[filename] = attempts + 1
+
+        // Auto-fix is async (calls the AI), so we fire a detached task that hops back
+        // to MainActor when it needs to write and re-execute.
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            guard let fixedSource = await handler(filename, source, error) else {
+                logger.info("Auto-fix: no fix returned for \(filename)")
+                return
+            }
+
+            // Write the fixed code (triggers backup)
+            guard self.writeSnippet(
+                filename: filename,
+                content: fixedSource,
+                directory: file.deletingLastPathComponent().lastPathComponent
+            ) else {
+                logger.error("Auto-fix: failed to write fixed code for \(filename)")
+                return
+            }
+
+            // Re-execute the fixed snippet
+            let (_, retryError) = self.engine.evaluate(fixedSource, filename: filename)
+            if let retryError {
+                logger.warning("Auto-fix: fixed \(filename) still has errors: \(retryError)")
+                // Will not recurse — this is a direct evaluate, not executeFile
+            } else {
+                logger.info("Auto-fix: successfully repaired \(filename)")
+            }
         }
     }
 
