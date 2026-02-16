@@ -59,7 +59,7 @@ public enum AISystemPrompt {
         Keyboard shortcut: `macotron.keyboard.on("ctrl+opt+left", () => { ... })`
         Periodic task: `macotron.every(30000, async () => { ... })`
         Command: `macotron.command("name", "description", async () => { ... })`
-        Menubar item: `macotron.menubar.add("id", { title, icon, onClick })`
+        Menubar item: `macotron.menubar.add("id", { title, icon, onClick })` — use SF Symbol names for icon (e.g. `"thermometer"`, `"bell.badge.fill"`, `"cpu"`), not emoji
         """)
 
         // Tool usage
