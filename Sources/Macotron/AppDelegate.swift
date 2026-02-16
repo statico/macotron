@@ -68,6 +68,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.launcherPanel.toggle()
         }
         menuBarManager.onOpenSettings = { [weak self] in
+            self?.launcherPanel.orderOut(nil)
             self?.settingsWindow.show()
         }
 
@@ -142,16 +143,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.settingsState.requestedTab = tab
                 self?.settingsWindow.show()
             }
+            debugServer?.captureLauncher = { [weak self] in
+                guard let self else { return nil }
+                let view = LauncherView(agentState: self.agentProgressState)
+                    .frame(width: 680, height: 480)
+                return Self.renderViewToPNG(view, size: NSSize(width: 680, height: 480))
+            }
             debugServer?.captureWindow = { [weak self] tab in
                 guard let self else { return nil }
-                // Use ImageRenderer to render the settings view to PNG (no window server needed)
                 let view = SettingsView(state: self.settingsState, initialTab: tab ?? 0)
                     .frame(width: 660, height: 460)
-                let renderer = ImageRenderer(content: view)
-                renderer.scale = 2.0
-                guard let image = renderer.cgImage else { return nil }
-                let bitmap = NSBitmapImageRep(cgImage: image)
-                return bitmap.representation(using: .png, properties: [:])
+                return Self.renderViewToPNG(view, size: NSSize(width: 660, height: 460))
             }
             debugServer?.start()
         }
@@ -358,6 +360,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openSettingsAction() {
+        launcherPanel.orderOut(nil)
         settingsWindow.show()
     }
 
@@ -491,11 +494,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 state.statusText = success ? "Done!" : String(summary.prefix(100))
                 state.isComplete = true
                 state.success = success
-                // Auto-revert to search mode after delay
-                let delay: UInt64 = success ? 3_000_000_000 : 5_000_000_000
+                // Auto-dismiss launcher and revert to search mode after delay
+                let delay: UInt64 = success ? 1_000_000_000 : 5_000_000_000
                 Task { [weak self] in
                     try? await Task.sleep(nanoseconds: delay)
                     guard !Task.isCancelled else { return }
+                    self?.launcherPanel.orderOut(nil)
                     self?.agentProgressState.reset()
                 }
             }
@@ -602,6 +606,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         return Array(results.prefix(20))
+    }
+
+    /// Render a SwiftUI view to PNG data using NSHostingView (works without window server)
+    private static func renderViewToPNG<V: View>(_ view: V, size: NSSize) -> Data? {
+        let hostingView = NSHostingView(rootView: view)
+        hostingView.frame = NSRect(origin: .zero, size: size)
+        hostingView.layoutSubtreeIfNeeded()
+        guard let bitmap = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) else { return nil }
+        hostingView.cacheDisplay(in: hostingView.bounds, to: bitmap)
+        return bitmap.representation(using: .png, properties: [:])
     }
 }
 
