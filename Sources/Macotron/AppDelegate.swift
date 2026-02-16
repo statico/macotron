@@ -15,6 +15,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var launcherPanel: LauncherPanel!
     private var launcherHotkey: GlobalHotkey?
     private var snippetAutoFixer: SnippetAutoFix?
+    private var agentProgressPanel: AgentProgressPanel?
     private var settingsWindow: SettingsWindow!
     private let settingsState = SettingsState()
     private var permissionWindow: PermissionWindow?
@@ -93,9 +94,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             onSearch: { [weak self] query in
                 self?.search(query) ?? []
             },
-            onChat: { @Sendable [weak self] message in
-                guard let self else { return "Macotron is not available." }
-                return await self.handleChatMessage(message)
+            onAgent: { [weak self] command in
+                self?.handleAgentCommand(command)
             }
         )
         let hostingView = NSHostingView(rootView: launcherView)
@@ -419,35 +419,51 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         return await fixer.attemptFix(filename: filename, source: source, error: error)
     }
 
-    // MARK: - AI Chat
+    // MARK: - Agent
 
-    private func handleChatMessage(_ message: String) async -> String {
+    private func handleAgentCommand(_ command: String) {
+        // Check API key
         guard let apiKey = resolveAIAPIKey() else {
-            return "No AI API key configured. Open Settings from the menubar to add one."
+            settingsWindow.showWithAPIKeyRequired()
+            return
         }
 
-        let providerName = resolveSelectedProvider()
+        // Dismiss launcher
+        launcherPanel.toggle()
 
-        // ChatSession requires ClaudeProvider for tool-use support.
-        // For non-Anthropic providers, fall back to a simple chat call.
-        guard providerName == "anthropic" || providerName == "claude" else {
-            let provider = AIProviderFactory.create(name: providerName, config: .init(apiKey: apiKey))
-            do {
-                return try await provider.chat(prompt: message, options: AIRequestOptions())
-            } catch {
-                return "AI error: \(error.localizedDescription)"
+        // Show progress panel
+        if agentProgressPanel == nil {
+            agentProgressPanel = AgentProgressPanel()
+        }
+        agentProgressPanel?.show(topic: command)
+
+        // Create agent session and run
+        let provider = ClaudeProvider(apiKey: apiKey)
+        let session = AgentSession(provider: provider, snippetManager: snippetManager)
+
+        session.onProgress = { [weak self] progress in
+            guard let panel = self?.agentProgressPanel else { return }
+            switch progress {
+            case .planning:
+                panel.update("Planning...")
+            case .writing(let filename):
+                panel.update("Writing \(filename)...")
+            case .testing:
+                panel.update("Testing...")
+            case .repairing(let attempt):
+                panel.update("Repairing (attempt \(attempt))...")
+            case .done(let success, let summary):
+                let displaySummary = String(summary.prefix(100))
+                panel.complete(success: success, summary: success ? "Done!" : displaySummary)
             }
         }
 
-        let provider = ClaudeProvider(apiKey: apiKey)
-        let session = ChatSession(provider: provider, snippetManager: snippetManager)
-
-        do {
-            return try await session.processMessage(message)
-        } catch let error as AIProviderError {
-            return "AI error: \(error.localizedDescription)"
-        } catch {
-            return "Error: \(error.localizedDescription)"
+        Task {
+            do {
+                let _ = try await session.run(command: command)
+            } catch {
+                agentProgressPanel?.complete(success: false, summary: error.localizedDescription)
+            }
         }
     }
 
