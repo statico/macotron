@@ -31,12 +31,17 @@ public enum Permissions {
         CGPreflightScreenCaptureAccess()
     }
 
-    /// Prompt for Accessibility permission if not granted
+    /// Prompt for Accessibility permission — adds the app to the system list and opens a prompt
     public static func requestAccessibility() {
-        guard !isAccessibilityGranted else { return }
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
         AXIsProcessTrustedWithOptions(options)
         logger.info("Requested Accessibility permission")
+    }
+
+    /// Prompt for Screen Recording permission — adds the app to the system list
+    public static func requestScreenRecording() {
+        CGRequestScreenCaptureAccess()
+        logger.info("Requested Screen Recording permission")
     }
 
     /// Open System Settings to the appropriate pane

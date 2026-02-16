@@ -18,6 +18,7 @@ public final class WizardWindow {
             return
         }
 
+        // Must be .regular before creating the window so it can become key
         NSApp.setActivationPolicy(.regular)
 
         let wizardView = WizardView(state: wizardState)
@@ -33,8 +34,16 @@ public final class WizardWindow {
         w.contentView = hostingView
         w.center()
         w.isReleasedWhenClosed = false
+        w.level = .floating
         w.makeKeyAndOrderFront(nil)
+
+        // Force activation — necessary on first launch when the app starts as accessory
         NSApp.activate()
+        DispatchQueue.main.async {
+            w.level = .normal
+            w.makeKeyAndOrderFront(nil)
+            NSApp.activate()
+        }
 
         self.window = w
     }
