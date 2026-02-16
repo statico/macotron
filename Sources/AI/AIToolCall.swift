@@ -64,6 +64,17 @@ public enum AIToolDefinition {
                 "properties": [:]
             ]
         ],
+        [
+            "name": "write_config",
+            "description": "Update config.js contents. Automatically backs up config first.",
+            "input_schema": [
+                "type": "object",
+                "properties": [
+                    "content": ["type": "string", "description": "The new config.js source code"]
+                ],
+                "required": ["content"]
+            ]
+        ],
     ]
 
     /// Execute a tool call and return the result
@@ -83,6 +94,8 @@ public enum AIToolDefinition {
             return executeListSnippets(snippetManager: snippetManager)
         case "read_config":
             return executeReadConfig(snippetManager: snippetManager)
+        case "write_config":
+            return executeWriteConfig(input: input, snippetManager: snippetManager)
         default:
             return "Unknown tool: \(toolName)"
         }
@@ -157,5 +170,22 @@ public enum AIToolDefinition {
             return "Error: config.js not found"
         }
         return content
+    }
+
+    private static func executeWriteConfig(input: [String: Any], snippetManager: SnippetManager) -> String {
+        let content = input["content"] as? String ?? ""
+        guard !content.isEmpty else {
+            return "Error: content is required"
+        }
+
+        snippetManager.backup.createBackup()
+        let configFile = snippetManager.configDir.appending(path: "config.js")
+        do {
+            try content.write(to: configFile, atomically: true, encoding: .utf8)
+            snippetManager.reloadAll()
+            return "Successfully wrote config.js"
+        } catch {
+            return "Error: Failed to write config.js: \(error.localizedDescription)"
+        }
     }
 }
