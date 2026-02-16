@@ -12,6 +12,25 @@ public enum Permissions {
         AXIsProcessTrusted()
     }
 
+    /// Check if Input Monitoring permission is granted (CGEventTap access)
+    public static var isInputMonitoringGranted: Bool {
+        // IOHIDCheckAccess checks Input Monitoring on macOS 15+.
+        // Falls back to true if unavailable (pre-Sequoia or sandbox).
+        let kIOHIDRequestTypeListenEvent: UInt32 = 1
+        typealias IOHIDCheckAccessFunc = @convention(c) (UInt32) -> Bool
+        guard let handle = dlopen(nil, RTLD_LAZY),
+              let sym = dlsym(handle, "IOHIDCheckAccess") else {
+            return true // Assume granted if API unavailable
+        }
+        let check = unsafeBitCast(sym, to: IOHIDCheckAccessFunc.self)
+        return check(kIOHIDRequestTypeListenEvent)
+    }
+
+    /// Check if Screen Recording permission is granted
+    public static var isScreenRecordingGranted: Bool {
+        CGPreflightScreenCaptureAccess()
+    }
+
     /// Prompt for Accessibility permission if not granted
     public static func requestAccessibility() {
         guard !isAccessibilityGranted else { return }

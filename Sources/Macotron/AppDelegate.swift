@@ -18,6 +18,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: SettingsWindow!
     private let settingsState = SettingsState()
     private var permissionWindow: PermissionWindow?
+    private var wizardWindow: WizardWindow?
+    private let wizardState = WizardState()
     private var appSearchProvider: AppSearchProvider!
 
     #if DEBUG
@@ -33,6 +35,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let providerDefaultsKey = "aiProvider"
     private static let showDockIconKey = "showDockIcon"
     private static let showMenuBarIconKey = "showMenuBarIcon"
+    private static let wizardCompletedKey = "wizardCompleted"
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
         // Apply saved dock icon preference (default: show dock icon)
@@ -117,17 +120,21 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         snippetManager.startWatching()
 
-        // Check permissions on first launch — show a dialog with instructions
-        if !Permissions.isAccessibilityGranted {
-            permissionWindow = PermissionWindow()
-            permissionWindow?.show {
-                Permissions.openAccessibilitySettings()
+        // First-run wizard or existing user flow
+        let wizardDone = UserDefaults.standard.bool(forKey: AppDelegate.wizardCompletedKey)
+        if !wizardDone {
+            showWizard()
+        } else {
+            // Existing user: check permissions and API key
+            if !Permissions.isAccessibilityGranted {
+                permissionWindow = PermissionWindow()
+                permissionWindow?.show {
+                    Permissions.openAccessibilitySettings()
+                }
             }
-        }
-
-        // If no API key is configured, open settings with a message
-        if resolveAIAPIKey() == nil {
-            settingsWindow.showWithAPIKeyRequired()
+            if resolveAIAPIKey() == nil {
+                settingsWindow.showWithAPIKeyRequired()
+            }
         }
 
         // Start debug server if requested
@@ -208,6 +215,69 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         settingsWindow = SettingsWindow(state: settingsState)
+    }
+
+    // MARK: - Wizard
+
+    private func showWizard() {
+        // Check for dev config shortcut
+        let devConfig = readDevConfig()
+
+        wizardState.writeAPIKey = { [weak self] value in
+            let provider = self?.wizardState.selectedProvider ?? "anthropic"
+            let keychainKey = AppDelegate.keychainKey(for: provider)
+            KeychainModule.writeToKeychain(key: keychainKey, value: value)
+        }
+        wizardState.writeProvider = { value in
+            UserDefaults.standard.set(value, forKey: AppDelegate.providerDefaultsKey)
+        }
+        wizardState.validateAPIKey = { key, provider in
+            let result: AIKeyValidationResult
+            switch provider {
+            case "openai":
+                result = await OpenAIProvider.validateKey(key)
+            default:
+                result = await ClaudeProvider.validateKey(key)
+            }
+            switch result {
+            case .valid: return .valid
+            case .invalidKey(let msg): return .invalidKey(msg)
+            case .networkError(let msg): return .invalidKey("Network error: \(msg)")
+            case .modelUnavailable: return .modelUnavailable
+            }
+        }
+        wizardState.checkAccessibility = { Permissions.isAccessibilityGranted }
+        wizardState.checkInputMonitoring = { Permissions.isInputMonitoringGranted }
+        wizardState.checkScreenRecording = { Permissions.isScreenRecordingGranted }
+        wizardState.onComplete = { [weak self] in
+            UserDefaults.standard.set(true, forKey: AppDelegate.wizardCompletedKey)
+            self?.wizardWindow?.close()
+            self?.wizardWindow = nil
+            // Open the launcher panel
+            self?.launcherPanel.toggle()
+        }
+
+        // Pre-fill from dev config if available
+        if let devConfig {
+            wizardState.selectedProvider = devConfig.provider
+            wizardState.apiKey = devConfig.apiKey
+        }
+
+        wizardWindow = WizardWindow(state: wizardState)
+        wizardWindow?.show()
+    }
+
+    /// Read developer config from ~/.macotron-dev.json for auto-filling the wizard
+    private func readDevConfig() -> (provider: String, apiKey: String)? {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let devFile = home.appending(path: ".macotron-dev.json")
+        guard let data = try? Data(contentsOf: devFile),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let apiKey = json["apiKey"] as? String, !apiKey.isEmpty else {
+            return nil
+        }
+        let provider = json["provider"] as? String ?? "anthropic"
+        return (provider: provider, apiKey: apiKey)
     }
 
     /// Map provider name to its keychain key
