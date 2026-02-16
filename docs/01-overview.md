@@ -27,7 +27,7 @@ On first launch, a four-step wizard guides the user:
 
 1. **Welcome** — Macotron is a tool that uses AI to set up automations. Shows example use cases: create window shortcuts, automate camera lights, open links in specific browsers, build a menu bar dashboard.
 2. **Permissions** — Suggests enabling Accessibility, Input Monitoring, and Screen Recording. User can skip, but functionality will be limited.
-3. **AI Provider** — Select a provider and enter an API key. Dev shortcut: if `~/.macotron-dev.json` exists with a pre-set key, this step is auto-filled.
+3. **AI Provider** — Select a provider and enter an API key. Dev shortcut: if `~/Library/Application Support/Macotron-dev.json` exists with a pre-set key, this step is auto-filled.
 4. **Open prompt panel** — Drops the user into the main interface.
 
 ## Main Prompt Panel
@@ -46,7 +46,7 @@ When the user enters a command, the agent takes over.
 The agent operates like a coding agent, not a chatbot:
 
 1. **Plan** — Decide what scripts to create or modify.
-2. **Write** — Generate JavaScript snippets to `~/.macotron/snippets/`.
+2. **Write** — Generate JavaScript snippets to `~/Library/Application Support/Macotron/snippets/`.
 3. **Reload** — Hot-reload the engine to pick up changes.
 4. **Test** — Validate that scripts loaded without errors and behave correctly.
 5. **Repair** — If anything fails, read the error trace, fix the script, and retry (with rate limiting).
@@ -57,7 +57,7 @@ The agent operates like a coding agent, not a chatbot:
 Inspired by the Manus approach:
 
 - **Stable prompt prefix** — Keep the system prompt and tool definitions static for KV-cache efficiency. Dynamic context goes at the end.
-- **File system as memory** — The agent writes plans and state to disk (`~/.macotron/agent/`), not just to the context window.
+- **File system as memory** — The agent writes plans and state to disk (`~/Library/Application Support/Macotron/agent/`), not just to the context window.
 - **Failure traces** — Preserve error logs so the agent learns from past mistakes within a session.
 - **Rate-limited auto-repair** — Retry broken scripts automatically, but cap retries to avoid loops.
 
@@ -127,7 +127,7 @@ Single process, three surfaces:
 │  │  └─────────┘ └────────┘ └──────────────┘    │    │
 │  │  ┌──────────────────────────────────────┐    │    │
 │  │  │  Context: plans, state, error logs   │    │    │
-│  │  │  (~/.macotron/agent/)                │    │    │
+│  │  │  (~/Library/Application Support/Macotron/agent/)                │    │    │
 │  │  └──────────────────────────────────────┘    │    │
 │  └──────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────┘

@@ -40,7 +40,7 @@ The panel dismisses automatically after a short delay on success.
 
 ## Tool Calls
 
-The agent manages snippets through tool calls. Every write/delete automatically backs up `~/.macotron/`, performs the operation, and triggers a reload.
+The agent manages snippets through tool calls. Every write/delete automatically backs up the config directory, performs the operation, and triggers a reload.
 
 | Tool | Description |
 |---|---|
@@ -125,11 +125,11 @@ The agent maintains a summary of all active scripts — what each one does, what
 |---|---|---|
 | Safe | keyboard, window, notify, timer, clipboard | Agent writes freely |
 | Sensitive | shell, http, fs, camera, screen | Agent writes, user sees capability warning |
-| Dangerous | shell with sudo, fs writes outside ~/.macotron | Agent cannot use without explicit user approval |
+| Dangerous | shell with sudo, fs writes outside config dir | Agent cannot use without explicit user approval |
 
 ## Dev Shortcut
 
-During development, check for `~/.macotron-dev.json` at launch. If it exists, read the API key from it so developers don't have to configure it through the UI every time:
+During development, check for `~/Library/Application Support/Macotron-dev.json` at launch. If found, auto-fill the API key so developers skip the wizard:
 
 ```json
 {

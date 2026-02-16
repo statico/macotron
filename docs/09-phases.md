@@ -5,7 +5,7 @@
 - [x] QuickJS engine: runtime, context, timers, job queue draining
 - [x] EventBus (native events → JS callbacks)
 - [x] NativeModule protocol with `version`, `defaultOptions`, `options`
-- [x] SnippetManager with ordered loading from `~/.macotron/snippets/`
+- [x] SnippetManager with ordered loading from `~/Library/Application Support/Macotron/snippets/`
 - [x] Snippet error isolation, full reload on FSEvents change
 - [x] Menubar agent with NSStatusItem + dynamic NSMenu
 - [x] Config backup/rollback
@@ -27,14 +27,14 @@
 - [x] AI provider abstraction (Claude, OpenAI, Gemini, Local)
 - [x] Tool-call-based file management
 - [x] Capability review system
-- [x] Chat mode in launcher
+- [x] Chat mode in launcher (replaced by agent mode in Phase 4)
 - [x] Auto-fix mechanism
 - [x] Prompt injection mitigation
 - [x] AI system prompt with type definitions
 
 ## Phase 4 — Agent Mode & Wizard
 - [ ] First-run setup wizard (Welcome → Permissions → AI Provider → Open Prompt)
-  - Dev shortcut: `~/.macotron-dev.json` for pre-set API key
+  - Dev shortcut: `~/Library/Application Support/Macotron-dev.json` for pre-set API key
 - [ ] Replace chat interface with coding agent interface
 - [ ] Agent progress UI (floating panel with shiny progress text)
   - Status flow: "Writing script..." → "Testing script..." → "Done!" with green check
