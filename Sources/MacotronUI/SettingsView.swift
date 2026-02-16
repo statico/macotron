@@ -40,6 +40,7 @@ public final class SettingsState: ObservableObject {
     @Published public var showAPIKeyRequired: Bool = false
     @Published public var validationStatus: ValidationStatus = .idle
     @Published public var scriptSummaries: [ScriptSummary] = []
+    @Published public var requestedTab: Int?
 
     /// Read/write closures set by AppDelegate
     public var readAPIKey: (() -> String?)?
@@ -130,10 +131,11 @@ public final class SettingsState: ObservableObject {
 
 public struct SettingsView: View {
     @ObservedObject var state: SettingsState
-    @State private var selectedTab: Int = 0
+    @State private var selectedTab: Int
 
-    public init(state: SettingsState) {
+    public init(state: SettingsState, initialTab: Int = 0) {
         self.state = state
+        self._selectedTab = State(initialValue: initialTab)
     }
 
     private var modelName: String {
@@ -160,14 +162,24 @@ public struct SettingsView: View {
             switch selectedTab {
             case 1: aiTab
             case 2: summaryTab
+            case 3: aboutTab
             default: generalTab
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             state.load()
-            if state.showAPIKeyRequired {
+            if let tab = state.requestedTab {
+                selectedTab = tab
+                state.requestedTab = nil
+            } else if state.showAPIKeyRequired {
                 selectedTab = 1
+            }
+        }
+        .onChange(of: state.requestedTab) {
+            if let tab = state.requestedTab {
+                selectedTab = tab
+                state.requestedTab = nil
             }
         }
     }
@@ -180,6 +192,7 @@ public struct SettingsView: View {
             tabButton(icon: "gearshape", label: "General", tag: 0)
             tabButton(icon: "cpu", label: "AI", tag: 1)
             tabButton(icon: "list.bullet.rectangle", label: "Summary", tag: 2)
+            tabButton(icon: "info.circle", label: "About", tag: 3)
             Spacer()
         }
     }
@@ -355,6 +368,44 @@ public struct SettingsView: View {
         .onAppear {
             state.refreshSummaries()
         }
+    }
+
+    // MARK: - About Tab
+
+    private var aboutTab: some View {
+        VStack(spacing: 16) {
+            Spacer()
+
+            if let bannerURL = Bundle.main.url(forResource: "banner", withExtension: "png"),
+               let nsImage = NSImage(contentsOf: bannerURL) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: 360)
+            }
+
+            Text("AI-powered macOS automation. Describe what you want in plain English — Macotron's coding agent writes the scripts, tests them, and gets out of your way.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 420)
+
+            Link(destination: URL(string: "https://github.com/statico/macotron")!) {
+                HStack(spacing: 4) {
+                    Image(systemName: "link")
+                    Text("github.com/statico/macotron")
+                }
+                .font(.callout)
+            }
+
+            Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0")")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(24)
     }
 
     // MARK: - Form Helpers

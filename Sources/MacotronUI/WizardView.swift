@@ -159,13 +159,21 @@ public struct WizardView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            Image(systemName: "wand.and.stars")
-                .font(.system(size: 48))
-                .foregroundStyle(.blue)
+            if let bannerURL = Bundle.main.url(forResource: "banner", withExtension: "png"),
+               let nsImage = NSImage(contentsOf: bannerURL) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: 360)
+            } else {
+                Image(systemName: "wand.and.stars")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.blue)
 
-            Text("Welcome to Macotron")
-                .font(.title)
-                .fontWeight(.bold)
+                Text("Welcome to Macotron")
+                    .font(.title)
+                    .fontWeight(.bold)
+            }
 
             Text("AI-powered macOS automation. Describe what you want, and Macotron writes the scripts for you.")
                 .font(.body)

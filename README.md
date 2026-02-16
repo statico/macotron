@@ -1,4 +1,6 @@
-# Macotron
+<p align="center">
+  <img src="Resources/banner.png" alt="Macotron" width="600">
+</p>
 
 AI-powered macOS automation. Describe what you want in plain English — Macotron's coding agent writes the scripts, tests them, and gets out of your way.
 
