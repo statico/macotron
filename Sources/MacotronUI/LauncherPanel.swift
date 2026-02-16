@@ -17,6 +17,11 @@ public final class LauncherPanel: NSPanel {
     private static let minHeight: CGFloat = 52  // Search bar only
     private static let maxHeight: CGFloat = 520
 
+    /// Set after toggle() to defer visibility until SwiftUI reports content height.
+    private var pendingReveal = false
+    /// Cached content height from the last layout pass — used to open at the right size.
+    private var lastContentHeight: CGFloat = 0
+
     public init(contentView: NSView) {
         // Start at maxHeight so SwiftUI has room to lay out content
         super.init(
@@ -58,6 +63,19 @@ public final class LauncherPanel: NSPanel {
     /// Resize the panel to fit the given content height, keeping the top edge pinned.
     public func resizeToHeight(_ height: CGFloat) {
         let clamped = min(max(height, Self.minHeight), Self.maxHeight)
+        lastContentHeight = clamped
+
+        if pendingReveal {
+            // First height report after toggle — snap to correct size and reveal.
+            let topY = frame.maxY
+            var newFrame = frame
+            newFrame.size.height = clamped
+            newFrame.origin.y = topY - clamped
+            setFrame(newFrame, display: true)
+            reveal()
+            return
+        }
+
         guard abs(frame.height - clamped) > 1 else { return }
 
         let topY = frame.maxY
@@ -76,6 +94,16 @@ public final class LauncherPanel: NSPanel {
         }
     }
 
+    private func reveal() {
+        pendingReveal = false
+        alphaValue = 1
+        NSApp.activate(ignoringOtherApps: true)
+        makeKeyAndOrderFront(nil)
+        if let textField = contentView?.firstEditableTextField() {
+            makeFirstResponder(textField)
+        }
+    }
+
     /// Dismiss on Escape key
     public override func cancelOperation(_ sender: Any?) {
         toggle()
@@ -84,38 +112,45 @@ public final class LauncherPanel: NSPanel {
     public func toggle() {
         if isVisible {
             orderOut(nil)
+            pendingReveal = false
         } else {
-            // Reset to maxHeight so SwiftUI can lay out content fully
+            // Use cached height on subsequent opens to avoid the tall-then-shrink flash.
+            // On first open, use maxHeight so SwiftUI has full space for layout.
+            let initialHeight = lastContentHeight > 0 ? lastContentHeight : Self.maxHeight
+
             var f = frame
-            f.size.height = Self.maxHeight
+            f.size.height = initialHeight
             setFrame(f, display: false)
 
             // Raycast-style placement: centered horizontally, upper portion of screen.
-            // The top of the panel sits at roughly 78% up the visible area.
             if let screen = NSScreen.main {
                 let sf = screen.visibleFrame
                 let x = sf.midX - Self.panelWidth / 2
                 let topY = sf.minY + sf.height * 0.78
-                let y = topY - Self.maxHeight
+                let y = topY - initialHeight
                 setFrameOrigin(NSPoint(x: x, y: y))
             } else {
                 center()
             }
 
-            // Show invisible so SwiftUI can compute content height,
-            // then reveal on the next run loop tick after resize fires.
-            alphaValue = 0
-            NSApp.activate(ignoringOtherApps: true)
-            makeKeyAndOrderFront(nil)
-
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                self.alphaValue = 1
-                // Re-activate to ensure we keep focus after the panel is visible
+            if lastContentHeight > 0 {
+                // We know the right height — show immediately at the cached size.
+                // SwiftUI will animate-adjust if content changed since last close.
                 NSApp.activate(ignoringOtherApps: true)
-                self.makeKeyAndOrderFront(nil)
-                if let textField = self.contentView?.firstEditableTextField() {
-                    self.makeFirstResponder(textField)
+                makeKeyAndOrderFront(nil)
+                if let textField = contentView?.firstEditableTextField() {
+                    makeFirstResponder(textField)
+                }
+            } else {
+                // First open — show invisible, wait for SwiftUI to report height.
+                alphaValue = 0
+                pendingReveal = true
+                makeKeyAndOrderFront(nil)
+
+                // Safety fallback if SwiftUI doesn't report height quickly.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                    guard let self, self.pendingReveal else { return }
+                    self.reveal()
                 }
             }
         }
