@@ -105,12 +105,15 @@ public final class LauncherPanel: NSPanel {
             // Show invisible so SwiftUI can compute content height,
             // then reveal on the next run loop tick after resize fires.
             alphaValue = 0
+            NSApp.activate(ignoringOtherApps: true)
             makeKeyAndOrderFront(nil)
-            NSApp.activate()
 
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.alphaValue = 1
+                // Re-activate to ensure we keep focus after the panel is visible
+                NSApp.activate(ignoringOtherApps: true)
+                self.makeKeyAndOrderFront(nil)
                 if let textField = self.contentView?.firstEditableTextField() {
                     self.makeFirstResponder(textField)
                 }

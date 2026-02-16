@@ -1,5 +1,5 @@
 // GlobalHotkey.swift — Global keyboard shortcut for toggling the launcher panel
-import Foundation
+import AppKit
 import CoreGraphics
 import Carbon.HIToolbox
 import os
@@ -178,7 +178,9 @@ private final class GlobalHotkeyState: @unchecked Sendable {
 public final class GlobalHotkey {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
+    private var globalMonitor: Any?
     private var callback: @MainActor () -> Void
+    private var usingFallback = false
 
     /// Create a global hotkey listener.
     /// - Parameters:
@@ -192,9 +194,9 @@ public final class GlobalHotkey {
             state.lock.lock()
             state.combo = parsed
             state.lock.unlock()
-            logger.info("Global hotkey registered: \(combo)")
+            NSLog("[Macotron] Global hotkey parsed: %@", combo)
         } else {
-            logger.warning("Failed to parse global hotkey combo: \(combo)")
+            NSLog("[Macotron] Failed to parse global hotkey combo: %@", combo)
         }
 
         setupEventTap()
@@ -207,21 +209,27 @@ public final class GlobalHotkey {
             state.lock.lock()
             state.combo = parsed
             state.lock.unlock()
-            logger.info("Global hotkey updated: \(combo)")
+            NSLog("[Macotron] Global hotkey updated: %@", combo)
+
+            // If we're on the fallback monitor, recreate it with the new combo
+            if usingFallback {
+                teardownFallbackMonitor()
+                setupFallbackMonitor()
+            }
         } else {
-            logger.warning("Failed to parse global hotkey combo: \(combo)")
+            NSLog("[Macotron] Failed to parse global hotkey combo: %@", combo)
         }
     }
 
     /// Tear down the event tap and release resources.
     public func cleanup() {
         teardownEventTap()
+        teardownFallbackMonitor()
         let state = GlobalHotkeyState.shared
         state.lock.lock()
         state.combo = nil
         state.eventTap = nil
         state.lock.unlock()
-        logger.info("Global hotkey cleaned up")
     }
 
     // MARK: - Event Tap
@@ -232,10 +240,7 @@ public final class GlobalHotkey {
         let eventMask: CGEventMask = (1 << CGEventType.keyDown.rawValue)
 
         // C function pointer callback — cannot capture Swift context.
-        // Reads the combo from GlobalHotkeyState singleton and dispatches
-        // to MainActor via DispatchQueue.main.
         let tapCallback: CGEventTapCallBack = { proxy, type, event, refcon -> Unmanaged<CGEvent>? in
-            // Re-enable the tap if the system disabled it
             if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
                 let state = GlobalHotkeyState.shared
                 state.lock.lock()
@@ -258,14 +263,11 @@ public final class GlobalHotkey {
                 return Unmanaged.passRetained(event)
             }
 
-            // Dispatch callback to the main thread (MainActor)
             DispatchQueue.main.async {
-                // Post a notification that the global hotkey singleton picks up.
                 NotificationCenter.default.post(name: GlobalHotkey.firedNotification, object: nil)
             }
 
-            // Consume the event so it does not propagate to other apps
-            return nil
+            return nil  // consume the event
         }
 
         eventTap = CGEvent.tapCreate(
@@ -278,11 +280,11 @@ public final class GlobalHotkey {
         )
 
         guard let eventTap else {
-            logger.error("Failed to create CGEvent tap for global hotkey. Ensure Accessibility permission is granted.")
+            NSLog("[Macotron] CGEvent tap failed — Input Monitoring permission not granted. Falling back to NSEvent global monitor.")
+            setupFallbackMonitor()
             return
         }
 
-        // Store the tap in shared state so the C callback can re-enable it
         let state = GlobalHotkeyState.shared
         state.lock.lock()
         state.eventTap = eventTap
@@ -294,19 +296,69 @@ public final class GlobalHotkey {
         }
         CGEvent.tapEnable(tap: eventTap, enable: true)
 
-        // Observe the notification posted by the C callback
         NotificationCenter.default.addObserver(
             forName: GlobalHotkey.firedNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            // We are already on the main queue; MainActor is satisfied.
             MainActor.assumeIsolated {
                 self?.callback()
             }
         }
 
-        logger.info("Global hotkey event tap installed")
+        NSLog("[Macotron] Global hotkey event tap installed")
+    }
+
+    // MARK: - Fallback (NSEvent global monitor)
+
+    /// Fallback when CGEvent tap cannot be created (no Input Monitoring).
+    /// NSEvent.addGlobalMonitorForEvents doesn't consume the event, but at least
+    /// the launcher will open.
+    private func setupFallbackMonitor() {
+        let state = GlobalHotkeyState.shared
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            state.lock.lock()
+            let combo = state.combo
+            state.lock.unlock()
+
+            guard let combo else { return }
+
+            let keyCode = CGKeyCode(event.keyCode)
+            guard keyCode == combo.keyCode else { return }
+
+            let relevantMask: NSEvent.ModifierFlags = [.command, .shift, .control, .option]
+            let eventMods = event.modifierFlags.intersection(relevantMask)
+
+            // Convert CGEventFlags to NSEvent.ModifierFlags for comparison
+            var expectedMods: NSEvent.ModifierFlags = []
+            if combo.modifiers.contains(.maskCommand) { expectedMods.insert(.command) }
+            if combo.modifiers.contains(.maskShift) { expectedMods.insert(.shift) }
+            if combo.modifiers.contains(.maskControl) { expectedMods.insert(.control) }
+            if combo.modifiers.contains(.maskAlternate) { expectedMods.insert(.option) }
+
+            guard eventMods == expectedMods else { return }
+
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    self?.callback()
+                }
+            }
+        }
+        usingFallback = true
+
+        if globalMonitor != nil {
+            NSLog("[Macotron] Global hotkey fallback monitor installed (NSEvent)")
+        } else {
+            NSLog("[Macotron] WARNING: NSEvent global monitor also failed — no global hotkey available. Grant Accessibility permission and restart.")
+        }
+    }
+
+    private func teardownFallbackMonitor() {
+        if let globalMonitor {
+            NSEvent.removeMonitor(globalMonitor)
+        }
+        globalMonitor = nil
+        usingFallback = false
     }
 
     private func teardownEventTap() {
@@ -323,14 +375,10 @@ public final class GlobalHotkey {
     }
 
     deinit {
-        // Safety net: remove the notification observer.
-        // The event tap and run loop source are already nil after cleanup(),
-        // but guard against leaks if cleanup() was not called.
         NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - Internal
 
-    /// Notification name used to bridge from the C callback to the Swift callback.
     private static let firedNotification = Notification.Name("com.macotron.globalHotkey.fired")
 }
