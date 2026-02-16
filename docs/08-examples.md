@@ -22,7 +22,7 @@ These are what the AI generates. Users describe what they want; these files appe
 > User: "set up keyboard shortcuts to tile my windows"
 
 ```javascript
-// ~/.macotron/snippets/001-window-tiling.js
+// ~/Library/Application Support/Macotron/snippets/001-window-tiling.js
 
 macotron.keyboard.on("ctrl+opt+left", () => {
     const win = macotron.window.focused();
@@ -45,7 +45,7 @@ macotron.keyboard.on("ctrl+opt+return", () => {
 > User: "open YouTube links in Safari, everything else in Arc"
 
 ```javascript
-// ~/.macotron/snippets/002-url-handlers.js
+// ~/Library/Application Support/Macotron/snippets/002-url-handlers.js
 
 macotron.url.registerHandler("https");
 
@@ -63,7 +63,7 @@ macotron.url.on("https", "*", (event) => {
 > User: "turn on my ring light when my camera activates"
 
 ```javascript
-// ~/.macotron/snippets/003-camera-light.js
+// ~/Library/Application Support/Macotron/snippets/003-camera-light.js
 
 macotron.on("camera:active", async () => {
     await macotron.http.post("http://192.168.1.50/api/on", {});
@@ -79,7 +79,7 @@ macotron.on("camera:inactive", async () => {
 ## CPU Temperature Monitor
 
 ```javascript
-// ~/.macotron/snippets/004-cpu-monitor.js
+// ~/Library/Application Support/Macotron/snippets/004-cpu-monitor.js
 
 macotron.every(30_000, async () => {
     const temp = await macotron.system.cpuTemp();
@@ -92,7 +92,7 @@ macotron.every(30_000, async () => {
 ## Menubar Dashboard (replaces xbar)
 
 ```javascript
-// ~/.macotron/snippets/005-menubar-dashboard.js
+// ~/Library/Application Support/Macotron/snippets/005-menubar-dashboard.js
 
 macotron.menubar.add("cpu-temp", {
     title: "CPU: --°C",
@@ -112,7 +112,7 @@ macotron.every(10_000, async () => {
 ## Summarize Screen (launcher command)
 
 ```javascript
-// ~/.macotron/commands/summarize-screen.js
+// ~/Library/Application Support/Macotron/commands/summarize-screen.js
 
 macotron.command("Summarize Screen", "Take a screenshot and summarize with AI", async () => {
     const screenshot = await macotron.screen.capture();

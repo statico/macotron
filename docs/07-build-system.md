@@ -2,80 +2,28 @@
 
 No Xcode GUI. Everything from the CLI.
 
-## Package.swift
+## Targets
 
-```swift
-// swift-tools-version: 6.0
-import PackageDescription
+| Target | Type | Purpose |
+|---|---|---|
+| CQuickJS | C library | quickjs-ng amalgam build |
+| MacotronEngine | Library | QuickJS Engine, EventBus, SnippetManager, CapabilityReview |
+| MacotronUI | Library | LauncherPanel, SettingsWindow, WizardWindow, AgentProgressPanel |
+| Modules | Library | Native modules (window, keyboard, shell, etc.) |
+| AI | Library | ClaudeProvider, AgentSession, SnippetAutoFix, tool definitions |
+| Macotron | Executable | AppDelegate, module registration, wiring |
+| MacotronTests | Tests | Engine and UI tests |
 
-let package = Package(
-    name: "Macotron",
-    platforms: [.macOS(.v15)],
-    targets: [
-        .target(
-            name: "CQuickJS",
-            path: "Vendor/quickjs-ng",
-            sources: ["quickjs.c", "libunicode.c", "libregexp.c", "cutils.c", "quickjs-libc.c"],
-            publicHeadersPath: "include",
-            cSettings: [
-                .define("CONFIG_VERSION", to: "\"0.11.0\""),
-                .define("CONFIG_BIGNUM"),
-                .unsafeFlags(["-w"])
-            ]
-        ),
-        .executableTarget(
-            name: "Macotron",
-            dependencies: ["MacotronEngine", "MacotronUI"],
-            path: "Sources/Macotron",
-            linkerSettings: [
-                .linkedFramework("AppKit"),
-                .linkedFramework("SwiftUI"),
-                .linkedFramework("ScreenCaptureKit"),
-                .linkedFramework("UserNotifications"),
-                .linkedFramework("Network"),
-                .linkedFramework("Security"),
-            ]
-        ),
-        .target(name: "MacotronEngine", dependencies: ["CQuickJS"], path: "Sources/MacotronEngine"),
-        .target(name: "MacotronUI", dependencies: ["MacotronEngine"], path: "Sources/MacotronUI"),
-        .target(name: "Modules", dependencies: ["MacotronEngine"], path: "Sources/Modules"),
-        .target(name: "AI", dependencies: ["MacotronEngine"], path: "Sources/AI"),
-        .testTarget(name: "MacotronTests", dependencies: ["MacotronEngine"]),
-    ]
-)
-```
+See `Package.swift` and `Makefile` in the repo for full build configuration.
 
-## Makefile
+## Key Make Targets
 
-```makefile
-APP_NAME = Macotron
-BUNDLE = .build/$(APP_NAME).app
-BINARY = .build/debug/$(APP_NAME)
-
-.PHONY: build run bundle clean dev
-
-build:
-	swift build
-
-run: bundle
-	open $(BUNDLE)
-
-dev: bundle
-	$(BUNDLE)/Contents/MacOS/$(APP_NAME) --debug-server
-
-bundle: build
-	@mkdir -p $(BUNDLE)/Contents/MacOS
-	@mkdir -p $(BUNDLE)/Contents/Resources
-	@cp $(BINARY) $(BUNDLE)/Contents/MacOS/$(APP_NAME)
-	@cp Resources/Info.plist $(BUNDLE)/Contents/
-	@cp Resources/macotron-runtime.js $(BUNDLE)/Contents/Resources/
-	@cp Resources/macotron.d.ts $(BUNDLE)/Contents/Resources/
-	@codesign --force --sign - --entitlements Resources/Macotron.entitlements $(BUNDLE)
-
-clean:
-	swift package clean
-	rm -rf $(BUNDLE)
-```
+- `make build` — `swift build`
+- `make run` — Build, bundle into `.app`, open
+- `make dev` — Build, bundle, run with `--debug-server`
+- `make bundle` — Build + codesign + copy resources into `.build/Macotron.app`
+- `make clean` — `swift package clean` + remove `.app` bundle
+- `make cleanprefs` — Reset UserDefaults (triggers first-run wizard)
 
 ## Debug HTTP Server
 

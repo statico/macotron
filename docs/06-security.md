@@ -41,8 +41,8 @@ First call to shell run with an unapproved command prompts:
 
 ## Config Backup & Rollback
 
-Before every AI-initiated change, the entire `~/.macotron/` config is compressed and backed up:
-- Backups stored in `~/.macotron/backups/` as timestamped `.tar.gz` files
+Before every AI-initiated change, the config directory is compressed and backed up:
+- Backups stored in `~/Library/Application Support/Macotron/backups/` as timestamped `.tar.gz` files
 - Pruned after 30 days or 100 entries
 - Users can roll back from the launcher
 
