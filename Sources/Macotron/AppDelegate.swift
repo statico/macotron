@@ -10,11 +10,11 @@ import AI
 @MainActor
 public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var engine: Engine!
-    private var snippetManager: SnippetManager!
+    private var moduleManager: ModuleManager!
     private var menuBarManager: MenuBarManager!
     private var launcherPanel: LauncherPanel!
     private var launcherHotkey: GlobalHotkey?
-    private var snippetAutoFixer: SnippetAutoFix?
+    private var moduleAutoFixer: ModuleAutoFix?
     private let agentProgressState = AgentProgressState()
     private var agentTask: Task<Void, Never>?
     private var settingsWindow: SettingsWindow!
@@ -46,10 +46,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Set up engine
         engine = Engine()
-        snippetManager = SnippetManager(engine: engine, configDir: configDir)
-        snippetManager.ensureDirectoryStructure()
+        moduleManager = ModuleManager(engine: engine, configDir: configDir)
+        moduleManager.ensureDirectoryStructure()
 
-        // Set up snippet auto-fix (bridges MacotronEngine → AI target)
+        // Set up module auto-fix (bridges MacotronEngine → AI target)
         setupAutoFix()
 
         // Set up settings
@@ -58,7 +58,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // Set up menubar
         menuBarManager = MenuBarManager()
         menuBarManager.onReload = { [weak self] in
-            self?.snippetManager.reloadAll()
+            self?.moduleManager.reloadAll()
         }
         menuBarManager.onOpenConfig = { [weak self] in
             guard let self else { return }
@@ -116,7 +116,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // Initial load
-        snippetManager.reloadAll()
+        moduleManager.reloadAll()
 
         // Set up global hotkey for launcher toggle
         let launcherCombo = resolveHotkey()
@@ -124,7 +124,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.launcherPanel.toggle()
         }
 
-        snippetManager.startWatching()
+        moduleManager.startWatching()
 
         // Show permissions wizard on first launch (permission APIs are unreliable
         // when launched from Terminal/IDE — they inherit parent permissions)
@@ -135,7 +135,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Start debug server if requested
         if CommandLine.arguments.contains("--debug-server") {
-            debugServer = DebugServer(engine: engine, snippetManager: snippetManager)
+            debugServer = DebugServer(engine: engine, moduleManager: moduleManager)
             debugServer?.onOpenSettings = { [weak self] in
                 self?.settingsWindow.show()
             }
@@ -227,29 +227,47 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.menuBarManager.setVisible(value)
         }
 
-        settingsState.loadScriptSummaries = { [weak self] in
-            self?.buildScriptSummaries() ?? []
+        settingsState.loadModuleSummaries = { [weak self] in
+            self?.buildModuleSummaries() ?? []
+        }
+        settingsState.deleteModule = { [weak self] filename in
+            guard let self else { return false }
+            if self.moduleManager.deleteModule(filename: filename) {
+                self.moduleManager.reloadAll()
+                return true
+            }
+            return false
+        }
+        settingsState.saveModuleOption = { [weak self] filename, key, value in
+            guard let self else { return }
+            self.moduleManager.saveModuleOption(filename: filename, key: key, value: value)
+            self.moduleManager.reloadAll()
         }
 
         settingsWindow = SettingsWindow(state: settingsState)
     }
 
-    /// Build script summaries by reading all snippets and extracting metadata
-    private func buildScriptSummaries() -> [ScriptSummary] {
-        let errorFiles = Set(snippetManager.lastReloadErrors.map(\.filename))
-        var summaries: [ScriptSummary] = []
+    /// Build module summaries by reading all modules and extracting metadata
+    private func buildModuleSummaries() -> [ModuleSummary] {
+        let errorMap = Dictionary(
+            moduleManager.lastReloadErrors.map { ($0.filename, $0.error) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let metadata = engine.moduleMetadata
+        let settings = moduleManager.loadModuleSettings()
+        var summaries: [ModuleSummary] = []
 
         let hotkeyPattern = try? NSRegularExpression(pattern: #"keyboard\.on\(\s*"([^"]+)""#)
         let eventPattern = try? NSRegularExpression(pattern: #"macotron\.on\(\s*"([^"]+)""#)
 
-        for dir in ["snippets", "commands"] {
-            let files = snippetManager.listSnippets(directory: dir)
+        for dir in ["modules", "commands"] {
+            let files = moduleManager.listModules(directory: dir)
             for file in files {
-                let fullPath = snippetManager.configDir.appending(path: dir).appending(path: file.filename)
+                let fullPath = moduleManager.configDir.appending(path: dir).appending(path: file.filename)
                 let source = (try? String(contentsOf: fullPath, encoding: .utf8)) ?? ""
                 let range = NSRange(source.startIndex..., in: source)
 
-                // Extract hotkeys
+                // Extract hotkeys from source
                 var hotkeys: [String] = []
                 if let regex = hotkeyPattern {
                     let matches = regex.matches(in: source, range: range)
@@ -260,7 +278,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     }
                 }
 
-                // Extract events
+                // Extract events from source
                 var events: [String] = []
                 if let regex = eventPattern {
                     let matches = regex.matches(in: source, range: range)
@@ -271,12 +289,35 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     }
                 }
 
-                summaries.append(ScriptSummary(
+                // Extract title and options from engine metadata
+                let meta = metadata[file.filename] ?? [:]
+                let title = meta["title"] as? String ?? ""
+                let fileSettings = settings[file.filename] ?? [:]
+                var options: [ModuleOption] = []
+
+                if let optionsDefs = meta["options"] as? [String: [String: Any]] {
+                    for (key, def) in optionsDefs.sorted(by: { $0.key < $1.key }) {
+                        let type = def["type"] as? String ?? "string"
+                        let label = def["label"] as? String ?? key
+                        let defaultValue = def["default"] ?? ""
+                        let currentValue = fileSettings[key] ?? defaultValue
+                        options.append(ModuleOption(
+                            key: key, label: label, type: type,
+                            defaultValue: defaultValue, currentValue: currentValue
+                        ))
+                    }
+                }
+
+                let errorMsg = errorMap[file.filename]
+                summaries.append(ModuleSummary(
                     filename: file.filename,
+                    title: title,
                     description: file.description,
+                    options: options,
                     events: events,
                     hotkeys: hotkeys,
-                    hasErrors: errorFiles.contains(file.filename)
+                    hasErrors: errorMsg != nil,
+                    errorMessage: errorMsg
                 ))
             }
         }
@@ -436,30 +477,27 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         launcherPanel.toggle()
     }
 
-    // MARK: - Snippet Auto-Fix
+    // MARK: - Module Auto-Fix
 
-    /// Wire the snippet auto-fix handler. This bridges SnippetManager (MacotronEngine)
-    /// to SnippetAutoFix (AI) via a closure, since MacotronEngine cannot import AI.
+    /// Wire the module auto-fix handler. This bridges ModuleManager (MacotronEngine)
+    /// to ModuleAutoFix (AI) via a closure, since MacotronEngine cannot import AI.
     private func setupAutoFix() {
-        snippetManager.autoFixHandler = { @Sendable [weak self] filename, source, error in
-            await self?.autoFixSnippet(filename: filename, source: source, error: error)
+        moduleManager.autoFixHandler = { @Sendable [weak self] filename, source, error in
+            await self?.autoFixModule(filename: filename, source: source, error: error)
         }
     }
 
-    /// Called by the auto-fix handler closure. Lazily creates the SnippetAutoFix instance
+    /// Called by the auto-fix handler closure. Lazily creates the ModuleAutoFix instance
     /// (requires an API key) and delegates the fix attempt.
-    private func autoFixSnippet(filename: String, source: String, error: String) async -> String? {
+    private func autoFixModule(filename: String, source: String, error: String) async -> String? {
         // Lazily create the auto-fixer when first needed (requires API key)
-        if snippetAutoFixer == nil {
-            guard let apiKey = resolveAIAPIKey() else {
-                return nil
-            }
+        if moduleAutoFixer == nil {
+            guard let apiKey = resolveAIAPIKey() else { return nil }
             let providerName = resolveSelectedProvider()
             let provider = AIProviderFactory.create(name: providerName, config: .init(apiKey: apiKey))
-            snippetAutoFixer = SnippetAutoFix(provider: provider)
+            moduleAutoFixer = ModuleAutoFix(provider: provider)
         }
-
-        guard let fixer = snippetAutoFixer else { return nil }
+        guard let fixer = moduleAutoFixer else { return nil }
         return await fixer.attemptFix(filename: filename, source: source, error: error)
     }
 
@@ -477,7 +515,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Create agent session and run
         let provider = ClaudeProvider(apiKey: apiKey)
-        let session = AgentSession(provider: provider, snippetManager: snippetManager)
+        let session = AgentSession(provider: provider, moduleManager: moduleManager)
 
         session.onProgress = { [weak self] progress in
             guard let state = self?.agentProgressState else { return }

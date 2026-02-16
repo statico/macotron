@@ -10,25 +10,53 @@ public enum ValidationStatus: Equatable {
     case modelUnavailable
 }
 
-/// Summary info for a single script
-public struct ScriptSummary: Identifiable {
+/// A configurable option exposed by a module
+public struct ModuleOption: Identifiable {
     public let id: String
+    public let key: String
+    public let label: String
+    public let type: String       // "string", "boolean", "number", "keybinding"
+    public let defaultValue: Any
+    public var currentValue: Any
+
+    public init(key: String, label: String, type: String, defaultValue: Any, currentValue: Any) {
+        self.id = key
+        self.key = key
+        self.label = label
+        self.type = type
+        self.defaultValue = defaultValue
+        self.currentValue = currentValue
+    }
+}
+
+/// Summary info for a single module
+public struct ModuleSummary: Identifiable {
+    public let id: String           // filename
     public let filename: String
+    public let title: String        // from macotron.module() or fallback to filename
     public let description: String
+    public let options: [ModuleOption]
     public let events: [String]
     public let hotkeys: [String]
     public let hasErrors: Bool
+    public let errorMessage: String?
 
-    public init(filename: String, description: String, events: [String] = [],
-                hotkeys: [String] = [], hasErrors: Bool = false) {
+    public init(filename: String, title: String = "", description: String,
+                options: [ModuleOption] = [], events: [String] = [],
+                hotkeys: [String] = [], hasErrors: Bool = false, errorMessage: String? = nil) {
         self.id = filename
         self.filename = filename
+        self.title = title.isEmpty ? String(filename.dropLast(3)) : title  // strip .js if no title
         self.description = description
+        self.options = options
         self.events = events
         self.hotkeys = hotkeys
         self.hasErrors = hasErrors
+        self.errorMessage = errorMessage
     }
 }
+
+// MARK: - Settings State
 
 @MainActor
 public final class SettingsState: ObservableObject {
@@ -39,7 +67,7 @@ public final class SettingsState: ObservableObject {
     @Published public var showMenuBarIcon: Bool = true
     @Published public var showAPIKeyRequired: Bool = false
     @Published public var validationStatus: ValidationStatus = .idle
-    @Published public var scriptSummaries: [ScriptSummary] = []
+    @Published public var moduleSummaries: [ModuleSummary] = []
     @Published public var requestedTab: Int?
 
     /// Read/write closures set by AppDelegate
@@ -55,8 +83,12 @@ public final class SettingsState: ObservableObject {
     public var writeShowMenuBarIcon: ((Bool) -> Void)?
     /// Async validation closure: (key, provider) -> ValidationStatus
     public var validateAPIKey: ((_ key: String, _ provider: String) async -> ValidationStatus)?
-    /// Closure to load script summaries
-    public var loadScriptSummaries: (() -> [ScriptSummary])?
+    /// Closure to load module summaries
+    public var loadModuleSummaries: (() -> [ModuleSummary])?
+    /// Closure to save a module option value
+    public var saveModuleOption: ((_ filename: String, _ key: String, _ value: Any) -> Void)?
+    /// Closure to delete a module; returns true on success
+    public var deleteModule: ((_ filename: String) -> Bool)?
     public var configDirURL: URL?
 
     private var apiKeyDebounce: Task<Void, Never>?
@@ -70,11 +102,11 @@ public final class SettingsState: ObservableObject {
         showDockIcon = readShowDockIcon?() ?? true
         showMenuBarIcon = readShowMenuBarIcon?() ?? true
         validationStatus = .idle
-        refreshSummaries()
+        refreshModules()
     }
 
-    public func refreshSummaries() {
-        scriptSummaries = loadScriptSummaries?() ?? []
+    public func refreshModules() {
+        moduleSummaries = loadModuleSummaries?() ?? []
     }
 
     /// Debounced save + validate. Called on every keystroke; waits for typing to stop.
@@ -160,8 +192,8 @@ public struct SettingsView: View {
             Divider()
 
             switch selectedTab {
-            case 1: aiTab
-            case 2: summaryTab
+            case 1: modulesTab
+            case 2: aiTab
             case 3: aboutTab
             default: generalTab
             }
@@ -173,7 +205,7 @@ public struct SettingsView: View {
                 selectedTab = tab
                 state.requestedTab = nil
             } else if state.showAPIKeyRequired {
-                selectedTab = 1
+                selectedTab = 2
             }
         }
         .onChange(of: state.requestedTab) {
@@ -190,8 +222,8 @@ public struct SettingsView: View {
         HStack(spacing: 4) {
             Spacer()
             tabButton(icon: "gearshape", label: "General", tag: 0)
-            tabButton(icon: "cpu", label: "AI", tag: 1)
-            tabButton(icon: "list.bullet.rectangle", label: "Summary", tag: 2)
+            tabButton(icon: "puzzlepiece.extension", label: "Modules", tag: 1)
+            tabButton(icon: "cpu", label: "AI", tag: 2)
             tabButton(icon: "info.circle", label: "About", tag: 3)
             Spacer()
         }
@@ -338,19 +370,19 @@ public struct SettingsView: View {
         }
     }
 
-    // MARK: - Summary Tab
+    // MARK: - Modules Tab
 
-    private var summaryTab: some View {
+    private var modulesTab: some View {
         VStack(spacing: 0) {
-            if state.scriptSummaries.isEmpty {
+            if state.moduleSummaries.isEmpty {
                 VStack(spacing: 12) {
-                    Image(systemName: "doc.text.magnifyingglass")
+                    Image(systemName: "puzzlepiece.extension")
                         .font(.system(size: 32))
                         .foregroundStyle(.tertiary)
-                    Text("No scripts installed")
+                    Text("No modules installed")
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                    Text("Use the prompt panel to create automation scripts.")
+                    Text("Use the prompt panel to create automation modules.")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
@@ -358,8 +390,8 @@ public struct SettingsView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 1) {
-                        ForEach(state.scriptSummaries) { summary in
-                            ScriptSummaryRow(summary: summary)
+                        ForEach(state.moduleSummaries) { summary in
+                            ModuleSummaryRow(summary: summary, state: state)
                         }
                     }
                     .padding(.vertical, 8)
@@ -368,7 +400,7 @@ public struct SettingsView: View {
             }
         }
         .onAppear {
-            state.refreshSummaries()
+            state.refreshModules()
         }
     }
 
@@ -480,49 +512,129 @@ public struct SettingsView: View {
     }
 }
 
-// MARK: - Script Summary Row
+// MARK: - Module Summary Row
 
-struct ScriptSummaryRow: View {
-    let summary: ScriptSummary
+struct ModuleSummaryRow: View {
+    let summary: ModuleSummary
+    @ObservedObject var state: SettingsState
+    @State private var isExpanded: Bool = false
+    @State private var showDeleteAlert: Bool = false
 
     var body: some View {
-        HStack(spacing: 10) {
-            // Status icon
-            Image(systemName: summary.hasErrors ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                .foregroundStyle(summary.hasErrors ? .orange : .green)
-                .font(.system(size: 14))
-                .frame(width: 20)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(summary.filename)
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .lineLimit(1)
-
-                if !summary.description.isEmpty {
-                    Text(summary.description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+        VStack(alignment: .leading, spacing: 0) {
+            // Main row
+            HStack(spacing: 10) {
+                // Expand/collapse button (only if module has options)
+                if !summary.options.isEmpty {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isExpanded.toggle()
+                        }
+                    } label: {
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 16, height: 16)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Spacer()
+                        .frame(width: 16)
                 }
 
-                // Badges for events and hotkeys
-                if !summary.events.isEmpty || !summary.hotkeys.isEmpty {
-                    HStack(spacing: 4) {
-                        ForEach(summary.hotkeys, id: \.self) { hotkey in
-                            badge(text: hotkey, color: .blue)
+                VStack(alignment: .leading, spacing: 3) {
+                    // Title
+                    Text(summary.title)
+                        .font(.system(size: 13, weight: .medium))
+                        .lineLimit(1)
+
+                    // Filename
+                    Text(summary.filename)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+
+                    // Description
+                    if !summary.description.isEmpty {
+                        Text(summary.description)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+
+                    // Error indicator
+                    if summary.hasErrors {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 10))
+                            Text(summary.errorMessage ?? "Module has errors")
+                                .font(.system(size: 11))
+                                .lineLimit(2)
                         }
-                        ForEach(summary.events, id: \.self) { event in
-                            badge(text: event, color: .purple)
+                        .foregroundStyle(.red)
+                    }
+
+                    // Badges for events and hotkeys
+                    if !summary.events.isEmpty || !summary.hotkeys.isEmpty {
+                        HStack(spacing: 4) {
+                            ForEach(summary.hotkeys, id: \.self) { hotkey in
+                                badge(text: hotkey, color: .blue)
+                            }
+                            ForEach(summary.events, id: \.self) { event in
+                                badge(text: event, color: .purple)
+                            }
                         }
                     }
                 }
-            }
 
-            Spacer()
+                Spacer()
+
+                // Delete button
+                Button {
+                    showDeleteAlert = true
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Delete module")
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+
+            // Expanded options section
+            if isExpanded && !summary.options.isEmpty {
+                Divider()
+                    .padding(.horizontal, 8)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(summary.options) { option in
+                        ModuleOptionRow(
+                            option: option,
+                            filename: summary.filename,
+                            state: state
+                        )
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+            }
         }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 8)
         .background(RoundedRectangle(cornerRadius: 6).fill(.quaternary.opacity(0.5)))
+        .alert("Delete Module?", isPresented: $showDeleteAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                if state.deleteModule?(summary.filename) == true {
+                    state.refreshModules()
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete \(summary.title)? This cannot be undone.")
+        }
     }
 
     @ViewBuilder
@@ -534,5 +646,79 @@ struct ScriptSummaryRow: View {
             .background(color.opacity(0.12))
             .foregroundStyle(color)
             .cornerRadius(3)
+    }
+}
+
+// MARK: - Module Option Row
+
+struct ModuleOptionRow: View {
+    let option: ModuleOption
+    let filename: String
+    @ObservedObject var state: SettingsState
+
+    @State private var stringValue: String = ""
+    @State private var boolValue: Bool = false
+    @State private var numberValue: String = ""
+    @State private var hotkeyValue: String = ""
+
+    var body: some View {
+        Group {
+            switch option.type {
+            case "boolean":
+                Toggle(option.label, isOn: $boolValue)
+                    .toggleStyle(.checkbox)
+                    .font(.system(size: 12))
+                    .onAppear { boolValue = (option.currentValue as? Bool) ?? false }
+                    .onChange(of: boolValue) {
+                        state.saveModuleOption?(filename, option.key, boolValue)
+                        state.refreshModules()
+                    }
+
+            case "number":
+                HStack(spacing: 8) {
+                    Text(option.label)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                    TextField("", text: $numberValue)
+                        .font(.system(size: 12, design: .monospaced))
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 80)
+                        .onAppear { numberValue = "\(option.currentValue)" }
+                        .onSubmit {
+                            if let num = Double(numberValue) {
+                                state.saveModuleOption?(filename, option.key, num)
+                                state.refreshModules()
+                            }
+                        }
+                }
+
+            case "keybinding":
+                HStack(spacing: 8) {
+                    Text(option.label)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                    HotkeyRecorderView(combo: $hotkeyValue) {
+                        state.saveModuleOption?(filename, option.key, hotkeyValue)
+                        state.refreshModules()
+                    }
+                    .onAppear { hotkeyValue = (option.currentValue as? String) ?? "" }
+                }
+
+            default: // "string" and any other type
+                HStack(spacing: 8) {
+                    Text(option.label)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                    TextField("", text: $stringValue)
+                        .font(.system(size: 12, design: .monospaced))
+                        .textFieldStyle(.roundedBorder)
+                        .onAppear { stringValue = (option.currentValue as? String) ?? "" }
+                        .onSubmit {
+                            state.saveModuleOption?(filename, option.key, stringValue)
+                            state.refreshModules()
+                        }
+                }
+            }
+        }
     }
 }

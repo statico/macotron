@@ -1,12 +1,12 @@
-// SnippetManager.swift — Load, watch, execute snippets from ~/Library/Application Support/Macotron/
+// SnippetManager.swift — Load, watch, execute modules from ~/Library/Application Support/Macotron/
 import CQuickJS
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "snippets")
+private let logger = Logger(subsystem: "com.macotron", category: "modules")
 
 @MainActor
-public final class SnippetManager {
+public final class ModuleManager {
     public let engine: Engine
     public let configDir: URL
     public let backup: ConfigBackup
@@ -14,9 +14,9 @@ public final class SnippetManager {
     private var fsEventStream: FSEventStreamRef?
     private var reloadDebounceTask: Task<Void, Never>?
 
-    /// Optional handler for auto-fixing broken snippets via AI.
+    /// Optional handler for auto-fixing broken modules via AI.
     /// Parameters: (filename, source, errorMessage) -> fixed source or nil.
-    /// Set by the app target to bridge SnippetManager (MacotronEngine) to SnippetAutoFix (AI).
+    /// Set by the app target to bridge ModuleManager (MacotronEngine) to ModuleAutoFix (AI).
     public var autoFixHandler: (@Sendable (String, String, String) async -> String?)?
 
     /// Errors encountered during the last reload cycle. Cleared at the start of each `reloadAll()`.
@@ -33,6 +33,11 @@ public final class SnippetManager {
     /// Bytecode cache directory
     private let cacheDir: URL
 
+    /// Path to the module settings JSON file
+    public var moduleSettingsFile: URL {
+        configDir.appending(path: "module-settings.json")
+    }
+
     public init(engine: Engine, configDir: URL) {
         self.engine = engine
         self.configDir = configDir
@@ -48,7 +53,20 @@ public final class SnippetManager {
     /// Create the ~/Library/Application Support/Macotron/ directory structure if it doesn't exist
     public func ensureDirectoryStructure() {
         let fm = FileManager.default
-        let dirs = ["snippets", "commands", "plugins", "data", "backups", "logs", ".cache"]
+        let dirs = ["modules", "commands", "data", "backups", ".cache"]
+
+        // Migrate: rename legacy snippets/ directory to modules/ if needed
+        let snippetsDir = configDir.appending(path: "snippets")
+        let modulesDir = configDir.appending(path: "modules")
+        if fm.fileExists(atPath: snippetsDir.path()) && !fm.fileExists(atPath: modulesDir.path()) {
+            do {
+                try fm.moveItem(at: snippetsDir, to: modulesDir)
+                logger.info("Migrated snippets/ directory to modules/")
+            } catch {
+                logger.error("Failed to migrate snippets/ to modules/: \(error)")
+            }
+        }
+
         for dir in dirs {
             let url = configDir.appending(path: dir)
             if !fm.fileExists(atPath: url.path()) {
@@ -83,11 +101,44 @@ public final class SnippetManager {
         }
     }
 
+    // MARK: - Module Settings
+
+    /// Load module settings from module-settings.json.
+    /// Returns a dictionary keyed by filename, each containing key-value option overrides.
+    public func loadModuleSettings() -> [String: [String: Any]] {
+        guard let data = try? Data(contentsOf: moduleSettingsFile),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: [String: Any]]
+        else {
+            return [:]
+        }
+        return json
+    }
+
+    /// Save module settings to module-settings.json.
+    public func saveModuleSettings(_ settings: [String: [String: Any]]) {
+        do {
+            let data = try JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys])
+            try data.write(to: moduleSettingsFile, options: .atomic)
+            logger.info("Saved module settings")
+        } catch {
+            logger.error("Failed to save module settings: \(error)")
+        }
+    }
+
+    /// Update a single option for a specific module file and persist to disk.
+    public func saveModuleOption(filename: String, key: String, value: Any) {
+        var settings = loadModuleSettings()
+        var fileSettings = settings[filename] ?? [:]
+        fileSettings[key] = value
+        settings[filename] = fileSettings
+        saveModuleSettings(settings)
+    }
+
     // MARK: - Reload
 
     /// Full reload: backup, clear state, re-execute everything from disk
     public func reloadAll() {
-        logger.info("Reloading all snippets...")
+        logger.info("Reloading all modules...")
 
         // Clear error tracking and per-file auto-fix attempt counts for this reload cycle
         lastReloadErrors.removeAll()
@@ -95,6 +146,9 @@ public final class SnippetManager {
 
         // Reset engine (clears timers, events, commands, JS context)
         engine.reset()
+
+        // Load module settings and apply to engine
+        engine.moduleSettings = loadModuleSettings()
 
         // Load runtime JS first (adds macotron.config, macotron.on, console, etc.)
         if let runtimeURL = Bundle.main.url(forResource: "macotron-runtime", withExtension: "js") {
@@ -112,11 +166,11 @@ public final class SnippetManager {
         // Re-register modules with config options now that config is loaded
         engine.registerAllModules()
 
-        // Load snippets in alphabetical order
-        let snippetFiles = listJSFiles(in: configDir.appending(path: "snippets"))
+        // Load modules in alphabetical order
+        let moduleFiles = listJSFiles(in: configDir.appending(path: "modules"))
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
 
-        for file in snippetFiles {
+        for file in moduleFiles {
             executeFile(file)
         }
 
@@ -126,12 +180,12 @@ public final class SnippetManager {
             executeFile(file)
         }
 
-        logger.info("Loaded \(snippetFiles.count) snippets, \(commandFiles.count) commands. Ready.")
+        logger.info("Loaded \(moduleFiles.count) modules, \(commandFiles.count) commands. Ready.")
     }
 
     /// Execute a single JS file with error isolation and bytecode caching.
     /// If execution fails and an `autoFixHandler` is set, attempts to auto-fix
-    /// the snippet (up to `maxAutoFixAttemptsPerFile` times per reload cycle).
+    /// the module (up to `maxAutoFixAttemptsPerFile` times per reload cycle).
     private func executeFile(_ file: URL) {
         guard let source = try? String(contentsOf: file, encoding: .utf8) else {
             logger.error("Could not read file: \(file.lastPathComponent)")
@@ -140,6 +194,10 @@ public final class SnippetManager {
 
         let filename = file.lastPathComponent
         let cachePath = cacheDir.appending(path: filename + ".bc")
+
+        // Set current evaluating file so the engine knows which module is being loaded
+        engine.currentEvaluatingFile = filename
+        defer { engine.currentEvaluatingFile = nil }
 
         // Try bytecode cache (skip if source is newer)
         if let cacheData = try? Data(contentsOf: cachePath),
@@ -170,7 +228,7 @@ public final class SnippetManager {
         }
     }
 
-    /// Schedule an async auto-fix attempt for a failed snippet.
+    /// Schedule an async auto-fix attempt for a failed module.
     /// Respects the per-file attempt limit and writes the fix back to disk if successful.
     private func scheduleAutoFix(file: URL, source: String, error: String) {
         let filename = file.lastPathComponent
@@ -194,7 +252,7 @@ public final class SnippetManager {
             }
 
             // Write the fixed code (triggers backup)
-            guard self.writeSnippet(
+            guard self.writeModule(
                 filename: filename,
                 content: fixedSource,
                 directory: file.deletingLastPathComponent().lastPathComponent
@@ -203,7 +261,7 @@ public final class SnippetManager {
                 return
             }
 
-            // Re-execute the fixed snippet
+            // Re-execute the fixed module
             let (_, retryError) = self.engine.evaluate(fixedSource, filename: filename)
             if let retryError {
                 logger.warning("Auto-fix: fixed \(filename) still has errors: \(retryError)")
@@ -224,8 +282,9 @@ public final class SnippetManager {
 
     // MARK: - File Operations (with backup)
 
-    /// Write a snippet file, creating a backup first
-    public func writeSnippet(filename: String, content: String, directory: String = "snippets") -> Bool {
+    /// Write a module file, creating a backup first
+    @discardableResult
+    public func writeModule(filename: String, content: String, directory: String = "modules") -> Bool {
         backup.createBackup()
         let file = configDir.appending(path: directory).appending(path: filename)
         do {
@@ -238,8 +297,9 @@ public final class SnippetManager {
         }
     }
 
-    /// Delete a snippet file, creating a backup first
-    public func deleteSnippet(filename: String, directory: String = "snippets") -> Bool {
+    /// Delete a module file, creating a backup first
+    @discardableResult
+    public func deleteModule(filename: String, directory: String = "modules") -> Bool {
         backup.createBackup()
         let file = configDir.appending(path: directory).appending(path: filename)
         do {
@@ -252,8 +312,8 @@ public final class SnippetManager {
         }
     }
 
-    /// List all snippet files with their first comment line as description
-    public func listSnippets(directory: String = "snippets") -> [(filename: String, description: String)] {
+    /// List all module files with their first comment line as description
+    public func listModules(directory: String = "modules") -> [(filename: String, description: String)] {
         let files = listJSFiles(in: configDir.appending(path: directory))
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
 
@@ -289,7 +349,7 @@ public final class SnippetManager {
             nil,
             { _, info, numEvents, eventPaths, _, _ in
                 guard let info else { return }
-                let manager = Unmanaged<SnippetManager>.fromOpaque(info).takeUnretainedValue()
+                let manager = Unmanaged<ModuleManager>.fromOpaque(info).takeUnretainedValue()
                 // Debounce reload
                 manager.reloadDebounceTask?.cancel()
                 manager.reloadDebounceTask = Task { @MainActor in

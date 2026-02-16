@@ -1,19 +1,19 @@
-// SnippetAutoFix.swift — AI-powered automatic repair for broken snippets
+// ModuleAutoFix.swift — AI-powered automatic repair for broken modules
 import Foundation
 import MacotronEngine
 import os
 
 private let logger = Logger(subsystem: "com.macotron", category: "ai.autofix")
 
-/// Attempts to automatically fix broken snippets by sending the error and source code
+/// Attempts to automatically fix broken modules by sending the error and source code
 /// to Claude and verifying the result doesn't introduce dangerous APIs.
 ///
 /// Safety constraints:
-/// - Skips snippets that use dangerous APIs or opt out with `// macotron:no-autofix`
+/// - Skips modules that use dangerous APIs or opt out with `// macotron:no-autofix`
 /// - Rate-limited to 3 attempts per 10-minute sliding window
 /// - Fixed code is verified via `CapabilityReview` to ensure no capability escalation
 @MainActor
-public final class SnippetAutoFix {
+public final class ModuleAutoFix {
     private let provider: any AIProvider
 
     /// Timestamps of recent auto-fix attempts for rate limiting.
@@ -30,19 +30,19 @@ public final class SnippetAutoFix {
         self.provider = provider
     }
 
-    /// Attempt to fix a broken snippet.
+    /// Attempt to fix a broken module.
     ///
     /// - Parameters:
-    ///   - filename: The snippet filename (e.g. "003-tiling.js")
+    ///   - filename: The module filename (e.g. "003-tiling.js")
     ///   - source: The current (broken) source code
-    ///   - error: The error message produced when the snippet was evaluated
+    ///   - error: The error message produced when the module was evaluated
     /// - Returns: The fixed source code, or `nil` if the fix was skipped or failed.
     public func attemptFix(
         filename: String,
         source: String,
         error: String
     ) async -> String? {
-        // 1. Capability gate — refuse to auto-fix dangerous or opted-out snippets
+        // 1. Capability gate — refuse to auto-fix dangerous or opted-out modules
         guard CapabilityReview.canAutoFix(source: source) else {
             logger.info("Skipping auto-fix for \(filename): dangerous APIs or no-autofix pragma")
             return nil
@@ -56,7 +56,7 @@ public final class SnippetAutoFix {
         }
         attemptTimestamps.append(Date())
 
-        // 3. Record which APIs the original snippet uses so we can verify the fix
+        // 3. Record which APIs the original module uses so we can verify the fix
         let originalManifest = CapabilityReview.review(source)
 
         // 4. Build the prompt
@@ -116,11 +116,11 @@ public final class SnippetAutoFix {
         attemptTimestamps.removeAll { $0 < cutoff }
     }
 
-    /// Build the system prompt that instructs Claude how to fix snippets.
+    /// Build the system prompt that instructs Claude how to fix modules.
     private func buildSystemPrompt() -> String {
         """
-        You are Macotron's snippet auto-repair system. Your sole task is to fix JavaScript \
-        snippets that failed to load due to syntax or runtime errors.
+        You are Macotron's module auto-repair system. Your sole task is to fix JavaScript \
+        modules that failed to load due to syntax or runtime errors.
 
         RULES:
         - Return ONLY the fixed JavaScript code inside a single ```javascript code block.
@@ -129,8 +129,8 @@ public final class SnippetAutoFix {
         - Do NOT add any of these dangerous APIs under any circumstances: \
         shell.run, fs.write, fs.delete, fs.remove, http.post, http.put, http.delete, \
         keychain.set, keychain.delete, url.registerHandler.
-        - Preserve the original intent and behavior of the snippet.
-        - Preserve the original first-line comment describing the snippet.
+        - Preserve the original intent and behavior of the module.
+        - Preserve the original first-line comment describing the module.
         - Fix only what is broken. Make the minimal change necessary.
         - If you cannot determine how to fix the error, return the original code unchanged \
         inside the code block.
@@ -140,7 +140,7 @@ public final class SnippetAutoFix {
     /// Build the user-facing prompt with the error and source.
     private func buildUserPrompt(filename: String, source: String, error: String) -> String {
         """
-        The following Macotron snippet failed to load. Please fix it.
+        The following Macotron module failed to load. Please fix it.
 
         **Filename:** \(filename)
 
