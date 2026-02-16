@@ -120,6 +120,7 @@ public struct LauncherView: View {
                 }
             }
         }
+        .fixedSize(horizontal: false, vertical: true)
         .onChange(of: query) { _, newValue in
             let classification = classifier.classify(newValue)
             switch classification {
