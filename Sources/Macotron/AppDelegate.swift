@@ -100,6 +100,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onStopAgent: { [weak self] in
                 self?.stopAgent()
+            },
+            onHeightChange: { [weak self] height in
+                self?.launcherPanel.resizeToHeight(height)
             }
         )
         let hostingView = NSHostingView(rootView: launcherView)
@@ -277,6 +280,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         wizardState.checkInputMonitoring = { Permissions.isInputMonitoringGranted }
         wizardState.checkScreenRecording = { Permissions.isScreenRecordingGranted }
         wizardState.requestAccessibility = { Permissions.requestAccessibility() }
+        wizardState.requestInputMonitoring = { Permissions.requestInputMonitoring() }
         wizardState.requestScreenRecording = { Permissions.requestScreenRecording() }
         wizardState.onComplete = { [weak self] in
             guard let self else { return }
@@ -318,6 +322,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenu.addItem(withTitle: "Quit Macotron", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appMenuItem.submenu = appMenu
         mainMenu.addItem(appMenuItem)
+
+        // File menu (enables Close Window with Cmd+W)
+        let fileMenuItem = NSMenuItem()
+        let fileMenu = NSMenu(title: "File")
+        fileMenu.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        fileMenuItem.submenu = fileMenu
+        mainMenu.addItem(fileMenuItem)
 
         // Edit menu (enables Cut/Copy/Paste/Select All in text fields)
         let editMenuItem = NSMenuItem()
@@ -444,9 +455,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Show inline progress (don't dismiss launcher) and collapse panel
+        // Show inline progress (don't dismiss launcher)
         agentProgressState.start(topic: command)
-        launcherPanel.setCompact(true)
 
         // Create agent session and run
         let provider = ClaudeProvider(apiKey: apiKey)
@@ -473,7 +483,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     try? await Task.sleep(nanoseconds: delay)
                     guard !Task.isCancelled else { return }
                     self?.agentProgressState.reset()
-                    self?.launcherPanel.setCompact(false)
                 }
             }
         }
@@ -491,7 +500,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     try? await Task.sleep(nanoseconds: 5_000_000_000)
                     guard !Task.isCancelled else { return }
                     self?.agentProgressState.reset()
-                    self?.launcherPanel.setCompact(false)
                 }
             }
         }
@@ -501,7 +509,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         agentTask?.cancel()
         agentTask = nil
         agentProgressState.reset()
-        launcherPanel.setCompact(false)
     }
 
     /// The currently selected AI provider name
