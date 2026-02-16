@@ -17,6 +17,7 @@ public final class DebugServer {
     public var onOpenSettings: (() -> Void)?
     public var onOpenSettingsTab: ((Int) -> Void)?
     public var captureWindow: ((Int?) -> Data?)?
+    public var captureLauncher: (() -> Data?)?
 
     public init(engine: Engine, snippetManager: SnippetManager, port: UInt16 = 7777) {
         self.engine = engine
@@ -125,14 +126,18 @@ public final class DebugServer {
             return ("opened".data(using: .utf8)!, "text/plain")
 
         case (_, "/screenshot"):
-            // Optional ?tab=N query parameter
-            let tab: Int? = {
-                for param in query.split(separator: "&") {
-                    let kv = param.split(separator: "=")
-                    if kv.count == 2, kv[0] == "tab", let n = Int(kv[1]) { return n }
+            // Optional ?view=launcher or ?tab=N query parameter
+            let params = Dictionary(uniqueKeysWithValues:
+                query.split(separator: "&").compactMap { param -> (String, String)? in
+                    let kv = param.split(separator: "=", maxSplits: 1)
+                    guard kv.count == 2 else { return nil }
+                    return (String(kv[0]), String(kv[1]))
                 }
-                return nil
-            }()
+            )
+            if params["view"] == "launcher", let png = captureLauncher?() {
+                return (png, "image/png")
+            }
+            let tab = params["tab"].flatMap(Int.init)
             if let png = captureWindow?(tab) {
                 return (png, "image/png")
             }
