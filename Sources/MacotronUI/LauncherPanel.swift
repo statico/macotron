@@ -47,8 +47,27 @@ public final class LauncherPanel: NSPanel {
         self.contentView = visual
     }
 
+    private static let fullHeight: CGFloat = 480
+    private static let compactHeight: CGFloat = 90
+
     public override var canBecomeKey: Bool { true }
     public override var canBecomeMain: Bool { false }
+
+    /// Collapse to compact height (agent progress) or expand to full height (search mode).
+    /// Keeps the panel centered horizontally at the same top edge.
+    public func setCompact(_ compact: Bool) {
+        let targetHeight = compact ? Self.compactHeight : Self.fullHeight
+        guard frame.height != targetHeight else { return }
+        let topY = frame.maxY
+        var newFrame = frame
+        newFrame.size.height = targetHeight
+        newFrame.origin.y = topY - targetHeight
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.2
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            animator().setFrame(newFrame, display: true)
+        }
+    }
 
     /// Dismiss on Escape key
     public override func cancelOperation(_ sender: Any?) {
@@ -59,6 +78,12 @@ public final class LauncherPanel: NSPanel {
         if isVisible {
             orderOut(nil)
         } else {
+            // Ensure full height when opening fresh
+            if frame.height != Self.fullHeight {
+                var f = frame
+                f.size.height = Self.fullHeight
+                setFrame(f, display: false)
+            }
             // Position in upper third of screen (like Raycast)
             if let screen = NSScreen.main {
                 let screenFrame = screen.visibleFrame

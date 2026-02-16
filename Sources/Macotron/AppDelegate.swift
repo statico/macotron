@@ -15,10 +15,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var launcherPanel: LauncherPanel!
     private var launcherHotkey: GlobalHotkey?
     private var snippetAutoFixer: SnippetAutoFix?
-    private var agentProgressPanel: AgentProgressPanel?
+    private let agentProgressState = AgentProgressState()
+    private var agentTask: Task<Void, Never>?
     private var settingsWindow: SettingsWindow!
     private let settingsState = SettingsState()
-    private var permissionWindow: PermissionWindow?
     private var wizardWindow: WizardWindow?
     private let wizardState = WizardState()
     private var appSearchProvider: AppSearchProvider!
@@ -85,6 +85,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Set up launcher panel
         let launcherView = LauncherView(
+            agentState: agentProgressState,
             onExecuteCommand: { [weak self] id in
                 self?.executeCommand(id)
             },
@@ -96,6 +97,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onAgent: { [weak self] command in
                 self?.handleAgentCommand(command)
+            },
+            onStopAgent: { [weak self] in
+                self?.stopAgent()
             }
         )
         let hostingView = NSHostingView(rootView: launcherView)
@@ -120,22 +124,15 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         snippetManager.startWatching()
 
-        // First-run wizard or existing user flow
-        let wizardDone = UserDefaults.standard.bool(forKey: AppDelegate.wizardCompletedKey)
-        if !wizardDone {
-            showWizard()
-        } else {
-            // Existing user: check permissions and API key
-            if !Permissions.isAccessibilityGranted {
-                permissionWindow = PermissionWindow()
-                permissionWindow?.show {
-                    Permissions.openAccessibilitySettings()
-                }
-            }
-            if resolveAIAPIKey() == nil {
-                settingsWindow.showWithAPIKeyRequired()
-            }
+        // Show permissions wizard if any permission is missing
+        let allPermsGranted = Permissions.isAccessibilityGranted
+            && Permissions.isInputMonitoringGranted
+            && Permissions.isScreenRecordingGranted
+        if !allPermsGranted {
+            showPermissionsWizard()
         }
+        // Mark first-run wizard as completed (setup happens inline now)
+        UserDefaults.standard.set(true, forKey: AppDelegate.wizardCompletedKey)
 
         // Start debug server if requested
         #if DEBUG
@@ -273,33 +270,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Wizard
 
-    private func showWizard() {
-        // Check for dev config shortcut
-        let devConfig = readDevConfig()
-
-        wizardState.writeAPIKey = { [weak self] value in
-            let provider = self?.wizardState.selectedProvider ?? "anthropic"
-            let keychainKey = AppDelegate.keychainKey(for: provider)
-            KeychainModule.writeToKeychain(key: keychainKey, value: value)
-        }
-        wizardState.writeProvider = { value in
-            UserDefaults.standard.set(value, forKey: AppDelegate.providerDefaultsKey)
-        }
-        wizardState.validateAPIKey = { key, provider in
-            let result: AIKeyValidationResult
-            switch provider {
-            case "openai":
-                result = await OpenAIProvider.validateKey(key)
-            default:
-                result = await ClaudeProvider.validateKey(key)
-            }
-            switch result {
-            case .valid: return .valid
-            case .invalidKey(let msg): return .invalidKey(msg)
-            case .networkError(let msg): return .invalidKey("Network error: \(msg)")
-            case .modelUnavailable: return .modelUnavailable
-            }
-        }
+    private func showPermissionsWizard() {
+        wizardState.permissionsOnly = true
+        wizardState.currentStep = .permissions
         wizardState.checkAccessibility = { Permissions.isAccessibilityGranted }
         wizardState.checkInputMonitoring = { Permissions.isInputMonitoringGranted }
         wizardState.checkScreenRecording = { Permissions.isScreenRecordingGranted }
@@ -307,7 +280,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         wizardState.requestScreenRecording = { Permissions.requestScreenRecording() }
         wizardState.onComplete = { [weak self] in
             guard let self else { return }
-            UserDefaults.standard.set(true, forKey: AppDelegate.wizardCompletedKey)
             self.wizardWindow?.close()
             self.wizardWindow = nil
 
@@ -317,32 +289,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self.launcherHotkey = GlobalHotkey(combo: combo) { [weak self] in
                 self?.launcherPanel.toggle()
             }
-
-            // Open the launcher panel
-            self.launcherPanel.toggle()
         }
-
-        // Pre-fill from dev config if available
-        if let devConfig {
-            wizardState.selectedProvider = devConfig.provider
-            wizardState.apiKey = devConfig.apiKey
-        }
+        wizardState.refreshPermissions()
 
         wizardWindow = WizardWindow(state: wizardState)
         wizardWindow?.show()
-    }
-
-    /// Read developer config from ~/.macotron-dev.json for auto-filling the wizard
-    private func readDevConfig() -> (provider: String, apiKey: String)? {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let devFile = home.appending(path: ".macotron-dev.json")
-        guard let data = try? Data(contentsOf: devFile),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let apiKey = json["apiKey"] as? String, !apiKey.isEmpty else {
-            return nil
-        }
-        let provider = json["provider"] as? String ?? "anthropic"
-        return (provider: provider, apiKey: apiKey)
     }
 
     /// Map provider name to its keychain key
@@ -493,43 +444,64 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Dismiss launcher
-        launcherPanel.toggle()
-
-        // Show progress panel
-        if agentProgressPanel == nil {
-            agentProgressPanel = AgentProgressPanel()
-        }
-        agentProgressPanel?.show(topic: command)
+        // Show inline progress (don't dismiss launcher) and collapse panel
+        agentProgressState.start(topic: command)
+        launcherPanel.setCompact(true)
 
         // Create agent session and run
         let provider = ClaudeProvider(apiKey: apiKey)
         let session = AgentSession(provider: provider, snippetManager: snippetManager)
 
         session.onProgress = { [weak self] progress in
-            guard let panel = self?.agentProgressPanel else { return }
+            guard let state = self?.agentProgressState else { return }
             switch progress {
             case .planning:
-                panel.update("Planning...")
+                state.statusText = "Planning..."
             case .writing(let filename):
-                panel.update("Writing \(filename)...")
+                state.statusText = "Writing \(filename)..."
             case .testing:
-                panel.update("Testing...")
+                state.statusText = "Testing..."
             case .repairing(let attempt):
-                panel.update("Repairing (attempt \(attempt))...")
+                state.statusText = "Repairing (attempt \(attempt))..."
             case .done(let success, let summary):
-                let displaySummary = String(summary.prefix(100))
-                panel.complete(success: success, summary: success ? "Done!" : displaySummary)
+                state.statusText = success ? "Done!" : String(summary.prefix(100))
+                state.isComplete = true
+                state.success = success
+                // Auto-revert to search mode after delay
+                let delay: UInt64 = success ? 3_000_000_000 : 5_000_000_000
+                Task { [weak self] in
+                    try? await Task.sleep(nanoseconds: delay)
+                    guard !Task.isCancelled else { return }
+                    self?.agentProgressState.reset()
+                    self?.launcherPanel.setCompact(false)
+                }
             }
         }
 
-        Task {
+        agentTask = Task {
             do {
                 let _ = try await session.run(command: command)
+            } catch is CancellationError {
+                // Cancelled by stop button — state already reset
             } catch {
-                agentProgressPanel?.complete(success: false, summary: error.localizedDescription)
+                agentProgressState.statusText = error.localizedDescription
+                agentProgressState.isComplete = true
+                agentProgressState.success = false
+                Task { [weak self] in
+                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                    guard !Task.isCancelled else { return }
+                    self?.agentProgressState.reset()
+                    self?.launcherPanel.setCompact(false)
+                }
             }
         }
+    }
+
+    private func stopAgent() {
+        agentTask?.cancel()
+        agentTask = nil
+        agentProgressState.reset()
+        launcherPanel.setCompact(false)
     }
 
     /// The currently selected AI provider name

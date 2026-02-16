@@ -48,64 +48,73 @@ public struct LauncherView: View {
     @State private var query = ""
     @State private var results: [SearchResult] = []
     @State private var selectedIndex = 0
+    @ObservedObject var agentState: AgentProgressState
 
     private let classifier = NLClassifier()
     public var onExecuteCommand: ((String) -> Void)?
     public var onRevealInFinder: ((String) -> Void)?
     public var onSearch: ((String) -> [SearchResult])?
-    /// Fire-and-forget agent callback. The launcher dismisses immediately.
     public var onAgent: ((String) -> Void)?
+    public var onStopAgent: (() -> Void)?
 
     public init(
+        agentState: AgentProgressState,
         onExecuteCommand: ((String) -> Void)? = nil,
         onRevealInFinder: ((String) -> Void)? = nil,
         onSearch: ((String) -> [SearchResult])? = nil,
-        onAgent: ((String) -> Void)? = nil
+        onAgent: ((String) -> Void)? = nil,
+        onStopAgent: (() -> Void)? = nil
     ) {
+        self.agentState = agentState
         self.onExecuteCommand = onExecuteCommand
         self.onRevealInFinder = onRevealInFinder
         self.onSearch = onSearch
         self.onAgent = onAgent
+        self.onStopAgent = onStopAgent
     }
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Search input
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.tertiary)
-                    .font(.system(size: 20))
-                    .frame(width: 24, height: 24)
-
-                TextField("Search or describe what you want...", text: $query)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 20, weight: .regular))
-                    .frame(height: 24)
-                    .onSubmit { execute() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .fixedSize(horizontal: false, vertical: true)
-
-            Divider().opacity(0.5)
-
-            if query.isEmpty {
-                examplePromptsView
+            if agentState.isRunning {
+                agentProgressInlineView
             } else {
-                searchResultsView
-            }
+                // Search input
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 20))
+                        .frame(width: 24, height: 24)
 
-            // Bottom bar with shortcuts
-            if !query.isEmpty && !results.isEmpty {
-                Divider().opacity(0.5)
-                HStack(spacing: 16) {
-                    shortcutHint(keys: ["return"], label: "Open")
-                    shortcutHint(keys: ["cmd", "return"], label: "Reveal in Finder")
-                    Spacer()
-                    shortcutHint(keys: ["esc"], label: "Close")
+                    TextField("Search or describe what you want...", text: $query)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 20, weight: .regular))
+                        .frame(height: 24)
+                        .onSubmit { execute() }
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.vertical, 14)
+                .fixedSize(horizontal: false, vertical: true)
+
+                Divider().opacity(0.5)
+
+                if query.isEmpty {
+                    examplePromptsView
+                } else {
+                    searchResultsView
+                }
+
+                // Bottom bar with shortcuts
+                if !query.isEmpty && !results.isEmpty {
+                    Divider().opacity(0.5)
+                    HStack(spacing: 16) {
+                        shortcutHint(keys: ["return"], label: "Open")
+                        shortcutHint(keys: ["cmd", "return"], label: "Reveal in Finder")
+                        Spacer()
+                        shortcutHint(keys: ["esc"], label: "Close")
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                }
             }
         }
         .onChange(of: query) { _, newValue in
@@ -124,6 +133,61 @@ public struct LauncherView: View {
             onArrowDown: { moveSelection(1) },
             onCmdReturn: { executeSelectedWithModifier() }
         ))
+    }
+
+    // MARK: - Agent Progress Inline View
+
+    @ViewBuilder
+    private var agentProgressInlineView: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 10) {
+                    // Topic
+                    Text(agentState.topic)
+                        .font(.system(size: 16, weight: .medium))
+                        .lineLimit(2)
+                        .foregroundStyle(.primary)
+
+                    // Status line
+                    HStack(spacing: 6) {
+                        if agentState.isComplete {
+                            Image(systemName: agentState.success ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundStyle(agentState.success ? .green : .red)
+                                .font(.system(size: 14))
+                        } else {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+
+                        if agentState.isComplete {
+                            Text(agentState.statusText)
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        } else {
+                            ShinyText(text: agentState.statusText)
+                        }
+                    }
+                }
+
+                Spacer()
+
+                // Stop button (only while running)
+                if !agentState.isComplete {
+                    Button {
+                        onStopAgent?()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Stop agent")
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
+        }
     }
 
     // MARK: - Example Prompts View
@@ -209,11 +273,10 @@ public struct LauncherView: View {
     private func execute() {
         let classification = classifier.classify(query)
         if classification == .naturalLang {
-            // Fire agent and clear
             let command = query.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !command.isEmpty else { return }
-            onAgent?(command)
             query = ""
+            onAgent?(command)
         } else if selectedIndex < results.count {
             executeResult(results[selectedIndex])
         }
