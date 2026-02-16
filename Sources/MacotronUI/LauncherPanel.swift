@@ -13,9 +13,13 @@ private extension NSView {
 
 @MainActor
 public final class LauncherPanel: NSPanel {
+    private static let panelWidth: CGFloat = 720
+    private static let minHeight: CGFloat = 52  // Search bar only
+    private static let maxHeight: CGFloat = 520
+
     public init(contentView: NSView) {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 720, height: 480),
+            contentRect: NSRect(x: 0, y: 0, width: Self.panelWidth, height: Self.minHeight),
             styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -47,25 +51,27 @@ public final class LauncherPanel: NSPanel {
         self.contentView = visual
     }
 
-    private static let fullHeight: CGFloat = 480
-    private static let compactHeight: CGFloat = 90
-
     public override var canBecomeKey: Bool { true }
     public override var canBecomeMain: Bool { false }
 
-    /// Collapse to compact height (agent progress) or expand to full height (search mode).
-    /// Keeps the panel centered horizontally at the same top edge.
-    public func setCompact(_ compact: Bool) {
-        let targetHeight = compact ? Self.compactHeight : Self.fullHeight
-        guard frame.height != targetHeight else { return }
+    /// Resize the panel to fit the given content height, keeping the top edge pinned.
+    public func resizeToHeight(_ height: CGFloat, animated: Bool = true) {
+        let clamped = min(max(height, Self.minHeight), Self.maxHeight)
+        guard abs(frame.height - clamped) > 1 else { return }
+
         let topY = frame.maxY
         var newFrame = frame
-        newFrame.size.height = targetHeight
-        newFrame.origin.y = topY - targetHeight
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.2
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            animator().setFrame(newFrame, display: true)
+        newFrame.size.height = clamped
+        newFrame.origin.y = topY - clamped
+
+        if animated && isVisible {
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.15
+                ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                animator().setFrame(newFrame, display: true)
+            }
+        } else {
+            setFrame(newFrame, display: true)
         }
     }
 
@@ -78,18 +84,13 @@ public final class LauncherPanel: NSPanel {
         if isVisible {
             orderOut(nil)
         } else {
-            // Ensure full height when opening fresh
-            if frame.height != Self.fullHeight {
-                var f = frame
-                f.size.height = Self.fullHeight
-                setFrame(f, display: false)
-            }
-            // Position in upper third of screen (like Raycast)
+            // Raycast-style placement: centered horizontally, upper portion of screen.
+            // The top of the panel sits at roughly 2/3 up from the bottom of the visible area.
             if let screen = NSScreen.main {
-                let screenFrame = screen.visibleFrame
-                let panelSize = frame.size
-                let x = screenFrame.midX - panelSize.width / 2
-                let y = screenFrame.maxY - panelSize.height - (screenFrame.height * 0.2)
+                let sf = screen.visibleFrame
+                let x = sf.midX - Self.panelWidth / 2
+                let topY = sf.minY + sf.height * 0.78
+                let y = topY - frame.height
                 setFrameOrigin(NSPoint(x: x, y: y))
             } else {
                 center()

@@ -56,6 +56,7 @@ public struct LauncherView: View {
     public var onSearch: ((String) -> [SearchResult])?
     public var onAgent: ((String) -> Void)?
     public var onStopAgent: (() -> Void)?
+    public var onHeightChange: ((CGFloat) -> Void)?
 
     public init(
         agentState: AgentProgressState,
@@ -63,7 +64,8 @@ public struct LauncherView: View {
         onRevealInFinder: ((String) -> Void)? = nil,
         onSearch: ((String) -> [SearchResult])? = nil,
         onAgent: ((String) -> Void)? = nil,
-        onStopAgent: (() -> Void)? = nil
+        onStopAgent: (() -> Void)? = nil,
+        onHeightChange: ((CGFloat) -> Void)? = nil
     ) {
         self.agentState = agentState
         self.onExecuteCommand = onExecuteCommand
@@ -71,6 +73,7 @@ public struct LauncherView: View {
         self.onSearch = onSearch
         self.onAgent = onAgent
         self.onStopAgent = onStopAgent
+        self.onHeightChange = onHeightChange
     }
 
     public var body: some View {
@@ -133,6 +136,14 @@ public struct LauncherView: View {
             onArrowDown: { moveSelection(1) },
             onCmdReturn: { executeSelectedWithModifier() }
         ))
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(key: ViewHeightKey.self, value: geo.size.height)
+            }
+        )
+        .onPreferenceChange(ViewHeightKey.self) { height in
+            onHeightChange?(height)
+        }
     }
 
     // MARK: - Agent Progress Inline View
@@ -321,6 +332,15 @@ public struct LauncherView: View {
         case "ctrl": return "\u{2303}"
         default: return key
         }
+    }
+}
+
+// MARK: - Height Preference Key
+
+private struct ViewHeightKey: PreferenceKey {
+    nonisolated(unsafe) static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 

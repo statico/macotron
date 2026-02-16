@@ -2,6 +2,13 @@
 import AppKit
 import SwiftUI
 
+/// NSWindow subclass that closes on Escape key
+private class EscClosableWindow: NSWindow {
+    override func cancelOperation(_ sender: Any?) {
+        close()
+    }
+}
+
 @MainActor
 public final class WizardWindow {
     private var window: NSWindow?
@@ -24,7 +31,7 @@ public final class WizardWindow {
         let wizardView = WizardView(state: wizardState)
         let hostingView = NSHostingView(rootView: wizardView)
 
-        let w = NSWindow(
+        let w = EscClosableWindow(
             contentRect: NSRect(x: 0, y: 0, width: 560, height: 520),
             styleMask: [.titled, .closable],
             backing: .buffered,
