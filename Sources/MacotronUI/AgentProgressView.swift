@@ -4,6 +4,7 @@ import SwiftUI
 /// Observable state for the agent progress display
 @MainActor
 public final class AgentProgressState: ObservableObject {
+    @Published public var isRunning: Bool = false
     @Published public var topic: String = ""
     @Published public var statusText: String = "Planning..."
     @Published public var isComplete: Bool = false
@@ -11,8 +12,17 @@ public final class AgentProgressState: ObservableObject {
 
     public init() {}
 
-    public func reset(topic: String) {
+    public func start(topic: String) {
+        self.isRunning = true
         self.topic = topic
+        self.statusText = "Planning..."
+        self.isComplete = false
+        self.success = true
+    }
+
+    public func reset() {
+        self.isRunning = false
+        self.topic = ""
         self.statusText = "Planning..."
         self.isComplete = false
         self.success = true

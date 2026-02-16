@@ -20,6 +20,9 @@ public final class WizardState: ObservableObject {
     @Published public var inputMonitoringGranted: Bool = false
     @Published public var screenRecordingGranted: Bool = false
 
+    /// When true, only show the permissions step and close on Next/Skip
+    public var permissionsOnly: Bool = false
+
     // Closures wired by AppDelegate
     public var writeAPIKey: ((String) -> Void)?
     public var writeProvider: ((String) -> Void)?
@@ -98,7 +101,7 @@ public struct WizardView: View {
 
             // Navigation bar
             HStack {
-                if state.currentStep != .welcome {
+                if state.currentStep != .welcome && !state.permissionsOnly {
                     Button("Back") {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             if let prev = WizardStep(rawValue: state.currentStep.rawValue - 1) {
@@ -134,6 +137,11 @@ public struct WizardView: View {
     }
 
     private func advance() {
+        // In permissions-only mode, close after the permissions step
+        if state.permissionsOnly && state.currentStep == .permissions {
+            state.onComplete?()
+            return
+        }
         withAnimation(.easeInOut(duration: 0.2)) {
             if let next = WizardStep(rawValue: state.currentStep.rawValue + 1) {
                 state.currentStep = next
