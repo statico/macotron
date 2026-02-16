@@ -31,6 +31,7 @@ public final class WizardState: ObservableObject {
     public var checkInputMonitoring: (() -> Bool)?
     public var checkScreenRecording: (() -> Bool)?
     public var requestAccessibility: (() -> Void)?
+    public var requestInputMonitoring: (() -> Void)?
     public var requestScreenRecording: (() -> Void)?
     public var onComplete: (() -> Void)?
 
@@ -293,8 +294,7 @@ public struct WizardView: View {
             // AXIsProcessTrustedWithOptions with prompt adds the app to the list AND opens settings
             state.requestAccessibility?()
         case "openInputMonitoringSettings":
-            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!
-            NSWorkspace.shared.open(url)
+            state.requestInputMonitoring?()
         case "openScreenRecordingSettings":
             // CGRequestScreenCaptureAccess adds the app to the list AND shows a prompt
             state.requestScreenRecording?()
