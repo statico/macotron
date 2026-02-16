@@ -19,6 +19,10 @@ public final class SnippetManager {
     /// Set by the app target to bridge SnippetManager (MacotronEngine) to SnippetAutoFix (AI).
     public var autoFixHandler: (@Sendable (String, String, String) async -> String?)?
 
+    /// Errors encountered during the last reload cycle. Cleared at the start of each `reloadAll()`.
+    /// Used by AgentSession to detect failures and trigger repair cycles.
+    public private(set) var lastReloadErrors: [(filename: String, error: String)] = []
+
     /// Tracks how many auto-fix attempts each file has had during the current reload cycle.
     /// Reset at the start of each `reloadAll()`.
     private var autoFixAttempts: [String: Int] = [:]
@@ -85,7 +89,8 @@ public final class SnippetManager {
     public func reloadAll() {
         logger.info("Reloading all snippets...")
 
-        // Clear per-file auto-fix attempt counts for this reload cycle
+        // Clear error tracking and per-file auto-fix attempt counts for this reload cycle
+        lastReloadErrors.removeAll()
         autoFixAttempts.removeAll()
 
         // Reset engine (clears timers, events, commands, JS context)
@@ -155,6 +160,7 @@ public final class SnippetManager {
         let (_, error) = engine.evaluate(source, filename: fullPath)
         if let error {
             logger.error("\(filename): \(error)")
+            lastReloadErrors.append((filename: filename, error: error))
             scheduleAutoFix(file: file, source: source, error: error)
         } else {
             // Cache the bytecode for next time
