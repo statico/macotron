@@ -1,3 +1,18 @@
+**Example Prompts:**
+
+These are example commands users type into macotron's prompt panel. The agent then autonomously creates the scripts shown below.
+
+| Prompt | What it does |
+|---|---|
+| "set up keybindings to let me move windows" | Creates window tiling shortcuts (Ctrl+Opt+arrows) |
+| "use safari to open all youtube links" | Sets up a URL router that opens YouTube in Safari |
+| "turn on my ring light when camera activates" | Monitors camera state and controls smart light |
+| "show CPU temperature in the menu bar" | Adds a live-updating menubar widget |
+| "warn me when CPU gets too hot" | Sets up a temperature monitor with notifications |
+| "take a screenshot and summarize it with AI" | Creates a launcher command for AI screen analysis |
+
+---
+
 # Example Snippets
 
 These are what the AI generates. Users describe what they want; these files appear on disk.
