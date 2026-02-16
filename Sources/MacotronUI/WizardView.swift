@@ -27,6 +27,8 @@ public final class WizardState: ObservableObject {
     public var checkAccessibility: (() -> Bool)?
     public var checkInputMonitoring: (() -> Bool)?
     public var checkScreenRecording: (() -> Bool)?
+    public var requestAccessibility: (() -> Void)?
+    public var requestScreenRecording: (() -> Void)?
     public var onComplete: (() -> Void)?
 
     private var validationTask: Task<Void, Never>?
@@ -169,6 +171,12 @@ public struct WizardView: View {
                 exampleRow(icon: "lightbulb.fill", text: "Flash your USB light when the camera turns on")
                 exampleRow(icon: "bell.fill", text: "Get notified when CPU temperature gets too high")
                 exampleRow(icon: "doc.text.magnifyingglass", text: "Take a screenshot and summarize it with AI")
+
+                Text("and lots more...")
+                    .font(.callout)
+                    .foregroundStyle(.tertiary)
+                    .italic()
+                    .padding(.leading, 34)
             }
             .padding(.top, 8)
 
@@ -272,18 +280,19 @@ public struct WizardView: View {
     }
 
     private func openPermissionSettings(_ action: String) {
-        let url: URL
         switch action {
         case "openAccessibilitySettings":
-            url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+            // AXIsProcessTrustedWithOptions with prompt adds the app to the list AND opens settings
+            state.requestAccessibility?()
         case "openInputMonitoringSettings":
-            url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!
+            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!
+            NSWorkspace.shared.open(url)
         case "openScreenRecordingSettings":
-            url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
+            // CGRequestScreenCaptureAccess adds the app to the list AND shows a prompt
+            state.requestScreenRecording?()
         default:
             return
         }
-        NSWorkspace.shared.open(url)
 
         // Refresh permissions after a delay (user may grant in System Settings)
         Task {
