@@ -23,10 +23,21 @@ public final class Engine {
     /// Config store (populated by macotron.config() calls)
     public var configStore: [String: Any] = [:]
 
+    /// Module metadata (populated by macotron.module() calls during execution).
+    /// Keyed by filename → raw metadata dict from JS.
+    public var moduleMetadata: [String: [String: Any]] = [:]
+
+    /// User overrides for module options, loaded from module-settings.json.
+    /// Keyed by filename → option key → value.
+    public var moduleSettings: [String: [String: Any]] = [:]
+
+    /// The file currently being evaluated (set by ModuleManager during executeFile).
+    public var currentEvaluatingFile: String?
+
     /// Log output handler
     public var logHandler: ((String) -> Void)?
 
-    /// Base directory for resolving ES module imports (set by SnippetManager)
+    /// Base directory for resolving ES module imports (set by ModuleManager)
     public var moduleBaseDir: URL?
 
     public init() {
@@ -236,6 +247,36 @@ public final class Engine {
                 return QJS_Undefined()
             }, "$$__config", 1))
 
+        // $$__module — called by macotron.module() to declare metadata & options.
+        // Stores metadata, returns resolved options (defaults merged with user overrides).
+        JS_SetPropertyStr(context, global, "$$__module",
+            JS_NewCFunction(context, { ctx, thisVal, argc, argv -> JSValue in
+                guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
+                let opaque = JS_GetContextOpaque(ctx)
+                guard let opaque else { return QJS_Undefined() }
+                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+
+                let metadata = JSBridge.jsToSwift(ctx, argv[0]) as? [String: Any] ?? [:]
+                let filename = engine.currentEvaluatingFile ?? "<unknown>"
+
+                // Store the metadata for the settings UI to read later
+                engine.moduleMetadata[filename] = metadata
+
+                // Build resolved options: defaults merged with user overrides
+                let optionDefs = metadata["options"] as? [String: [String: Any]] ?? [:]
+                let userOverrides = engine.moduleSettings[filename] ?? [:]
+                var resolved: [String: Any] = [:]
+                for (key, def) in optionDefs {
+                    if let userVal = userOverrides[key] {
+                        resolved[key] = userVal
+                    } else if let defaultVal = def["default"] {
+                        resolved[key] = defaultVal
+                    }
+                }
+
+                return JSBridge.anyToJS(ctx, resolved)
+            }, "$$__module", 1))
+
         JS_FreeValue(context, global)
     }
 
@@ -405,6 +446,7 @@ public final class Engine {
         // Clear state
         cancelAllTimers()
         eventBus.removeAllListeners()
+        moduleMetadata.removeAll()
 
         // Free old command callbacks
         for (_, cmd) in commandRegistry {

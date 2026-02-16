@@ -9,6 +9,12 @@ macotron.config = function(options) {
     $$__config(options);
 };
 
+// --- Module metadata ---
+
+macotron.module = function(metadata) {
+    return $$__module(metadata);
+};
+
 // --- Convenience helpers ---
 
 macotron.on = function(event, callback) {

@@ -18,7 +18,7 @@ let package = Package(
             ]
         ),
 
-        // Core engine (QuickJS + EventBus + SnippetManager)
+        // Core engine (QuickJS + EventBus + ModuleManager)
         .target(
             name: "MacotronEngine",
             dependencies: ["CQuickJS"],

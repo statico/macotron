@@ -110,6 +110,31 @@ declare const macotron: {
     };
 
     config(options: Record<string, any>): void;
+
+    /**
+     * Declare module metadata and configurable options.
+     * Returns resolved options (defaults merged with user overrides from Settings).
+     *
+     * @example
+     * const opts = macotron.module({
+     *     title: "Window Tiling",
+     *     options: {
+     *         leftHalf:  { type: "keybinding", default: "ctrl+opt+left", label: "Tile left half" },
+     *         gapSize:   { type: "number",     default: 0,               label: "Gap between windows (px)" },
+     *         enabled:   { type: "boolean",    default: true,            label: "Enable tiling" },
+     *         workspace: { type: "string",     default: "default",       label: "Workspace name" },
+     *     }
+     * });
+     * // opts.leftHalf === "ctrl+opt+left" (or user override)
+     */
+    module(metadata: {
+        title?: string;
+        options?: Record<string, {
+            type: "string" | "boolean" | "number" | "keybinding";
+            default: any;
+            label: string;
+        }>;
+    }): Record<string, any>;
 };
 
 interface AIClient {

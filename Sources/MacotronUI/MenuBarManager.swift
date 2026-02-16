@@ -21,7 +21,7 @@ public final class MenuBarManager: NSObject {
         }
     }
 
-    /// Items registered by JS snippets, keyed by ID
+    /// Items registered by JS modules, keyed by ID
     private var dynamicItems: [(id: String, config: MenuItemConfig)] = []
 
     /// Current launcher shortcut combo string (e.g. "cmd+space"), used for menu display
@@ -162,7 +162,7 @@ public final class MenuBarManager: NSObject {
         openLauncher.target = self
         menu.addItem(openLauncher)
 
-        let reload = NSMenuItem(title: "Reload Snippets", action: #selector(reloadAction), keyEquivalent: "r")
+        let reload = NSMenuItem(title: "Reload Modules", action: #selector(reloadAction), keyEquivalent: "r")
         reload.target = self
         menu.addItem(reload)
 

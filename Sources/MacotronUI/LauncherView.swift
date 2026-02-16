@@ -16,7 +16,7 @@ public struct SearchResult: Identifiable {
         case app
         case file
         case command
-        case snippet
+        case module
         case action
     }
 
@@ -446,7 +446,7 @@ struct ResultRow: View {
         case .app: return "app.fill"
         case .file: return "doc.fill"
         case .command: return "terminal.fill"
-        case .snippet: return "chevron.left.forwardslash.chevron.right"
+        case .module: return "chevron.left.forwardslash.chevron.right"
         case .action: return "bolt.fill"
         }
     }
@@ -456,7 +456,7 @@ struct ResultRow: View {
         case .app: return "Application"
         case .file: return "File"
         case .command: return "Command"
-        case .snippet: return "Snippet"
+        case .module: return "Module"
         case .action: return "Action"
         }
     }
