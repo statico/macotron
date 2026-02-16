@@ -51,13 +51,13 @@ Sources/
 │
 ├── MacotronUI/                  # All UI code
 │   ├── LauncherPanel.swift      # NSPanel subclass (floating window)
-│   ├── LauncherView.swift       # SwiftUI root view (search + chat)
-│   ├── SearchField.swift        # Text input + fuzzy matching
-│   ├── ResultsList.swift        # File/action/snippet results
-│   ├── ChatView.swift           # AI conversation + [Enable]/[Show code] UI
+│   ├── LauncherView.swift       # SwiftUI root view (search + example prompts)
 │   ├── MenuBarManager.swift     # NSStatusItem + dynamic NSMenu
-│   ├── PreviewPane.swift        # Right-side preview
-│   └── CodePreview.swift        # Collapsible code block (for [Show code])
+│   ├── AgentProgressView.swift  # Agent progress UI with shiny text
+│   ├── AgentProgressPanel.swift # Floating progress panel (NSPanel)
+│   ├── WizardView.swift         # First-run setup wizard
+│   ├── WizardWindow.swift       # Wizard window wrapper
+│   └── SettingsView.swift       # Settings with General, AI, and Summary tabs
 │
 ├── MacotronEngine/              # Core engine
 │   ├── Engine.swift             # JSContext lifecycle, module registration
@@ -90,16 +90,19 @@ Sources/
 └── AI/                          # AI provider implementations
     ├── AIProvider.swift          # Protocol
     ├── AIToolCall.swift          # Tool-call-based file management
+    ├── AISystemPrompt.swift      # System prompt builder (agent + chat)
+    ├── AgentSession.swift        # Core agent loop (plan → write → test → repair)
     ├── ClaudeProvider.swift      # Anthropic API
     ├── OpenAIProvider.swift      # OpenAI API
     ├── GeminiProvider.swift      # Google Gemini API
-    └── LocalProvider.swift       # Apple Foundation Models (on-device)
+    ├── LocalProvider.swift       # Apple Foundation Models (on-device)
+    └── SnippetAutoFix.swift      # Auto-repair broken snippets via AI
 ```
 
 ## User Config Structure
 
 ```
-~/.macotron/
+~/Library/Application Support/Macotron/
 ├── config.js                # Main config (API keys, preferences, module options, launcher hotkey)
 ├── snippets/                # Automations — executed alphabetically on load
 │   ├── 001-window-tiling.js
@@ -125,7 +128,7 @@ Sources/
 
 ### Config Backup & Rollback
 
-Before every AI-initiated change (creating, modifying, or deleting snippets), the entire `~/.macotron/` config directory is compressed and backed up to `~/.macotron/backups/`. This enables full rollback to any previous state. Old backups are pruned after 30 days or 100 entries (whichever comes first).
+Before every AI-initiated change (creating, modifying, or deleting snippets), the entire `~/Library/Application Support/Macotron/` config directory is compressed and backed up to `~/Library/Application Support/Macotron/backups/`. This enables full rollback to any previous state. Old backups are pruned after 30 days or 100 entries (whichever comes first).
 
 ### Module Versioning
 
