@@ -10,6 +10,26 @@ public enum ValidationStatus: Equatable {
     case modelUnavailable
 }
 
+/// Summary info for a single script
+public struct ScriptSummary: Identifiable {
+    public let id: String
+    public let filename: String
+    public let description: String
+    public let events: [String]
+    public let hotkeys: [String]
+    public let hasErrors: Bool
+
+    public init(filename: String, description: String, events: [String] = [],
+                hotkeys: [String] = [], hasErrors: Bool = false) {
+        self.id = filename
+        self.filename = filename
+        self.description = description
+        self.events = events
+        self.hotkeys = hotkeys
+        self.hasErrors = hasErrors
+    }
+}
+
 @MainActor
 public final class SettingsState: ObservableObject {
     @Published public var apiKey: String = ""
@@ -19,6 +39,7 @@ public final class SettingsState: ObservableObject {
     @Published public var showMenuBarIcon: Bool = true
     @Published public var showAPIKeyRequired: Bool = false
     @Published public var validationStatus: ValidationStatus = .idle
+    @Published public var scriptSummaries: [ScriptSummary] = []
 
     /// Read/write closures set by AppDelegate
     public var readAPIKey: (() -> String?)?
@@ -33,6 +54,8 @@ public final class SettingsState: ObservableObject {
     public var writeShowMenuBarIcon: ((Bool) -> Void)?
     /// Async validation closure: (key, provider) -> ValidationStatus
     public var validateAPIKey: ((_ key: String, _ provider: String) async -> ValidationStatus)?
+    /// Closure to load script summaries
+    public var loadScriptSummaries: (() -> [ScriptSummary])?
     public var configDirURL: URL?
 
     private var apiKeyDebounce: Task<Void, Never>?
@@ -46,6 +69,11 @@ public final class SettingsState: ObservableObject {
         showDockIcon = readShowDockIcon?() ?? true
         showMenuBarIcon = readShowMenuBarIcon?() ?? true
         validationStatus = .idle
+        refreshSummaries()
+    }
+
+    public func refreshSummaries() {
+        scriptSummaries = loadScriptSummaries?() ?? []
     }
 
     /// Debounced save + validate. Called on every keystroke; waits for typing to stop.
@@ -131,6 +159,7 @@ public struct SettingsView: View {
 
             switch selectedTab {
             case 1: aiTab
+            case 2: summaryTab
             default: generalTab
             }
         }
@@ -150,6 +179,7 @@ public struct SettingsView: View {
             Spacer()
             tabButton(icon: "gearshape", label: "General", tag: 0)
             tabButton(icon: "cpu", label: "AI", tag: 1)
+            tabButton(icon: "list.bullet.rectangle", label: "Summary", tag: 2)
             Spacer()
         }
     }
@@ -241,7 +271,7 @@ public struct SettingsView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
-                    Text("An API key is required for chat and auto-fix.")
+                    Text("An API key is required for the agent and auto-fix.")
                         .font(.callout)
                 }
                 .padding(10)
@@ -290,6 +320,40 @@ public struct SettingsView: View {
             }
 
             Spacer()
+        }
+    }
+
+    // MARK: - Summary Tab
+
+    private var summaryTab: some View {
+        VStack(spacing: 0) {
+            if state.scriptSummaries.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.tertiary)
+                    Text("No scripts installed")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Text("Use the prompt panel to create automation scripts.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 1) {
+                        ForEach(state.scriptSummaries) { summary in
+                            ScriptSummaryRow(summary: summary)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                }
+            }
+        }
+        .onAppear {
+            state.refreshSummaries()
         }
     }
 
@@ -360,5 +424,62 @@ public struct SettingsView: View {
                     .foregroundStyle(.orange)
             }
         }
+    }
+}
+
+// MARK: - Script Summary Row
+
+struct ScriptSummaryRow: View {
+    let summary: ScriptSummary
+
+    var body: some View {
+        HStack(spacing: 10) {
+            // Status icon
+            Image(systemName: summary.hasErrors ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                .foregroundStyle(summary.hasErrors ? .orange : .green)
+                .font(.system(size: 14))
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(summary.filename)
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .lineLimit(1)
+
+                if !summary.description.isEmpty {
+                    Text(summary.description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                // Badges for events and hotkeys
+                if !summary.events.isEmpty || !summary.hotkeys.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(summary.hotkeys, id: \.self) { hotkey in
+                            badge(text: hotkey, color: .blue)
+                        }
+                        ForEach(summary.events, id: \.self) { event in
+                            badge(text: event, color: .purple)
+                        }
+                    }
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .background(RoundedRectangle(cornerRadius: 6).fill(.quaternary.opacity(0.5)))
+    }
+
+    @ViewBuilder
+    private func badge(text: String, color: Color) -> some View {
+        Text(text)
+            .font(.system(size: 9, weight: .medium))
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.12))
+            .foregroundStyle(color)
+            .cornerRadius(3)
     }
 }
