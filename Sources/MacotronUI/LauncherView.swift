@@ -1,12 +1,7 @@
-// LauncherView.swift — SwiftUI root view for the launcher (search + chat)
+// LauncherView.swift — SwiftUI root view for the launcher (search + agent)
 import SwiftUI
 import AppKit
 import MacotronEngine
-
-public enum LauncherMode {
-    case search
-    case chat
-}
 
 public struct SearchResult: Identifiable {
     public let id: String
@@ -39,72 +34,54 @@ public struct SearchResult: Identifiable {
     }
 }
 
-/// A single message in the chat conversation
-public struct ChatMessage: Identifiable {
-    public let id = UUID()
-    public let role: Role
-    public let text: String
-
-    public enum Role {
-        case user
-        case assistant
-        case error
-    }
-}
+/// Example prompts shown when the search field is empty
+private let examplePrompts = [
+    "set up keybindings to let me move windows",
+    "use safari to open all youtube links",
+    "show CPU and memory in the menu bar",
+    "flash my USB light when my camera turns on",
+    "warn me when CPU gets too hot",
+    "take a screenshot and summarize it with AI",
+]
 
 public struct LauncherView: View {
     @State private var query = ""
     @State private var results: [SearchResult] = []
-    @State private var mode: LauncherMode = .search
     @State private var selectedIndex = 0
-    @State private var chatMessages: [ChatMessage] = []
-    @State private var isChatLoading = false
-    @State private var chatTask: Task<Void, Never>?
 
     private let classifier = NLClassifier()
     public var onExecuteCommand: ((String) -> Void)?
     public var onRevealInFinder: ((String) -> Void)?
     public var onSearch: ((String) -> [SearchResult])?
-    public var onChat: (@Sendable (String) async -> String)?
+    /// Fire-and-forget agent callback. The launcher dismisses immediately.
+    public var onAgent: ((String) -> Void)?
 
     public init(
         onExecuteCommand: ((String) -> Void)? = nil,
         onRevealInFinder: ((String) -> Void)? = nil,
         onSearch: ((String) -> [SearchResult])? = nil,
-        onChat: (@Sendable (String) async -> String)? = nil
+        onAgent: ((String) -> Void)? = nil
     ) {
         self.onExecuteCommand = onExecuteCommand
         self.onRevealInFinder = onRevealInFinder
         self.onSearch = onSearch
-        self.onChat = onChat
+        self.onAgent = onAgent
     }
 
     public var body: some View {
         VStack(spacing: 0) {
             // Search input
             HStack(spacing: 10) {
-                Image(systemName: mode == .chat ? "bubble.left.fill" : "magnifyingglass")
+                Image(systemName: "magnifyingglass")
                     .foregroundStyle(.tertiary)
                     .font(.system(size: 20))
                     .frame(width: 24, height: 24)
 
-                TextField("Search apps, commands, or ask a question...", text: $query)
+                TextField("Search or describe what you want...", text: $query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 20, weight: .regular))
                     .frame(height: 24)
                     .onSubmit { execute() }
-                    .disabled(isChatLoading)
-
-                if mode == .chat {
-                    Text("Chat")
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(.blue.opacity(0.15))
-                        .foregroundStyle(.blue)
-                        .cornerRadius(4)
-                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
@@ -112,14 +89,14 @@ public struct LauncherView: View {
 
             Divider().opacity(0.5)
 
-            if mode == .chat {
-                chatView
+            if query.isEmpty {
+                examplePromptsView
             } else {
                 searchResultsView
             }
 
             // Bottom bar with shortcuts
-            if mode == .search && !results.isEmpty {
+            if !query.isEmpty && !results.isEmpty {
                 Divider().opacity(0.5)
                 HStack(spacing: 16) {
                     shortcutHint(keys: ["return"], label: "Open")
@@ -132,14 +109,12 @@ public struct LauncherView: View {
             }
         }
         .onChange(of: query) { _, newValue in
-            guard !isChatLoading else { return }
-
             let classification = classifier.classify(newValue)
             switch classification {
             case .naturalLang:
-                mode = .chat
+                // Don't show search results for natural language — will trigger agent on submit
+                results = []
             case .search, .command:
-                mode = .search
                 results = onSearch?(newValue) ?? []
                 selectedIndex = 0
             }
@@ -149,6 +124,47 @@ public struct LauncherView: View {
             onArrowDown: { moveSelection(1) },
             onCmdReturn: { executeSelectedWithModifier() }
         ))
+    }
+
+    // MARK: - Example Prompts View
+
+    @ViewBuilder
+    private var examplePromptsView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Try asking...")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+
+                ForEach(examplePrompts, id: \.self) { prompt in
+                    Button {
+                        query = prompt
+                        onAgent?(prompt)
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "sparkle")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.blue.opacity(0.7))
+                                .frame(width: 20)
+                            Text(prompt)
+                                .font(.system(size: 14))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.bottom, 8)
+        }
+        .frame(maxHeight: 420)
     }
 
     // MARK: - Search Results View
@@ -178,59 +194,6 @@ public struct LauncherView: View {
         }
     }
 
-    // MARK: - Chat View
-
-    @ViewBuilder
-    private var chatView: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 8) {
-                    if chatMessages.isEmpty && !isChatLoading {
-                        Text("Ask me to create snippets, manage your config, or explain what your snippets do.")
-                            .foregroundStyle(.secondary)
-                            .font(.callout)
-                            .padding(.horizontal, 12)
-                            .padding(.top, 8)
-                    }
-
-                    ForEach(chatMessages) { message in
-                        ChatBubble(message: message)
-                            .id(message.id)
-                    }
-
-                    if isChatLoading {
-                        HStack(spacing: 6) {
-                            ProgressView()
-                                .controlSize(.small)
-                            Text("Thinking...")
-                                .font(.callout)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .id("loading")
-                    }
-                }
-                .padding(.vertical, 4)
-            }
-            .frame(maxHeight: 420)
-            .onChange(of: chatMessages.count) { _, _ in
-                if let lastMsg = chatMessages.last {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        proxy.scrollTo(lastMsg.id, anchor: .bottom)
-                    }
-                }
-            }
-            .onChange(of: isChatLoading) { _, loading in
-                if loading {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        proxy.scrollTo("loading", anchor: .bottom)
-                    }
-                }
-            }
-        }
-    }
-
     // MARK: - Keyboard Navigation
 
     private func moveSelection(_ delta: Int) {
@@ -244,8 +207,13 @@ public struct LauncherView: View {
     // MARK: - Actions
 
     private func execute() {
-        if mode == .chat {
-            sendChatMessage()
+        let classification = classifier.classify(query)
+        if classification == .naturalLang {
+            // Fire agent and clear
+            let command = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !command.isEmpty else { return }
+            onAgent?(command)
+            query = ""
         } else if selectedIndex < results.count {
             executeResult(results[selectedIndex])
         }
@@ -255,27 +223,6 @@ public struct LauncherView: View {
         guard selectedIndex < results.count else { return }
         let result = results[selectedIndex]
         onRevealInFinder?(result.id)
-    }
-
-    private func sendChatMessage() {
-        let message = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !message.isEmpty, !isChatLoading else { return }
-
-        chatMessages.append(ChatMessage(role: .user, text: message))
-        query = ""
-        isChatLoading = true
-
-        chatTask = Task {
-            let responseText: String
-            if let onChat {
-                responseText = await onChat(message)
-            } else {
-                responseText = "Chat is not configured. Set an AI API key in Settings."
-            }
-
-            chatMessages.append(ChatMessage(role: .assistant, text: responseText))
-            isChatLoading = false
-        }
     }
 
     private func executeResult(_ result: SearchResult) {
@@ -355,59 +302,6 @@ struct KeyEventHandler: NSViewRepresentable {
             default:
                 super.keyDown(with: event)
             }
-        }
-    }
-}
-
-// MARK: - Chat Bubble
-
-struct ChatBubble: View {
-    let message: ChatMessage
-
-    var body: some View {
-        HStack {
-            if message.role == .user {
-                Spacer(minLength: 40)
-            }
-
-            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 2) {
-                if message.role != .user {
-                    HStack(spacing: 4) {
-                        Image(systemName: message.role == .error ? "exclamationmark.triangle" : "sparkle")
-                            .font(.caption2)
-                        Text(message.role == .error ? "Error" : "Macotron")
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                    }
-                    .foregroundStyle(message.role == .error ? .red : .secondary)
-                }
-
-                Text(message.text)
-                    .font(.callout)
-                    .textSelection(.enabled)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(bubbleBackground)
-                    .cornerRadius(10)
-            }
-
-            if message.role != .user {
-                Spacer(minLength: 40)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 2)
-    }
-
-    @ViewBuilder
-    private var bubbleBackground: some View {
-        switch message.role {
-        case .user:
-            Color.accentColor.opacity(0.2)
-        case .assistant:
-            Color.secondary.opacity(0.1)
-        case .error:
-            Color.red.opacity(0.1)
         }
     }
 }
