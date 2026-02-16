@@ -303,12 +303,23 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         wizardState.checkAccessibility = { Permissions.isAccessibilityGranted }
         wizardState.checkInputMonitoring = { Permissions.isInputMonitoringGranted }
         wizardState.checkScreenRecording = { Permissions.isScreenRecordingGranted }
+        wizardState.requestAccessibility = { Permissions.requestAccessibility() }
+        wizardState.requestScreenRecording = { Permissions.requestScreenRecording() }
         wizardState.onComplete = { [weak self] in
+            guard let self else { return }
             UserDefaults.standard.set(true, forKey: AppDelegate.wizardCompletedKey)
-            self?.wizardWindow?.close()
-            self?.wizardWindow = nil
+            self.wizardWindow?.close()
+            self.wizardWindow = nil
+
+            // Re-register the global hotkey now that accessibility may have been granted
+            let combo = self.resolveHotkey()
+            self.launcherHotkey?.cleanup()
+            self.launcherHotkey = GlobalHotkey(combo: combo) { [weak self] in
+                self?.launcherPanel.toggle()
+            }
+
             // Open the launcher panel
-            self?.launcherPanel.toggle()
+            self.launcherPanel.toggle()
         }
 
         // Pre-fill from dev config if available
