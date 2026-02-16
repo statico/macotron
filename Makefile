@@ -4,7 +4,7 @@ BUNDLE = $(BUILD_DIR)/$(APP_NAME).app
 BINARY = $(BUILD_DIR)/debug/$(APP_NAME)
 BUNDLE_ID = com.macotron.app
 
-.PHONY: build run bundle clean dev reload eval screenshot
+.PHONY: build run bundle clean cleanprefs dev reload eval screenshot
 
 # Compile
 build:
@@ -52,6 +52,13 @@ commands:
 clean:
 	swift package clean --build-path $(BUILD_DIR)
 	rm -rf $(BUNDLE)
+
+# Remove all user preferences and data for a fresh launch
+cleanprefs:
+	@pkill -x $(APP_NAME) 2>/dev/null || true
+	rm -rf ~/Library/Application\ Support/$(APP_NAME)
+	defaults delete $(BUNDLE_ID) 2>/dev/null || true
+	@echo "Cleaned preferences and data for $(APP_NAME)"
 
 # Release build
 release:
