@@ -1,4 +1,5 @@
 // DebugServer.swift — HTTP server for development (debug builds only)
+import AppKit
 import Foundation
 import Network
 import MacotronEngine
@@ -6,13 +7,16 @@ import os
 
 private let logger = Logger(subsystem: "com.macotron", category: "debug")
 
-#if DEBUG
 @MainActor
 public final class DebugServer {
     private let engine: Engine
     private let snippetManager: SnippetManager
     private let listener: NWListener
     private let port: UInt16
+
+    public var onOpenSettings: (() -> Void)?
+    public var onOpenSettingsTab: ((Int) -> Void)?
+    public var captureWindow: ((Int?) -> Data?)?
 
     public init(engine: Engine, snippetManager: SnippetManager, port: UInt16 = 7777) {
         self.engine = engine
@@ -71,7 +75,9 @@ public final class DebugServer {
     private func route(_ request: String) -> (Data, String) {
         let parts = request.split(separator: " ")
         let method = parts.first.map(String.init) ?? "GET"
-        let path = parts.dropFirst().first.map(String.init) ?? "/"
+        let fullPath = parts.dropFirst().first.map(String.init) ?? "/"
+        let path = fullPath.split(separator: "?").first.map(String.init) ?? fullPath
+        let query = fullPath.contains("?") ? String(fullPath.split(separator: "?", maxSplits: 1).last ?? "") : ""
 
         switch (method, path) {
         case (_, "/eval"):
@@ -112,14 +118,36 @@ public final class DebugServer {
             let data = try! JSONSerialization.data(withJSONObject: info)
             return (data, "application/json")
 
+        case (_, "/open-settings"):
+            let body = extractBody(request)
+            let tab = (parseJSON(body)?["tab"] as? Int) ?? 0
+            onOpenSettingsTab?(tab)
+            return ("opened".data(using: .utf8)!, "text/plain")
+
+        case (_, "/screenshot"):
+            // Optional ?tab=N query parameter
+            let tab: Int? = {
+                for param in query.split(separator: "&") {
+                    let kv = param.split(separator: "=")
+                    if kv.count == 2, kv[0] == "tab", let n = Int(kv[1]) { return n }
+                }
+                return nil
+            }()
+            if let png = captureWindow?(tab) {
+                return (png, "image/png")
+            }
+            return ("no windows found".data(using: .utf8)!, "text/plain")
+
         default:
             let routes = [
-                "GET  /health    - Server status",
-                "POST /eval      - Evaluate JS (body: {\"js\": \"...\"})",
-                "POST /reload    - Reload all snippets",
-                "GET  /snippets  - List loaded snippets",
-                "GET  /commands  - List registered commands",
-                "GET  /backups   - List config backups",
+                "GET  /health         - Server status",
+                "POST /eval           - Evaluate JS (body: {\"js\": \"...\"})",
+                "POST /reload         - Reload all snippets",
+                "GET  /snippets       - List loaded snippets",
+                "GET  /commands       - List registered commands",
+                "GET  /backups        - List config backups",
+                "POST /open-settings  - Open settings (body: {\"tab\": 0})",
+                "GET  /screenshot     - Screenshot frontmost Macotron window",
             ]
             let text = "Macotron Debug Server\n\nRoutes:\n" + routes.joined(separator: "\n")
             return (text.data(using: .utf8)!, "text/plain")
@@ -136,4 +164,3 @@ public final class DebugServer {
         return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
     }
 }
-#endif
