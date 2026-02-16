@@ -83,6 +83,7 @@ public final class AgentSession {
         var lastText = ""
 
         while roundCount < maxRounds {
+            try Task.checkCancellation()
             roundCount += 1
             logger.info("Agent round \(roundCount): sending \(messages.count) messages")
 
