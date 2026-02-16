@@ -214,7 +214,61 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.menuBarManager.setVisible(value)
         }
 
+        settingsState.loadScriptSummaries = { [weak self] in
+            self?.buildScriptSummaries() ?? []
+        }
+
         settingsWindow = SettingsWindow(state: settingsState)
+    }
+
+    /// Build script summaries by reading all snippets and extracting metadata
+    private func buildScriptSummaries() -> [ScriptSummary] {
+        let errorFiles = Set(snippetManager.lastReloadErrors.map(\.filename))
+        var summaries: [ScriptSummary] = []
+
+        let hotkeyPattern = try? NSRegularExpression(pattern: #"keyboard\.on\(\s*"([^"]+)""#)
+        let eventPattern = try? NSRegularExpression(pattern: #"macotron\.on\(\s*"([^"]+)""#)
+
+        for dir in ["snippets", "commands"] {
+            let files = snippetManager.listSnippets(directory: dir)
+            for file in files {
+                let fullPath = snippetManager.configDir.appending(path: dir).appending(path: file.filename)
+                let source = (try? String(contentsOf: fullPath, encoding: .utf8)) ?? ""
+                let range = NSRange(source.startIndex..., in: source)
+
+                // Extract hotkeys
+                var hotkeys: [String] = []
+                if let regex = hotkeyPattern {
+                    let matches = regex.matches(in: source, range: range)
+                    for match in matches {
+                        if let r = Range(match.range(at: 1), in: source) {
+                            hotkeys.append(String(source[r]))
+                        }
+                    }
+                }
+
+                // Extract events
+                var events: [String] = []
+                if let regex = eventPattern {
+                    let matches = regex.matches(in: source, range: range)
+                    for match in matches {
+                        if let r = Range(match.range(at: 1), in: source) {
+                            events.append(String(source[r]))
+                        }
+                    }
+                }
+
+                summaries.append(ScriptSummary(
+                    filename: file.filename,
+                    description: file.description,
+                    events: events,
+                    hotkeys: hotkeys,
+                    hasErrors: errorFiles.contains(file.filename)
+                ))
+            }
+        }
+
+        return summaries
     }
 
     // MARK: - Wizard
