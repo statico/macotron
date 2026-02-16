@@ -18,8 +18,9 @@ public final class LauncherPanel: NSPanel {
     private static let maxHeight: CGFloat = 520
 
     public init(contentView: NSView) {
+        // Start at maxHeight so SwiftUI has room to lay out content
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: Self.panelWidth, height: Self.minHeight),
+            contentRect: NSRect(x: 0, y: 0, width: Self.panelWidth, height: Self.maxHeight),
             styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -55,7 +56,7 @@ public final class LauncherPanel: NSPanel {
     public override var canBecomeMain: Bool { false }
 
     /// Resize the panel to fit the given content height, keeping the top edge pinned.
-    public func resizeToHeight(_ height: CGFloat, animated: Bool = true) {
+    public func resizeToHeight(_ height: CGFloat) {
         let clamped = min(max(height, Self.minHeight), Self.maxHeight)
         guard abs(frame.height - clamped) > 1 else { return }
 
@@ -64,7 +65,7 @@ public final class LauncherPanel: NSPanel {
         newFrame.size.height = clamped
         newFrame.origin.y = topY - clamped
 
-        if animated && isVisible {
+        if isVisible && alphaValue > 0 {
             NSAnimationContext.runAnimationGroup { ctx in
                 ctx.duration = 0.15
                 ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
@@ -84,23 +85,32 @@ public final class LauncherPanel: NSPanel {
         if isVisible {
             orderOut(nil)
         } else {
+            // Reset to maxHeight so SwiftUI can lay out content fully
+            var f = frame
+            f.size.height = Self.maxHeight
+            setFrame(f, display: false)
+
             // Raycast-style placement: centered horizontally, upper portion of screen.
-            // The top of the panel sits at roughly 2/3 up from the bottom of the visible area.
+            // The top of the panel sits at roughly 78% up the visible area.
             if let screen = NSScreen.main {
                 let sf = screen.visibleFrame
                 let x = sf.midX - Self.panelWidth / 2
                 let topY = sf.minY + sf.height * 0.78
-                let y = topY - frame.height
+                let y = topY - Self.maxHeight
                 setFrameOrigin(NSPoint(x: x, y: y))
             } else {
                 center()
             }
+
+            // Show invisible so SwiftUI can compute content height,
+            // then reveal on the next run loop tick after resize fires.
+            alphaValue = 0
             makeKeyAndOrderFront(nil)
             NSApp.activate()
 
-            // Focus the search text field
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
+                self.alphaValue = 1
                 if let textField = self.contentView?.firstEditableTextField() {
                     self.makeFirstResponder(textField)
                 }

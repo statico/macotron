@@ -127,15 +127,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         snippetManager.startWatching()
 
-        // Show permissions wizard if any permission is missing
-        let allPermsGranted = Permissions.isAccessibilityGranted
-            && Permissions.isInputMonitoringGranted
-            && Permissions.isScreenRecordingGranted
-        if !allPermsGranted {
+        // Show permissions wizard on first launch (permission APIs are unreliable
+        // when launched from Terminal/IDE — they inherit parent permissions)
+        let wizardDone = UserDefaults.standard.bool(forKey: AppDelegate.wizardCompletedKey)
+        if !wizardDone {
             showPermissionsWizard()
         }
-        // Mark first-run wizard as completed (setup happens inline now)
-        UserDefaults.standard.set(true, forKey: AppDelegate.wizardCompletedKey)
 
         // Start debug server if requested
         #if DEBUG
@@ -286,6 +283,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             self.wizardWindow?.close()
             self.wizardWindow = nil
+
+            // Mark wizard as completed so it doesn't show again
+            UserDefaults.standard.set(true, forKey: AppDelegate.wizardCompletedKey)
 
             // Re-register the global hotkey now that accessibility may have been granted
             let combo = self.resolveHotkey()
