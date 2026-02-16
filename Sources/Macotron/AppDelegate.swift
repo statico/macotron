@@ -23,9 +23,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private let wizardState = WizardState()
     private var appSearchProvider: AppSearchProvider!
 
-    #if DEBUG
     private var debugServer: DebugServer?
-    #endif
 
     private let configDir: URL = {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -135,12 +133,28 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // Start debug server if requested
-        #if DEBUG
         if CommandLine.arguments.contains("--debug-server") {
             debugServer = DebugServer(engine: engine, snippetManager: snippetManager)
+            debugServer?.onOpenSettings = { [weak self] in
+                self?.settingsWindow.show()
+            }
+            debugServer?.onOpenSettingsTab = { [weak self] tab in
+                self?.settingsState.requestedTab = tab
+                self?.settingsWindow.show()
+            }
+            debugServer?.captureWindow = { [weak self] tab in
+                guard let self else { return nil }
+                // Use ImageRenderer to render the settings view to PNG (no window server needed)
+                let view = SettingsView(state: self.settingsState, initialTab: tab ?? 0)
+                    .frame(width: 660, height: 460)
+                let renderer = ImageRenderer(content: view)
+                renderer.scale = 2.0
+                guard let image = renderer.cgImage else { return nil }
+                let bitmap = NSBitmapImageRep(cgImage: image)
+                return bitmap.representation(using: .png, properties: [:])
+            }
             debugServer?.start()
         }
-        #endif
     }
 
     // MARK: - Settings

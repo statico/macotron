@@ -33,6 +33,8 @@ bundle: build
 	@cp Resources/Info.plist "$(BUNDLE)/Contents/"
 	@cp Sources/Macotron/Resources/macotron-runtime.js "$(BUNDLE)/Contents/Resources/"
 	@cp Sources/Macotron/Resources/macotron.d.ts "$(BUNDLE)/Contents/Resources/"
+	@cp Resources/AppIcon.icns "$(BUNDLE)/Contents/Resources/"
+	@cp Resources/banner.png "$(BUNDLE)/Contents/Resources/"
 	@if [ -n "$(SIGN_IDENTITY)" ]; then \
 		codesign --force --sign "$(SIGN_IDENTITY)" --entitlements Resources/Macotron.entitlements "$(BUNDLE)"; \
 	else \
