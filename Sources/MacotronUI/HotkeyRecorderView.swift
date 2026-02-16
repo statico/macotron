@@ -15,24 +15,36 @@ public struct HotkeyRecorderView: View {
     @State private var flagsMonitor: Any?
 
     public var body: some View {
-        HStack(spacing: 4) {
+        pill
+            .overlay(alignment: .top) {
+                if isRecording {
+                    recordingBubble
+                        .offset(y: -54)
+                }
+            }
+            .animation(.easeOut(duration: 0.15), value: isRecording)
+    }
+
+    // MARK: - Pill
+
+    private var pill: some View {
+        HStack(spacing: 6) {
+            Spacer()
+
             if isRecording {
-                if !heldModifiers.isEmpty {
-                    // Show modifiers as they're held down
-                    ForEach(modifierSymbols(heldModifiers), id: \.self) { sym in
-                        keyCap(sym)
+                if !combo.isEmpty {
+                    ForEach(displayParts(combo), id: \.self) { part in
+                        keyCap(part)
+                            .opacity(0.35)
                     }
-                    Text("...")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.tertiary)
                 } else {
-                    Text("Record Shortcut")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
+                    Text("Type Shortcut")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.tertiary)
                 }
             } else if combo.isEmpty {
-                Text("None")
-                    .font(.system(size: 13))
+                Text("Click to Record")
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.tertiary)
             } else {
                 ForEach(displayParts(combo), id: \.self) { part in
@@ -40,28 +52,15 @@ public struct HotkeyRecorderView: View {
                 }
             }
 
-            Spacer(minLength: 4)
-
-            if !combo.isEmpty && !isRecording {
-                Button {
-                    combo = ""
-                    onSave()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.tertiary)
-                }
-                .buttonStyle(.plain)
-            }
+            Spacer()
         }
-        .frame(width: 200, height: 28)
-        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, minHeight: 36, maxHeight: 36)
         .background(
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: 8)
                 .fill(Color(nsColor: .controlBackgroundColor))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 6)
+            RoundedRectangle(cornerRadius: 8)
                 .strokeBorder(
                     isRecording ? Color.accentColor : Color(nsColor: .separatorColor),
                     lineWidth: isRecording ? 2 : 1
@@ -78,16 +77,45 @@ public struct HotkeyRecorderView: View {
         }
     }
 
+    // MARK: - Recording Bubble
+
+    private var recordingBubble: some View {
+        VStack(spacing: 4) {
+            if !heldModifiers.isEmpty {
+                HStack(spacing: 4) {
+                    ForEach(modifierSymbols(heldModifiers), id: \.self) { sym in
+                        keyCap(sym)
+                    }
+                }
+            }
+            Text("Recording...")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(nsColor: .windowBackgroundColor))
+                .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 0.5)
+        )
+    }
+
     // MARK: - Key Cap
 
-    @ViewBuilder
     private func keyCap(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 12, weight: .medium, design: .rounded))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
-            .cornerRadius(4)
+            .font(.system(size: 13, weight: .medium, design: .rounded))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
+            )
     }
 
     // MARK: - Recording
