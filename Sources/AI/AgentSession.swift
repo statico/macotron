@@ -42,7 +42,7 @@ public struct AgentResult: Sendable {
 @MainActor
 public final class AgentSession {
     private let provider: ClaudeProvider
-    private let snippetManager: SnippetManager
+    private let moduleManager: ModuleManager
 
     /// Maximum tool-call rounds before stopping
     private let maxRounds = 15
@@ -52,9 +52,9 @@ public final class AgentSession {
     /// Called on each progress update. Set by the caller before `run()`.
     public var onProgress: ((AgentProgress) -> Void)?
 
-    public init(provider: ClaudeProvider, snippetManager: SnippetManager) {
+    public init(provider: ClaudeProvider, moduleManager: ModuleManager) {
         self.provider = provider
-        self.snippetManager = snippetManager
+        self.moduleManager = moduleManager
     }
 
     /// Run the agent loop for a user command.
@@ -63,7 +63,7 @@ public final class AgentSession {
     public func run(command: String) async throws -> AgentResult {
         onProgress?(.planning(command))
 
-        let systemPrompt = AISystemPrompt.buildAgentPrompt(snippetManager: snippetManager)
+        let systemPrompt = AISystemPrompt.buildAgentPrompt(moduleManager: moduleManager)
         let options = AIRequestOptions(
             maxTokens: 4096,
             temperature: 0.3,
@@ -71,8 +71,8 @@ public final class AgentSession {
         )
 
         // Track file changes by snapshotting before/after
-        let snippetsBefore = Set(snippetManager.listSnippets(directory: "snippets").map(\.filename))
-        let commandsBefore = Set(snippetManager.listSnippets(directory: "commands").map(\.filename))
+        let modulesBefore = Set(moduleManager.listModules(directory: "modules").map(\.filename))
+        let commandsBefore = Set(moduleManager.listModules(directory: "commands").map(\.filename))
 
         var messages: [[String: Any]] = [
             ["role": "user", "content": command]
@@ -138,7 +138,7 @@ public final class AgentSession {
                 let result = AIToolDefinition.execute(
                     toolName: toolCall.name,
                     input: toolCall.input,
-                    snippetManager: snippetManager
+                    moduleManager: moduleManager
                 )
                 logger.info("Agent tool \(toolCall.name) result: \(result.prefix(200))")
 
@@ -150,7 +150,7 @@ public final class AgentSession {
             }
 
             // Check for reload errors after tool execution
-            let errors = snippetManager.lastReloadErrors
+            let errors = moduleManager.lastReloadErrors
             if !errors.isEmpty {
                 onProgress?(.testing)
 
@@ -187,7 +187,7 @@ public final class AgentSession {
                 onProgress?(.done(success: false, summary: msg))
                 return buildResult(
                     success: false, summary: msg,
-                    snippetsBefore: snippetsBefore, commandsBefore: commandsBefore,
+                    modulesBefore: modulesBefore, commandsBefore: commandsBefore,
                     error: msg
                 )
             }
@@ -201,7 +201,7 @@ public final class AgentSession {
         onProgress?(.done(success: true, summary: summary))
         return buildResult(
             success: true, summary: summary,
-            snippetsBefore: snippetsBefore, commandsBefore: commandsBefore
+            modulesBefore: modulesBefore, commandsBefore: commandsBefore
         )
     }
 
@@ -209,12 +209,12 @@ public final class AgentSession {
 
     private func emitToolProgress(_ toolCall: ClaudeProvider.ToolChatResponse.ToolCall) {
         switch toolCall.name {
-        case "write_snippet":
+        case "write_module":
             let filename = toolCall.input["filename"] as? String ?? "script"
             onProgress?(.writing(filename))
         case "write_config":
             onProgress?(.writing("config.js"))
-        case "delete_snippet":
+        case "delete_module":
             let filename = toolCall.input["filename"] as? String ?? "script"
             onProgress?(.writing(filename))
         default:
@@ -224,14 +224,14 @@ public final class AgentSession {
 
     private func buildResult(
         success: Bool, summary: String,
-        snippetsBefore: Set<String>, commandsBefore: Set<String>,
+        modulesBefore: Set<String>, commandsBefore: Set<String>,
         error: String? = nil
     ) -> AgentResult {
-        let snippetsAfter = Set(snippetManager.listSnippets(directory: "snippets").map(\.filename))
-        let commandsAfter = Set(snippetManager.listSnippets(directory: "commands").map(\.filename))
+        let modulesAfter = Set(moduleManager.listModules(directory: "modules").map(\.filename))
+        let commandsAfter = Set(moduleManager.listModules(directory: "commands").map(\.filename))
 
-        let allBefore = snippetsBefore.union(commandsBefore)
-        let allAfter = snippetsAfter.union(commandsAfter)
+        let allBefore = modulesBefore.union(commandsBefore)
+        let allAfter = modulesAfter.union(commandsAfter)
 
         let created = Array(allAfter.subtracting(allBefore)).sorted()
         let deleted = Array(allBefore.subtracting(allAfter)).sorted()

@@ -1,4 +1,4 @@
-// CapabilityReview.swift — Static analysis of snippet capabilities for security review
+// CapabilityReview.swift — Static analysis of module capabilities for security review
 import Foundation
 
 public enum CapabilityTier: Int, Comparable, Sendable {
@@ -11,7 +11,7 @@ public enum CapabilityTier: Int, Comparable, Sendable {
     }
 }
 
-public struct SnippetManifest: Sendable {
+public struct ModuleManifest: Sendable {
     public let apisUsed: Set<String>
     public let shellCommands: [String]
     public let networkTargets: [String]
@@ -73,8 +73,8 @@ public enum CapabilityReview {
         "url.registerHandler",
     ]
 
-    /// Analyze a snippet's source code and extract its capability manifest
-    public static func review(_ js: String) -> SnippetManifest {
+    /// Analyze a module's source code and extract its capability manifest
+    public static func review(_ js: String) -> ModuleManifest {
         var apis = Set<String>()
         var shellCmds: [String] = []
         var networkURLs: [String] = []
@@ -119,7 +119,7 @@ public enum CapabilityReview {
 
         let maxTier = apis.compactMap { apiTiers[$0] }.max() ?? .safe
 
-        return SnippetManifest(
+        return ModuleManifest(
             apisUsed: apis,
             shellCommands: shellCmds,
             networkTargets: networkURLs,
@@ -128,7 +128,7 @@ public enum CapabilityReview {
         )
     }
 
-    /// Check if a snippet can be auto-fixed (no dangerous APIs, no opt-out pragma)
+    /// Check if a module can be auto-fixed (no dangerous APIs, no opt-out pragma)
     public static func canAutoFix(source: String) -> Bool {
         if source.contains("// macotron:no-autofix") { return false }
         for pattern in dangerousPatterns {

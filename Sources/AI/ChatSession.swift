@@ -5,7 +5,7 @@ import os
 
 private let logger = Logger(subsystem: "com.macotron", category: "ai.chat")
 
-/// Orchestrates a multi-turn AI conversation, handling tool calls for snippet management.
+/// Orchestrates a multi-turn AI conversation, handling tool calls for module management.
 ///
 /// Flow:
 /// 1. User message is sent to Claude with system prompt and tool definitions
@@ -15,14 +15,14 @@ private let logger = Logger(subsystem: "com.macotron", category: "ai.chat")
 @MainActor
 public final class ChatSession {
     private let provider: ClaudeProvider
-    private let snippetManager: SnippetManager
+    private let moduleManager: ModuleManager
 
     /// Maximum number of tool-call round trips before forcing a stop
     private let maxToolRounds = 10
 
-    public init(provider: ClaudeProvider, snippetManager: SnippetManager) {
+    public init(provider: ClaudeProvider, moduleManager: ModuleManager) {
         self.provider = provider
-        self.snippetManager = snippetManager
+        self.moduleManager = moduleManager
     }
 
     /// Process a user message through the AI, handling any tool calls in a loop.
@@ -31,8 +31,8 @@ public final class ChatSession {
     /// - Parameter userMessage: The natural language message from the user
     /// - Returns: The AI's final text response after all tool calls are resolved
     public func processMessage(_ userMessage: String) async throws -> String {
-        // Build fresh system prompt each time (snippet list may have changed)
-        let systemPrompt = AISystemPrompt.build(snippetManager: snippetManager)
+        // Build fresh system prompt each time (module list may have changed)
+        let systemPrompt = AISystemPrompt.build(moduleManager: moduleManager)
 
         let options = AIRequestOptions(
             maxTokens: 4096,
@@ -110,7 +110,7 @@ public final class ChatSession {
                 let result = AIToolDefinition.execute(
                     toolName: toolCall.name,
                     input: toolCall.input,
-                    snippetManager: snippetManager
+                    moduleManager: moduleManager
                 )
                 logger.info("Tool \(toolCall.name) result: \(result.prefix(200))")
 

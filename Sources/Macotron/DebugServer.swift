@@ -10,7 +10,7 @@ private let logger = Logger(subsystem: "com.macotron", category: "debug")
 @MainActor
 public final class DebugServer {
     private let engine: Engine
-    private let snippetManager: SnippetManager
+    private let moduleManager: ModuleManager
     private let listener: NWListener
     private let port: UInt16
 
@@ -19,9 +19,9 @@ public final class DebugServer {
     public var captureWindow: ((Int?) -> Data?)?
     public var captureLauncher: (() -> Data?)?
 
-    public init(engine: Engine, snippetManager: SnippetManager, port: UInt16 = 7777) {
+    public init(engine: Engine, moduleManager: ModuleManager, port: UInt16 = 7777) {
         self.engine = engine
-        self.snippetManager = snippetManager
+        self.moduleManager = moduleManager
         self.port = port
 
         let params = NWParameters.tcp
@@ -89,12 +89,12 @@ public final class DebugServer {
             return (response.data(using: .utf8)!, "text/plain")
 
         case (_, "/reload"):
-            snippetManager.reloadAll()
+            moduleManager.reloadAll()
             return ("reloaded".data(using: .utf8)!, "text/plain")
 
-        case (_, "/snippets"):
-            let snippets = snippetManager.listSnippets()
-            let list = snippets.map { ["filename": $0.filename, "description": $0.description] }
+        case (_, "/modules"):
+            let modules = moduleManager.listModules()
+            let list = modules.map { ["filename": $0.filename, "description": $0.description] }
             let data = try! JSONSerialization.data(withJSONObject: list)
             return (data, "application/json")
 
@@ -106,14 +106,14 @@ public final class DebugServer {
             return (data, "application/json")
 
         case (_, "/backups"):
-            let backups = snippetManager.backup.listBackups()
+            let backups = moduleManager.backup.listBackups()
             let data = try! JSONSerialization.data(withJSONObject: backups)
             return (data, "application/json")
 
         case (_, "/health"):
             let info: [String: Any] = [
                 "status": "ok",
-                "snippets": snippetManager.listSnippets().count,
+                "modules": moduleManager.listModules().count,
                 "commands": engine.commandRegistry.count,
             ]
             let data = try! JSONSerialization.data(withJSONObject: info)
@@ -147,8 +147,8 @@ public final class DebugServer {
             let routes = [
                 "GET  /health         - Server status",
                 "POST /eval           - Evaluate JS (body: {\"js\": \"...\"})",
-                "POST /reload         - Reload all snippets",
-                "GET  /snippets       - List loaded snippets",
+                "POST /reload         - Reload all modules",
+                "GET  /modules        - List loaded modules",
                 "GET  /commands       - List registered commands",
                 "GET  /backups        - List config backups",
                 "POST /open-settings  - Open settings (body: {\"tab\": 0})",

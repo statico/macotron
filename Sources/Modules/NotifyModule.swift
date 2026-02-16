@@ -111,7 +111,7 @@ public final class NotifyModule: NativeModule {
     }
 
     public func cleanup() {
-        // Remove any pending notifications posted by snippets on reload
+        // Remove any pending notifications posted by modules on reload
         center.removeAllPendingNotificationRequests()
     }
 }
