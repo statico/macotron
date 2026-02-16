@@ -92,6 +92,61 @@ make dev      # compile + bundle + run with debug server on :7777
 make clean    # clean build artifacts
 ```
 
+## Code Signing & Permissions
+
+Macotron uses CGEvent taps and Accessibility APIs that require macOS permissions. These permissions are tied to the app's code signature, so signing matters.
+
+### Ad-hoc signing (default)
+
+By default, `make run` signs the app ad-hoc (`codesign --sign -`). This works but generates a new cdhash every build, which **resets your macOS permissions each time**. You'll need to re-grant Accessibility after every rebuild.
+
+### Stable signing with a self-signed certificate (recommended)
+
+Create a local code-signing certificate so permissions persist across rebuilds:
+
+```bash
+# Generate cert + key, bundle into p12, import to keychain (one-time setup)
+openssl req -x509 -newkey rsa:2048 -keyout /tmp/mc.key -out /tmp/mc.crt \
+  -days 3650 -nodes -subj "/CN=Macotron-Dev" \
+  -addext "extendedKeyUsage=codeSigning" && \
+openssl pkcs12 -export -out /tmp/mc.p12 -inkey /tmp/mc.key -in /tmp/mc.crt \
+  -passout pass:temp -legacy && \
+security import /tmp/mc.p12 -k ~/Library/Keychains/login.keychain-db \
+  -P temp -T /usr/bin/codesign && \
+rm /tmp/mc.key /tmp/mc.crt /tmp/mc.p12
+```
+
+Then build with the certificate:
+
+```bash
+make run SIGN_IDENTITY=Macotron-Dev
+
+# Or export it so you don't have to pass it every time:
+export SIGN_IDENTITY=Macotron-Dev
+make run
+```
+
+### Granting permissions
+
+Macotron needs **Accessibility** permission for global hotkeys. After the first build with a stable certificate:
+
+1. Open **System Settings → Privacy & Security → Accessibility**
+2. Click **+** and add `~/Applications/Macotron.app`
+3. Enable the toggle
+
+If hotkeys stop working after a rebuild, the TCC database may have a stale entry from a previous ad-hoc build. Fix it by removing and re-adding Macotron in the Accessibility list, or reset all Accessibility entries:
+
+```bash
+tccutil reset Accessibility
+```
+
+### Verifying the signature
+
+```bash
+codesign -d -vvvv ~/Applications/Macotron.app
+# Look for: Authority=Macotron-Dev (not "adhoc" or "unknown certificate")
+```
+
 ## Development
 
 ### Dev Config Shortcut
