@@ -210,10 +210,12 @@ public struct SettingsView: View {
                     .font(.system(size: 10, weight: .medium))
             }
             .frame(width: 70, height: 48)
+            .contentShape(RoundedRectangle(cornerRadius: 8))
             .background(
                 RoundedRectangle(cornerRadius: 8)
                     .fill(isSelected ? Color.primary.opacity(0.08) : Color.clear)
             )
+            .accessibilityElement(children: .combine)
         }
         .buttonStyle(.plain)
         .foregroundStyle(isSelected ? .primary : .secondary)
