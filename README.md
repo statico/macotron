@@ -1,3 +1,5 @@
+# ⚠️ VERY INCOMPLETE - STILL A WORK IN PROGRESS (but kinda works)
+
 <p align="center">
   <img src="Resources/banner.png" alt="Macotron" width="600">
 </p>
