@@ -34,11 +34,31 @@ JSModuleDef *QJS_CompileModule(JSContext *ctx, const char *source, size_t source
     return m;
 }
 
+// Decide whether source must run as an ES module.
+//
+// JS_DetectModule assumes "module" and only says "script" when the source fails
+// to parse as a module, so it calls every plain script a module. Modules
+// evaluate to a promise and defer errors into a rejection, which loses both the
+// result and the error. Ask the opposite question instead: import and export
+// only parse in module scope, so anything the script parser accepts is a script.
+static int qjs_is_module(JSContext *ctx, const char *source, size_t source_len,
+                         const char *filename) {
+    JSValue probe = JS_Eval(ctx, source, source_len, filename,
+                            JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_COMPILE_ONLY);
+    int is_module = JS_IsException(probe);
+    if (is_module) {
+        // Drop the parse error so it cannot leak into the real evaluation.
+        JS_FreeValue(ctx, JS_GetException(ctx));
+    }
+    JS_FreeValue(ctx, probe);
+    return is_module;
+}
+
 // Evaluate a JS file, auto-detecting whether it's a module (import/export).
 // Returns the eval result as a JSValue.
 JSValue QJS_EvalAutoDetect(JSContext *ctx, const char *source, size_t source_len, const char *filename) {
     int eval_type = JS_EVAL_TYPE_GLOBAL;
-    if (JS_DetectModule(source, source_len)) {
+    if (qjs_is_module(ctx, source, source_len, filename)) {
         eval_type = JS_EVAL_TYPE_MODULE;
     }
     return JS_Eval(ctx, source, source_len, filename, eval_type);
@@ -48,7 +68,7 @@ JSValue QJS_EvalAutoDetect(JSContext *ctx, const char *source, size_t source_len
 uint8_t *QJS_CompileToBytecode(JSContext *ctx, const char *source, size_t source_len,
                                 const char *filename, size_t *out_len) {
     int eval_type = JS_EVAL_TYPE_GLOBAL;
-    if (JS_DetectModule(source, source_len)) {
+    if (qjs_is_module(ctx, source, source_len, filename)) {
         eval_type = JS_EVAL_TYPE_MODULE;
     }
     JSValue obj = JS_Eval(ctx, source, source_len, filename,
