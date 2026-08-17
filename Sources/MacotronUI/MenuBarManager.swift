@@ -2,6 +2,14 @@
 import AppKit
 import MacotronEngine
 
+/// Small red circle drawn over the status item glyph.
+private final class BadgeDotView: NSView {
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor.systemRed.setFill()
+        NSBezierPath(ovalIn: bounds).fill()
+    }
+}
+
 @MainActor
 public final class MenuBarManager: NSObject {
     private var statusItem: NSStatusItem!
@@ -33,16 +41,23 @@ public final class MenuBarManager: NSObject {
     /// Required permissions the user has not granted yet.
     private var missingPermissions: [Permission] = []
 
+    /// Red dot overlay shown on the status button while permissions are missing.
+    private var badgeView: NSView?
+
     public var onReload: (() -> Void)?
     public var onOpenConfig: (() -> Void)?
     public var onToggleLauncher: (() -> Void)?
     public var onOpenSettings: (() -> Void)?
     public var onOpenPermissions: (() -> Void)?
 
+    /// Called before the menu opens, so permission state is never stale.
+    public var onMenuWillOpen: (() -> Void)?
+
     public override init() {
         super.init()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         menu = NSMenu()
+        menu.delegate = self
         statusItem.menu = menu
         refreshStatusImage()
         rebuildMenu()
@@ -94,46 +109,34 @@ public final class MenuBarManager: NSObject {
         refreshStatusImage()
     }
 
-    /// Draw the status symbol, with a red dot in the top-right when a required
-    /// permission is missing. A badged image cannot be a template image, so the
-    /// glyph is tinted to match the current menu bar appearance.
+    /// The glyph stays a template image so macOS tints it for the current menu
+    /// bar appearance. The red dot is a sibling view, because a badged image
+    /// cannot be a template image and would render with a fixed color.
     private func refreshStatusImage() {
-        guard let base = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Macotron") else { return }
+        guard let button = statusItem.button else { return }
+        let base = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Macotron")
+        base?.isTemplate = true
+        button.image = base
+
+        badgeView?.removeFromSuperview()
+        badgeView = nil
 
         guard !missingPermissions.isEmpty else {
-            base.isTemplate = true
-            statusItem.button?.image = base
+            button.toolTip = nil
             return
         }
 
-        let isDark = statusItem.button?.effectiveAppearance
-            .bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        let glyphColor: NSColor = isDark ? .white : .black
-
-        let size = base.size
-        let padding = size.width * 0.25
-        let badged = NSImage(size: NSSize(width: size.width + padding, height: size.height))
-
-        badged.lockFocus()
-        let glyphRect = NSRect(origin: .zero, size: size)
-        base.draw(in: glyphRect)
-        glyphColor.set()
-        glyphRect.fill(using: .sourceAtop)
-
-        let diameter = max(5, size.height * 0.36)
-        let dot = NSRect(
-            x: badged.size.width - diameter,
-            y: badged.size.height - diameter,
-            width: diameter,
-            height: diameter
-        )
-        NSColor.systemRed.setFill()
-        NSBezierPath(ovalIn: dot).fill()
-        badged.unlockFocus()
-
-        badged.isTemplate = false
-        statusItem.button?.image = badged
-        statusItem.button?.toolTip = "Macotron needs permissions"
+        let dot = BadgeDotView()
+        dot.translatesAutoresizingMaskIntoConstraints = false
+        button.addSubview(dot)
+        NSLayoutConstraint.activate([
+            dot.widthAnchor.constraint(equalToConstant: 6),
+            dot.heightAnchor.constraint(equalToConstant: 6),
+            dot.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -1),
+            dot.topAnchor.constraint(equalTo: button.topAnchor, constant: 4),
+        ])
+        badgeView = dot
+        button.toolTip = "Macotron needs permissions"
     }
 
     public func setTitle(_ text: String) {
@@ -295,5 +298,11 @@ public final class MenuBarManager: NSObject {
 
     @objc private func openSettingsAction() {
         onOpenSettings?()
+    }
+}
+
+extension MenuBarManager: NSMenuDelegate {
+    public func menuNeedsUpdate(_ menu: NSMenu) {
+        onMenuWillOpen?()
     }
 }
