@@ -106,13 +106,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         moduleManager.onDidReload = { [weak self] in
             self?.refreshPermissions()
         }
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didBecomeActiveNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshPermissions() }
-        }
+        observePermissionTriggers()
         refreshPermissions()
 
         if CommandLine.arguments.contains("--debug-server") {
@@ -378,6 +372,31 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         Permissions.required(declaredBy: engine?.declaredPermissions ?? [])
     }
 
+    /// Re-check whenever the user comes back from System Settings. Macotron runs
+    /// as an accessory app, so its own activation is not enough — watch every app
+    /// switch, and refresh again right before the menu opens.
+    private func observePermissionTriggers() {
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshPermissions() }
+        }
+
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshPermissions() }
+        }
+
+        menuBarManager?.onMenuWillOpen = { [weak self] in
+            self?.refreshPermissions()
+        }
+    }
+
     /// Re-check every required permission and update the menu bar and Settings.
     /// The first check also registers Macotron in the System Settings lists, so
     /// the user can find the toggles without hunting for the app.
@@ -404,9 +423,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         guard permissionTimer == nil else { return }
-        permissionTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 3, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refreshPermissions() }
         }
+        // .common so the check keeps running while a menu is open or a window drags.
+        RunLoop.main.add(timer, forMode: .common)
+        permissionTimer = timer
     }
 
     private func resolveHotkey() -> String {

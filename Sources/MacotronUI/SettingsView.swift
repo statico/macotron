@@ -91,9 +91,12 @@ public final class SettingsState: ObservableObject {
         requiredPermissions.filter { !grantedPermissions.contains($0) }
     }
 
+    /// Called on a timer and on every app switch, so only publish real changes.
     public func refreshPermissions() {
-        requiredPermissions = loadRequiredPermissions?() ?? Permissions.baseline
-        grantedPermissions = Set(requiredPermissions.filter(\.isGranted))
+        let required = loadRequiredPermissions?() ?? Permissions.baseline
+        let granted = Set(required.filter(\.isGranted))
+        if required != requiredPermissions { requiredPermissions = required }
+        if granted != grantedPermissions { grantedPermissions = granted }
     }
 
     public func refreshModules() {
