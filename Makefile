@@ -9,24 +9,23 @@ BUNDLE_ID = com.macotron.app
 # Leave empty to use ad-hoc signing (permissions reset every build).
 SIGN_IDENTITY ?=
 
-.PHONY: build run bundle clean cleanprefs dev reload eval screenshot
+.DEFAULT_GOAL := help
 
-# Compile
-build:
+.PHONY: help build run bundle clean cleanprefs dev reload eval health snippets commands release
+
+##@ General
+
+help: ## Show this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\n\033[1mUsage:\033[0m\n  make \033[36m<target>\033[0m\n"} \
+		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2 } \
+		/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) }' $(MAKEFILE_LIST)
+
+##@ Build
+
+build: ## Compile the debug binary
 	swift build --build-path $(BUILD_DIR)
 
-# Compile + bundle + run (kills existing instance first)
-run: bundle
-	@pkill -x $(APP_NAME) 2>/dev/null || true
-	@sleep 0.3
-	open $(BUNDLE)
-
-# Compile + bundle + run with debug server on :7777
-dev: bundle
-	$(BUNDLE)/Contents/MacOS/$(APP_NAME) --debug-server
-
-# Create .app bundle from compiled binary
-bundle: build
+bundle: build ## Create ~/Applications/Macotron.app
 	@mkdir -p "$(BUNDLE)/Contents/MacOS"
 	@mkdir -p "$(BUNDLE)/Contents/Resources"
 	@cp $(BINARY) "$(BUNDLE)/Contents/MacOS/$(APP_NAME)"
@@ -44,36 +43,45 @@ bundle: build
 	fi
 	@echo "Built $(BUNDLE)"
 
-# Debug server interactions
-reload:
+run: bundle ## Bundle and launch (kills existing instance first)
+	@pkill -x $(APP_NAME) 2>/dev/null || true
+	@sleep 0.3
+	open $(BUNDLE)
+
+dev: bundle ## Bundle and run with debug server on :7777
+	$(BUNDLE)/Contents/MacOS/$(APP_NAME) --debug-server
+
+release: ## Compile a release binary
+	swift build -c release --build-path $(BUILD_DIR)
+	@echo "TODO: bundle, sign with Developer ID, notarize, create DMG"
+
+##@ Debug server (make dev)
+
+reload: ## Hot-reload plugins
 	@curl -s -X POST http://localhost:7777/reload
 
-eval:
+eval: ## Eval JS (JS='macotron.notify.show("hi","there")')
 	@curl -s -X POST http://localhost:7777/eval \
 		-H "Content-Type: application/json" \
 		-d '{"js": "$(JS)"}'
 
-health:
+health: ## Show debug server health JSON
 	@curl -s http://localhost:7777/health | python3 -m json.tool
 
-snippets:
+snippets: ## List loaded plugins (legacy endpoint name)
 	@curl -s http://localhost:7777/snippets | python3 -m json.tool
 
-commands:
+commands: ## List registered launcher commands
 	@curl -s http://localhost:7777/commands | python3 -m json.tool
 
-clean:
+##@ Maintenance
+
+clean: ## Remove build artifacts and the app bundle
 	swift package clean --build-path $(BUILD_DIR)
 	rm -rf "$(BUNDLE)"
 
-# Remove all user preferences and data for a fresh launch
-cleanprefs:
+cleanprefs: ## Wipe UserDefaults + Application Support (fresh wizard)
 	@pkill -x $(APP_NAME) 2>/dev/null || true
 	rm -rf ~/Library/Application\ Support/$(APP_NAME)
 	defaults delete $(BUNDLE_ID) 2>/dev/null || true
 	@echo "Cleaned preferences and data for $(APP_NAME)"
-
-# Release build
-release:
-	swift build -c release --build-path $(BUILD_DIR)
-	@echo "TODO: bundle, sign with Developer ID, notarize, create DMG"
