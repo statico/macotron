@@ -1,4 +1,4 @@
-// SnippetManager.swift — Load, watch, execute modules from ~/Library/Application Support/Macotron/
+// SnippetManager.swift — Load, watch, execute plugins from the PluginWorkspace
 import CQuickJS
 import Foundation
 import os
@@ -9,123 +9,62 @@ private let logger = Logger(subsystem: "com.macotron", category: "modules")
 public final class ModuleManager {
     public let engine: Engine
     public let configDir: URL
+    public let workspace: PluginWorkspace
     public let backup: ConfigBackup
 
     private var fsEventStream: FSEventStreamRef?
     private var reloadDebounceTask: Task<Void, Never>?
 
-    /// Optional handler for auto-fixing broken modules via AI.
-    /// Parameters: (filename, source, errorMessage) -> fixed source or nil.
-    /// Set by the app target to bridge ModuleManager (MacotronEngine) to ModuleAutoFix (AI).
-    public var autoFixHandler: (@Sendable (String, String, String) async -> String?)?
-
-    /// Errors encountered during the last reload cycle. Cleared at the start of each `reloadAll()`.
-    /// Used by AgentSession to detect failures and trigger repair cycles.
+    /// Errors encountered during the last reload cycle.
     public private(set) var lastReloadErrors: [(filename: String, error: String)] = []
 
-    /// Tracks how many auto-fix attempts each file has had during the current reload cycle.
-    /// Reset at the start of each `reloadAll()`.
-    private var autoFixAttempts: [String: Int] = [:]
-
-    /// Maximum auto-fix retry attempts per file per reload cycle.
-    private let maxAutoFixAttemptsPerFile = 2
-
-    /// Bytecode cache directory
     private let cacheDir: URL
 
-    /// Path to the module settings JSON file
-    public var moduleSettingsFile: URL {
-        configDir.appending(path: "module-settings.json")
+    public init(engine: Engine, workspace: PluginWorkspace) {
+        self.engine = engine
+        self.workspace = workspace
+        self.configDir = workspace.root
+        self.backup = ConfigBackup(configDir: workspace.root)
+        self.cacheDir = workspace.cacheDir
+        engine.moduleBaseDir = workspace.root
     }
 
-    public init(engine: Engine, configDir: URL) {
-        self.engine = engine
-        self.configDir = configDir
-        self.backup = ConfigBackup(configDir: configDir)
-        self.cacheDir = configDir.appending(path: ".cache")
-
-        // Set the module base dir so ES module imports resolve relative to config
-        engine.moduleBaseDir = configDir
+    /// Convenience: create workspace from URL and ensure layout.
+    public convenience init(engine: Engine, configDir: URL) {
+        let ws = PluginWorkspace(root: configDir)
+        try? ws.ensureReady()
+        self.init(engine: engine, workspace: ws)
     }
 
     // MARK: - Directory Setup
 
-    /// Create the ~/Library/Application Support/Macotron/ directory structure if it doesn't exist
     public func ensureDirectoryStructure() {
-        let fm = FileManager.default
-        let dirs = ["modules", "commands", "data", "backups", ".cache"]
-
-        // Migrate: rename legacy snippets/ directory to modules/ if needed
-        let snippetsDir = configDir.appending(path: "snippets")
-        let modulesDir = configDir.appending(path: "modules")
-        if fm.fileExists(atPath: snippetsDir.path()) && !fm.fileExists(atPath: modulesDir.path()) {
-            do {
-                try fm.moveItem(at: snippetsDir, to: modulesDir)
-                logger.info("Migrated snippets/ directory to modules/")
-            } catch {
-                logger.error("Failed to migrate snippets/ to modules/: \(error)")
-            }
-        }
-
-        for dir in dirs {
-            let url = configDir.appending(path: dir)
-            if !fm.fileExists(atPath: url.path()) {
-                try? fm.createDirectory(at: url, withIntermediateDirectories: true)
-            }
-        }
-
-        // Create starter config.js if it doesn't exist
-        let configFile = configDir.appending(path: "config.js")
-        if !fm.fileExists(atPath: configFile.path()) {
-            let starterConfig = """
-            // Macotron configuration
-            // API keys are stored in macOS Keychain — use macotron.keychain.get("key-name")
-
-            macotron.config({
-                launcher: { hotkey: "cmd+space" },
-                modules: {
-                    // Module options (all have sensible defaults)
-                    // camera:   { pollInterval: 5000 },
-                    // shell:    { timeout: 30000 },
-                    // keyboard: { swallowMatched: true },
-                },
-                security: {
-                    shell: {
-                        allow: [],
-                        strict: false,
-                    }
-                }
-            });
-            """
-            try? starterConfig.write(to: configFile, atomically: true, encoding: .utf8)
-        }
-    }
-
-    // MARK: - Module Settings
-
-    /// Load module settings from module-settings.json.
-    /// Returns a dictionary keyed by filename, each containing key-value option overrides.
-    public func loadModuleSettings() -> [String: [String: Any]] {
-        guard let data = try? Data(contentsOf: moduleSettingsFile),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: [String: Any]]
-        else {
-            return [:]
-        }
-        return json
-    }
-
-    /// Save module settings to module-settings.json.
-    public func saveModuleSettings(_ settings: [String: [String: Any]]) {
         do {
-            let data = try JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys])
-            try data.write(to: moduleSettingsFile, options: .atomic)
-            logger.info("Saved module settings")
+            try workspace.ensureReady()
         } catch {
-            logger.error("Failed to save module settings: \(error)")
+            logger.error("Failed to ensure plugin workspace: \(error)")
         }
     }
 
-    /// Update a single option for a specific module file and persist to disk.
+    // MARK: - Settings
+
+    /// Per-plugin option overrides from settings.json `pluginSettings`.
+    public func loadModuleSettings() -> [String: [String: Any]] {
+        let settings = workspace.readSettings()
+        return settings["pluginSettings"] as? [String: [String: Any]] ?? [:]
+    }
+
+    public func saveModuleSettings(_ moduleSettings: [String: [String: Any]]) {
+        do {
+            try workspace.updateSettings { settings in
+                settings["pluginSettings"] = moduleSettings
+            }
+            logger.info("Saved plugin settings")
+        } catch {
+            logger.error("Failed to save plugin settings: \(error)")
+        }
+    }
+
     public func saveModuleOption(filename: String, key: String, value: Any) {
         var settings = loadModuleSettings()
         var fileSettings = settings[filename] ?? [:]
@@ -136,56 +75,33 @@ public final class ModuleManager {
 
     // MARK: - Reload
 
-    /// Full reload: backup, clear state, re-execute everything from disk
     public func reloadAll() {
-        logger.info("Reloading all modules...")
-
-        // Clear error tracking and per-file auto-fix attempt counts for this reload cycle
+        logger.info("Reloading all plugins...")
         lastReloadErrors.removeAll()
-        autoFixAttempts.removeAll()
 
-        // Reset engine (clears timers, events, commands, JS context)
         engine.reset()
-
-        // Load module settings and apply to engine
         engine.moduleSettings = loadModuleSettings()
 
-        // Load runtime JS first (adds macotron.config, macotron.on, console, etc.)
-        if let runtimeURL = Bundle.main.url(forResource: "macotron-runtime", withExtension: "js") {
-            if let runtimeJS = try? String(contentsOf: runtimeURL, encoding: .utf8) {
-                engine.evaluate(runtimeJS, filename: "macotron-runtime.js")
-            }
+        if let runtimeURL = Bundle.main.url(forResource: "macotron-runtime", withExtension: "js"),
+           let runtimeJS = try? String(contentsOf: runtimeURL, encoding: .utf8) {
+            engine.evaluate(runtimeJS, filename: "macotron-runtime.js")
         }
 
-        // Load config.js (calls macotron.config() to populate configStore)
-        let configFile = configDir.appending(path: "config.js")
-        if FileManager.default.fileExists(atPath: configFile.path()) {
-            executeFile(configFile)
-        }
+        // Map settings.json into configStore (replaces config.js + macotron.config())
+        engine.configStore = workspace.readSettings()
 
-        // Re-register modules with config options now that config is loaded
         engine.registerAllModules()
 
-        // Load modules in alphabetical order
-        let moduleFiles = listJSFiles(in: configDir.appending(path: "modules"))
+        let pluginFiles = listJSFiles(in: workspace.pluginsDir)
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
 
-        for file in moduleFiles {
+        for file in pluginFiles {
             executeFile(file)
         }
 
-        // Load commands
-        let commandFiles = listJSFiles(in: configDir.appending(path: "commands"))
-        for file in commandFiles {
-            executeFile(file)
-        }
-
-        logger.info("Loaded \(moduleFiles.count) modules, \(commandFiles.count) commands. Ready.")
+        logger.info("Loaded \(pluginFiles.count) plugins. Ready.")
     }
 
-    /// Execute a single JS file with error isolation and bytecode caching.
-    /// If execution fails and an `autoFixHandler` is set, attempts to auto-fix
-    /// the module (up to `maxAutoFixAttemptsPerFile` times per reload cycle).
     private func executeFile(_ file: URL) {
         guard let source = try? String(contentsOf: file, encoding: .utf8) else {
             logger.error("Could not read file: \(file.lastPathComponent)")
@@ -195,84 +111,32 @@ public final class ModuleManager {
         let filename = file.lastPathComponent
         let cachePath = cacheDir.appending(path: filename + ".bc")
 
-        // Set current evaluating file so the engine knows which module is being loaded
         engine.currentEvaluatingFile = filename
         defer { engine.currentEvaluatingFile = nil }
 
-        // Try bytecode cache (skip if source is newer)
         if let cacheData = try? Data(contentsOf: cachePath),
-           let cacheDate = try? FileManager.default.attributesOfItem(atPath: cachePath.path())[.modificationDate] as? Date,
-           let sourceDate = try? FileManager.default.attributesOfItem(atPath: file.path())[.modificationDate] as? Date,
+           let cacheDate = try? FileManager.default.attributesOfItem(
+               atPath: cachePath.path(percentEncoded: false)
+           )[.modificationDate] as? Date,
+           let sourceDate = try? FileManager.default.attributesOfItem(
+               atPath: file.path(percentEncoded: false)
+           )[.modificationDate] as? Date,
            cacheDate >= sourceDate {
             let (_, error) = engine.evaluateBytecode(cacheData, filename: filename)
-            if let error {
-                logger.error("\(filename) (cached): \(error)")
-                // Cache might be stale, fall through to source evaluation
-            } else {
-                return
-            }
+            if error == nil { return }
+            logger.error("\(filename) (cached): \(error ?? "")")
         }
 
-        // Evaluate from source
-        let fullPath = file.path()
+        let fullPath = file.path(percentEncoded: false)
         let (_, error) = engine.evaluate(source, filename: fullPath)
         if let error {
             logger.error("\(filename): \(error)")
             lastReloadErrors.append((filename: filename, error: error))
-            scheduleAutoFix(file: file, source: source, error: error)
-        } else {
-            // Cache the bytecode for next time
-            if let bytecode = engine.compileToBytecode(source, filename: fullPath) {
-                try? bytecode.write(to: cachePath)
-            }
+        } else if let bytecode = engine.compileToBytecode(source, filename: fullPath) {
+            try? bytecode.write(to: cachePath)
         }
     }
 
-    /// Schedule an async auto-fix attempt for a failed module.
-    /// Respects the per-file attempt limit and writes the fix back to disk if successful.
-    private func scheduleAutoFix(file: URL, source: String, error: String) {
-        let filename = file.lastPathComponent
-
-        guard let handler = autoFixHandler else { return }
-
-        let attempts = autoFixAttempts[filename, default: 0]
-        guard attempts < maxAutoFixAttemptsPerFile else {
-            logger.warning("Auto-fix: exhausted \(self.maxAutoFixAttemptsPerFile) attempts for \(filename)")
-            return
-        }
-        autoFixAttempts[filename] = attempts + 1
-
-        // Auto-fix is async (calls the AI), so we fire a detached task that hops back
-        // to MainActor when it needs to write and re-execute.
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            guard let fixedSource = await handler(filename, source, error) else {
-                logger.info("Auto-fix: no fix returned for \(filename)")
-                return
-            }
-
-            // Write the fixed code (triggers backup)
-            guard self.writeModule(
-                filename: filename,
-                content: fixedSource,
-                directory: file.deletingLastPathComponent().lastPathComponent
-            ) else {
-                logger.error("Auto-fix: failed to write fixed code for \(filename)")
-                return
-            }
-
-            // Re-execute the fixed module
-            let (_, retryError) = self.engine.evaluate(fixedSource, filename: filename)
-            if let retryError {
-                logger.warning("Auto-fix: fixed \(filename) still has errors: \(retryError)")
-                // Will not recurse — this is a direct evaluate, not executeFile
-            } else {
-                logger.info("Auto-fix: successfully repaired \(filename)")
-            }
-        }
-    }
-
-    /// List .js files in a directory
     private func listJSFiles(in dir: URL) -> [URL] {
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: dir, includingPropertiesForKeys: nil
@@ -280,11 +144,10 @@ public final class ModuleManager {
         return files.filter { $0.pathExtension == "js" }
     }
 
-    // MARK: - File Operations (with backup)
+    // MARK: - File Operations
 
-    /// Write a module file, creating a backup first
     @discardableResult
-    public func writeModule(filename: String, content: String, directory: String = "modules") -> Bool {
+    public func writeModule(filename: String, content: String, directory: String = "plugins") -> Bool {
         backup.createBackup()
         let file = configDir.appending(path: directory).appending(path: filename)
         do {
@@ -297,9 +160,8 @@ public final class ModuleManager {
         }
     }
 
-    /// Delete a module file, creating a backup first
     @discardableResult
-    public func deleteModule(filename: String, directory: String = "modules") -> Bool {
+    public func deleteModule(filename: String, directory: String = "plugins") -> Bool {
         backup.createBackup()
         let file = configDir.appending(path: directory).appending(path: filename)
         do {
@@ -312,15 +174,13 @@ public final class ModuleManager {
         }
     }
 
-    /// List all module files with their first comment line as description
-    public func listModules(directory: String = "modules") -> [(filename: String, description: String)] {
+    public func listModules(directory: String = "plugins") -> [(filename: String, description: String)] {
         let files = listJSFiles(in: configDir.appending(path: directory))
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
 
         return files.map { file in
             let desc: String
             if let source = try? String(contentsOf: file, encoding: .utf8) {
-                // Extract first comment as description
                 let lines = source.components(separatedBy: .newlines)
                 let commentLine = lines.first { $0.hasPrefix("//") }
                 desc = commentLine?.trimmingCharacters(in: .whitespaces)
@@ -334,9 +194,8 @@ public final class ModuleManager {
 
     // MARK: - File Watching
 
-    /// Watch ~/Library/Application Support/Macotron/ for changes, auto-reload
     public func startWatching() {
-        let path = configDir.path()
+        let path = configDir.path(percentEncoded: false)
 
         var context = FSEventStreamContext()
         let opaque = Unmanaged.passUnretained(self).toOpaque()
@@ -350,7 +209,6 @@ public final class ModuleManager {
             { _, info, numEvents, eventPaths, _, _ in
                 guard let info else { return }
                 let manager = Unmanaged<ModuleManager>.fromOpaque(info).takeUnretainedValue()
-                // Debounce reload
                 manager.reloadDebounceTask?.cancel()
                 manager.reloadDebounceTask = Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(300))
@@ -371,7 +229,6 @@ public final class ModuleManager {
         logger.info("Watching \(path) for changes")
     }
 
-    /// Stop watching for file changes
     public func stopWatching() {
         if let stream = fsEventStream {
             FSEventStreamStop(stream)

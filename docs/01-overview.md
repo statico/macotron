@@ -1,136 +1,104 @@
 # Macotron Overview
 
-Macotron is an AI-powered coding agent for macOS automation. It replaces Raycast, Hammerspoon, Rectangle, Velja, OverSight, xbar, and similar tools with a single scriptable app. Users describe what they want in natural language — the agent plans, writes JavaScript scripts, reloads the engine, tests them, and auto-repairs if anything breaks. Think Claude Code or Manus, not ChatGPT.
+Macotron is a thin macOS host for JavaScript automation plugins. It replaces Raycast, Hammerspoon, Rectangle, Velja, OverSight, xbar, and similar tools with one scriptable app.
 
-**Core principle:** Everything is "listen for event -> run code." Under the hood, Macotron is a collection of JavaScript files executed in order, easily reloadable, with rich native macOS API bindings. The agent is the primary configuration interface — not a text editor, not a chat window.
+External coding agents edit plugins. The app does not ship an in-app coding agent. You open the plugins directory in Cursor or Claude Code. The agent writes `.js` files. Macotron loads and runs them.
+
+**Core principle:** Everything is "listen for event -> run code."
+
+Plugins are JavaScript files that register hotkeys, hooks, and UI at load time. The files on disk are the source of truth.
 
 **The layer cake:**
+
 ```
-┌─────────────────────────────┐
-│  User (prompt)              │  "set up keybindings to move windows"
-├─────────────────────────────┤
-│  Agent (plans + writes JS)  │  plans steps, writes window-tiling.js, reloads, tests, repairs
-├─────────────────────────────┤
-│  JS Engine (executes)       │  macotron.keyboard.on("ctrl+opt+left", ...)
-├─────────────────────────────┤
-│  Native Bridge (Swift)      │  AXUIElement, CGEventTap, ScreenCaptureKit, ...
-├─────────────────────────────┤
-│  macOS                      │  windows move, events fire, notifications show
-└─────────────────────────────┘
+┌─────────────────────────────────┐
+│  External agent                 │  Cursor / Claude Code edits plugins
+├─────────────────────────────────┤
+│  Plugins directory (git repo)   │  plugins/*.js + settings.json
+├─────────────────────────────────┤
+│  JS Engine (QuickJS)            │  macotron.keyboard.on("ctrl+opt+left", ...)
+├─────────────────────────────────┤
+│  Native Bridge (Swift)          │  AXUIElement, CGEventTap, ScreenCaptureKit, ...
+├─────────────────────────────────┤
+│  macOS                          │  windows move, events fire, notifications show
+└─────────────────────────────────┘
 ```
 
-The JS files are the "compiled output" — real, readable, editable if you want, but most users never touch them. Power users can write snippets directly. Either way, the source of truth is the files on disk.
+## Product Shape
+
+The host UI stays minimal:
+
+- First-run wizard
+- Settings
+- Menu bar
+- Launcher hotkey
+- Plugin list
+
+Plugin UI uses small WKWebView panels through `macotron.panel`.
 
 ## First-Run Wizard
 
-On first launch, a four-step wizard guides the user:
+On first launch, the wizard guides the user:
 
-1. **Welcome** — Macotron is a tool that uses AI to set up automations. Shows example use cases: create window shortcuts, automate camera lights, open links in specific browsers, build a menu bar dashboard.
-2. **Permissions** — Suggests enabling Accessibility, Input Monitoring, and Screen Recording. User can skip, but functionality will be limited.
-3. **AI Provider** — Select a provider and enter an API key. Dev shortcut: if `~/Library/Application Support/Macotron-dev.json` exists with a pre-set key, this step is auto-filled.
-4. **Open prompt panel** — Drops the user into the main interface.
+1. **Welcome** — Macotron hosts plugins that automate macOS.
+2. **Pick directory** — Choose the plugins workdir. Optionally open it in Finder or Cursor.
+3. **Ready** — The app seeds `README.md` once if missing. It writes `AGENTS.md` and `CLAUDE.md`.
 
-## Main Prompt Panel
+The wizard does not demand Accessibility up front. Permissions arrive when a feature needs them.
 
-The prompt panel is not a search bar — it's a command entry point. It shows example prompts to get started:
+## How Plugins Work
 
-- "set up keybindings to let me move windows"
-- "use safari to open all youtube links"
-- "show CPU and memory in the menu bar"
-- "flash my USB light when my camera turns on"
+Each `.js` file under `plugins/` runs once at load. Side effects register hotkeys, timers, menu items, and panels. A file change triggers a full reload.
 
-When the user enters a command, the agent takes over.
+Plugins can call `macotron.ai` for Claude, OpenAI, Gemini, or on-device Foundation Models. That API is for plugin code. It is not an in-app agent session.
 
-## Agent Workflow
+## Marketplace
 
-The agent operates like a coding agent, not a chatbot:
+Settings link to the GitHub topic search `topic:macotron-plugin`. v1 has no custom store backend.
 
-1. **Plan** — Decide what scripts to create or modify.
-2. **Write** — Generate JavaScript snippets to `~/Library/Application Support/Macotron/snippets/`.
-3. **Reload** — Hot-reload the engine to pick up changes.
-4. **Test** — Validate that scripts loaded without errors and behave correctly.
-5. **Repair** — If anything fails, read the error trace, fix the script, and retry (with rate limiting).
-6. **Report** — Show progress in a floating panel: "Writing script..." -> "Testing script..." -> "Done!"
-
-### Context Engineering
-
-Inspired by the Manus approach:
-
-- **Stable prompt prefix** — Keep the system prompt and tool definitions static for KV-cache efficiency. Dynamic context goes at the end.
-- **File system as memory** — The agent writes plans and state to disk (`~/Library/Application Support/Macotron/agent/`), not just to the context window.
-- **Failure traces** — Preserve error logs so the agent learns from past mistakes within a session.
-- **Rate-limited auto-repair** — Retry broken scripts automatically, but cap retries to avoid loops.
-
-## Summary Tab
-
-Settings > Summary keeps a live overview of all active scripts: what they do, what events they listen to, and their current status. This is always kept up to date as scripts are added or modified.
+https://github.com/topics/macotron-plugin
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Language | Swift 6.2 (strict concurrency, `defaultIsolation: MainActor`) |
-| UI | SwiftUI + NSPanel (floating launcher) |
+| UI | SwiftUI + NSPanel |
 | JS Runtime | QuickJS via [quickjs-ng](https://github.com/quickjs-ng/quickjs) (embedded C library, ~400KB) |
 | Package Manager | Swift Package Manager |
 | Min Target | macOS 15 Sequoia (macOS 26 Tahoe for Foundation Models) |
-| Distribution | Direct download + Homebrew (not App Store — needs Accessibility & Input Monitoring) |
+| Distribution | Direct download + Homebrew (not App Store — needs Accessibility and Input Monitoring) |
 
 ### Why QuickJS over JavaScriptCore?
 
-JSC ships with macOS (zero binary cost) and has a JIT compiler, but for automation glue code neither matters. QuickJS (quickjs-ng) wins on every dimension that does matter:
+JSC ships with macOS and has a JIT compiler. For automation glue code those wins do not matter. QuickJS (quickjs-ng) wins on the points that do:
 
-- **Explicit event loop control** — `JS_ExecutePendingJob()` drains the microtask queue deterministically.
-- **Script interruption** — `JS_SetInterruptHandler()` lets us kill runaway snippets.
+- **Explicit event loop control** — `JS_ExecutePendingJob()` drains the microtask queue in a clear order.
+- **Script interruption** — `JS_SetInterruptHandler()` can stop runaway plugins.
 - **ES modules** — native `import`/`export` with a custom module loader.
-- **Bytecode caching** — compile `.js` -> bytecode once, load instantly on subsequent runs.
-- **Lower memory** — ~100-200KB per context vs ~1-5MB for JSC.
-- **Faster startup** — ~300us vs ~2-10ms for JSC.
+- **Bytecode caching** — compile `.js` to bytecode once, then load fast from `.cache/`.
+- **Lower memory** — about 100-200KB per context vs about 1-5MB for JSC.
+- **Faster startup** — about 300us vs about 2-10ms for JSC.
 - **MIT license**, actively maintained.
-- **~400KB** added to binary.
+- **About 400KB** added to the binary.
 
 ## Process Architecture
 
-Single process, three surfaces:
+Single process, thin surfaces:
 
 ```
 ┌──────────────────────────────────────────────────────┐
 │                    Macotron.app                       │
 │                                                      │
-│  ┌──────────────────┐  ┌──────────────────────────┐  │
-│  │ Menu Bar         │  │ Floating Prompt Panel    │  │
-│  │ Dropdown (xbar)  │  │ (NSPanel + SwiftUI)      │  │
-│  │ (always on)      │  │ (toggle via hotkey)      │  │
-│  └──────────────────┘  └──────────────────────────┘  │
+│  Menu bar | Settings | Wizard | Launcher | Plugin list│
 │                                                      │
 │  ┌──────────────────────────────────────────────┐    │
 │  │            MacotronEngine                    │    │
-│  │  ┌─────────┐ ┌────────┐ ┌──────────────┐    │    │
-│  │  │ JSCore  │ │ Event  │ │ Snippet      │    │    │
-│  │  │ VM      │ │ Bus    │ │ Manager      │    │    │
-│  │  └─────────┘ └────────┘ └──────────────┘    │    │
-│  │  ┌──────────────────────────────────────┐    │    │
-│  │  │        Native Modules                │    │    │
-│  │  │  window | keyboard | screen |        │    │    │
-│  │  │  shell  | notify   | camera |        │    │    │
-│  │  │  url    | usb      | fs     |        │    │    │
-│  │  │  ai     | clipboard| system |        │    │    │
-│  │  │  app    | spotlight| http   |        │    │    │
-│  │  │  menubar| display  | timer  |        │    │    │
-│  │  └──────────────────────────────────────┘    │    │
-│  └──────────────────────────────────────────────┘    │
-│                                                      │
-│  ┌──────────────────────────────────────────────┐    │
-│  │            Agent Loop                        │    │
-│  │  ┌─────────┐ ┌────────┐ ┌──────────────┐    │    │
-│  │  │ Planner │ │ Writer │ │ Test/Repair  │    │    │
-│  │  └─────────┘ └────────┘ └──────────────┘    │    │
-│  │  ┌──────────────────────────────────────┐    │    │
-│  │  │  Context: plans, state, error logs   │    │    │
-│  │  │  (~/Library/Application Support/Macotron/agent/)                │    │    │
-│  │  └──────────────────────────────────────┘    │    │
+│  │  QuickJS | EventBus | Plugin loader           │    │
+│  │  Native modules (window, keyboard, ai, panel,│    │
+│  │  shell, fs, screen, ...)                     │    │
 │  └──────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────┘
 ```
 
-The app uses `NSApp.setActivationPolicy(.accessory)` so it lives in the menubar without a Dock icon.
+UserDefaults stores only the path to the workdir (`pluginsDirectory`). All other settings live in `settings.json` inside the workdir.

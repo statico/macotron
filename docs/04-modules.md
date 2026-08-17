@@ -16,13 +16,14 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | USBModule | `macotron.usb` | IOKit device monitoring |
 | FileSystemModule | `macotron.fs` | File read/write/watch (FSEvents) |
 | ClipboardModule | `macotron.clipboard` | NSPasteboard |
-| AIModule | `macotron.ai` | AI provider abstraction |
+| AIModule | `macotron.ai` | AI provider abstraction for plugins |
+| PanelModule | `macotron.panel` | Small WKWebView panels |
 | SpotlightModule | `macotron.spotlight` | NSMetadataQuery file search |
 | AppModule | `macotron.app` | NSWorkspace app launch/switch |
 | SystemModule | `macotron.system` | CPU, memory, battery, temp |
 | HTTPModule | `macotron.http` | URLSession |
 | MenuBarModule | `macotron.menubar` | Custom menubar items |
-| DisplayModule | `macotron.display` | Display config, spaces |
+| DisplayModule | `macotron.display` | Display settings, spaces |
 | TimerModule | `macotron.timer` | Intervals, cron-like scheduling |
 | LocalStorageModule | `localStorage` | JSON-backed key-value (global) |
 | KeychainModule | `macotron.keychain` | macOS Keychain secrets |
@@ -37,6 +38,17 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **MenuBar:** `macotron.menubar.add(id, config)`, `.update(id, config)`, `.remove(id)`, `.setIcon(name)`, `.setTitle(text)`
 
-**localStorage:** Standard web API backed by `~/Library/Application Support/Macotron/data/localStorage.json`.
+**Panel:**
+
+```js
+const id = macotron.panel.open({ title: "Chat", width: 420, height: 520, html: "..." });
+macotron.panel.close(id);
+macotron.panel.postMessage(id, data);
+macotron.panel.onMessage(id, (data) => { /* ... */ });
+```
+
+**localStorage:** Standard web API backed by JSON under the workdir data store.
 
 **Keychain:** `macotron.keychain.get(key)`, `.set(key, value)`, `.delete(key)`, `.has(key)`
+
+**AI:** See [05-ai-integration.md](05-ai-integration.md).
