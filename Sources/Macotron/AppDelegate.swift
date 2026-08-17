@@ -30,13 +30,24 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         engine = Engine()
 
+        // Wired before bootstrap so the wizard can show permissions even when no
+        // workspace exists yet.
+        settingsState.loadRequiredPermissions = { [weak self] in
+            self?.requiredPermissions() ?? Permissions.baseline
+        }
+        observePermissionTriggers()
+
         if let root = PluginWorkspace.resolveFromDefaults() {
             bootstrap(workspaceRoot: root)
         }
 
+        refreshPermissions()
+
         let wizardDone = UserDefaults.standard.bool(forKey: AppDelegate.wizardCompletedKey)
         if !wizardDone || PluginWorkspace.resolveFromDefaults() == nil {
             showSetupWizard()
+        } else if !Permissions.missing(from: requiredPermissions()).isEmpty {
+            showPermissionsWizard()
         }
     }
 
@@ -76,6 +87,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self.settingsState.refreshPermissions()
             self.settingsWindow.show()
         }
+        menuBarManager.onMenuWillOpen = { [weak self] in
+            self?.refreshPermissions()
+        }
         menuBarManager.updateLauncherShortcut(resolveHotkey())
         menuBarManager.setVisible(readUIBool("showMenuBarIcon", default: true))
 
@@ -106,7 +120,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         moduleManager.onDidReload = { [weak self] in
             self?.refreshPermissions()
         }
-        observePermissionTriggers()
         refreshPermissions()
 
         if CommandLine.arguments.contains("--debug-server") {
@@ -121,6 +134,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             debugServer?.captureLauncher = {
                 let view = LauncherView().frame(width: 680, height: 480)
                 return Self.renderViewToPNG(view, size: NSSize(width: 680, height: 480))
+            }
+            debugServer?.captureWizard = { [weak self] step in
+                guard let self else { return nil }
+                let preview = WizardState()
+                preview.steps = WizardStep.allCases
+                preview.stepIndex = WizardStep.allCases.firstIndex {
+                    String(describing: $0) == step
+                } ?? 0
+                preview.pluginsPath = self.workspace?.root.path(percentEncoded: false) ?? ""
+                let view = WizardView(state: preview, permissions: self.settingsState)
+                    .frame(width: 560, height: 520)
+                return Self.renderViewToPNG(view, size: NSSize(width: 560, height: 520))
             }
             debugServer?.captureWindow = { [weak self] tab in
                 guard let self else { return nil }
@@ -215,10 +240,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let root = self?.workspace.root else { return }
             NSWorkspace.shared.open(root)
         }
-        settingsState.loadRequiredPermissions = { [weak self] in
-            self?.requiredPermissions() ?? Permissions.baseline
-        }
-
         settingsWindow = SettingsWindow(state: settingsState)
     }
 
@@ -294,7 +315,25 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Wizard
 
     private func showSetupWizard() {
-        wizardState.currentStep = .welcome
+        wizardState.startFullSetup()
+        configureWizard()
+        presentWizard()
+    }
+
+    /// Shown at startup when setup is done but macOS permissions are missing.
+    private func showPermissionsWizard() {
+        wizardState.startPermissionsOnly()
+        configureWizard()
+        presentWizard()
+    }
+
+    private func presentWizard() {
+        settingsState.refreshPermissions()
+        wizardWindow = WizardWindow(state: wizardState, permissions: settingsState)
+        wizardWindow?.show()
+    }
+
+    private func configureWizard() {
         wizardState.pickFolder = {
             let panel = NSOpenPanel()
             panel.canChooseFiles = false
@@ -332,9 +371,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             UserDefaults.standard.set(true, forKey: AppDelegate.wizardCompletedKey)
             self.installLauncherHotkey()
         }
-
-        wizardWindow = WizardWindow(state: wizardState)
-        wizardWindow?.show()
     }
 
     private func pickAndSwitchPluginsFolder() {
@@ -390,10 +426,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshPermissions() }
-        }
-
-        menuBarManager?.onMenuWillOpen = { [weak self] in
-            self?.refreshPermissions()
         }
     }
 
@@ -586,10 +618,27 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         return Array(results.prefix(20))
     }
 
+    /// Render offscreen for screenshots. The view is hosted in a real window so
+    /// materials and the system appearance resolve, and it gets an opaque
+    /// backdrop so label colors stay readable.
     private static func renderViewToPNG<V: View>(_ view: V, size: NSSize) -> Data? {
-        let hostingView = NSHostingView(rootView: view)
+        let root = view
+            .frame(width: size.width, height: size.height)
+            .background(Color(nsColor: .windowBackgroundColor))
+
+        let hostingView = NSHostingView(rootView: root)
         hostingView.frame = NSRect(origin: .zero, size: size)
+
+        let window = NSWindow(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        window.appearance = NSApp.effectiveAppearance
+        window.contentView = hostingView
         hostingView.layoutSubtreeIfNeeded()
+
         guard let bitmap = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) else { return nil }
         hostingView.cacheDisplay(in: hostingView.bounds, to: bitmap)
         return bitmap.representation(using: .png, properties: [:])

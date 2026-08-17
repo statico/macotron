@@ -18,6 +18,7 @@ public final class DebugServer {
     public var onOpenSettingsTab: ((Int) -> Void)?
     public var captureWindow: ((Int?) -> Data?)?
     public var captureLauncher: (() -> Data?)?
+    public var captureWizard: ((String?) -> Data?)?
 
     public init(engine: Engine, moduleManager: ModuleManager, port: UInt16 = 7777) {
         self.engine = engine
@@ -135,6 +136,9 @@ public final class DebugServer {
                 }
             )
             if params["view"] == "launcher", let png = captureLauncher?() {
+                return (png, "image/png")
+            }
+            if params["view"] == "wizard", let png = captureWizard?(params["step"]) {
                 return (png, "image/png")
             }
             let tab = params["tab"].flatMap(Int.init)
