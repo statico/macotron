@@ -4,10 +4,12 @@ BUNDLE = $(HOME)/Applications/$(APP_NAME).app
 BINARY = $(BUILD_DIR)/debug/$(APP_NAME)
 BUNDLE_ID = com.macotron.app
 
-# Set SIGN_IDENTITY to a certificate name for stable signing (permissions persist across builds).
-# Create one in Keychain Access → Certificate Assistant → Create a Certificate → Code Signing.
-# Leave empty to use ad-hoc signing (permissions reset every build).
-SIGN_IDENTITY ?=
+# Stable signing keeps a fixed CDHash, so macOS permissions persist across builds.
+# Auto-detects a code signing certificate; create one in Keychain Access →
+# Certificate Assistant → Create a Certificate → Code Signing.
+# Falls back to ad-hoc signing, which resets permissions on every build.
+SIGN_IDENTITY ?= $(shell security find-identity -v -p codesigning 2>/dev/null | \
+	sed -n 's/.*"\(.*\)".*/\1/p' | grep -m1 -E 'Macotron-Dev|Apple Develop')
 
 .DEFAULT_GOAL := help
 
@@ -38,8 +40,11 @@ bundle: build ## Create ~/Applications/Macotron.app
 	@cp Resources/banner.png "$(BUNDLE)/Contents/Resources/"
 	@if [ -n "$(SIGN_IDENTITY)" ]; then \
 		codesign --force --sign "$(SIGN_IDENTITY)" --entitlements Resources/Macotron.entitlements "$(BUNDLE)"; \
+		echo "Signed with $(SIGN_IDENTITY)"; \
 	else \
 		codesign --force --sign - --entitlements Resources/Macotron.entitlements "$(BUNDLE)"; \
+		printf '\033[33mWarning: ad-hoc signed. macOS permissions reset on every build.\033[0m\n'; \
+		printf '\033[33mCreate a Code Signing certificate in Keychain Access to keep them.\033[0m\n'; \
 	fi
 	@echo "Built $(BUNDLE)"
 
