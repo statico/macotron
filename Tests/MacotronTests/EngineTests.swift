@@ -361,6 +361,38 @@ struct EngineTests {
         #expect(error == nil)
         #expect(result == "Hello Macotron!")
     }
+
+    // MARK: - Script vs Module Detection
+
+    @Test("Plain script returns its value, not a promise")
+    func testScriptIsNotTreatedAsModule() {
+        let engine = Engine()
+        let (result, error) = engine.evaluate("'plain script'")
+        #expect(error == nil)
+        #expect(result == "plain script")
+    }
+
+    @Test("Top-level var in a script lands on the global object")
+    func testScriptVarIsGlobal() {
+        let engine = Engine()
+        engine.evaluate("var scriptScoped = 5")
+        let (result, error) = engine.evaluate("globalThis.scriptScoped")
+        #expect(error == nil)
+        #expect(result == "5")
+    }
+
+    @Test("Source using export still runs as a module")
+    func testExportRunsAsModule() {
+        let engine = Engine()
+        let (_, error) = engine.evaluate("""
+            export const answer = 42;
+            globalThis.fromModule = answer;
+        """)
+        #expect(error == nil)
+
+        let (result, _) = engine.evaluate("globalThis.fromModule")
+        #expect(result == "42")
+    }
 }
 
 // MARK: - Test Helpers
