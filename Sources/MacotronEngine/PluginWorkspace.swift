@@ -199,6 +199,18 @@ public final class PluginWorkspace {
         });
         ```
 
+        ## Permissions
+
+        Declare the macOS permissions a plugin needs at the top of the file:
+
+        ```js
+        macotron.requirePermissions(["accessibility"]);
+        ```
+
+        Valid names: `accessibility`, `inputMonitoring`, `screenRecording`.
+        Macotron shows a red warning in the menu bar until the user grants them.
+        Window control needs `accessibility`. Screen capture needs `screenRecording`.
+
         ## Panel API (stub)
 
         ```js

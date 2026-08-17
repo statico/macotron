@@ -1,5 +1,6 @@
 // SettingsView.swift — General prefs, plugins list, about
 import AppKit
+import MacotronEngine
 import SwiftUI
 
 /// A configurable option exposed by a plugin
@@ -57,6 +58,10 @@ public final class SettingsState: ObservableObject {
     @Published public var pluginsPath: String = ""
     @Published public var requestedTab: Int?
 
+    /// Baseline permissions plus whatever the loaded plugins declared.
+    @Published public var requiredPermissions: [Permission] = Permissions.baseline
+    @Published public var grantedPermissions: Set<Permission> = []
+
     public var readHotkey: (() -> String)?
     public var writeHotkey: ((String) -> Void)?
     public var readShowDockIcon: (() -> Bool)?
@@ -68,6 +73,7 @@ public final class SettingsState: ObservableObject {
     public var deleteModule: ((_ filename: String) -> Bool)?
     public var changePluginsFolder: (() -> Void)?
     public var openPluginsFolder: (() -> Void)?
+    public var loadRequiredPermissions: (() -> [Permission])?
     public var configDirURL: URL?
 
     public init() {}
@@ -78,6 +84,16 @@ public final class SettingsState: ObservableObject {
         showMenuBarIcon = readShowMenuBarIcon?() ?? true
         pluginsPath = configDirURL?.path(percentEncoded: false) ?? ""
         refreshModules()
+        refreshPermissions()
+    }
+
+    public var missingPermissions: [Permission] {
+        requiredPermissions.filter { !grantedPermissions.contains($0) }
+    }
+
+    public func refreshPermissions() {
+        requiredPermissions = loadRequiredPermissions?() ?? Permissions.baseline
+        grantedPermissions = Set(requiredPermissions.filter(\.isGranted))
     }
 
     public func refreshModules() {
@@ -176,6 +192,8 @@ public struct SettingsView: View {
 
     private var generalTab: some View {
         VStack(spacing: 0) {
+            permissionsSection
+
             formRow("Launcher Hotkey") {
                 HotkeyRecorderView(combo: $state.launcherHotkey) {
                     state.saveHotkey()
@@ -231,6 +249,77 @@ public struct SettingsView: View {
 
             Spacer()
         }
+    }
+
+    // MARK: - Permissions
+
+    private var permissionsSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 6) {
+                if state.missingPermissions.isEmpty {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text("Permissions")
+                        .font(.system(size: 12, weight: .semibold))
+                } else {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                    Text("Permissions needed")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.red)
+                }
+
+                Spacer()
+
+                Button("Re-check") {
+                    state.refreshPermissions()
+                }
+                .controlSize(.small)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
+
+            ForEach(state.requiredPermissions) { permission in
+                permissionRow(permission)
+            }
+        }
+        .background(state.missingPermissions.isEmpty ? Color.clear : Color.red.opacity(0.06))
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private func permissionRow(_ permission: Permission) -> some View {
+        let granted = state.grantedPermissions.contains(permission)
+        return HStack(alignment: .top, spacing: 8) {
+            Image(systemName: granted ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .foregroundStyle(granted ? .green : .red)
+                .frame(width: 16)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(permission.title)
+                    .font(.system(size: 12, weight: .medium))
+                Text(permission.reason)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+
+            if !granted {
+                Button("Grant…") {
+                    permission.request()
+                    state.refreshPermissions()
+                }
+                .controlSize(.small)
+
+                Button("Open Settings") {
+                    permission.openSystemSettings()
+                }
+                .controlSize(.small)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 5)
     }
 
     private var pluginsTab: some View {

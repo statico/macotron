@@ -1,15 +1,31 @@
 # Permissions and Security
 
-## Lazy Permissions
+## Required Permissions
 
-The first-run wizard does not demand Accessibility up front. The app prompts only when a feature needs the permission.
+The first-run wizard does not demand permissions up front. The required set is the baseline plus whatever the loaded plugins declare.
 
-| Permission | When the app prompts |
-|---|---|
-| **Accessibility** | When the keyboard module registers a global hotkey, or when the launcher hotkey cannot install |
-| **Input Monitoring** | Same path as Accessibility for global event taps |
-| **Screen Recording** | When screen or window capture APIs run for the first time |
-| **Automation** | Per-app prompts as needed |
+| Permission | Source | Why |
+|---|---|---|
+| **Input Monitoring** | Baseline | Global hotkeys for the launcher and plugins |
+| **Accessibility** | Baseline | Move and focus windows |
+| **Screen Recording** | Declared by a plugin | Capture the screen |
+
+A plugin declares what it needs at load time:
+
+```js
+macotron.requirePermissions(["accessibility", "screenRecording"]);
+```
+
+## Permission Alerts
+
+When a required permission is missing, Macotron shows two alerts:
+
+- A red dot on the menu bar icon, and a red row in the menu that names each missing permission.
+- A permissions block at the top of Settings → General. Each row has a **Grant** button and an **Open Settings** button.
+
+The app re-checks on launch, after every plugin reload, when it becomes active, and every 3 seconds while anything is missing.
+
+The first check calls the system request API for each missing permission. That call registers Macotron in the matching System Settings list. The app does not open System Settings by itself. The user opens it from a button.
 
 **Not sandboxed.** Distribution uses a direct `.dmg` download (notarized) plus `brew install --cask macotron`.
 
