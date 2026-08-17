@@ -1,6 +1,7 @@
 // Permissions.swift — Check and request macOS permissions
 @preconcurrency import ApplicationServices
 import AppKit
+import MacotronEngine
 import os
 
 private let logger = Logger(subsystem: "com.macotron", category: "permissions")
@@ -14,13 +15,13 @@ public enum Permissions {
 
     /// Check if Input Monitoring permission is granted (CGEventTap access)
     public static var isInputMonitoringGranted: Bool {
-        // IOHIDCheckAccess checks Input Monitoring on macOS 15+ (Sequoia).
+        // IOHIDCheckAccess returns IOHIDAccessType (granted=0), not Bool.
         let kIOHIDRequestTypeListenEvent: UInt32 = 1
-        typealias IOHIDCheckAccessFunc = @convention(c) (UInt32) -> Bool
+        typealias IOHIDCheckAccessFunc = @convention(c) (UInt32) -> UInt32
         if let handle = dlopen(nil, RTLD_LAZY),
            let sym = dlsym(handle, "IOHIDCheckAccess") {
             let check = unsafeBitCast(sym, to: IOHIDCheckAccessFunc.self)
-            return check(kIOHIDRequestTypeListenEvent)
+            return HIDAccess.isGranted(check(kIOHIDRequestTypeListenEvent))
         }
 
         // Fallback for pre-Sequoia: try creating a passive event tap.
@@ -51,9 +52,9 @@ public enum Permissions {
         logger.info("Requested Accessibility permission")
     }
 
-    /// Prompt for Input Monitoring permission
+    /// Prompt for Input Monitoring permission, then open the Settings pane.
+    /// IOHIDRequestAccess only shows a one-shot dialog; later clicks must open Settings.
     public static func requestInputMonitoring() {
-        // IOHIDRequestAccess triggers the system prompt on macOS 15+ (Sequoia).
         let kIOHIDRequestTypeListenEvent: UInt32 = 1
         typealias IOHIDRequestAccessFunc = @convention(c) (UInt32) -> Bool
         if let handle = dlopen(nil, RTLD_LAZY),
@@ -61,12 +62,8 @@ public enum Permissions {
             let request = unsafeBitCast(sym, to: IOHIDRequestAccessFunc.self)
             _ = request(kIOHIDRequestTypeListenEvent)
             logger.info("Requested Input Monitoring permission via IOHIDRequestAccess")
-            return
         }
-
-        // Pre-Sequoia fallback: open System Settings directly
         openInputMonitoringSettings()
-        logger.info("Requested Input Monitoring permission via System Settings URL")
     }
 
     /// Prompt for Screen Recording permission — adds the app to the system list
@@ -82,7 +79,7 @@ public enum Permissions {
     }
 
     public static func openInputMonitoringSettings() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!
+        let url = URL(string: "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_ListenEvent")!
         NSWorkspace.shared.open(url)
     }
 
