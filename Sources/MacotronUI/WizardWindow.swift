@@ -13,10 +13,14 @@ private class EscClosableWindow: NSWindow {
 public final class WizardWindow {
     private var window: NSWindow?
     private let wizardState: WizardState
+    private let permissionsState: SettingsState
 
-    public init(state: WizardState) {
+    public init(state: WizardState, permissions: SettingsState) {
         self.wizardState = state
+        self.permissionsState = permissions
     }
+
+    public var isVisible: Bool { window?.isVisible ?? false }
 
     public func show() {
         if let window, window.isVisible {
@@ -28,7 +32,7 @@ public final class WizardWindow {
         // Must be .regular before creating the window so it can become key
         NSApp.setActivationPolicy(.regular)
 
-        let wizardView = WizardView(state: wizardState)
+        let wizardView = WizardView(state: wizardState, permissions: permissionsState)
         let hostingView = NSHostingView(rootView: wizardView)
 
         let w = EscClosableWindow(
