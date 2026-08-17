@@ -20,7 +20,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private let wizardState = WizardState()
     private var appSearchProvider: AppSearchProvider!
     private var debugServer: DebugServer?
-    private var didPromptHotkeyPermission = false
+    private var didRegisterPermissions = false
+    private var permissionTimer: Timer?
 
     private static let wizardCompletedKey = "wizardCompleted"
 
@@ -68,6 +69,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.launcherPanel.orderOut(nil)
             self?.settingsWindow.show()
         }
+        menuBarManager.onOpenPermissions = { [weak self] in
+            guard let self else { return }
+            self.launcherPanel.orderOut(nil)
+            self.settingsState.requestedTab = 0
+            self.settingsState.refreshPermissions()
+            self.settingsWindow.show()
+        }
         menuBarManager.updateLauncherShortcut(resolveHotkey())
         menuBarManager.setVisible(readUIBool("showMenuBarIcon", default: true))
 
@@ -94,6 +102,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         applyUIPrefsFromSettings()
         installLauncherHotkey()
         moduleManager.startWatching()
+
+        moduleManager.onDidReload = { [weak self] in
+            self?.refreshPermissions()
+        }
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshPermissions() }
+        }
+        refreshPermissions()
 
         if CommandLine.arguments.contains("--debug-server") {
             debugServer = DebugServer(engine: engine, moduleManager: moduleManager)
@@ -200,6 +220,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.openPluginsFolder = { [weak self] in
             guard let root = self?.workspace.root else { return }
             NSWorkspace.shared.open(root)
+        }
+        settingsState.loadRequiredPermissions = { [weak self] in
+            self?.requiredPermissions() ?? Permissions.baseline
         }
 
         settingsWindow = SettingsWindow(state: settingsState)
@@ -342,16 +365,48 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.launcherPanel.toggle()
         }
         hotkey.onPermissionNeeded = { [weak self] in
-            self?.promptHotkeyPermission()
+            self?.refreshPermissions()
         }
         launcherHotkey = hotkey
         menuBarManager.updateLauncherShortcut(combo)
     }
 
-    private func promptHotkeyPermission() {
-        guard !didPromptHotkeyPermission else { return }
-        didPromptHotkeyPermission = true
-        Permissions.requestInputMonitoring()
+    // MARK: - Permissions
+
+    /// Baseline plus whatever the loaded plugins declared.
+    private func requiredPermissions() -> [Permission] {
+        Permissions.required(declaredBy: engine?.declaredPermissions ?? [])
+    }
+
+    /// Re-check every required permission and update the menu bar and Settings.
+    /// The first check also registers Macotron in the System Settings lists, so
+    /// the user can find the toggles without hunting for the app.
+    private func refreshPermissions() {
+        let required = requiredPermissions()
+        let missing = Permissions.missing(from: required)
+
+        if !didRegisterPermissions, !missing.isEmpty {
+            didRegisterPermissions = true
+            Permissions.registerWithSystem(required)
+        }
+
+        menuBarManager?.setMissingPermissions(missing)
+        settingsState.refreshPermissions()
+        schedulePermissionPolling(active: !missing.isEmpty)
+    }
+
+    /// Poll while anything is missing, so the warning clears as soon as the user
+    /// flips a toggle in System Settings.
+    private func schedulePermissionPolling(active: Bool) {
+        guard active else {
+            permissionTimer?.invalidate()
+            permissionTimer = nil
+            return
+        }
+        guard permissionTimer == nil else { return }
+        permissionTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.refreshPermissions() }
+        }
     }
 
     private func resolveHotkey() -> String {
@@ -439,7 +494,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let keyboard = KeyboardModule()
         keyboard.onTrustFailure = { [weak self] in
-            self?.promptHotkeyPermission()
+            self?.refreshPermissions()
         }
         engine.addModule(keyboard)
 

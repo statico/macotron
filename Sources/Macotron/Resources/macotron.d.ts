@@ -109,6 +109,19 @@ declare const macotron: {
         has(key: string): boolean;
     };
 
+    panel: {
+        open(opts: { title?: string; width?: number; height?: number; html: string }): string;
+        close(id: string): void;
+        postMessage(id: string, data: any): void;
+        onMessage(id: string, callback: (data: any) => void): void;
+    };
+
+    /**
+     * Declare the macOS permissions this plugin needs. Macotron shows a red
+     * warning in the menu bar and Settings until the user grants them.
+     */
+    requirePermissions(list: Array<"accessibility" | "inputMonitoring" | "screenRecording">): void;
+
     config(options: Record<string, any>): void;
 
     /**

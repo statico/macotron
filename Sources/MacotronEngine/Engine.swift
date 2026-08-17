@@ -23,6 +23,10 @@ public final class Engine {
     /// Config store (populated by macotron.config() calls)
     public var configStore: [String: Any] = [:]
 
+    /// Permission names declared by plugins via `macotron.requirePermissions()`.
+    /// Cleared on every reload.
+    public var declaredPermissions: Set<String> = []
+
     /// Module metadata (populated by macotron.module() calls during execution).
     /// Keyed by filename → raw metadata dict from JS.
     public var moduleMetadata: [String: [String: Any]] = [:]
@@ -232,6 +236,25 @@ public final class Engine {
                 }
                 return QJS_Undefined()
             }, "$$__registerCommand", 3))
+
+        // $$__requirePermissions — called by macotron.requirePermissions()
+        JS_SetPropertyStr(context, global, "$$__requirePermissions",
+            JS_NewCFunction(context, { ctx, thisVal, argc, argv -> JSValue in
+                guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
+                let opaque = JS_GetContextOpaque(ctx)
+                guard let opaque else { return QJS_Undefined() }
+                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+
+                let value = JSBridge.jsToSwift(ctx, argv[0])
+                if let list = value as? [Any] {
+                    for item in list {
+                        if let name = item as? String { engine.declaredPermissions.insert(name) }
+                    }
+                } else if let name = value as? String {
+                    engine.declaredPermissions.insert(name)
+                }
+                return QJS_Undefined()
+            }, "$$__requirePermissions", 1))
 
         // $$__config — called by macotron.config() to store user options
         JS_SetPropertyStr(context, global, "$$__config",
@@ -447,6 +470,7 @@ public final class Engine {
         cancelAllTimers()
         eventBus.removeAllListeners()
         moduleMetadata.removeAll()
+        declaredPermissions.removeAll()
 
         // Free old command callbacks
         for (_, cmd) in commandRegistry {

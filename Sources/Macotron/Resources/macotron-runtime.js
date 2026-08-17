@@ -9,6 +9,14 @@ macotron.config = function(options) {
     $$__config(options);
 };
 
+// --- Permissions ---
+// Declare what a plugin needs: "accessibility", "inputMonitoring", "screenRecording".
+// Macotron shows a warning until the user grants them.
+
+macotron.requirePermissions = function(list) {
+    $$__requirePermissions(list);
+};
+
 // --- Module metadata ---
 
 macotron.module = function(metadata) {

@@ -18,6 +18,9 @@ public final class ModuleManager {
     /// Errors encountered during the last reload cycle.
     public private(set) var lastReloadErrors: [(filename: String, error: String)] = []
 
+    /// Called after every reload, so the app can re-check plugin declarations.
+    public var onDidReload: (() -> Void)?
+
     private let cacheDir: URL
 
     public init(engine: Engine, workspace: PluginWorkspace) {
@@ -100,6 +103,7 @@ public final class ModuleManager {
         }
 
         logger.info("Loaded \(pluginFiles.count) plugins. Ready.")
+        onDidReload?()
     }
 
     private func executeFile(_ file: URL) {
