@@ -288,6 +288,28 @@ struct JSBridgeTests {
         _ = engine
     }
 
+    @Test("anyToJS with an Int too wide for Int32")
+    func testAnyToJSIntBeyondInt32() {
+        let (engine, ctx) = makeContext()
+        // A millisecond timestamp, the kind a panel sends back from Date.now().
+        let timestamp = 1_755_470_000_000
+        let jsVal = JSBridge.anyToJS(ctx, timestamp as Any)
+        #expect(JS_IsNumber(jsVal))
+        #expect(JSBridge.toDouble(ctx, jsVal) == Double(timestamp))
+        _ = engine
+    }
+
+    @Test("anyToJS with Int at the edges of Int32")
+    func testAnyToJSIntEdges() {
+        let (engine, ctx) = makeContext()
+        for value in [Int(Int32.min), Int(Int32.max), Int(Int32.max) + 1, Int(Int32.min) - 1] {
+            let jsVal = JSBridge.anyToJS(ctx, value as Any)
+            #expect(JS_IsNumber(jsVal))
+            #expect(JSBridge.toDouble(ctx, jsVal) == Double(value))
+        }
+        _ = engine
+    }
+
     @Test("anyToJS with Int32")
     func testAnyToJSInt32() {
         let (engine, ctx) = makeContext()
