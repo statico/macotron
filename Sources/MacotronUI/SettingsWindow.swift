@@ -60,9 +60,4 @@ public final class SettingsWindow {
 
         self.window = w
     }
-
-    public func showWithAPIKeyRequired() {
-        settingsState.showAPIKeyRequired = true
-        show()
-    }
 }

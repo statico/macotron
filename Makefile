@@ -33,7 +33,9 @@ bundle: build
 	@cp Resources/Info.plist "$(BUNDLE)/Contents/"
 	@cp Sources/Macotron/Resources/macotron-runtime.js "$(BUNDLE)/Contents/Resources/"
 	@cp Sources/Macotron/Resources/macotron.d.ts "$(BUNDLE)/Contents/Resources/"
-	@cp Resources/AppIcon.icns "$(BUNDLE)/Contents/Resources/"
+	@xcrun actool $(CURDIR)/Resources/$(APP_NAME).icon --compile "$(BUNDLE)/Contents/Resources" \
+		--app-icon $(APP_NAME) --output-partial-info-plist $(BUILD_DIR)/icon-partial.plist \
+		--platform macosx --minimum-deployment-target 15.0 --errors --warnings >/dev/null
 	@cp Resources/banner.png "$(BUNDLE)/Contents/Resources/"
 	@if [ -n "$(SIGN_IDENTITY)" ]; then \
 		codesign --force --sign "$(SIGN_IDENTITY)" --entitlements Resources/Macotron.entitlements "$(BUNDLE)"; \

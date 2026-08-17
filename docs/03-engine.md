@@ -7,14 +7,15 @@
 - `evaluate(_ js:, filename:)` — Execute JS, returns `(output?, error?)`
 - `evaluateBytecode(_:, filename:)` — Run cached bytecode
 - `compileToBytecode(_:, filename:)` — Compile JS source to bytecode `Data`
-- `drainJobQueue()` — Process pending async jobs (promises, etc.)
+- `drainJobQueue()` — Process pending async jobs (promises and more)
 - `reset()` — Tear down context, cancel timers, re-create fresh
 - `addModule(_:)` / `registerAllModules()` — Register native modules
-- `configStore` — Dictionary populated by `macotron.config()` in config.js
 - `commandRegistry` — Dictionary of registered JS commands
 - `logHandler` — Closure for `console.log` output
 
-Module loader resolves ES module imports relative to `moduleBaseDir` (the user's config directory).
+Module loader resolves ES module imports relative to `moduleBaseDir` (the user plugins workdir).
+
+Module options come from the `modules` block in `settings.json`.
 
 ## NativeModule Protocol
 
@@ -25,7 +26,7 @@ protocol NativeModule: AnyObject {
 }
 ```
 
-Modules register C functions via `JS_SetPropertyStr` on the global `macotron` object. Module-specific options come from the `modules` block in `config.js`.
+Modules register C functions via `JS_SetPropertyStr` on the global `macotron` object.
 
 ## EventBus — Unified Event Dispatch
 
@@ -39,19 +40,17 @@ All callbacks are ref-counted via `JS_DupValue` / `JS_FreeValue`.
 
 ## Execution Model
 
-Snippets are loaded and executed in alphabetical order on app launch. Each file runs once, registering event listeners, commands, and menubar items as side effects.
+Plugins load from `plugins/` in alphabetical order on app launch. Each file runs once. Side effects register event listeners, hotkeys, commands, menubar items, and panels.
 
 ```
 App Launch
   |
-  +-- Load config.js              (API keys, preferences)
-  +-- Load 001-window-tiling.js   (registers keyboard listeners)
-  +-- Load 002-url-handlers.js    (registers URL handler)
-  +-- Load 003-cpu-monitor.js     (starts interval timer)
-  +-- Load 004-camera-light.js    (starts camera polling)
-  +-- Load 005-menubar-items.js   (adds items to menubar dropdown)
-  +-- Load commands/*.js          (registers launcher commands)
+  +-- Read settings.json          (hotkey, UI prefs, module options)
+  +-- Load plugins/001-....js     (registers listeners)
+  +-- Load plugins/002-....js
   +-- Ready.
 ```
 
-**Reload** clears all listeners, commands, and menubar items, then re-executes everything from disk.
+Any file change in the workdir triggers a hot reload. **Reload** clears all listeners, commands, menubar items, and panels. Then the engine re-executes every plugin from disk.
+
+Bytecode caches under `.cache/` inside the workdir. That directory is gitignored.

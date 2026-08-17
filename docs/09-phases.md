@@ -1,56 +1,78 @@
 # Phase Plan
 
-## Phase 1 — Engine + Menubar ✅
+## Historical Phases (pre host-shell)
+
+These phases describe the earlier in-app agent product. They are complete for the old architecture. They are not the roadmap for host-shell v1.
+
+### Phase 1 — Engine + Menubar (historical) ✅
+
 - [x] Swift package with vendored quickjs-ng
 - [x] QuickJS engine: runtime, context, timers, job queue draining
 - [x] EventBus (native events → JS callbacks)
-- [x] NativeModule protocol with `version`, `defaultOptions`, `options`
-- [x] SnippetManager with ordered loading from `~/Library/Application Support/Macotron/snippets/`
-- [x] Snippet error isolation, full reload on FSEvents change
-- [x] Menubar agent with NSStatusItem + dynamic NSMenu
-- [x] Config backup/rollback
+- [x] NativeModule protocol
+- [x] Ordered script loading and FSEvents reload
+- [x] Menubar with NSStatusItem + dynamic NSMenu
 - [x] localStorage, Keychain module
 - [x] Debug HTTP server
 - [x] Basic modules: shell, notify, fs, timer, menubar
 
-## Phase 2 — Launcher + Key Modules ✅
+### Phase 2 — Launcher + Key Modules (historical) ✅
+
 - [x] NSPanel floating window with SwiftUI
 - [x] Global hotkey to toggle
-- [x] Search field with fuzzy matching
-- [x] Window module (AXUIElement)
-- [x] Keyboard module (CGEventTap)
-- [x] Clipboard module
-- [x] All 18 native modules (screen, app, system, HTTP, camera, USB, URL, display, etc.)
-- [x] Permission checks
+- [x] Window, keyboard, clipboard modules
+- [x] Broad native module set
+- [x] Permission helpers
 
-## Phase 3 — AI Integration ✅
+### Phase 3 — AI Providers (historical) ✅
+
 - [x] AI provider abstraction (Claude, OpenAI, Gemini, Local)
-- [x] Tool-call-based file management
-- [x] Capability review system
-- [x] Chat mode in launcher (replaced by agent mode in Phase 4)
-- [x] Auto-fix mechanism
-- [x] Prompt injection mitigation
-- [x] AI system prompt with type definitions
+- [x] `macotron.ai` module surface for scripts
 
-## Phase 4 — Agent Mode & Wizard
-- [ ] First-run setup wizard (Welcome → Permissions → AI Provider → Open Prompt)
-  - Dev shortcut: `~/Library/Application Support/Macotron-dev.json` for pre-set API key
-- [ ] Replace chat interface with coding agent interface
-- [ ] Agent progress UI (floating panel with shiny progress text)
-  - Status flow: "Writing script..." → "Testing script..." → "Done!" with green check
-- [ ] Example prompts in main panel ("set up keybindings to move windows", "use safari to open youtube links")
-- [ ] Agent loop: plan → write → reload → validate → auto-repair → done
-- [ ] Context engineering (stable prefix, file-system memory, failure traces, plan recitation)
+### Phase 4–6 — In-app Agent (historical / superseded)
 
-## Phase 5 — Script Summary & Polish
-- [ ] Script summary tab in Settings (always up-to-date)
-- [ ] Better error reporting and recovery
-- [ ] Improved auto-repair with context from Manus/harness research
+Earlier plans covered an in-app coding agent, chat UI, auto-fix, and Application Support snippets. Host-shell redesign removes that product path. External agents edit plugins instead.
 
-## Phase 6 — Distribution & Community
-- [ ] ES module support
-- [ ] Bytecode caching
-- [ ] Snippet sharing format
-- [ ] Documentation site
-- [ ] Homebrew cask formula
-- [ ] Notarized DMG
+---
+
+## Host-Shell v1 Phases
+
+Source of truth: [2026-08-17-host-shell-design.md](superpowers/specs/2026-08-17-host-shell-design.md).
+
+### HS-1 — Workdir and Settings
+
+- [ ] First-run wizard picks plugins directory
+- [ ] Optional open in Finder / Cursor
+- [ ] `git init` of the workdir
+- [ ] Seed human `README.md` once if missing
+- [ ] Write app-owned `AGENTS.md` and `CLAUDE.md` (do not edit banner)
+- [ ] `.gitignore` for `AGENTS.md`, `CLAUDE.md`, `.cache/`
+- [ ] `settings.json` with hot reload
+- [ ] UserDefaults stores only `pluginsDirectory`
+
+### HS-2 — Plugin Loader
+
+- [ ] Load `plugins/*.js` in alphabetical order
+- [ ] Hot reload on any workdir file change
+- [ ] Bytecode cache under `.cache/`
+- [ ] Plugin list in host UI
+
+### HS-3 — Thin Host UI
+
+- [ ] Settings window for workdir path, UI prefs, marketplace link
+- [ ] Menu bar
+- [ ] Launcher hotkey from `settings.json`
+- [ ] Remove in-app AgentSession, ChatSession, tool-call agent UI, module auto-fix
+
+### HS-4 — Panel Module and Lazy Permissions
+
+- [ ] `macotron.panel` WKWebView API
+- [ ] Prompt Accessibility / Input Monitoring only when hotkeys need them
+- [ ] Prompt Screen Recording on first capture use
+
+### HS-5 — Marketplace Link and Polish
+
+- [ ] Settings link to `https://github.com/topics/macotron-plugin`
+- [ ] Keep `macotron.ai` for plugins (including `macotron.ai.local()` when available)
+- [ ] Docs match this architecture
+- [ ] Homebrew cask and notarized DMG (later)

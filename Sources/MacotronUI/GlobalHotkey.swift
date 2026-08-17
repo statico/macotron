@@ -182,6 +182,9 @@ public final class GlobalHotkey {
     private var callback: @MainActor () -> Void
     private var usingFallback = false
 
+    /// Called when neither the event tap nor the NSEvent fallback can be installed.
+    public var onPermissionNeeded: (() -> Void)?
+
     /// Create a global hotkey listener.
     /// - Parameters:
     ///   - combo: A hotkey string like "cmd+space", "ctrl+shift+l".
@@ -281,6 +284,7 @@ public final class GlobalHotkey {
 
         guard let eventTap else {
             NSLog("[Macotron] CGEvent tap failed — Input Monitoring permission not granted. Falling back to NSEvent global monitor.")
+            onPermissionNeeded?()
             setupFallbackMonitor()
             return
         }
@@ -350,6 +354,7 @@ public final class GlobalHotkey {
             NSLog("[Macotron] Global hotkey fallback monitor installed (NSEvent)")
         } else {
             NSLog("[Macotron] WARNING: NSEvent global monitor also failed — no global hotkey available. Grant Accessibility permission and restart.")
+            onPermissionNeeded?()
         }
     }
 

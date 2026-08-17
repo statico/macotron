@@ -1,142 +1,120 @@
 # Project Structure
 
+This layout matches the host-shell redesign. See [2026-08-17-host-shell-design.md](superpowers/specs/2026-08-17-host-shell-design.md).
+
 ## Repo Layout
 
 ```
 macotron/
-├── Makefile                         # build, run, bundle, dev, screenshot
+├── Makefile                         # build, run, bundle, dev
 ├── Package.swift                    # Swift Package Manager manifest
 ├── Vendor/
-│   └── quickjs-ng/                  # QuickJS source (~6 C files)
-│       ├── include/
-│       │   ├── quickjs.h
-│       │   └── quickjs-libc.h
-│       ├── quickjs.c
-│       ├── libunicode.c
-│       ├── libregexp.c
-│       ├── cutils.c
-│       └── quickjs-libc.c
+│   └── quickjs-ng/                  # QuickJS source
 ├── Resources/
-│   ├── Info.plist                   # App bundle metadata
+│   ├── Info.plist
 │   ├── Macotron.entitlements        # Entitlements (no sandbox)
-│   ├── macotron-runtime.js          # JS runtime loaded before snippets
-│   └── macotron.d.ts                # JS type definitions for AI/autocomplete
+│   ├── Macotron.icon/               # Icon Composer source, compiled by actool
+│   └── banner.png
 ├── Sources/
 │   ├── Macotron/                    # App entry point + AppDelegate
-│   ├── MacotronUI/                  # SwiftUI + NSPanel + MenuBar
-│   ├── MacotronEngine/              # QuickJS engine, EventBus, SnippetManager
-│   │   ├── Engine.swift             # QuickJS lifecycle, timers, job queue
-│   │   ├── EventBus.swift
-│   │   ├── SnippetManager.swift     # Load, watch, backup, auto-fix, reload
-│   │   ├── ConfigBackup.swift       # Compress & backup config before changes
-│   │   ├── LocalStorageModule.swift # localStorage emulation (JSON file)
-│   │   ├── KeychainModule.swift     # macOS Keychain bridge
-│   │   └── NLClassifier.swift       # Natural language vs search detection
+│   ├── MacotronUI/                  # Wizard, settings, menu bar, launcher
+│   ├── MacotronEngine/              # QuickJS engine, EventBus, plugin loader
 │   ├── Modules/                     # Native → JS bridge modules
-│   ├── AI/                          # AI providers + tool-call file management
-│   └── Debug/
-│       └── DebugServer.swift        # HTTP server (debug builds only)
-├── docs/                            # Architecture documentation
+│   └── AI/                          # Providers for macotron.ai (plugin API)
+├── docs/
 └── Tests/
 ```
 
-## Source Targets
+## Source Targets (Intended)
 
 ```
 Sources/
 ├── Macotron/                    # App entry point
-│   ├── MacotronApp.swift        # @main, app lifecycle
-│   ├── AppDelegate.swift        # NSApplicationDelegate, permissions
-│   └── Permissions.swift        # Accessibility, Input Monitoring checks
+│   ├── MacotronApp.swift
+│   ├── AppDelegate.swift
+│   ├── Permissions.swift        # Lazy Accessibility / Input Monitoring / Screen Recording
+│   └── Resources/
+│       ├── macotron-runtime.js
+│       └── macotron.d.ts
 │
-├── MacotronUI/                  # All UI code
-│   ├── LauncherPanel.swift      # NSPanel subclass (floating window)
-│   ├── LauncherView.swift       # SwiftUI root view (search + example prompts)
-│   ├── MenuBarManager.swift     # NSStatusItem + dynamic NSMenu
-│   ├── AgentProgressView.swift  # Agent progress UI with shiny text
-│   ├── AgentProgressPanel.swift # Floating progress panel (NSPanel)
-│   ├── WizardView.swift         # First-run setup wizard
-│   ├── WizardWindow.swift       # Wizard window wrapper
-│   └── SettingsView.swift       # Settings with General, AI, and Summary tabs
+├── MacotronUI/                  # Host UI only
+│   ├── WizardView.swift         # Pick workdir, optional open in Finder / Cursor
+│   ├── WizardWindow.swift
+│   ├── SettingsView.swift
+│   ├── SettingsWindow.swift
+│   ├── MenuBarManager.swift
+│   ├── LauncherPanel.swift
+│   ├── LauncherView.swift       # Plugin list / launcher
+│   └── GlobalHotkey.swift
 │
 ├── MacotronEngine/              # Core engine
-│   ├── Engine.swift             # JSContext lifecycle, module registration
-│   ├── EventBus.swift           # Native→JS event dispatch
-│   ├── SnippetManager.swift     # Load, watch, execute snippets
-│   ├── ConfigBackup.swift       # Backup/rollback config dir
-│   ├── NativeModule.swift       # Protocol all modules conform to
-│   └── JSBridge.swift           # Swift↔JS type conversion helpers
+│   ├── Engine.swift             # QuickJS lifecycle, timers, job queue
+│   ├── EventBus.swift
+│   ├── SnippetManager.swift     # Load / watch / reload plugins/ (name can stay)
+│   ├── NativeModule.swift
+│   └── JSBridge.swift
 │
-├── Modules/                     # Native API modules (each exposes to JS)
-│   ├── WindowModule.swift       # AXUIElement window management
-│   ├── KeyboardModule.swift     # CGEventTap global shortcuts
-│   ├── ScreenModule.swift       # ScreenCaptureKit screenshots
-│   ├── ShellModule.swift        # Process/command execution
-│   ├── NotifyModule.swift       # UserNotifications
-│   ├── CameraModule.swift       # Camera state detection
-│   ├── URLSchemeModule.swift    # URL handler registration
-│   ├── USBModule.swift          # IOKit device monitoring
-│   ├── FileSystemModule.swift   # File read/write/watch (FSEvents)
-│   ├── ClipboardModule.swift    # NSPasteboard
-│   ├── AIModule.swift           # AI provider abstraction
-│   ├── SpotlightModule.swift    # NSMetadataQuery file search
-│   ├── AppModule.swift          # NSWorkspace app launch/switch
-│   ├── SystemModule.swift       # CPU, memory, battery, temp
-│   ├── HTTPModule.swift         # URLSession
-│   ├── MenuBarModule.swift      # Custom menubar items
-│   ├── DisplayModule.swift      # Display config, spaces
-│   └── TimerModule.swift        # Intervals, cron-like scheduling
+├── Modules/                     # Native API modules
+│   ├── WindowModule.swift
+│   ├── KeyboardModule.swift
+│   ├── ScreenModule.swift
+│   ├── ShellModule.swift
+│   ├── NotifyModule.swift
+│   ├── CameraModule.swift
+│   ├── URLSchemeModule.swift
+│   ├── USBModule.swift
+│   ├── FileSystemModule.swift
+│   ├── ClipboardModule.swift
+│   ├── AIModule.swift           # Exposes macotron.ai to plugins
+│   ├── PanelModule.swift        # WKWebView panels (macotron.panel)
+│   ├── SpotlightModule.swift
+│   ├── AppModule.swift
+│   ├── SystemModule.swift
+│   ├── HTTPModule.swift
+│   ├── MenuBarModule.swift
+│   ├── DisplayModule.swift
+│   ├── TimerModule.swift
+│   ├── LocalStorageModule.swift
+│   └── KeychainModule.swift
 │
-└── AI/                          # AI provider implementations
-    ├── AIProvider.swift          # Protocol
-    ├── AIToolCall.swift          # Tool-call-based file management
-    ├── AISystemPrompt.swift      # System prompt builder (agent + chat)
-    ├── AgentSession.swift        # Core agent loop (plan → write → test → repair)
-    ├── ClaudeProvider.swift      # Anthropic API
-    ├── OpenAIProvider.swift      # OpenAI API
-    ├── GeminiProvider.swift      # Google Gemini API
-    ├── LocalProvider.swift       # Apple Foundation Models (on-device)
-    └── SnippetAutoFix.swift      # Auto-repair broken snippets via AI
+└── AI/                          # Cloud and on-device providers for plugins
+    ├── AIProvider.swift
+    ├── ClaudeProvider.swift
+    ├── OpenAIProvider.swift
+    ├── GeminiProvider.swift
+    └── LocalProvider.swift      # Apple Foundation Models
 ```
 
-## User Config Structure
+The redesign removes in-app agent UI and agent loop types. Do not keep `AgentSession`, `ChatSession`, `SnippetAutoFix`, or agent progress panels as product surfaces.
+
+## User Workdir
+
+The user picks one directory. That directory is the plugins workdir and a git repo.
 
 ```
-~/Library/Application Support/Macotron/
-├── config.js                # Main config (API keys, preferences, module options, launcher hotkey)
-├── snippets/                # Automations — executed alphabetically on load
-│   ├── 001-window-tiling.js
-│   ├── 002-url-handlers.js
-│   ├── 003-cpu-monitor.js
-│   ├── 004-camera-light.js
-│   └── 005-menubar-items.js
-├── commands/                # Named commands (appear in launcher + menubar)
-│   ├── summarize-screen.js
-│   └── clipboard-history.js
-├── plugins/                 # Third-party snippet packs (git repos or downloads)
-│   └── community-pack/
-├── data/                    # Persistent state for snippets
-│   └── localStorage.json
-├── backups/                 # Compressed config backups (auto-created before changes)
-│   ├── 2026-02-13T10-30-00.tar.gz
-│   └── 2026-02-13T11-15-22.tar.gz
-└── logs/
-    └── macotron.log
+<user-chosen>/
+├── .git/
+├── .gitignore               # ignores AGENTS.md, CLAUDE.md, .cache/
+├── settings.json            # launcher hotkey, UI prefs, module options
+├── README.md                # human (seeded once if missing)
+├── AGENTS.md                # app-owned — do not edit
+├── CLAUDE.md                # app-owned — do not edit
+├── plugins/
+│   └── example-hello.js
+└── .cache/                  # bytecode (gitignored)
 ```
 
-**All files are plain JavaScript.** When the AI generates code from a user request, it writes a `.js` file via tool calls. The source of truth is the files on disk.
+Only `pluginsDirectory` can live in UserDefaults. All other settings live in `settings.json`.
 
-### Config Backup & Rollback
+See [10-plugins-workdir.md](10-plugins-workdir.md).
 
-Before every AI-initiated change (creating, modifying, or deleting snippets), the entire `~/Library/Application Support/Macotron/` config directory is compressed and backed up to `~/Library/Application Support/Macotron/backups/`. This enables full rollback to any previous state. Old backups are pruned after 30 days or 100 entries (whichever comes first).
+## Module Versioning
 
-### Module Versioning
-
-Each native module declares a version number. The JS runtime exposes this via `macotron.version.modules` so snippets can check compatibility:
+Each native module declares a version number. The JS runtime exposes this via `macotron.version.modules` so plugins can guard compatibility:
 
 ```javascript
 macotron.version.app;     // "1.0.0"
 macotron.version.modules; // { window: 1, keyboard: 1, shell: 1, ... }
 ```
 
-When a module's API changes, its version bumps. Snippets can guard against version mismatches.
+When a module API changes, its version bumps.

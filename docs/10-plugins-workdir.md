@@ -1,0 +1,81 @@
+# Plugins Workdir
+
+The user picks one directory as the Macotron workdir. That directory holds settings, plugins, and agent instruction files. External coding agents edit plugins here. The Macotron app owns a small set of files inside it.
+
+## Layout
+
+```
+<user-chosen>/
+  .git/
+  .gitignore          # ignores AGENTS.md, CLAUDE.md, .cache/
+  settings.json       # launcher hotkey, UI prefs, module options
+  README.md           # human (seeded once if missing)
+  AGENTS.md           # app-owned — do not edit
+  CLAUDE.md           # app-owned — do not edit
+  plugins/
+    example-hello.js
+  .cache/             # bytecode (gitignored)
+```
+
+Only the path to this directory can live in UserDefaults (`pluginsDirectory`). All other settings live in `settings.json`.
+
+## settings.json
+
+Example:
+
+```json
+{
+  "launcher": { "hotkey": "cmd+space" },
+  "ui": { "showDockIcon": true, "showMenuBarIcon": true },
+  "modules": {},
+  "security": { "shell": { "allow": [], "strict": false } }
+}
+```
+
+The app hot-reloads when any file in the workdir changes. That includes `settings.json` and files under `plugins/`.
+
+## Git
+
+The workdir is a git repo for local versioning.
+
+- The app runs `git init` when it creates the workdir.
+- External agents create commits. The app does not create commits.
+- Commit often on `main`.
+- Do not commit secrets. Use `macotron.keychain` for API keys.
+
+## App-Owned Agent Files
+
+`AGENTS.md` and `CLAUDE.md` belong to the app. They must not be edited. The app overwrites them.
+
+Each file starts with this banner:
+
+```
+<!-- DO NOT EDIT — Macotron overwrites this file. -->
+```
+
+Content covers:
+
+- What the directory is
+- Plugin rules
+- API summary
+- Git commit guidance (commit often on `main`, no secrets)
+
+`.gitignore` must list `AGENTS.md`, `CLAUDE.md`, and `.cache/` so those files stay out of the repo.
+
+## Human README
+
+The app seeds `README.md` once if the file is missing. Humans and agents can edit that file after the seed. The app does not overwrite it later.
+
+## Plugins
+
+Plugins are `.js` files under `plugins/`. Each file registers hotkeys and hooks at load time. Community plugins can use the GitHub topic `macotron-plugin`:
+
+https://github.com/topics/macotron-plugin
+
+## First-Run Flow
+
+1. Pick the workdir in the wizard.
+2. Optionally open the directory in Finder or Cursor.
+3. Make sure that the app wrote `AGENTS.md` and `CLAUDE.md`.
+4. Ask an external agent to add files under `plugins/`.
+5. Grant Accessibility or Screen Recording only when a plugin needs those features.

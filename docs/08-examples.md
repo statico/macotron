@@ -1,28 +1,23 @@
-**Example Prompts:**
+# Example Plugins
 
-These are example commands users type into macotron's prompt panel. The agent then autonomously creates the scripts shown below.
+External agents write these files under `plugins/` in the workdir. Macotron loads them and hot-reloads on change.
 
-| Prompt | What it does |
+| Goal | Plugin file |
 |---|---|
-| "set up keybindings to let me move windows" | Creates window tiling shortcuts (Ctrl+Opt+arrows) |
-| "use safari to open all youtube links" | Sets up a URL router that opens YouTube in Safari |
-| "turn on my ring light when camera activates" | Monitors camera state and controls smart light |
-| "show CPU temperature in the menu bar" | Adds a live-updating menubar widget |
-| "warn me when CPU gets too hot" | Sets up a temperature monitor with notifications |
-| "take a screenshot and summarize it with AI" | Creates a launcher command for AI screen analysis |
+| Window tiling shortcuts | `plugins/window-tiling.js` |
+| Open YouTube in Safari | `plugins/url-handlers.js` |
+| Ring light on camera | `plugins/camera-light.js` |
+| CPU temperature warning | `plugins/cpu-monitor.js` |
+| Menubar CPU widget | `plugins/menubar-dashboard.js` |
+| Screen summary with AI | `plugins/summarize-screen.js` |
+| Small panel UI | `plugins/hello-panel.js` |
 
 ---
 
-# Example Snippets
-
-These are what the AI generates. Users describe what they want; these files appear on disk.
-
-## Window Tiling (replaces Rectangle)
-
-> User: "set up keyboard shortcuts to tile my windows"
+## Window Tiling
 
 ```javascript
-// ~/Library/Application Support/Macotron/snippets/001-window-tiling.js
+// plugins/window-tiling.js
 
 macotron.keyboard.on("ctrl+opt+left", () => {
     const win = macotron.window.focused();
@@ -40,12 +35,10 @@ macotron.keyboard.on("ctrl+opt+return", () => {
 });
 ```
 
-## URL Router (replaces Velja)
-
-> User: "open YouTube links in Safari, everything else in Arc"
+## URL Router
 
 ```javascript
-// ~/Library/Application Support/Macotron/snippets/002-url-handlers.js
+// plugins/url-handlers.js
 
 macotron.url.registerHandler("https");
 
@@ -58,12 +51,10 @@ macotron.url.on("https", "*", (event) => {
 });
 ```
 
-## Camera Ring Light (replaces OverSight)
-
-> User: "turn on my ring light when my camera activates"
+## Camera Ring Light
 
 ```javascript
-// ~/Library/Application Support/Macotron/snippets/003-camera-light.js
+// plugins/camera-light.js
 
 macotron.on("camera:active", async () => {
     await macotron.http.post("http://192.168.1.50/api/on", {});
@@ -79,7 +70,7 @@ macotron.on("camera:inactive", async () => {
 ## CPU Temperature Monitor
 
 ```javascript
-// ~/Library/Application Support/Macotron/snippets/004-cpu-monitor.js
+// plugins/cpu-monitor.js
 
 macotron.every(30_000, async () => {
     const temp = await macotron.system.cpuTemp();
@@ -89,10 +80,10 @@ macotron.every(30_000, async () => {
 });
 ```
 
-## Menubar Dashboard (replaces xbar)
+## Menubar Dashboard
 
 ```javascript
-// ~/Library/Application Support/Macotron/snippets/005-menubar-dashboard.js
+// plugins/menubar-dashboard.js
 
 macotron.menubar.add("cpu-temp", {
     title: "CPU: --°C",
@@ -109,15 +100,33 @@ macotron.every(10_000, async () => {
 });
 ```
 
-## Summarize Screen (launcher command)
+## Summarize Screen (plugin AI)
 
 ```javascript
-// ~/Library/Application Support/Macotron/commands/summarize-screen.js
+// plugins/summarize-screen.js
 
-macotron.command("Summarize Screen", "Take a screenshot and summarize with AI", async () => {
+macotron.keyboard.on("cmd+shift+s", async () => {
     const screenshot = await macotron.screen.capture();
     const ai = macotron.ai.claude();
-    const summary = await ai.chat("Describe what's on this screen concisely.", { image: screenshot });
+    const summary = await ai.chat("Describe what is on this screen in a short form.", { image: screenshot });
     macotron.notify.show("Screen Summary", summary);
+});
+```
+
+## Hello Panel
+
+```javascript
+// plugins/hello-panel.js
+
+macotron.keyboard.on("cmd+shift+h", () => {
+    const id = macotron.panel.open({
+        title: "Hello",
+        width: 420,
+        height: 200,
+        html: "<h1>Hello from Macotron</h1>"
+    });
+    macotron.panel.onMessage(id, (data) => {
+        macotron.notify.show("Panel message", String(data));
+    });
 });
 ```
