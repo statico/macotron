@@ -35,8 +35,9 @@ public final class MenuBarManager: NSObject {
     /// Current launcher shortcut combo string (e.g. "cmd+space"), used for menu display
     private var launcherShortcut: String = "cmd+space"
 
-    /// Current status bar symbol, redrawn when the permission warning changes.
-    private var symbolName: String = "bolt.fill"
+    /// SF Symbol set by a JS module, or nil to use the Macotron glyph.
+    /// Redrawn when the permission warning changes.
+    private var symbolName: String?
 
     /// Required permissions the user has not granted yet.
     private var missingPermissions: [Permission] = []
@@ -114,9 +115,13 @@ public final class MenuBarManager: NSObject {
     /// cannot be a template image and would render with a fixed color.
     private func refreshStatusImage() {
         guard let button = statusItem.button else { return }
-        let base = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Macotron")
-        base?.isTemplate = true
-        button.image = base
+        if let symbolName {
+            let base = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Macotron")
+            base?.isTemplate = true
+            button.image = base
+        } else {
+            button.image = MenuBarIcon.makeImage()
+        }
 
         badgeView?.removeFromSuperview()
         badgeView = nil
