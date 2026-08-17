@@ -171,10 +171,14 @@ private final class KeyboardTapState: @unchecked Sendable {
 public final class KeyboardModule: NativeModule {
     public let name = "keyboard"
 
+    /// Called once when the CGEvent tap cannot be created (needs Input Monitoring).
+    public var onTrustFailure: (() -> Void)?
+
     private weak var engine: Engine?
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var registeredCombos: [KeyCombo] = []
+    private var didReportTrustFailure = false
 
     public init() {}
 
@@ -288,6 +292,10 @@ public final class KeyboardModule: NativeModule {
 
         guard let eventTap else {
             logger.error("Failed to create CGEvent tap. Ensure Input Monitoring / Accessibility permission is granted.")
+            if !didReportTrustFailure {
+                didReportTrustFailure = true
+                onTrustFailure?()
+            }
             return
         }
 

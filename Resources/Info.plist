@@ -16,7 +16,9 @@
     <key>CFBundleExecutable</key>
     <string>Macotron</string>
     <key>CFBundleIconFile</key>
-    <string>AppIcon</string>
+    <string>Macotron</string>
+    <key>CFBundleIconName</key>
+    <string>Macotron</string>
     <key>LSUIElement</key>
     <true/>
     <key>CFBundleURLTypes</key>

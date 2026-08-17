@@ -1,25 +1,31 @@
-# ⚠️ VERY INCOMPLETE - STILL A WORK IN PROGRESS (but kinda works)
+# ⚠️ VERY INCOMPLETE — STILL A WORK IN PROGRESS
 
 <p align="center">
   <img src="Resources/banner.png" alt="Macotron" width="600">
 </p>
 
-AI-powered macOS automation. Describe what you want in plain English — Macotron's coding agent writes the scripts, tests them, and gets out of your way.
+Macotron is a thin macOS host for JavaScript automation plugins. External coding agents edit the plugins. The app does not ship an in-app AI coding agent.
 
-Replaces Hammerspoon, Rectangle, Velja, OverSight, xbar, and similar tools with a single scriptable app.
+You pick one plugins directory. Cursor, Claude Code, or another agent writes `.js` files there. Macotron loads those files in a QuickJS engine and bridges them to native macOS APIs.
 
 ## How It Works
 
-You type a command like *"set up keybindings to tile my windows"*. The agent plans, writes JavaScript snippets, hot-reloads the engine, validates the scripts, and auto-repairs if anything breaks. You never see code unless you want to.
+1. Pick a plugins directory (workdir) in the first-run wizard.
+2. Open that directory in Cursor or Claude Code.
+3. Ask the agent to add or change plugins under `plugins/`.
+4. Macotron hot-reloads when files change.
 
 ```
-User: "set up keybindings to tile my windows"
+External agent (Cursor / Claude Code)
   |
   v
-Agent: plans -> writes 001-window-tiling.js -> reloads engine -> tests -> done
+plugins/*.js  (git repo workdir)
   |
   v
-Result: Ctrl+Opt+Left/Right/Enter now tile windows
+Macotron.app  (QuickJS + native modules)
+  |
+  v
+macOS (windows, hotkeys, notifications, ...)
 ```
 
 ## Architecture
@@ -28,62 +34,46 @@ Result: Ctrl+Opt+Left/Right/Enter now tile windows
 +----------------------------------------------------------+
 |                      Macotron.app                         |
 |                                                          |
-|  +------------------+  +--------------------------+      |
-|  | Menu Bar         |  | Floating Prompt Panel    |      |
-|  | (always on)      |  | (toggle via hotkey)      |      |
-|  +------------------+  +--------------------------+      |
-|                                                          |
-|  +----------------------------+  +--------------------+  |
-|  |     Agent Loop             |  | Progress Panel     |  |
-|  |  Plan -> Write -> Test     |  | (floating, bottom  |  |
-|  |  -> Repair -> Done         |  |  right, auto-hide) |  |
-|  +----------------------------+  +--------------------+  |
+|  First-run wizard | Settings | Menu bar | Launcher       |
 |                                                          |
 |  +----------------------------------------------------+  |
 |  |              MacotronEngine                         |  |
-|  |  +----------+ +----------+ +--------------------+  |  |
-|  |  | QuickJS  | | EventBus | | SnippetManager     |  |  |
-|  |  | Runtime  | |          | | (load/watch/backup) |  |  |
-|  |  +----------+ +----------+ +--------------------+  |  |
+|  |  QuickJS  |  EventBus  |  Plugin loader / watcher   |  |
 |  |                                                     |  |
-|  |  +-----------------------------------------------+  |  |
-|  |  |            Native Modules (20)                 |  |  |
-|  |  |  window  | keyboard | screen  | shell          |  |  |
-|  |  |  notify  | camera   | fs      | clipboard      |  |  |
-|  |  |  app     | system   | http    | menubar        |  |  |
-|  |  |  display | timer    | usb     | url            |  |  |
-|  |  |  spotlight | keychain | localStorage | ai      |  |  |
-|  |  +-----------------------------------------------+  |  |
-|  +----------------------------------------------------+  |
-|                                                          |
-|  +----------------------------------------------------+  |
-|  |                AI Layer                              |  |
-|  |  AgentSession | ClaudeProvider | SnippetAutoFix     |  |
-|  |  AIToolCall   | AISystemPrompt | CapabilityReview   |  |
+|  |  Native modules: window, keyboard, screen, shell,    |  |
+|  |  notify, camera, fs, clipboard, app, system, http,  |  |
+|  |  menubar, display, timer, usb, url, spotlight,      |  |
+|  |  keychain, localStorage, ai, panel                  |  |
 |  +----------------------------------------------------+  |
 +----------------------------------------------------------+
 ```
 
-### The Layer Cake
+Plugins call `macotron.ai` for Claude, OpenAI, Gemini, or on-device Foundation Models. The host does not run an agent loop of its own.
 
-| Layer | What it does |
-|---|---|
-| **User** | Types a natural language command in the prompt panel |
-| **Agent** | Plans steps, writes `.js` files via tool calls, validates, repairs |
-| **JS Engine** | QuickJS executes snippets: `macotron.keyboard.on("ctrl+opt+left", ...)` |
-| **Native Bridge** | Swift modules expose macOS APIs: AXUIElement, CGEventTap, ScreenCaptureKit, ... |
-| **macOS** | Windows move, events fire, notifications show |
+## Plugins Directory
 
-### Source Targets
+The workdir is a git repo that the app initializes. Layout:
 
-| Target | Purpose |
-|---|---|
-| `CQuickJS` | Vendored quickjs-ng C library |
-| `MacotronEngine` | QuickJS Engine, EventBus, SnippetManager, CapabilityReview |
-| `MacotronUI` | LauncherPanel, SettingsWindow, WizardWindow, AgentProgressPanel |
-| `Modules` | 20 native modules (window, keyboard, shell, screen, etc.) |
-| `AI` | ClaudeProvider, AgentSession, SnippetAutoFix, tool definitions |
-| `Macotron` | AppDelegate, module registration, wiring |
+```
+<user-chosen>/
+  settings.json
+  README.md          # human (seeded once)
+  AGENTS.md          # app-owned — do not edit
+  CLAUDE.md          # app-owned — do not edit
+  plugins/
+    example-hello.js
+  .cache/            # bytecode (gitignored)
+```
+
+See [docs/10-plugins-workdir.md](docs/10-plugins-workdir.md) for the full layout.
+
+## Marketplace
+
+Browse community plugins on GitHub:
+
+https://github.com/topics/macotron-plugin
+
+v1 does not ship a custom store backend. Settings link to that topic search.
 
 ## Building
 
@@ -96,20 +86,19 @@ make dev      # compile + bundle + run with debug server on :7777
 make clean    # clean build artifacts
 ```
 
-## Code Signing & Permissions
+## Code Signing and Permissions
 
-Macotron uses CGEvent taps and Accessibility APIs that require macOS permissions. These permissions are tied to the app's code signature, so signing matters.
+Macotron uses CGEvent taps and Accessibility APIs that need macOS permissions. Permissions attach to the app code signature.
 
 ### Ad-hoc signing (default)
 
-By default, `make run` signs the app ad-hoc (`codesign --sign -`). This works but generates a new cdhash every build, which **resets your macOS permissions each time**. You'll need to re-grant Accessibility after every rebuild.
+By default, `make run` signs the app ad-hoc (`codesign --sign -`). Each rebuild gets a new cdhash. macOS can reset permissions after every rebuild.
 
-### Stable signing with a self-signed certificate (recommended)
+### Stable signing with a self-signed certificate
 
 Create a local code-signing certificate so permissions persist across rebuilds:
 
 ```bash
-# Generate cert + key, bundle into p12, import to keychain (one-time setup)
 openssl req -x509 -newkey rsa:2048 -keyout /tmp/mc.key -out /tmp/mc.crt \
   -days 3650 -nodes -subj "/CN=Macotron-Dev" \
   -addext "extendedKeyUsage=codeSigning" && \
@@ -125,20 +114,20 @@ Then build with the certificate:
 ```bash
 make run SIGN_IDENTITY=Macotron-Dev
 
-# Or export it so you don't have to pass it every time:
+# Or export it once:
 export SIGN_IDENTITY=Macotron-Dev
 make run
 ```
 
 ### Granting permissions
 
-Macotron needs **Accessibility** permission for global hotkeys. After the first build with a stable certificate:
+The app requests Accessibility, Input Monitoring, and Screen Recording only when a feature needs them. After the first build with a stable certificate:
 
-1. Open **System Settings → Privacy & Security → Accessibility**
-2. Click **+** and add `~/Applications/Macotron.app`
-3. Enable the toggle
+1. Open **System Settings → Privacy & Security → Accessibility**.
+2. Click **+** and add `~/Applications/Macotron.app`.
+3. Enable the toggle.
 
-If hotkeys stop working after a rebuild, the TCC database may have a stale entry from a previous ad-hoc build. Fix it by removing and re-adding Macotron in the Accessibility list, or reset all Accessibility entries:
+If hotkeys stop after a rebuild, remove and re-add Macotron in the Accessibility list, or reset Accessibility entries:
 
 ```bash
 tccutil reset Accessibility
@@ -153,24 +142,10 @@ codesign -d -vvvv ~/Applications/Macotron.app
 
 ## Development
 
-### Dev Config Shortcut
-
-Create `~/.macotron-dev.json` to skip the first-run wizard's API key step:
-
-```json
-{
-  "apiKey": "sk-ant-...",
-  "provider": "claude",
-  "model": "claude-sonnet-4-20250514"
-}
-```
-
-The wizard will auto-fill the provider and API key from this file. It's gitignored and never shipped.
-
 ### Reset to First-Run State
 
 ```bash
-make cleanprefs   # wipes UserDefaults + config dir, triggers wizard on next launch
+make cleanprefs   # wipes UserDefaults, triggers wizard on next launch
 ```
 
 ### Debug HTTP Server
@@ -182,22 +157,9 @@ Run with `make dev` to start the debug server on port 7777:
 | `/screenshot` | GET | PNG of launcher panel |
 | `/snapshot` | GET | Accessibility tree as JSON |
 | `/eval` | POST | Evaluate JS in engine |
-| `/reload` | POST | Trigger snippet reload |
-| `/snippets` | GET | List loaded snippets |
+| `/reload` | POST | Trigger plugin reload |
+| `/snippets` | GET | List loaded plugins |
 | `/open` | POST | Toggle launcher panel |
-
-### Config Directory
-
-All user data lives in `~/Library/Application Support/Macotron/`:
-
-```
-~/Library/Application Support/Macotron/
-  config.js         # Main config (hotkey, module options)
-  snippets/         # Automation scripts (executed alphabetically)
-  commands/         # Named commands (appear in launcher)
-  data/             # Persistent state (localStorage.json)
-  backups/          # Auto-created before every AI change
-```
 
 ## Tech Stack
 
@@ -206,13 +168,13 @@ All user data lives in `~/Library/Application Support/Macotron/`:
 | Language | Swift 6.0 (strict concurrency) |
 | UI | SwiftUI + NSPanel |
 | JS Runtime | [quickjs-ng](https://github.com/quickjs-ng/quickjs) (embedded, ~400KB) |
-| AI | Anthropic Claude API (OpenAI also supported) |
+| Plugin AI | `macotron.ai` (Claude, OpenAI, Gemini, Foundation Models) |
 | Package Manager | Swift Package Manager |
 | Distribution | Direct download + Homebrew (not sandboxed) |
 
 ## Documentation
 
-See the `docs/` directory for detailed architecture docs:
+See the `docs/` directory:
 
 - [01 - Overview](docs/01-overview.md)
 - [02 - Project Structure](docs/02-project-structure.md)
@@ -222,3 +184,7 @@ See the `docs/` directory for detailed architecture docs:
 - [06 - Security](docs/06-security.md)
 - [07 - Build System](docs/07-build-system.md)
 - [08 - Examples](docs/08-examples.md)
+- [09 - Phases](docs/09-phases.md)
+- [10 - Plugins Workdir](docs/10-plugins-workdir.md)
+
+Design source of truth: [docs/superpowers/specs/2026-08-17-host-shell-design.md](docs/superpowers/specs/2026-08-17-host-shell-design.md)
