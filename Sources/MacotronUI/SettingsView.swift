@@ -257,72 +257,38 @@ public struct SettingsView: View {
     // MARK: - Permissions
 
     private var permissionsSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 6) {
-                if state.missingPermissions.isEmpty {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Text("Permissions")
-                        .font(.system(size: 12, weight: .semibold))
-                } else {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                    Text("Permissions needed")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.red)
+        let missing = state.missingPermissions
+
+        return VStack(spacing: 0) {
+            formRow("Permissions") {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        Text(missing.isEmpty
+                             ? "Macotron has everything it needs."
+                             : "Macotron needs \(missing.count == 1 ? "1 permission" : "\(missing.count) permissions") to work.")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+
+                        Spacer(minLength: 12)
+
+                        Button("Re-check") {
+                            state.refreshPermissions()
+                        }
+                        .controlSize(.small)
+                        .frame(width: PermissionRow.actionWidth, alignment: .trailing)
+                    }
+
+                    ForEach(state.requiredPermissions) { permission in
+                        PermissionRow(
+                            permission: permission,
+                            granted: state.grantedPermissions.contains(permission)
+                        )
+                    }
                 }
-
-                Spacer()
-
-                Button("Re-check") {
-                    state.refreshPermissions()
-                }
-                .controlSize(.small)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 10)
-            .padding(.bottom, 6)
-
-            ForEach(state.requiredPermissions) { permission in
-                permissionRow(permission)
             }
         }
-        .background(state.missingPermissions.isEmpty ? Color.clear : Color.red.opacity(0.06))
+        .background(missing.isEmpty ? Color.clear : Color.orange.opacity(0.08))
         .overlay(alignment: .bottom) { Divider() }
-    }
-
-    private func permissionRow(_ permission: Permission) -> some View {
-        let granted = state.grantedPermissions.contains(permission)
-        return HStack(alignment: .top, spacing: 8) {
-            Image(systemName: granted ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .foregroundStyle(granted ? .green : .red)
-                .frame(width: 16)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(permission.title)
-                    .font(.system(size: 12, weight: .medium))
-                Text(permission.reason)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer(minLength: 8)
-
-            if !granted {
-                Button("Grant…") {
-                    permission.request()
-                    state.refreshPermissions()
-                }
-                .controlSize(.small)
-
-                Button("Open Settings") {
-                    permission.openSystemSettings()
-                }
-                .controlSize(.small)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 5)
     }
 
     private var pluginsTab: some View {

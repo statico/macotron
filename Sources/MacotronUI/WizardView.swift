@@ -1,16 +1,21 @@
-// WizardView.swift — First-run setup: pick plugins folder
+// WizardView.swift — First-run setup: pick plugins folder, grant permissions
 import AppKit
+import MacotronEngine
 import SwiftUI
 
 public enum WizardStep: Int, CaseIterable {
     case welcome = 0
     case folder
+    case permissions
     case ready
 }
 
 @MainActor
 public final class WizardState: ObservableObject {
-    @Published public var currentStep: WizardStep = .welcome
+    /// The steps to show. First run shows all of them; a permissions-only run
+    /// shows just the permissions step.
+    @Published public var steps: [WizardStep] = WizardStep.allCases
+    @Published public var stepIndex: Int = 0
     @Published public var pluginsPath: String = ""
     @Published public var pluginsURL: URL?
 
@@ -21,6 +26,25 @@ public final class WizardState: ObservableObject {
 
     public init() {}
 
+    public var currentStep: WizardStep {
+        steps.indices.contains(stepIndex) ? steps[stepIndex] : .welcome
+    }
+
+    public var isFirstStep: Bool { stepIndex == 0 }
+    public var isLastStep: Bool { stepIndex >= steps.count - 1 }
+
+    /// Start a full first-run walkthrough.
+    public func startFullSetup() {
+        steps = WizardStep.allCases
+        stepIndex = 0
+    }
+
+    /// Start a short run that only asks for the missing permissions.
+    public func startPermissionsOnly() {
+        steps = [.permissions]
+        stepIndex = 0
+    }
+
     public func chooseFolder() {
         guard let url = pickFolder?() else { return }
         pluginsURL = url
@@ -28,17 +52,21 @@ public final class WizardState: ObservableObject {
     }
 
     public func finish() {
-        guard let url = pluginsURL else { return }
-        guard initWorkspace?(url) == true else { return }
+        // A permissions-only run has no folder to set up.
+        if steps.contains(.folder) {
+            guard let url = pluginsURL, initWorkspace?(url) == true else { return }
+        }
         onComplete?()
     }
 }
 
 public struct WizardView: View {
     @ObservedObject var state: WizardState
+    @ObservedObject var permissions: SettingsState
 
-    public init(state: WizardState) {
+    public init(state: WizardState, permissions: SettingsState) {
         self.state = state
+        self.permissions = permissions
     }
 
     public var body: some View {
@@ -47,6 +75,7 @@ public struct WizardView: View {
                 switch state.currentStep {
                 case .welcome: welcomeStep
                 case .folder: folderStep
+                case .permissions: permissionsStep
                 case .ready: readyStep
                 }
             }
@@ -54,49 +83,69 @@ public struct WizardView: View {
 
             Divider()
 
-            HStack {
-                if state.currentStep != .welcome {
-                    Button("Back") {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            if let prev = WizardStep(rawValue: state.currentStep.rawValue - 1) {
-                                state.currentStep = prev
-                            }
-                        }
-                    }
-                }
-
-                Spacer()
-
-                if state.currentStep == .ready {
-                    Button("Open Macotron") {
-                        state.finish()
-                    }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(state.pluginsURL == nil)
-                } else {
-                    Button("Next") {
-                        advance()
-                    }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(state.currentStep == .folder && state.pluginsURL == nil)
-                }
-            }
-            .padding(16)
+            footer
         }
     }
 
-    private func advance() {
-        withAnimation(.easeInOut(duration: 0.2)) {
-            if let next = WizardStep(rawValue: state.currentStep.rawValue + 1) {
-                state.currentStep = next
-            }
-        }
-    }
+    // MARK: - Footer
 
-    private var welcomeStep: some View {
-        VStack(spacing: 20) {
+    private var footer: some View {
+        HStack(spacing: 12) {
+            if !state.isFirstStep {
+                Button("Back") {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        state.stepIndex -= 1
+                    }
+                }
+            }
+
+            if state.steps.count > 1 {
+                stepDots
+            }
+
             Spacer()
 
+            if state.isLastStep {
+                Button(finishLabel) {
+                    state.finish()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(!canFinish)
+            } else {
+                Button("Next") {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        state.stepIndex += 1
+                    }
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(state.currentStep == .folder && state.pluginsURL == nil)
+            }
+        }
+        .padding(16)
+    }
+
+    private var finishLabel: String {
+        state.currentStep == .permissions ? "Done" : "Open Macotron"
+    }
+
+    private var canFinish: Bool {
+        state.steps.contains(.folder) ? state.pluginsURL != nil : true
+    }
+
+    private var stepDots: some View {
+        HStack(spacing: 5) {
+            ForEach(state.steps.indices, id: \.self) { index in
+                Circle()
+                    .fill(index == state.stepIndex ? Color.accentColor : Color.secondary.opacity(0.3))
+                    .frame(width: 6, height: 6)
+            }
+        }
+    }
+
+    // MARK: - Steps
+
+    private var welcomeStep: some View {
+        stepLayout {
             if let bannerURL = Bundle.main.url(forResource: "banner", withExtension: "png"),
                let nsImage = NSImage(contentsOf: bannerURL) {
                 Image(nsImage: nsImage)
@@ -117,25 +166,16 @@ public struct WizardView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 400)
-
-            Spacer()
         }
-        .padding(24)
     }
 
     private var folderStep: some View {
-        VStack(spacing: 20) {
-            Spacer()
-
-            Text("Plugins Folder")
-                .font(.title2)
-                .fontWeight(.semibold)
-
-            Text("Choose a directory Macotron will use as your plugin workdir. The app will create plugins/, settings.json, and agent docs there.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 400)
+        stepLayout {
+            stepHeader(
+                icon: "folder",
+                title: "Plugins Folder",
+                subtitle: "Choose a directory Macotron will use as your plugin workdir. The app will create plugins/, settings.json, and agent docs there."
+            )
 
             if state.pluginsPath.isEmpty {
                 Text("No folder selected")
@@ -161,16 +201,46 @@ public struct WizardView: View {
                     }
                 }
             }
-
-            Spacer()
         }
-        .padding(24)
+    }
+
+    private var permissionsStep: some View {
+        let missing = permissions.missingPermissions
+
+        return stepLayout {
+            stepHeader(
+                icon: missing.isEmpty ? "checkmark.shield" : "lock.shield",
+                title: missing.isEmpty ? "Permissions Granted" : "Grant Permissions",
+                subtitle: missing.isEmpty
+                    ? "Macotron has everything it needs. You can change this later in System Settings."
+                    : "macOS keeps these behind a switch. Select Grant, then turn Macotron on in System Settings."
+            )
+
+            VStack(alignment: .leading, spacing: 14) {
+                ForEach(permissions.requiredPermissions) { permission in
+                    PermissionRow(
+                        permission: permission,
+                        granted: permissions.grantedPermissions.contains(permission)
+                    )
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: 420)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.quaternary.opacity(0.5))
+            )
+
+            if !missing.isEmpty {
+                Text("This list updates on its own once you flip the switch.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
     }
 
     private var readyStep: some View {
-        VStack(spacing: 20) {
-            Spacer()
-
+        stepLayout {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 48))
                 .foregroundStyle(.green)
@@ -184,9 +254,35 @@ public struct WizardView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 400)
+        }
+    }
 
+    // MARK: - Shared layout
+
+    private func stepLayout<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(spacing: 20) {
+            Spacer()
+            content()
             Spacer()
         }
         .padding(24)
+    }
+
+    private func stepHeader(icon: String, title: String, subtitle: String) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 40))
+                .foregroundStyle(.blue)
+
+            Text(title)
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            Text(subtitle)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 400)
+        }
     }
 }
