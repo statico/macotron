@@ -78,7 +78,13 @@ public enum JSBridge {
         case let s as String:
             return newString(ctx, s)
         case let i as Int:
-            return newInt32(ctx, Int32(i))
+            // JS numbers are doubles anyway, so anything too wide for Int32
+            // goes through as a double rather than trapping. Timestamps from a
+            // panel are past Int32 range.
+            guard let narrow = Int32(exactly: i) else {
+                return newFloat64(ctx, Double(i))
+            }
+            return newInt32(ctx, narrow)
         case let i as Int32:
             return newInt32(ctx, i)
         case let d as Double:
