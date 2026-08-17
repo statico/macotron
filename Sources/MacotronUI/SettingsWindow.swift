@@ -12,33 +12,39 @@ public final class SettingsWindow {
         self.settingsState = state
     }
 
-    public func show() {
-        if let window, window.isVisible {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate()
-            return
-        }
+    /// The window is not resizable, so the content is pinned to this size. The
+    /// root view fills its parent, which would otherwise grow the window to the
+    /// full height of the screen.
+    private static let contentSize = NSSize(width: 660, height: 460)
 
+    public func show() {
         // Switch to regular activation policy so the Edit menu appears (enables Cmd+V paste)
         NSApp.setActivationPolicy(.regular)
 
         settingsState.load()
 
+        // Reuse the window after a close too, so it keeps one close observer.
+        if let window {
+            bringToFront(window)
+            return
+        }
+
         let settingsView = SettingsView(state: settingsState)
+            .frame(width: Self.contentSize.width, height: Self.contentSize.height)
         let hostingView = NSHostingView(rootView: settingsView)
 
         let w = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 660, height: 460),
+            contentRect: NSRect(origin: .zero, size: Self.contentSize),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
         )
         w.title = "Macotron Settings"
         w.contentView = hostingView
+        w.setContentSize(Self.contentSize)
         w.center()
         w.isReleasedWhenClosed = false
-        w.makeKeyAndOrderFront(nil)
-        NSApp.activate()
+        bringToFront(w)
 
         // Observe close to restore the correct activation policy
         closeObserver = NotificationCenter.default.addObserver(
@@ -59,5 +65,17 @@ public final class SettingsWindow {
         }
 
         self.window = w
+    }
+
+    private func bringToFront(_ window: NSWindow) {
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+
+        // The status bar menu is still closing on this pass and takes focus back
+        // with it, so ask again once it has gone.
+        DispatchQueue.main.async {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+        }
     }
 }
