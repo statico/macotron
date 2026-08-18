@@ -3,15 +3,6 @@ import AI
 import CQuickJS
 import Foundation
 import MacotronEngine
-import os
-
-private let logger = Logger(subsystem: "com.macotron", category: "ai")
-
-/// Thread-safe box for passing results between Task.detached and the caller
-private final class ResultBox: @unchecked Sendable {
-    var result: String?
-    var error: String?
-}
 
 @MainActor
 public final class AIModule: NativeModule {
@@ -287,6 +278,7 @@ public final class AIModule: NativeModule {
             var maxTokens = 4096
             var temperature = 0.7
             var systemPrompt: String?
+            var jsOnChunk: JSValue? = nil
 
             if argc >= 2 {
                 let opts = argv[1]
@@ -313,6 +305,12 @@ public final class AIModule: NativeModule {
                     systemPrompt = JSBridge.toString(ctx, sVal)
                 }
                 JS_FreeValue(ctx, sVal)
+
+                let onChunkVal = JSBridge.getProperty(ctx, opts, "onChunk")
+                if JS_IsFunction(ctx, onChunkVal) {
+                    jsOnChunk = JS_DupValue(ctx, onChunkVal)
+                }
+                JS_FreeValue(ctx, onChunkVal)
             }
 
             let options = AIRequestOptions(
@@ -325,36 +323,61 @@ public final class AIModule: NativeModule {
             let config = AIProviderFactory.ProviderConfig(apiKey: apiKey, model: storedModel)
             let provider = AIProviderFactory.create(name: providerName, config: config)
 
-            let box = ResultBox()
-            let semaphore = DispatchSemaphore(value: 0)
+            var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
+            let promise = JS_NewPromiseCapability(ctx, &resolving)
+            let resolve = JS_DupValue(ctx, resolving[0])
+            let reject = JS_DupValue(ctx, resolving[1])
+            JS_FreeValue(ctx, resolving[0])
+            JS_FreeValue(ctx, resolving[1])
+
+            let opaque = JS_GetContextOpaque(ctx)
+            guard let opaque else { return promise }
+            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            nonisolated(unsafe) let capturedCtx = ctx
+            let capturedOnChunk = jsOnChunk
 
             Task.detached {
                 do {
-                    box.result = try await provider.stream(
+                    let text = try await provider.stream(
                         messages: messages,
                         options: options,
                         onChunk: { chunk in
-                            logger.debug("Stream chunk: \(chunk.prefix(50))")
+                            DispatchQueue.main.async {
+                                guard let ctx = engine.context, let capturedOnChunk else { return }
+                                var arg = JSBridge.newString(ctx, chunk)
+                                _ = JS_Call(ctx, capturedOnChunk, QJS_Undefined(), 1, &arg)
+                                JS_FreeValue(ctx, arg)
+                                engine.drainJobQueue()
+                            }
                         }
                     )
+                    DispatchQueue.main.async {
+                        var value = JSBridge.newString(capturedCtx, text)
+                        _ = JS_Call(capturedCtx, resolve, QJS_Undefined(), 1, &value)
+                        JS_FreeValue(capturedCtx, value)
+                        JS_FreeValue(capturedCtx, resolve)
+                        JS_FreeValue(capturedCtx, reject)
+                        if let capturedOnChunk {
+                            JS_FreeValue(capturedCtx, capturedOnChunk)
+                        }
+                        engine.drainJobQueue()
+                    }
                 } catch {
-                    box.error = error.localizedDescription
+                    DispatchQueue.main.async {
+                        var value = JSBridge.newString(capturedCtx, error.localizedDescription)
+                        _ = JS_Call(capturedCtx, reject, QJS_Undefined(), 1, &value)
+                        JS_FreeValue(capturedCtx, value)
+                        JS_FreeValue(capturedCtx, resolve)
+                        JS_FreeValue(capturedCtx, reject)
+                        if let capturedOnChunk {
+                            JS_FreeValue(capturedCtx, capturedOnChunk)
+                        }
+                        engine.drainJobQueue()
+                    }
                 }
-                semaphore.signal()
             }
 
-            let waitResult = semaphore.wait(timeout: .now() + 120)
-            if waitResult == .timedOut {
-                logger.error("AI stream timed out for provider \(providerName)")
-                return JSBridge.newString(ctx, "Error: request timed out")
-            }
-
-            if let error = box.error {
-                logger.error("AI stream error: \(error)")
-                return JSBridge.newString(ctx, "Error: \(error)")
-            }
-
-            return JSBridge.newString(ctx, box.result ?? "")
+            return promise
         }, "stream", 2))
 
         return clientObj
