@@ -25,3 +25,13 @@ Copy into your Macotron workdir `plugins/` to try. Most register launcher comman
 | demo-datetime.js | clipboard.set | Insert ISO Date |
 | demo-screen-ai-summary.js | screen + ai | Summarize Screen |
 | demo-ai-chat.js | panel + ai | AI Chat |
+| demo-window-hopper.js | window.getAll + panel | Switch Window |
+| demo-devutils.js | clipboard | UUID, timestamp, Base64, JWT |
+| demo-calculator.js | panel | Calculator |
+| demo-homebrew.js | shell brew | Brew List, Brew Copy Outdated |
+| demo-regex.js | panel | Regex Workbench |
+| demo-present-mode.js | defaults + Finder | Toggle Present Mode |
+| demo-security-checklist.js | shell probes | Security Checklist |
+| demo-screenshot-rename.js | ocr + fs | Rename Last Screenshot |
+| demo-batch-rename.js | fs + shell | Prefix Downloads Today |
+| demo-file-search.js | spotlight + panel | Search Files |
