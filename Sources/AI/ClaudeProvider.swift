@@ -21,20 +21,21 @@ public final class ClaudeProvider: AIProvider, @unchecked Sendable {
         self.baseURL = baseURL ?? "https://api.anthropic.com"
     }
 
-    public func chat(prompt: String, options: AIRequestOptions) async throws -> String {
+    public func chat(messages: [AIChatMessage], options: AIRequestOptions) async throws -> String {
         guard let key = apiKey, !key.isEmpty else {
             throw AIProviderError.missingAPIKey
         }
 
         let model = options.model ?? defaultModel
+        let normalized = try AIChatMessages.normalize(messages)
+        let apiMessages: [[String: Any]] = normalized.map {
+            ["role": $0.role, "content": $0.content]
+        }
 
-        // Build the request body
         var body: [String: Any] = [
             "model": model,
             "max_tokens": options.maxTokens,
-            "messages": [
-                ["role": "user", "content": prompt]
-            ]
+            "messages": apiMessages
         ]
 
         if options.temperature >= 0 {
@@ -87,7 +88,7 @@ public final class ClaudeProvider: AIProvider, @unchecked Sendable {
     }
 
     public func stream(
-        prompt: String,
+        messages: [AIChatMessage],
         options: AIRequestOptions,
         onChunk: @escaping @Sendable (String) -> Void
     ) async throws -> String {
@@ -96,14 +97,16 @@ public final class ClaudeProvider: AIProvider, @unchecked Sendable {
         }
 
         let model = options.model ?? defaultModel
+        let normalized = try AIChatMessages.normalize(messages)
+        let apiMessages: [[String: Any]] = normalized.map {
+            ["role": $0.role, "content": $0.content]
+        }
 
         var body: [String: Any] = [
             "model": model,
             "max_tokens": options.maxTokens,
             "stream": true,
-            "messages": [
-                ["role": "user", "content": prompt]
-            ]
+            "messages": apiMessages
         ]
 
         if options.temperature >= 0 {

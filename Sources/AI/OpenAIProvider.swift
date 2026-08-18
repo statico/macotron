@@ -68,24 +68,26 @@ public final class OpenAIProvider: AIProvider, @unchecked Sendable {
 
     // MARK: - Chat
 
-    public func chat(prompt: String, options: AIRequestOptions) async throws -> String {
+    public func chat(messages: [AIChatMessage], options: AIRequestOptions) async throws -> String {
         guard let key = apiKey, !key.isEmpty else {
             throw AIProviderError.missingAPIKey
         }
 
         let model = options.model ?? defaultModel
-
-        var messages: [[String: Any]] = []
+        let normalized = try AIChatMessages.normalize(messages)
+        var apiMessages: [[String: Any]] = []
         if let systemPrompt = options.systemPrompt {
-            messages.append(["role": "system", "content": systemPrompt])
+            apiMessages.append(["role": "system", "content": systemPrompt])
         }
-        messages.append(["role": "user", "content": prompt])
+        apiMessages.append(contentsOf: normalized.map {
+            ["role": $0.role, "content": $0.content]
+        })
 
         let body: [String: Any] = [
             "model": model,
             "max_tokens": options.maxTokens,
             "temperature": options.temperature,
-            "messages": messages,
+            "messages": apiMessages,
         ]
 
         let jsonData = try JSONSerialization.data(withJSONObject: body)
@@ -129,7 +131,7 @@ public final class OpenAIProvider: AIProvider, @unchecked Sendable {
     }
 
     public func stream(
-        prompt: String,
+        messages: [AIChatMessage],
         options: AIRequestOptions,
         onChunk: @escaping @Sendable (String) -> Void
     ) async throws -> String {
@@ -138,19 +140,21 @@ public final class OpenAIProvider: AIProvider, @unchecked Sendable {
         }
 
         let model = options.model ?? defaultModel
-
-        var messages: [[String: Any]] = []
+        let normalized = try AIChatMessages.normalize(messages)
+        var apiMessages: [[String: Any]] = []
         if let systemPrompt = options.systemPrompt {
-            messages.append(["role": "system", "content": systemPrompt])
+            apiMessages.append(["role": "system", "content": systemPrompt])
         }
-        messages.append(["role": "user", "content": prompt])
+        apiMessages.append(contentsOf: normalized.map {
+            ["role": $0.role, "content": $0.content]
+        })
 
         let body: [String: Any] = [
             "model": model,
             "max_tokens": options.maxTokens,
             "temperature": options.temperature,
             "stream": true,
-            "messages": messages,
+            "messages": apiMessages,
         ]
 
         let jsonData = try JSONSerialization.data(withJSONObject: body)

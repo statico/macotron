@@ -21,17 +21,68 @@ public struct AIRequestOptions: Sendable {
     }
 }
 
+public struct AIChatMessage: Sendable, Equatable {
+    public let role: String
+    public let content: String
+
+    public init(role: String, content: String) {
+        self.role = role
+        self.content = content
+    }
+
+    public static func user(_ content: String) -> AIChatMessage {
+        AIChatMessage(role: "user", content: content)
+    }
+
+    public static func assistant(_ content: String) -> AIChatMessage {
+        AIChatMessage(role: "assistant", content: content)
+    }
+}
+
+public enum AIChatMessageError: Error, Equatable, LocalizedError {
+    case invalidRole(String)
+    case emptyContent
+    case emptyMessages
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidRole(let role): return "Invalid message role: \(role)"
+        case .emptyContent: return "Message content must not be empty"
+        case .emptyMessages: return "messages must not be empty"
+        }
+    }
+}
+
+public enum AIChatMessages {
+    public static func normalize(_ messages: [AIChatMessage]) throws -> [AIChatMessage] {
+        guard !messages.isEmpty else { throw AIChatMessageError.emptyMessages }
+        var out: [AIChatMessage] = []
+        out.reserveCapacity(messages.count)
+        for message in messages {
+            let role = message.role.lowercased()
+            guard role == "user" || role == "assistant" else {
+                throw AIChatMessageError.invalidRole(message.role)
+            }
+            guard !message.content.isEmpty else {
+                throw AIChatMessageError.emptyContent
+            }
+            out.append(AIChatMessage(role: role, content: message.content))
+        }
+        return out
+    }
+}
+
 /// Protocol all AI providers must conform to
 public protocol AIProvider: AnyObject, Sendable {
     /// The provider name (e.g. "claude", "openai", "gemini", "local")
     var providerName: String { get }
 
     /// Send a chat message and receive the full response
-    func chat(prompt: String, options: AIRequestOptions) async throws -> String
+    func chat(messages: [AIChatMessage], options: AIRequestOptions) async throws -> String
 
     /// Stream a chat response, calling onChunk for each piece, returning the full result
     func stream(
-        prompt: String,
+        messages: [AIChatMessage],
         options: AIRequestOptions,
         onChunk: @escaping @Sendable (String) -> Void
     ) async throws -> String
@@ -107,14 +158,14 @@ public final class PlaceholderProvider: AIProvider, @unchecked Sendable {
         self.providerName = name
     }
 
-    public func chat(prompt: String, options: AIRequestOptions) async throws -> String {
+    public func chat(messages: [AIChatMessage], options: AIRequestOptions) async throws -> String {
         throw AIProviderError.notAvailable(
             reason: "The '\(providerName)' provider is not yet implemented."
         )
     }
 
     public func stream(
-        prompt: String,
+        messages: [AIChatMessage],
         options: AIRequestOptions,
         onChunk: @escaping @Sendable (String) -> Void
     ) async throws -> String {
