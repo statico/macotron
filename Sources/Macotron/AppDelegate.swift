@@ -237,6 +237,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.writeUIBool("showMenuBarIcon", value)
             self?.menuBarManager.setVisible(value)
         }
+        settingsState.readLaunchAtLogin = { LaunchAtLogin.isEnabled }
+        settingsState.writeLaunchAtLogin = { value in
+            LaunchAtLogin.setEnabled(value)
+        }
 
         settingsState.loadModuleSummaries = { [weak self] in
             self?.buildPluginSummaries() ?? []
