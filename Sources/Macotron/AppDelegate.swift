@@ -16,6 +16,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var launcherHotkey: GlobalHotkey?
     private var settingsWindow: SettingsWindow!
     private let settingsState = SettingsState()
+    private let launcherPrefs = LauncherPrefs()
     private var wizardWindow: WizardWindow?
     private let wizardState = WizardState()
     private var appSearchProvider: AppSearchProvider!
@@ -114,6 +115,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         appSearchProvider = AppSearchProvider()
 
         let launcherView = LauncherView(
+            prefs: launcherPrefs,
             onExecuteCommand: { [weak self] id in
                 self?.executeCommand(id)
             },
@@ -247,6 +249,15 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.writeAppearance = { [weak self] value in
             self?.writeUIValue("appearance", value.rawValue)
             value.apply()
+        }
+        settingsState.readTextScale = { [weak self] in
+            let raw = self?.readUIValue("textScale") as? Double ?? 1.0
+            return min(max(raw, 0.8), 1.2)
+        }
+        settingsState.writeTextScale = { [weak self] value in
+            guard let self else { return }
+            self.writeUIValue("textScale", value)
+            self.launcherPrefs.textScale = CGFloat(value)
         }
 
         settingsState.loadModuleSummaries = { [weak self] in
@@ -587,6 +598,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let showDock = readUIBool("showDockIcon", default: true)
         NSApp.setActivationPolicy(showDock ? .regular : .accessory)
         AppearanceSetting.parse(readUIValue("appearance")).apply()
+        let rawScale = readUIValue("textScale") as? Double ?? 1.0
+        launcherPrefs.textScale = CGFloat(min(max(rawScale, 0.8), 1.2))
     }
 
     private func setupMainMenu() {
