@@ -1,6 +1,5 @@
 // AppDelegate.swift — NSApplicationDelegate, app lifecycle
 import AppKit
-import CQuickJS
 import SwiftUI
 import MacotronEngine
 import MacotronUI
@@ -144,9 +143,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if CommandLine.arguments.contains("--debug-server") {
             debugServer = DebugServer(engine: engine, moduleManager: moduleManager)
-            debugServer?.onOpenSettings = { [weak self] in
-                self?.settingsWindow.show()
-            }
             debugServer?.onOpenSettingsTab = { [weak self] tab in
                 self?.settingsState.requestedTab = tab
                 self?.settingsWindow.show()
@@ -668,7 +664,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private func registerModules() {
         engine.addModule(ShellModule())
         engine.addModule(FileSystemModule())
-        engine.addModule(TimerModule())
         engine.addModule(NotifyModule())
         engine.addModule(ClipboardModule())
         engine.addModule(SnippetsModule())
@@ -696,8 +691,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBarModule.delegate = menuBarManager
         engine.addModule(menuBarModule)
 
-        engine.addModule(CameraModule())
-        engine.addModule(USBModule())
         engine.addModule(URLSchemeModule())
         engine.addModule(SpotlightModule())
         engine.addModule(AIModule())
@@ -756,7 +749,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     id: cmd.id,
                     title: cmd.name,
                     subtitle: cmd.description,
-                    icon: "terminal.fill",
                     type: .command,
                     commandArguments: cmd.arguments
                 ))

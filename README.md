@@ -183,7 +183,7 @@ See the `docs/` directory:
 - [05 - AI Integration](docs/05-ai-integration.md)
 - [06 - Security](docs/06-security.md)
 - [07 - Build System](docs/07-build-system.md)
-- [08 - Examples](docs/08-examples.md)
+- [Examples](Examples/plugins/README.md)
 - [09 - Phases](docs/09-phases.md)
 - [10 - Plugins Workdir](docs/10-plugins-workdir.md)
 

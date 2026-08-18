@@ -21,14 +21,14 @@ struct PluginEnableTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         let manager = ModuleManager(engine: Engine(), workspace: ws)
 
-        #expect(manager.isModuleEnabled(filename: "a.js"))
+        #expect(!manager.disabledPlugins().contains("a.js"))
 
         manager.setModuleEnabled(filename: "a.js", enabled: false)
-        #expect(!manager.isModuleEnabled(filename: "a.js"))
+        #expect(manager.disabledPlugins().contains("a.js"))
         #expect(ws.readSettings()["disabledPlugins"] as? [String] == ["a.js"])
 
         manager.setModuleEnabled(filename: "a.js", enabled: true)
-        #expect(manager.isModuleEnabled(filename: "a.js"))
+        #expect(!manager.disabledPlugins().contains("a.js"))
         #expect((ws.readSettings()["disabledPlugins"] as? [String])?.isEmpty == true)
     }
 
@@ -77,10 +77,10 @@ struct PluginEnableTests {
         let manager = ModuleManager(engine: engine, workspace: ws)
 
         manager.setModuleEnabled(filename: "regression.js", enabled: false)
-        #expect(!manager.isModuleEnabled(filename: "regression.js"))
+        #expect(manager.disabledPlugins().contains("regression.js"))
 
         #expect(manager.deleteModule(filename: "regression.js"))
-        #expect(manager.isModuleEnabled(filename: "regression.js"))
+        #expect(!manager.disabledPlugins().contains("regression.js"))
         #expect((ws.readSettings()["disabledPlugins"] as? [String])?.isEmpty == true)
 
         try "$$__registerCommand('regression-cmd', 'regression', function(){});"
@@ -88,6 +88,6 @@ struct PluginEnableTests {
         manager.reloadAll()
 
         #expect(engine.commandRegistry["regression.js/regression-cmd"] != nil)
-        #expect(manager.isModuleEnabled(filename: "regression.js"))
+        #expect(!manager.disabledPlugins().contains("regression.js"))
     }
 }

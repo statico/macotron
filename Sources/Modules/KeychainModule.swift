@@ -2,35 +2,12 @@
 import CQuickJS
 import Foundation
 import MacotronEngine
-import Security
-import os
-
-private let logger = Logger(subsystem: "com.macotron", category: "keychain")
 
 @MainActor
 public final class KeychainModule: NativeModule {
     public let name = "keychain"
 
-    private static let serviceName = KeychainStore.serviceName
-
     public init() {}
-
-    // MARK: - Static Helpers
-
-    /// Write a value to the Keychain. Usable from Swift without a JS context.
-    public static func writeToKeychain(key: String, value: String) {
-        KeychainStore.write(account: key, value: value)
-    }
-
-    /// Read a value from the Keychain by key name. Usable from Swift without a JS context.
-    public static func readFromKeychain(key: String) -> String? {
-        KeychainStore.read(account: key)
-    }
-
-    /// Delete a value from the Keychain. Usable from Swift without a JS context.
-    public static func deleteFromKeychain(key: String) {
-        KeychainStore.delete(account: key)
-    }
 
     // MARK: - NativeModule
 
@@ -75,16 +52,7 @@ public final class KeychainModule: NativeModule {
         JS_SetPropertyStr(ctx, keychainObj, "has", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
             guard let key = JSBridge.toString(ctx, argv[0]) else { return JSBridge.newBool(ctx, false) }
-
-            let query: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: KeychainModule.serviceName,
-                kSecAttrAccount as String: key,
-                kSecMatchLimit as String: kSecMatchLimitOne,
-            ]
-
-            let status = SecItemCopyMatching(query as CFDictionary, nil)
-            return JSBridge.newBool(ctx, status == errSecSuccess)
+            return JSBridge.newBool(ctx, KeychainStore.read(account: key) != nil)
         }, "has", 1))
 
         JS_SetPropertyStr(ctx, macotron, "keychain", keychainObj)

@@ -102,13 +102,13 @@ struct EventBusTests {
             $$__on("event:b", function() { b = true; });
         """)
 
-        #expect(engine.eventBus.hasListeners(for: "event:a"))
-        #expect(engine.eventBus.hasListeners(for: "event:b"))
-
         engine.eventBus.removeAllListeners()
-
-        #expect(!engine.eventBus.hasListeners(for: "event:a"))
-        #expect(!engine.eventBus.hasListeners(for: "event:b"))
+        engine.eventBus.emit("event:a", engine: engine, data: nil)
+        engine.eventBus.emit("event:b", engine: engine, data: nil)
+        let (a, _) = engine.evaluate("a")
+        let (b, _) = engine.evaluate("b")
+        #expect(a == "false")
+        #expect(b == "false")
     }
 
     @Test("removeAllListeners then emit does not fire callbacks")
@@ -122,34 +122,6 @@ struct EventBusTests {
         engine.eventBus.emit("test:cleared", engine: engine, data: nil)
         let (result, _) = engine.evaluate("cleared")
         #expect(result == "false")
-    }
-
-    // MARK: - hasListeners
-
-    @Test("hasListeners returns true when listeners exist")
-    func testHasListenersTrue() {
-        let engine = Engine()
-        engine.evaluate("""
-            $$__on("test:has", function() {});
-        """)
-        #expect(engine.eventBus.hasListeners(for: "test:has") == true)
-    }
-
-    @Test("hasListeners returns false for unknown event")
-    func testHasListenersFalse() {
-        let engine = Engine()
-        #expect(engine.eventBus.hasListeners(for: "nonexistent") == false)
-    }
-
-    @Test("hasListeners returns false after all listeners removed for event")
-    func testHasListenersAfterOff() {
-        let engine = Engine()
-        engine.evaluate("""
-            var cb = function() {};
-            $$__on("test:hasoff", cb);
-            $$__off("test:hasoff", cb);
-        """)
-        #expect(engine.eventBus.hasListeners(for: "test:hasoff") == false)
     }
 
     // MARK: - Multiple Listeners
