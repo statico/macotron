@@ -54,7 +54,7 @@ bundle: build ## Create ~/Applications/Macotron.app
 	@echo "Built $(BUNDLE)"
 
 run: bundle ## Bundle and launch (kills existing instance first)
-	@pkill -x $(APP_NAME) 2>/dev/null || true
+	@killall $(APP_NAME) 2>/dev/null || true
 	@sleep 0.3
 	open $(BUNDLE)
 
@@ -94,7 +94,7 @@ clean: ## Remove build artifacts and the app bundle
 	rm -rf "$(BUNDLE)"
 
 cleanprefs: ## Wipe UserDefaults + Application Support (fresh wizard)
-	@pkill -x $(APP_NAME) 2>/dev/null || true
+	@killall $(APP_NAME) 2>/dev/null || true
 	rm -rf ~/Library/Application\ Support/$(APP_NAME)
 	defaults delete $(BUNDLE_ID) 2>/dev/null || true
 	@echo "Cleaned preferences and data for $(APP_NAME)"
