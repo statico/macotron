@@ -199,6 +199,7 @@ public final class PluginWorkspace {
         "ui": ["showDockIcon": true, "showMenuBarIcon": true],
         "modules": [:] as [String: Any],
         "pluginSettings": [:] as [String: Any],
+        "disabledPlugins": [] as [String],
         "security": ["shell": ["allow": [] as [String], "strict": false]],
     ]
 
@@ -332,12 +333,19 @@ public final class PluginWorkspace {
         ```json
         {
           "launcher": { "hotkey": "cmd+space" },
-          "ui": { "showDockIcon": true, "showMenuBarIcon": true },
+          "ui": {
+            "showDockIcon": true,
+            "showMenuBarIcon": true,
+            "appearance": "system",
+            "textScale": 1.0
+          },
           "modules": {},
           "pluginSettings": {},
+          "disabledPlugins": [],
           "security": { "shell": { "allow": [], "strict": false } }
         }
         ```
+        Disabled plugins stay on disk but are not loaded; manage them in Settings → Plugins.
 
         ## Git
 

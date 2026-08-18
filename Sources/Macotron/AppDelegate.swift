@@ -173,8 +173,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             debugServer?.captureWindow = { [weak self] tab in
                 guard let self else { return nil }
                 let view = SettingsView(state: self.settingsState, initialTab: tab ?? 0)
-                    .frame(width: 660, height: 460)
-                return Self.renderViewToPNG(view, size: NSSize(width: 660, height: 460))
+                    .frame(width: 760, height: 520)
+                return Self.renderViewToPNG(view, size: NSSize(width: 760, height: 520))
             }
             debugServer?.start()
         }
@@ -286,6 +286,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self.moduleManager.clearModuleSecret(filename: filename, key: key)
             self.moduleManager.reloadAll()
         }
+        settingsState.setModuleEnabled = { [weak self] filename, enabled in
+            guard let self else { return }
+            self.moduleManager.setModuleEnabled(filename: filename, enabled: enabled)
+            self.moduleManager.reloadAll()
+            self.settingsState.refreshModules()
+        }
         settingsState.changePluginsFolder = { [weak self] in
             self?.pickAndSwitchPluginsFolder()
         }
@@ -303,30 +309,34 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         let metadata = engine.moduleMetadata
         let settings = moduleManager.loadModuleSettings()
+        let disabled = moduleManager.disabledPlugins()
         var summaries: [ModuleSummary] = []
 
         let hotkeyPattern = try? NSRegularExpression(pattern: #"keyboard\.on\(\s*"([^"]+)""#)
         let eventPattern = try? NSRegularExpression(pattern: #"macotron\.on\(\s*"([^"]+)""#)
 
         for file in moduleManager.listModules(directory: "plugins") {
-            let fullPath = moduleManager.configDir.appending(path: "plugins").appending(path: file.filename)
-            let source = (try? String(contentsOf: fullPath, encoding: .utf8)) ?? ""
-            let range = NSRange(source.startIndex..., in: source)
-
+            let isEnabled = !disabled.contains(file.filename)
             var hotkeys: [String] = []
-            if let regex = hotkeyPattern {
-                for match in regex.matches(in: source, range: range) {
-                    if let r = Range(match.range(at: 1), in: source) {
-                        hotkeys.append(String(source[r]))
+            var events: [String] = []
+            if isEnabled {
+                let fullPath = moduleManager.configDir.appending(path: "plugins").appending(path: file.filename)
+                let source = (try? String(contentsOf: fullPath, encoding: .utf8)) ?? ""
+                let range = NSRange(source.startIndex..., in: source)
+
+                if let regex = hotkeyPattern {
+                    for match in regex.matches(in: source, range: range) {
+                        if let r = Range(match.range(at: 1), in: source) {
+                            hotkeys.append(String(source[r]))
+                        }
                     }
                 }
-            }
 
-            var events: [String] = []
-            if let regex = eventPattern {
-                for match in regex.matches(in: source, range: range) {
-                    if let r = Range(match.range(at: 1), in: source) {
-                        events.append(String(source[r]))
+                if let regex = eventPattern {
+                    for match in regex.matches(in: source, range: range) {
+                        if let r = Range(match.range(at: 1), in: source) {
+                            events.append(String(source[r]))
+                        }
                     }
                 }
             }
@@ -382,7 +392,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 events: events,
                 hotkeys: hotkeys,
                 hasErrors: errorMsg != nil,
-                errorMessage: errorMsg
+                errorMessage: errorMsg,
+                isEnabled: isEnabled
             ))
         }
 

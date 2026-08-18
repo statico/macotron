@@ -97,6 +97,32 @@ public final class ModuleManager {
         saveModuleSettings(settings)
     }
 
+    /// Filenames the user disabled in Settings. Disabled plugins stay on disk
+    /// but are never evaluated.
+    public func disabledPlugins() -> Set<String> {
+        Set(workspace.readSettings()["disabledPlugins"] as? [String] ?? [])
+    }
+
+    public func isModuleEnabled(filename: String) -> Bool {
+        !disabledPlugins().contains(filename)
+    }
+
+    public func setModuleEnabled(filename: String, enabled: Bool) {
+        do {
+            try workspace.updateSettings { settings in
+                var disabled = settings["disabledPlugins"] as? [String] ?? []
+                if enabled {
+                    disabled.removeAll { $0 == filename }
+                } else if !disabled.contains(filename) {
+                    disabled.append(filename)
+                }
+                settings["disabledPlugins"] = disabled
+            }
+        } catch {
+            logger.error("Failed to save disabledPlugins: \(error)")
+        }
+    }
+
     // MARK: - Reload
 
     public func reloadAll() {
@@ -118,7 +144,9 @@ public final class ModuleManager {
             engine.evaluate(runtimeJS, filename: "macotron-runtime.js")
         }
 
+        let disabled = disabledPlugins()
         let pluginFiles = listJSFiles(in: workspace.pluginsDir)
+            .filter { !disabled.contains($0.lastPathComponent) }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
 
         for file in pluginFiles {

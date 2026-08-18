@@ -26,11 +26,19 @@ Example:
 ```json
 {
   "launcher": { "hotkey": "cmd+space" },
-  "ui": { "showDockIcon": true, "showMenuBarIcon": true },
+  "ui": {
+    "showDockIcon": true,
+    "showMenuBarIcon": true,
+    "appearance": "system",
+    "textScale": 1.0
+  },
   "modules": {},
+  "pluginSettings": {},
+  "disabledPlugins": [],
   "security": { "shell": { "allow": [], "strict": false } }
 }
 ```
+Disabled plugins stay on disk but are not loaded; manage them in Settings → Plugins.
 
 The app hot-reloads when any file in the workdir changes. That includes `settings.json` and files under `plugins/`.
 
