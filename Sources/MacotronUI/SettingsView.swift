@@ -77,6 +77,7 @@ public final class SettingsState: ObservableObject {
     @Published public var launcherHotkey: String = "cmd+space"
     @Published public var showDockIcon: Bool = true
     @Published public var showMenuBarIcon: Bool = true
+    @Published public var launchAtLogin: Bool = false
     @Published public var moduleSummaries: [ModuleSummary] = []
     @Published public var pluginsPath: String = ""
     @Published public var requestedTab: Int?
@@ -91,6 +92,8 @@ public final class SettingsState: ObservableObject {
     public var writeShowDockIcon: ((Bool) -> Void)?
     public var readShowMenuBarIcon: (() -> Bool)?
     public var writeShowMenuBarIcon: ((Bool) -> Void)?
+    public var readLaunchAtLogin: (() -> Bool)?
+    public var writeLaunchAtLogin: ((Bool) -> Void)?
     public var loadModuleSummaries: (() -> [ModuleSummary])?
     public var saveModuleOption: ((_ filename: String, _ key: String, _ value: Any) -> Void)?
     public var saveModuleSecret: ((_ filename: String, _ key: String, _ secret: String) -> Void)?
@@ -107,6 +110,7 @@ public final class SettingsState: ObservableObject {
         launcherHotkey = readHotkey?() ?? "cmd+space"
         showDockIcon = readShowDockIcon?() ?? true
         showMenuBarIcon = readShowMenuBarIcon?() ?? true
+        launchAtLogin = readLaunchAtLogin?() ?? false
         pluginsPath = configDirURL?.path(percentEncoded: false) ?? ""
         refreshModules()
         refreshPermissions()
@@ -140,6 +144,12 @@ public final class SettingsState: ObservableObject {
     public func toggleMenuBarIcon(_ value: Bool) {
         showMenuBarIcon = value
         writeShowMenuBarIcon?(value)
+    }
+
+    /// Re-reads the system status so a failed registration reverts the toggle.
+    public func toggleLaunchAtLogin(_ value: Bool) {
+        writeLaunchAtLogin?(value)
+        launchAtLogin = readLaunchAtLogin?() ?? false
     }
 }
 
@@ -221,6 +231,14 @@ public struct SettingsView: View {
     private var generalTab: some View {
         VStack(spacing: 0) {
             permissionsSection
+
+            formRow("Launch at Login") {
+                Toggle("Open Macotron when you log in", isOn: Binding(
+                    get: { state.launchAtLogin },
+                    set: { state.toggleLaunchAtLogin($0) }
+                ))
+                .toggleStyle(.checkbox)
+            }
 
             formRow("Launcher Hotkey") {
                 HotkeyRecorderView(combo: $state.launcherHotkey) {
