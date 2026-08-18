@@ -1,6 +1,7 @@
 // LauncherView.swift — SwiftUI root view for the launcher (command / app search)
 import SwiftUI
 import AppKit
+import MacotronEngine
 
 public struct SearchResult: Identifiable {
     public let id: String
@@ -10,6 +11,7 @@ public struct SearchResult: Identifiable {
     public let type: ResultType
     public let nsImage: NSImage?
     public let appURL: URL?
+    public let commandArguments: [CommandArgumentSpec]
 
     public enum ResultType {
         case app
@@ -21,7 +23,8 @@ public struct SearchResult: Identifiable {
 
     public init(
         id: String, title: String, subtitle: String, icon: String, type: ResultType,
-        nsImage: NSImage? = nil, appURL: URL? = nil
+        nsImage: NSImage? = nil, appURL: URL? = nil,
+        commandArguments: [CommandArgumentSpec] = []
     ) {
         self.id = id
         self.title = title
@@ -30,28 +33,34 @@ public struct SearchResult: Identifiable {
         self.type = type
         self.nsImage = nsImage
         self.appURL = appURL
+        self.commandArguments = commandArguments
     }
 }
 
 public struct LauncherView: View {
     @ObservedObject private var prefs: LauncherPrefs
+    @ObservedObject private var session: LauncherSession
     @State private var query = ""
     @State private var results: [SearchResult] = []
     @State private var selectedIndex = 0
+    @State private var argValues: [String: String] = [:]
+    @State private var argError: String?
 
-    public var onExecuteCommand: ((String) -> Void)?
+    public var onExecuteCommand: ((String, [String: Any]) -> Void)?
     public var onRevealInFinder: ((String) -> Void)?
     public var onSearch: ((String) -> [SearchResult])?
     public var onHeightChange: ((CGFloat) -> Void)?
 
     public init(
         prefs: LauncherPrefs = LauncherPrefs(),
-        onExecuteCommand: ((String) -> Void)? = nil,
+        session: LauncherSession = LauncherSession(),
+        onExecuteCommand: ((String, [String: Any]) -> Void)? = nil,
         onRevealInFinder: ((String) -> Void)? = nil,
         onSearch: ((String) -> [SearchResult])? = nil,
         onHeightChange: ((CGFloat) -> Void)? = nil
     ) {
         self._prefs = ObservedObject(wrappedValue: prefs)
+        self._session = ObservedObject(wrappedValue: session)
         self.onExecuteCommand = onExecuteCommand
         self.onRevealInFinder = onRevealInFinder
         self.onSearch = onSearch
@@ -78,9 +87,13 @@ public struct LauncherView: View {
 
             Divider().opacity(0.5)
 
-            searchResultsView
+            if session.pendingArgs != nil {
+                argumentForm
+            } else {
+                searchResultsView
+            }
 
-            if !query.isEmpty && !results.isEmpty {
+            if session.pendingArgs == nil && !query.isEmpty && !results.isEmpty {
                 Divider().opacity(0.5)
                 HStack(spacing: 16) {
                     shortcutHint(keys: ["return"], label: "Open")
@@ -100,10 +113,16 @@ public struct LauncherView: View {
         .onAppear {
             results = onSearch?("") ?? []
         }
+        .onChange(of: session.pendingArgs?.commandId) { _, _ in
+            if let pending = session.pendingArgs {
+                prefill(pending.arguments)
+            }
+        }
         .background(KeyEventHandler(
             onArrowUp: { moveSelection(-1) },
             onArrowDown: { moveSelection(1) },
-            onCmdReturn: { executeSelectedWithModifier() }
+            onCmdReturn: { executeSelectedWithModifier() },
+            onEscape: { handleEscape() }
         ))
         .background(
             GeometryReader { geo in
@@ -158,6 +177,20 @@ public struct LauncherView: View {
     }
 
     private func execute() {
+        if let pending = session.pendingArgs {
+            switch CommandArgumentResolver.resolve(specs: pending.arguments, raw: argValues) {
+            case .success(let values):
+                session.pendingArgs = nil
+                onExecuteCommand?(pending.commandId, values)
+            case .failure(.missingRequired(let name)):
+                argError = "\(name) is required"
+            case .failure(.invalidNumber(let name)):
+                argError = "\(name) must be a number"
+            case .failure(.invalidChoice(let name)):
+                argError = "\(name) is not a valid choice"
+            }
+            return
+        }
         if selectedIndex < results.count {
             executeResult(results[selectedIndex])
         }
@@ -169,7 +202,103 @@ public struct LauncherView: View {
     }
 
     private func executeResult(_ result: SearchResult) {
-        onExecuteCommand?(result.id)
+        if result.type == .command, !result.commandArguments.isEmpty {
+            session.pendingArgs = .init(
+                commandId: result.id,
+                title: result.title,
+                arguments: result.commandArguments
+            )
+            prefill(result.commandArguments)
+            query = ""
+            results = []
+            return
+        }
+        onExecuteCommand?(result.id, [:])
+    }
+
+    private func handleEscape() {
+        if session.pendingArgs != nil {
+            session.pendingArgs = nil
+            argValues = [:]
+            argError = nil
+            query = ""
+            results = onSearch?("") ?? []
+            selectedIndex = 0
+        }
+    }
+
+    private func prefill(_ specs: [CommandArgumentSpec]) {
+        var seed: [String: String] = [:]
+        for spec in specs {
+            switch spec.defaultValue {
+            case .string(let s): seed[spec.name] = s
+            case .number(let n):
+                seed[spec.name] = n.rounded() == n ? String(Int(n)) : String(n)
+            case .bool(let b): seed[spec.name] = b ? "true" : "false"
+            case .none: seed[spec.name] = ""
+            }
+        }
+        argValues = seed
+        argError = nil
+    }
+
+    @ViewBuilder
+    private var argumentForm: some View {
+        if let pending = session.pendingArgs {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "terminal.fill")
+                        .foregroundStyle(.secondary)
+                    Text(pending.title)
+                        .font(.system(size: 14 * prefs.textScale, weight: .medium))
+                    Spacer()
+                    Text("esc")
+                        .font(.system(size: 10, design: .rounded))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(.quaternary)
+                        .cornerRadius(3)
+                    Text("Back")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                ForEach(pending.arguments, id: \.name) { spec in
+                    argumentRow(spec)
+                }
+
+                if let argError {
+                    Text(argError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+    }
+
+    @ViewBuilder
+    private func argumentRow(_ spec: CommandArgumentSpec) -> some View {
+        switch spec.type {
+        case "dropdown":
+            Picker(spec.placeholder, selection: binding(for: spec.name)) {
+                ForEach(spec.choices, id: \.value) { choice in
+                    Text(choice.title).tag(choice.value)
+                }
+            }
+            .labelsHidden()
+        default:
+            TextField(spec.placeholder, text: binding(for: spec.name))
+                .textFieldStyle(.roundedBorder)
+        }
+    }
+
+    private func binding(for name: String) -> Binding<String> {
+        Binding(
+            get: { argValues[name] ?? "" },
+            set: { argValues[name] = $0 }
+        )
     }
 
     @ViewBuilder
@@ -210,12 +339,14 @@ struct KeyEventHandler: NSViewRepresentable {
     var onArrowUp: () -> Void
     var onArrowDown: () -> Void
     var onCmdReturn: () -> Void
+    var onEscape: (() -> Void)?
 
     func makeNSView(context: Context) -> KeyEventNSView {
         let view = KeyEventNSView()
         view.onArrowUp = onArrowUp
         view.onArrowDown = onArrowDown
         view.onCmdReturn = onCmdReturn
+        view.onEscape = onEscape
         return view
     }
 
@@ -223,12 +354,14 @@ struct KeyEventHandler: NSViewRepresentable {
         nsView.onArrowUp = onArrowUp
         nsView.onArrowDown = onArrowDown
         nsView.onCmdReturn = onCmdReturn
+        nsView.onEscape = onEscape
     }
 
     final class KeyEventNSView: NSView {
         var onArrowUp: (() -> Void)?
         var onArrowDown: (() -> Void)?
         var onCmdReturn: (() -> Void)?
+        var onEscape: (() -> Void)?
 
         override var acceptsFirstResponder: Bool { true }
 
@@ -240,6 +373,7 @@ struct KeyEventHandler: NSViewRepresentable {
             switch event.keyCode {
             case 126: onArrowUp?()
             case 125: onArrowDown?()
+            case 53: onEscape?()
             default: super.keyDown(with: event)
             }
         }

@@ -35,10 +35,13 @@ Example:
   "modules": {},
   "pluginSettings": {},
   "disabledPlugins": [],
+  "commandShortcuts": {},
   "security": { "shell": { "allow": [], "strict": false } }
 }
 ```
 Disabled plugins stay on disk but are not loaded; manage them in Settings → Plugins.
+
+Launcher commands can declare `arguments` on `macotron.command`. Users assign per-command shortcuts in Settings → Plugins; those bindings live in `commandShortcuts`. Do not register `keyboard.on` for launcher commands.
 
 The app hot-reloads when any file in the workdir changes. That includes `settings.json` and files under `plugins/`.
 
