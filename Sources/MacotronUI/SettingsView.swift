@@ -78,6 +78,7 @@ public final class SettingsState: ObservableObject {
     @Published public var showDockIcon: Bool = true
     @Published public var showMenuBarIcon: Bool = true
     @Published public var launchAtLogin: Bool = false
+    @Published public var appearance: AppearanceSetting = .system
     @Published public var moduleSummaries: [ModuleSummary] = []
     @Published public var pluginsPath: String = ""
     @Published public var requestedTab: Int?
@@ -94,6 +95,8 @@ public final class SettingsState: ObservableObject {
     public var writeShowMenuBarIcon: ((Bool) -> Void)?
     public var readLaunchAtLogin: (() -> Bool)?
     public var writeLaunchAtLogin: ((Bool) -> Void)?
+    public var readAppearance: (() -> AppearanceSetting)?
+    public var writeAppearance: ((AppearanceSetting) -> Void)?
     public var loadModuleSummaries: (() -> [ModuleSummary])?
     public var saveModuleOption: ((_ filename: String, _ key: String, _ value: Any) -> Void)?
     public var saveModuleSecret: ((_ filename: String, _ key: String, _ secret: String) -> Void)?
@@ -111,6 +114,7 @@ public final class SettingsState: ObservableObject {
         showDockIcon = readShowDockIcon?() ?? true
         showMenuBarIcon = readShowMenuBarIcon?() ?? true
         launchAtLogin = readLaunchAtLogin?() ?? false
+        appearance = readAppearance?() ?? .system
         pluginsPath = configDirURL?.path(percentEncoded: false) ?? ""
         refreshModules()
         refreshPermissions()
@@ -150,6 +154,11 @@ public final class SettingsState: ObservableObject {
     public func toggleLaunchAtLogin(_ value: Bool) {
         writeLaunchAtLogin?(value)
         launchAtLogin = readLaunchAtLogin?() ?? false
+    }
+
+    public func selectAppearance(_ value: AppearanceSetting) {
+        appearance = value
+        writeAppearance?(value)
     }
 }
 
@@ -266,6 +275,19 @@ public struct SettingsView: View {
                 ))
                 .toggleStyle(.checkbox)
                 .disabled(!state.showDockIcon)
+            }
+
+            formRow("Appearance") {
+                Picker("", selection: Binding(
+                    get: { state.appearance },
+                    set: { state.selectAppearance($0) }
+                )) {
+                    ForEach(AppearanceSetting.allCases) { option in
+                        Text(option.label).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 240)
             }
 
             formDivider
