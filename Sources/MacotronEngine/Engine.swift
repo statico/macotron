@@ -7,6 +7,9 @@ private let logger = Logger(subsystem: "com.macotron", category: "engine")
 
 @MainActor
 public final class Engine {
+    /// Semver of the plugin-facing JS API (`macotron.version.api`).
+    nonisolated public static let apiVersion = "1.0.0"
+
     public private(set) var runtime: OpaquePointer!
     public private(set) var context: OpaquePointer!
     public let eventBus = EventBus()
@@ -40,6 +43,9 @@ public final class Engine {
 
     /// Log output handler
     public var logHandler: ((String) -> Void)?
+
+    /// When true, modules stub side effects (hotkeys, panels, notifications).
+    public var dryRun = false
 
     /// Base directory for resolving ES module imports (set by ModuleManager)
     public var moduleBaseDir: URL?
@@ -435,6 +441,7 @@ public final class Engine {
         // Version info
         let versionObj = JS_NewObject(context)
         JS_SetPropertyStr(context, versionObj, "app", JSBridge.newString(context, "1.0.0"))
+        JS_SetPropertyStr(context, versionObj, "api", JSBridge.newString(context, Self.apiVersion))
 
         let modulesVersion = JS_NewObject(context)
         for module in modules {

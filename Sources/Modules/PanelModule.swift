@@ -107,6 +107,9 @@ public final class PanelModule: NativeModule {
 
     private func openPanel(title: String, width: Int, height: Int, html: String) -> String {
         let id = UUID().uuidString
+        if engine?.dryRun == true {
+            return id
+        }
         let host = PanelHost(id: id, title: title, width: width, height: height, html: html) { [weak self] panelId, body in
             self?.dispatchMessage(panelId: panelId, body: body)
         }

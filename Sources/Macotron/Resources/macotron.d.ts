@@ -4,6 +4,7 @@
 declare const macotron: {
     version: {
         app: string;
+        api: string;
         modules: Record<string, number>;
     };
 

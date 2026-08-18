@@ -12,18 +12,28 @@ public final class NotifyModule: NativeModule {
     public let name = "notify"
     public let moduleVersion = 1
 
-    private let center = UNUserNotificationCenter.current()
+    private var notificationCenter: UNUserNotificationCenter?
     private var authorizationGranted = false
 
     public init() {}
 
+    private var center: UNUserNotificationCenter {
+        if let notificationCenter { return notificationCenter }
+        let c = UNUserNotificationCenter.current()
+        notificationCenter = c
+        return c
+    }
+
     public func register(in engine: Engine, options: [String: Any]) {
-        // Request notification authorization eagerly on register
-        center.requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
-            DispatchQueue.main.async {
-                self?.authorizationGranted = granted
-                if let error {
-                    logger.error("Notification authorization failed: \(error.localizedDescription)")
+        let dryRun = engine.dryRun
+
+        if !dryRun {
+            center.requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
+                DispatchQueue.main.async {
+                    self?.authorizationGranted = granted
+                    if let error {
+                        logger.error("Notification authorization failed: \(error.localizedDescription)")
+                    }
                 }
             }
         }
@@ -50,6 +60,14 @@ public final class NotifyModule: NativeModule {
             }
             guard let body = JSBridge.toString(ctx, argv[1]) else {
                 return QJS_ThrowTypeError(ctx, "notify.show: body must be a string")
+            }
+
+            let opaque = JS_GetContextOpaque(ctx)
+            if let opaque {
+                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+                if engine.dryRun {
+                    return QJS_Undefined()
+                }
             }
 
             // Parse optional opts object
@@ -111,7 +129,6 @@ public final class NotifyModule: NativeModule {
     }
 
     public func cleanup() {
-        // Remove any pending notifications posted by modules on reload
-        center.removeAllPendingNotificationRequests()
+        notificationCenter?.removeAllPendingNotificationRequests()
     }
 }
