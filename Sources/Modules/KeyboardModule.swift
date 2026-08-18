@@ -159,9 +159,15 @@ extension KeyCombo: Hashable {
 
 /// Global state for the CGEvent tap callback (must be accessible from a C function pointer).
 /// Stored outside the actor because the event tap callback runs on an arbitrary thread.
+private struct HostBinding {
+    let commandId: String
+    let combo: KeyCombo
+}
+
 private final class KeyboardTapState: @unchecked Sendable {
     let lock = NSLock()
     var combos: [KeyCombo] = []
+    var hostBindings: [HostBinding] = []
     weak var module: KeyboardModule?
 
     static let shared = KeyboardTapState()
@@ -173,6 +179,22 @@ public final class KeyboardModule: NativeModule {
 
     /// Called once when the CGEvent tap cannot be created (needs Input Monitoring).
     public var onTrustFailure: (() -> Void)?
+
+    public var onHostCommand: ((String) -> Void)?
+
+    public func setHostBindings(_ bindings: [(commandId: String, combo: String)]) {
+        let parsed: [HostBinding] = bindings.compactMap { item in
+            guard let combo = KeyCombo.parse(item.combo) else {
+                NSLog("[Macotron] Skipping invalid command shortcut '%@' for %@", item.combo, item.commandId)
+                return nil
+            }
+            return HostBinding(commandId: item.commandId, combo: combo)
+        }
+        let state = KeyboardTapState.shared
+        state.lock.lock()
+        state.hostBindings = parsed
+        state.lock.unlock()
+    }
 
     private weak var engine: Engine?
     private var eventTap: CFMachPort?
@@ -233,6 +255,7 @@ public final class KeyboardModule: NativeModule {
         teardownEventTap()
         KeyboardTapState.shared.lock.lock()
         KeyboardTapState.shared.combos.removeAll()
+        KeyboardTapState.shared.hostBindings.removeAll()
         KeyboardTapState.shared.module = nil
         KeyboardTapState.shared.lock.unlock()
         registeredCombos.removeAll()
@@ -262,7 +285,18 @@ public final class KeyboardModule: NativeModule {
             let state = KeyboardTapState.shared
             state.lock.lock()
             let combos = state.combos
+            let hostBindings = state.hostBindings
             state.lock.unlock()
+
+            for binding in hostBindings {
+                if binding.combo.matches(event) {
+                    let commandId = binding.commandId
+                    DispatchQueue.main.async {
+                        KeyboardTapState.shared.module?.onHostCommand?(commandId)
+                    }
+                    return nil
+                }
+            }
 
             for combo in combos {
                 if combo.matches(event) {

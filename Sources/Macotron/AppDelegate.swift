@@ -17,6 +17,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsWindow: SettingsWindow!
     private let settingsState = SettingsState()
     private let launcherPrefs = LauncherPrefs()
+    private let launcherSession = LauncherSession()
+    private var keyboardModule: KeyboardModule?
     private var wizardWindow: WizardWindow?
     private let wizardState = WizardState()
     private var appSearchProvider: AppSearchProvider!
@@ -116,8 +118,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let launcherView = LauncherView(
             prefs: launcherPrefs,
-            onExecuteCommand: { [weak self] id in
-                self?.executeCommand(id)
+            session: launcherSession,
+            onExecuteCommand: { [weak self] id, args in
+                self?.executeCommand(id, args: args)
             },
             onRevealInFinder: { [weak self] id in
                 self?.appSearchProvider.revealInFinder(bundleID: id)
@@ -207,6 +210,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         moduleManager.onDidReload = { [weak self] in
             self?.refreshPermissions()
             self?.applyUIPrefsFromSettings()
+            self?.installCommandShortcuts()
         }
     }
 
@@ -292,6 +296,21 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self.moduleManager.clearModuleSecret(filename: filename, key: key)
             self.moduleManager.reloadAll()
         }
+        settingsState.saveCommandShortcut = { [weak self] commandId, combo in
+            guard let self else { return }
+            let launcherCombo = self.resolveHotkey().lowercased()
+            if !combo.isEmpty, combo.lowercased() == launcherCombo {
+                NSLog("[Macotron] Command shortcut collides with the launcher hotkey")
+                return
+            }
+            try? self.workspace.updateSettings { settings in
+                var table = CommandShortcuts.load(from: settings["commandShortcuts"])
+                table.assign(commandId: commandId, combo: combo)
+                settings["commandShortcuts"] = table.jsonObject()
+            }
+            self.engine.configStore = self.workspace.readSettings()
+            self.installCommandShortcuts()
+        }
         settingsState.setModuleEnabled = { [weak self] filename, enabled in
             guard let self else { return }
             self.moduleManager.setModuleEnabled(filename: filename, enabled: enabled)
@@ -316,6 +335,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let metadata = engine.moduleMetadata
         let settings = moduleManager.loadModuleSettings()
         let disabled = moduleManager.disabledPlugins()
+        let shortcuts = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
         var summaries: [ModuleSummary] = []
 
         let hotkeyPattern = try? NSRegularExpression(pattern: #"keyboard\.on\(\s*"([^"]+)""#)
@@ -389,6 +409,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
 
+            let commands = engine.commandRegistry.values
+                .filter { $0.pluginFile == file.filename }
+                .sorted { $0.name < $1.name }
+                .map {
+                    PluginCommandSummary(
+                        id: $0.id,
+                        name: $0.name,
+                        shortcut: shortcuts.combo(for: $0.id)
+                    )
+                }
+
             let errorMsg = errorMap[file.filename]
             summaries.append(ModuleSummary(
                 filename: file.filename,
@@ -399,7 +430,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 hotkeys: hotkeys,
                 hasErrors: errorMsg != nil,
                 errorMessage: errorMsg,
-                isEnabled: isEnabled
+                isEnabled: isEnabled,
+                commands: commands
             ))
         }
 
@@ -645,6 +677,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         keyboard.onTrustFailure = { [weak self] in
             self?.refreshPermissions()
         }
+        keyboard.onHostCommand = { [weak self] commandId in
+            self?.handleCommandShortcut(commandId)
+        }
+        self.keyboardModule = keyboard
         engine.addModule(keyboard)
 
         engine.addModule(WindowModule())
@@ -673,17 +709,38 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.addModule(IdleModule())
     }
 
-    private func executeCommand(_ id: String) {
-        if let cmd = engine.commandRegistry[id] {
-            var undef = QJS_Undefined()
-            _ = JS_Call(engine.context, cmd.callback, QJS_Undefined(), 0, &undef)
-            engine.drainJobQueue()
+    private func executeCommand(_ id: String, args: [String: Any] = [:]) {
+        if engine.commandRegistry[id] != nil {
+            _ = engine.invokeCommand(id, args: args)
             launcherPanel.toggle()
             return
         }
 
         appSearchProvider.launchApp(bundleID: id)
         launcherPanel.toggle()
+    }
+
+    private func handleCommandShortcut(_ commandId: String) {
+        guard let cmd = engine.commandRegistry[commandId] else { return }
+        switch CommandArgumentResolver.resolve(specs: cmd.arguments, raw: [:]) {
+        case .success(let values):
+            _ = engine.invokeCommand(commandId, args: values)
+        case .failure:
+            launcherSession.pendingArgs = .init(
+                commandId: cmd.id,
+                title: cmd.name,
+                arguments: cmd.arguments
+            )
+            if !launcherPanel.isVisible {
+                launcherPanel.toggle()
+            }
+        }
+    }
+
+    private func installCommandShortcuts() {
+        let table = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
+        let live = table.bindings.filter { engine.commandRegistry[$0.key] != nil }
+        keyboardModule?.setHostBindings(live.map { (commandId: $0.key, combo: $0.value) })
     }
 
     private func search(_ query: String) -> [SearchResult] {
@@ -696,11 +753,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         for (_, cmd) in engine.commandRegistry {
             if let score = FuzzyMatch.score(query: query, target: cmd.name), score > 0 {
                 results.append(SearchResult(
-                    id: cmd.name,
+                    id: cmd.id,
                     title: cmd.name,
                     subtitle: cmd.description,
                     icon: "terminal.fill",
-                    type: .command
+                    type: .command,
+                    commandArguments: cmd.arguments
                 ))
             }
         }

@@ -46,6 +46,18 @@ public struct ModuleOption: Identifiable {
 }
 
 /// Summary info for a single plugin
+public struct PluginCommandSummary: Identifiable, Equatable {
+    public let id: String
+    public let name: String
+    public var shortcut: String
+
+    public init(id: String, name: String, shortcut: String = "") {
+        self.id = id
+        self.name = name
+        self.shortcut = shortcut
+    }
+}
+
 public struct ModuleSummary: Identifiable {
     public let id: String
     public let filename: String
@@ -57,11 +69,12 @@ public struct ModuleSummary: Identifiable {
     public let hasErrors: Bool
     public let errorMessage: String?
     public let isEnabled: Bool
+    public let commands: [PluginCommandSummary]
 
     public init(filename: String, title: String = "", description: String,
                 options: [ModuleOption] = [], events: [String] = [],
                 hotkeys: [String] = [], hasErrors: Bool = false, errorMessage: String? = nil,
-                isEnabled: Bool = true) {
+                isEnabled: Bool = true, commands: [PluginCommandSummary] = []) {
         self.id = filename
         self.filename = filename
         self.title = title.isEmpty ? String(filename.dropLast(3)) : title
@@ -72,6 +85,7 @@ public struct ModuleSummary: Identifiable {
         self.hasErrors = hasErrors
         self.errorMessage = errorMessage
         self.isEnabled = isEnabled
+        self.commands = commands
     }
 }
 
@@ -108,6 +122,7 @@ public final class SettingsState: ObservableObject {
     public var saveModuleSecret: ((_ filename: String, _ key: String, _ secret: String) -> Void)?
     public var clearModuleSecret: ((_ filename: String, _ key: String) -> Void)?
     public var setModuleEnabled: ((_ filename: String, _ enabled: Bool) -> Void)?
+    public var saveCommandShortcut: ((_ commandId: String, _ combo: String) -> Void)?
     public var deleteModule: ((_ filename: String) -> Bool)?
     public var changePluginsFolder: (() -> Void)?
     public var openPluginsFolder: (() -> Void)?
@@ -586,6 +601,7 @@ struct PluginDetailView: View {
                     disabledHint
                 } else {
                     if !summary.hotkeys.isEmpty || !summary.events.isEmpty { badges }
+                    if !summary.commands.isEmpty { commandsSection }
                     if !summary.options.isEmpty { settingsSection }
                 }
 
@@ -679,6 +695,17 @@ struct PluginDetailView: View {
             }
             ForEach(summary.events, id: \.self) { event in
                 detailBadge(text: event, color: .purple)
+            }
+        }
+    }
+
+    private var commandsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Commands")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+            ForEach(summary.commands) { command in
+                CommandShortcutRow(command: command, state: state)
             }
         }
     }
@@ -857,5 +884,25 @@ struct ModuleOptionRow: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         state.saveModuleOption?(filename, option.key, url.path(percentEncoded: false))
         state.refreshModules()
+    }
+}
+
+struct CommandShortcutRow: View {
+    let command: PluginCommandSummary
+    @ObservedObject var state: SettingsState
+    @State private var combo: String = ""
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(command.name)
+                .font(.system(size: 12))
+                .lineLimit(1)
+            Spacer()
+            HotkeyRecorderView(combo: $combo) {
+                state.saveCommandShortcut?(command.id, combo)
+                state.refreshModules()
+            }
+        }
+        .onAppear { combo = command.shortcut }
     }
 }

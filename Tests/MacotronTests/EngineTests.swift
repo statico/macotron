@@ -315,6 +315,7 @@ struct EngineTests {
             $$__registerCommand("greet", "Says hello", function() { return "hi"; });
         """)
         #expect(engine.commandRegistry["greet"] != nil)
+        #expect(engine.commandRegistry["greet"]?.id == "greet")
         #expect(engine.commandRegistry["greet"]?.name == "greet")
         #expect(engine.commandRegistry["greet"]?.description == "Says hello")
     }

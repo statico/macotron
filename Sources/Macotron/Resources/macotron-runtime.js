@@ -33,8 +33,8 @@ macotron.off = function(event, callback) {
     $$__off(event, callback);
 };
 
-macotron.command = function(name, description, handler) {
-    $$__registerCommand(name, description, handler);
+macotron.command = function(name, description, handler, opts) {
+    $$__registerCommand(name, description, handler, opts || {});
 };
 
 macotron.log = function() {

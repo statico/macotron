@@ -49,8 +49,8 @@ struct PluginEnableTests {
         manager.setModuleEnabled(filename: "b-disabled.js", enabled: false)
         manager.reloadAll()
 
-        #expect(engine.commandRegistry["enabled-cmd"] != nil)
-        #expect(engine.commandRegistry["disabled-cmd"] == nil)
+        #expect(engine.commandRegistry["a-enabled.js/enabled-cmd"] != nil)
+        #expect(engine.commandRegistry["b-disabled.js/disabled-cmd"] == nil)
     }
 
     @Test("disabling the same filename twice is idempotent")
@@ -87,7 +87,7 @@ struct PluginEnableTests {
             .write(to: pluginFile, atomically: true, encoding: .utf8)
         manager.reloadAll()
 
-        #expect(engine.commandRegistry["regression-cmd"] != nil)
+        #expect(engine.commandRegistry["regression.js/regression-cmd"] != nil)
         #expect(manager.isModuleEnabled(filename: "regression.js"))
     }
 }

@@ -10,7 +10,26 @@ declare const macotron: {
 
     on(event: string, callback: (...args: any[]) => void): void;
     off(event: string, callback: (...args: any[]) => void): void;
-    command(name: string, description: string, handler: () => void | Promise<void>): void;
+    command(
+        name: string,
+        description: string,
+        handler: (args: Record<string, any>) => void | Promise<void>,
+        opts?: {
+            id?: string;
+            arguments?: Array<
+                | { name: string; type: "text"; placeholder?: string; required?: boolean; default?: string }
+                | { name: string; type: "number"; placeholder?: string; required?: boolean; default?: number }
+                | {
+                      name: string;
+                      type: "dropdown";
+                      placeholder?: string;
+                      required?: boolean;
+                      default?: string;
+                      choices: Array<{ title?: string; label?: string; value: string }>;
+                  }
+            >;
+        }
+    ): void;
     log(...args: any[]): void;
     sleep(ms: number): Promise<void>;
     every(ms: number, callback: () => void | Promise<void>): () => void;
