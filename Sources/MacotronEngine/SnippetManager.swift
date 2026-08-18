@@ -115,6 +115,21 @@ public final class ModuleManager {
         let filename = file.lastPathComponent
         let cachePath = cacheDir.appending(path: filename + ".bc")
 
+        switch PluginNeeds.parse(source) {
+        case .failure(let error):
+            logger.error("\(filename): \(error.message)")
+            lastReloadErrors.append((filename: filename, error: error.message))
+            return
+        case .success(let needs):
+            let host = SemVer(Engine.apiVersion) ?? SemVer(major: 1, minor: 0, patch: 0)
+            if needs > host {
+                let message = PluginNeeds.unmetMessage(needs: needs, host: host)
+                logger.error("\(filename): \(message)")
+                lastReloadErrors.append((filename: filename, error: message))
+                return
+            }
+        }
+
         engine.currentEvaluatingFile = filename
         defer { engine.currentEvaluatingFile = nil }
 

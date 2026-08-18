@@ -222,7 +222,9 @@ public final class KeyboardModule: NativeModule {
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
 
-        // Set up the global event tap
+        // Dry-run accepts keyboard.on without installing a CGEvent tap.
+        guard !engine.dryRun else { return }
+
         KeyboardTapState.shared.module = self
         setupEventTap()
     }
