@@ -108,7 +108,7 @@ final class AppSearchProvider {
                 SearchResult(
                     id: app.bundleID,
                     title: app.name,
-                    subtitle: app.bundleID,
+                    subtitle: "",
                     icon: "app.fill",
                     type: .app,
                     nsImage: app.icon,
@@ -127,14 +127,10 @@ final class AppSearchProvider {
         scored.sort { $0.score > $1.score }
 
         return scored.prefix(20).map { item in
-            let isRunning = NSRunningApplication.runningApplications(
-                withBundleIdentifier: item.entry.bundleID
-            ).first != nil
-
-            return SearchResult(
+            SearchResult(
                 id: item.entry.bundleID,
                 title: item.entry.name,
-                subtitle: isRunning ? "Running" : item.entry.bundleID,
+                subtitle: "",
                 icon: "app.fill",
                 type: .app,
                 nsImage: item.entry.icon,
