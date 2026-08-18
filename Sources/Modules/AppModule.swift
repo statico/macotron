@@ -11,9 +11,13 @@ private let logger = Logger(subsystem: "com.macotron", category: "app")
 public final class AppModule: NativeModule {
     public let name = "app"
 
+    private weak var engine: Engine?
+    private var activationObserver: NSObjectProtocol?
+
     public init() {}
 
     public func register(in engine: Engine, options: [String: Any]) {
+        self.engine = engine
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
@@ -124,5 +128,43 @@ public final class AppModule: NativeModule {
         JS_SetPropertyStr(ctx, macotron, "app", appObj)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
+
+        guard !engine.dryRun else { return }
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                    as? NSRunningApplication,
+                  let bundleID = app.bundleIdentifier else {
+                return
+            }
+            let name = app.localizedName ?? bundleID
+            Task { @MainActor [weak self] in
+                self?.emitActivation(bundleID: bundleID, name: name)
+            }
+        }
+    }
+
+    public func cleanup() {
+        if let activationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
+        }
+        activationObserver = nil
+        engine = nil
+    }
+
+    private func emitActivation(bundleID: String, name: String) {
+        guard let engine, let ctx = engine.context else {
+            return
+        }
+
+        let data = JSBridge.newObject(ctx, [
+            "bundleID": bundleID,
+            "name": name
+        ])
+        engine.eventBus.emit("app:activated", engine: engine, data: data)
+        JS_FreeValue(ctx, data)
     }
 }

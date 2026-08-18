@@ -112,6 +112,25 @@ public final class SystemModule: NativeModule {
             ])
         }, "battery", 0))
 
+        // macotron.system.disk() -> {total, free, used}
+        JS_SetPropertyStr(ctx, systemObj, "disk",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+
+            let values = try? URL(fileURLWithPath: "/").resourceValues(forKeys: [
+                .volumeTotalCapacityKey,
+                .volumeAvailableCapacityForImportantUsageKey
+            ])
+            let total = Double(values?.volumeTotalCapacity ?? 0)
+            let free = Double(values?.volumeAvailableCapacityForImportantUsage ?? 0)
+
+            return JSBridge.newObject(ctx, [
+                "total": total,
+                "free": free,
+                "used": max(0, total - free)
+            ])
+        }, "disk", 0))
+
         JS_SetPropertyStr(ctx, macotron, "system", systemObj)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)

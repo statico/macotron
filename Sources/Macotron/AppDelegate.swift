@@ -597,6 +597,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.addModule(TimerModule())
         engine.addModule(NotifyModule())
         engine.addModule(ClipboardModule())
+        engine.addModule(SnippetsModule())
 
         let keyboard = KeyboardModule()
         keyboard.onTrustFailure = { [weak self] in
@@ -623,6 +624,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.addModule(SpotlightModule())
         engine.addModule(AIModule())
         engine.addModule(PanelModule())
+        engine.addModule(CalendarModule())
+        engine.addModule(OCRModule())
     }
 
     private func executeCommand(_ id: String) {
