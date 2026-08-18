@@ -5,11 +5,16 @@ BINARY = $(BUILD_DIR)/debug/$(APP_NAME)
 BUNDLE_ID = com.macotron.app
 
 # Stable signing keeps a fixed CDHash, so macOS permissions persist across builds.
-# Auto-detects a code signing certificate; create one in Keychain Access →
-# Certificate Assistant → Create a Certificate → Code Signing.
-# Falls back to ad-hoc signing, which resets permissions on every build.
-SIGN_IDENTITY ?= $(shell security find-identity -v -p codesigning 2>/dev/null | \
-	sed -n 's/.*"\(.*\)".*/\1/p' | grep -m1 -E 'Macotron-Dev|Apple Develop')
+# Create the certificate in Keychain Access → Certificate Assistant → Create a
+# Certificate → Code Signing, and name it Macotron-Dev. Set SIGN_IDENTITY by hand
+# to use a different one. Falls back to ad-hoc signing, which resets permissions
+# on every build.
+#
+# A self-signed certificate is untrusted, so it is missing from `find-identity -v`
+# even though codesign accepts it. Match on the name instead, and skip anything
+# expired because codesign does reject those.
+SIGN_IDENTITY ?= $(shell security find-identity -p codesigning 2>/dev/null | \
+	grep -v CSSMERR_TP_CERT_EXPIRED | grep -m1 -o '"Macotron-Dev[^"]*"' | tr -d '"')
 
 .DEFAULT_GOAL := help
 
