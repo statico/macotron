@@ -241,6 +241,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.writeLaunchAtLogin = { value in
             LaunchAtLogin.setEnabled(value)
         }
+        settingsState.readAppearance = { [weak self] in
+            AppearanceSetting.parse(self?.readUIValue("appearance"))
+        }
+        settingsState.writeAppearance = { [weak self] value in
+            self?.writeUIValue("appearance", value.rawValue)
+            value.apply()
+        }
 
         settingsState.loadModuleSummaries = { [weak self] in
             self?.buildPluginSummaries() ?? []
@@ -535,6 +542,25 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         return "cmd+space"
     }
 
+    private func readUIValue(_ key: String) -> Any? {
+        if let ui = engine?.configStore["ui"] as? [String: Any], let value = ui[key] {
+            return value
+        }
+        if let workspace, let ui = workspace.readSettings()["ui"] as? [String: Any] {
+            return ui[key]
+        }
+        return nil
+    }
+
+    private func writeUIValue(_ key: String, _ value: Any) {
+        try? workspace.updateSettings { settings in
+            var ui = settings["ui"] as? [String: Any] ?? [:]
+            ui[key] = value
+            settings["ui"] = ui
+        }
+        engine.configStore = workspace.readSettings()
+    }
+
     private func readUIBool(_ key: String, default defaultValue: Bool) -> Bool {
         if let ui = engine?.configStore["ui"] as? [String: Any],
            let value = ui[key] as? Bool {
@@ -560,6 +586,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private func applyUIPrefsFromSettings() {
         let showDock = readUIBool("showDockIcon", default: true)
         NSApp.setActivationPolicy(showDock ? .regular : .accessory)
+        AppearanceSetting.parse(readUIValue("appearance")).apply()
     }
 
     private func setupMainMenu() {
