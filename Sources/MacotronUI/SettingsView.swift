@@ -79,6 +79,7 @@ public final class SettingsState: ObservableObject {
     @Published public var showMenuBarIcon: Bool = true
     @Published public var launchAtLogin: Bool = false
     @Published public var appearance: AppearanceSetting = .system
+    @Published public var textScale: Double = 1.0
     @Published public var moduleSummaries: [ModuleSummary] = []
     @Published public var pluginsPath: String = ""
     @Published public var requestedTab: Int?
@@ -97,6 +98,8 @@ public final class SettingsState: ObservableObject {
     public var writeLaunchAtLogin: ((Bool) -> Void)?
     public var readAppearance: (() -> AppearanceSetting)?
     public var writeAppearance: ((AppearanceSetting) -> Void)?
+    public var readTextScale: (() -> Double)?
+    public var writeTextScale: ((Double) -> Void)?
     public var loadModuleSummaries: (() -> [ModuleSummary])?
     public var saveModuleOption: ((_ filename: String, _ key: String, _ value: Any) -> Void)?
     public var saveModuleSecret: ((_ filename: String, _ key: String, _ secret: String) -> Void)?
@@ -115,6 +118,7 @@ public final class SettingsState: ObservableObject {
         showMenuBarIcon = readShowMenuBarIcon?() ?? true
         launchAtLogin = readLaunchAtLogin?() ?? false
         appearance = readAppearance?() ?? .system
+        textScale = readTextScale?() ?? 1.0
         pluginsPath = configDirURL?.path(percentEncoded: false) ?? ""
         refreshModules()
         refreshPermissions()
@@ -159,6 +163,11 @@ public final class SettingsState: ObservableObject {
     public func selectAppearance(_ value: AppearanceSetting) {
         appearance = value
         writeAppearance?(value)
+    }
+
+    public func selectTextScale(_ value: Double) {
+        textScale = value
+        writeTextScale?(value)
     }
 }
 
@@ -285,6 +294,19 @@ public struct SettingsView: View {
                     ForEach(AppearanceSetting.allCases) { option in
                         Text(option.label).tag(option)
                     }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 240)
+            }
+
+            formRow("Text Size") {
+                Picker("", selection: Binding(
+                    get: { state.textScale },
+                    set: { state.selectTextScale($0) }
+                )) {
+                    Text("80%").tag(0.8)
+                    Text("100%").tag(1.0)
+                    Text("120%").tag(1.2)
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 240)

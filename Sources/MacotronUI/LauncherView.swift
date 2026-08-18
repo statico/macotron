@@ -34,6 +34,7 @@ public struct SearchResult: Identifiable {
 }
 
 public struct LauncherView: View {
+    @ObservedObject private var prefs: LauncherPrefs
     @State private var query = ""
     @State private var results: [SearchResult] = []
     @State private var selectedIndex = 0
@@ -44,11 +45,13 @@ public struct LauncherView: View {
     public var onHeightChange: ((CGFloat) -> Void)?
 
     public init(
+        prefs: LauncherPrefs = LauncherPrefs(),
         onExecuteCommand: ((String) -> Void)? = nil,
         onRevealInFinder: ((String) -> Void)? = nil,
         onSearch: ((String) -> [SearchResult])? = nil,
         onHeightChange: ((CGFloat) -> Void)? = nil
     ) {
+        self._prefs = ObservedObject(wrappedValue: prefs)
         self.onExecuteCommand = onExecuteCommand
         self.onRevealInFinder = onRevealInFinder
         self.onSearch = onSearch
@@ -60,12 +63,12 @@ public struct LauncherView: View {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.tertiary)
-                    .font(.system(size: 20))
+                    .font(.system(size: 20 * prefs.textScale))
                     .frame(width: 24, height: 24)
 
                 TextField("Search commands and apps...", text: $query)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 20, weight: .regular))
+                    .font(.system(size: 20 * prefs.textScale, weight: .regular))
                     .frame(height: 24)
                     .onSubmit { execute() }
             }
@@ -116,7 +119,7 @@ public struct LauncherView: View {
     private var searchResultsView: some View {
         if results.isEmpty {
             Text(query.isEmpty ? "Type to search" : "No results")
-                .font(.callout)
+                .font(.system(size: 12 * prefs.textScale))
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
@@ -125,7 +128,8 @@ public struct LauncherView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 1) {
                         ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
-                            ResultRow(result: result, isSelected: index == selectedIndex)
+                            ResultRow(result: result, isSelected: index == selectedIndex,
+                                      textScale: prefs.textScale)
                                 .id(result.id)
                                 .onTapGesture { executeResult(result) }
                         }
@@ -173,14 +177,14 @@ public struct LauncherView: View {
         HStack(spacing: 4) {
             ForEach(keys, id: \.self) { key in
                 Text(keySymbol(key))
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .font(.system(size: 10 * prefs.textScale, weight: .medium, design: .rounded))
                     .padding(.horizontal, 4)
                     .padding(.vertical, 2)
                     .background(.quaternary)
                     .cornerRadius(3)
             }
             Text(label)
-                .font(.caption2)
+                .font(.system(size: 10 * prefs.textScale))
                 .foregroundStyle(.secondary)
         }
     }
@@ -245,18 +249,19 @@ struct KeyEventHandler: NSViewRepresentable {
 struct ResultRow: View {
     let result: SearchResult
     var isSelected: Bool = false
+    var textScale: CGFloat = 1.0
 
     var body: some View {
         HStack(spacing: 12) {
             if let nsImage = result.nsImage {
                 Image(nsImage: nsImage)
                     .resizable()
-                    .frame(width: 32, height: 32)
+                    .frame(width: 32 * textScale, height: 32 * textScale)
                     .cornerRadius(7)
             } else {
                 Image(systemName: iconForType(result.type))
-                    .font(.system(size: 16))
-                    .frame(width: 32, height: 32)
+                    .font(.system(size: 16 * textScale))
+                    .frame(width: 32 * textScale, height: 32 * textScale)
                     .background(.quaternary)
                     .cornerRadius(7)
                     .foregroundStyle(.secondary)
@@ -264,11 +269,11 @@ struct ResultRow: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(result.title)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 14 * textScale, weight: .medium))
                     .lineLimit(1)
                 if !result.subtitle.isEmpty {
                     Text(result.subtitle)
-                        .font(.system(size: 11))
+                        .font(.system(size: 11 * textScale))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -277,7 +282,7 @@ struct ResultRow: View {
             Spacer()
 
             Text(labelForType(result.type))
-                .font(.system(size: 10))
+                .font(.system(size: 10 * textScale))
                 .foregroundStyle(.tertiary)
         }
         .padding(.horizontal, 10)
