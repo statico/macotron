@@ -11,9 +11,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | ScreenModule | `macotron.screen` | ScreenCaptureKit screenshots |
 | ShellModule | `macotron.shell` | Process/command execution (with allowlist) |
 | NotifyModule | `macotron.notify` | UserNotifications |
-| CameraModule | `macotron.camera` | Camera state detection (polling) |
 | URLSchemeModule | `macotron.url` | URL handler registration |
-| USBModule | `macotron.usb` | IOKit device monitoring |
 | FileSystemModule | `macotron.fs` | File read/write/watch (FSEvents) |
 | ClipboardModule | `macotron.clipboard` | NSPasteboard |
 | AIModule | `macotron.ai` | AI provider abstraction for plugins |
@@ -24,7 +22,6 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | HTTPModule | `macotron.http` | URLSession |
 | MenuBarModule | `macotron.menubar` | Custom menubar items |
 | DisplayModule | `macotron.display` | Display settings, spaces |
-| TimerModule | `macotron.timer` | Intervals, cron-like scheduling |
 | LocalStorageModule | `localStorage` | JSON-backed key-value (global) |
 | KeychainModule | `macotron.keychain` | macOS Keychain secrets |
 

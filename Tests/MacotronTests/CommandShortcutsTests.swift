@@ -12,14 +12,6 @@ struct CommandShortcutsTests {
         #expect(table.bindings["b"] == "cmd+shift+l")
     }
 
-    @Test("clear removes the binding")
-    func clearRemoves() {
-        var table = CommandShortcuts()
-        table.assign(commandId: "a", combo: "cmd+shift+l")
-        table.clear(commandId: "a")
-        #expect(table.bindings.isEmpty)
-    }
-
     @Test("round-trips through a JSON object")
     func jsonRoundTrip() {
         var table = CommandShortcuts()

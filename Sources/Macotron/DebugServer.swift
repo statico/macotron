@@ -1,5 +1,4 @@
 // DebugServer.swift — HTTP server for development (debug builds only)
-import AppKit
 import Foundation
 import Network
 import MacotronEngine
@@ -14,7 +13,6 @@ public final class DebugServer {
     private let listener: NWListener
     private let port: UInt16
 
-    public var onOpenSettings: (() -> Void)?
     public var onOpenSettingsTab: ((Int) -> Void)?
     public var onToggleLauncher: (() -> Void)?
     public var captureWindow: ((Int?) -> Data?)?

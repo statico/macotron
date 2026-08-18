@@ -19,7 +19,6 @@ Copy into your Macotron workdir `plugins/` to try. Most register launcher comman
 | demo-power.js | power.* | Toggle Keep Awake |
 | demo-wifi.js | network.wifiSSID, wifi:changed | Wi-Fi SSID |
 | demo-brightness.js | display brightness/XDR | Toggle XDR |
-| demo-keep-awake.js | shell caffeinate | Toggle Keep Awake |
 | demo-weather.js | http + menubar | Refresh Weather |
 | demo-pomodoro.js | timer + menubar | Start Pomodoro |
 | demo-datetime.js | clipboard.set | Insert ISO Date |

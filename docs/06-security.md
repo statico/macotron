@@ -63,7 +63,7 @@ enum CapabilityTier {
 
 ### Safe (read-only)
 
-`window.getAll`, `window.focused`, `clipboard.text`, `system.cpuTemp`, `system.memory`, `system.battery`, `camera.isActive`, `app.list`, `spotlight.search`, `display.list`, `keychain.get`, `keychain.has`
+`window.getAll`, `window.focused`, `clipboard.text`, `system.cpuTemp`, `system.memory`, `system.battery`, `app.list`, `spotlight.search`, `display.list`, `keychain.get`, `keychain.has`
 
 ### Moderate (reversible side effects)
 

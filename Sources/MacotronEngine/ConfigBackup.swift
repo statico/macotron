@@ -65,47 +65,6 @@ public final class ConfigBackup {
         }
     }
 
-    /// Restore from a backup file
-    public func restore(from backupName: String) -> Bool {
-        let backupPath = backupsDir.appending(path: backupName)
-        guard FileManager.default.fileExists(atPath: backupPath.path()) else {
-            logger.error("Backup not found: \(backupName)")
-            return false
-        }
-
-        // Remove current config (except backups/)
-        let fm = FileManager.default
-        if let contents = try? fm.contentsOfDirectory(at: configDir, includingPropertiesForKeys: nil) {
-            for item in contents {
-                if item.lastPathComponent != "backups" {
-                    try? fm.removeItem(at: item)
-                }
-            }
-        }
-
-        // Extract backup
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
-        process.arguments = [
-            "xzf", backupPath.path(),
-            "-C", configDir.deletingLastPathComponent().path()
-        ]
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-            process.waitUntilExit()
-            if process.terminationStatus == 0 {
-                logger.info("Restored from backup: \(backupName)")
-                return true
-            }
-        } catch {
-            logger.error("Failed to restore backup: \(error)")
-        }
-        return false
-    }
-
     /// List available backups (newest first)
     public func listBackups() -> [String] {
         guard let contents = try? FileManager.default.contentsOfDirectory(

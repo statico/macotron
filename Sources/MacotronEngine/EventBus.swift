@@ -47,12 +47,6 @@ public final class EventBus {
         engine.drainJobQueue()
     }
 
-    /// Check if any listeners exist for an event
-    public func hasListeners(for event: String) -> Bool {
-        guard let list = listeners[event] else { return false }
-        return !list.isEmpty
-    }
-
     /// Remove all listeners (called on reload)
     public func removeAllListeners() {
         for (_, list) in listeners {

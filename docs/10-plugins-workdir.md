@@ -13,7 +13,7 @@ The user picks one directory as the Macotron workdir. That directory holds setti
   AGENTS.md           # app-owned — do not edit
   CLAUDE.md           # app-owned — do not edit
   plugins/
-    example-hello.js
+    *.js
   .cache/             # bytecode (gitignored)
 ```
 

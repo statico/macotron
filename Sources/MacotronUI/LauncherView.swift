@@ -7,32 +7,25 @@ public struct SearchResult: Identifiable {
     public let id: String
     public let title: String
     public let subtitle: String
-    public let icon: String
     public let type: ResultType
     public let nsImage: NSImage?
-    public let appURL: URL?
     public let commandArguments: [CommandArgumentSpec]
 
     public enum ResultType {
         case app
-        case file
         case command
-        case module
-        case action
     }
 
     public init(
-        id: String, title: String, subtitle: String, icon: String, type: ResultType,
-        nsImage: NSImage? = nil, appURL: URL? = nil,
+        id: String, title: String, subtitle: String, type: ResultType,
+        nsImage: NSImage? = nil,
         commandArguments: [CommandArgumentSpec] = []
     ) {
         self.id = id
         self.title = title
         self.subtitle = subtitle
-        self.icon = icon
         self.type = type
         self.nsImage = nsImage
-        self.appURL = appURL
         self.commandArguments = commandArguments
     }
 }
@@ -431,20 +424,14 @@ struct ResultRow: View {
     private func iconForType(_ type: SearchResult.ResultType) -> String {
         switch type {
         case .app: return "app.fill"
-        case .file: return "doc.fill"
         case .command: return "terminal.fill"
-        case .module: return "chevron.left.forwardslash.chevron.right"
-        case .action: return "bolt.fill"
         }
     }
 
     private func labelForType(_ type: SearchResult.ResultType) -> String {
         switch type {
         case .app: return "Application"
-        case .file: return "File"
         case .command: return "Command"
-        case .module: return "Module"
-        case .action: return "Action"
         }
     }
 }

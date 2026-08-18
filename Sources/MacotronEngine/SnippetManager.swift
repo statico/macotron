@@ -32,23 +32,6 @@ public final class ModuleManager {
         engine.moduleBaseDir = workspace.root
     }
 
-    /// Convenience: create workspace from URL and ensure layout.
-    public convenience init(engine: Engine, configDir: URL) {
-        let ws = PluginWorkspace(root: configDir)
-        try? ws.ensureReady()
-        self.init(engine: engine, workspace: ws)
-    }
-
-    // MARK: - Directory Setup
-
-    public func ensureDirectoryStructure() {
-        do {
-            try workspace.ensureReady()
-        } catch {
-            logger.error("Failed to ensure plugin workspace: \(error)")
-        }
-    }
-
     // MARK: - Settings
 
     /// Per-plugin option overrides from settings.json `pluginSettings`.
@@ -101,10 +84,6 @@ public final class ModuleManager {
     /// but are never evaluated.
     public func disabledPlugins() -> Set<String> {
         Set(workspace.readSettings()["disabledPlugins"] as? [String] ?? [])
-    }
-
-    public func isModuleEnabled(filename: String) -> Bool {
-        !disabledPlugins().contains(filename)
     }
 
     public func setModuleEnabled(filename: String, enabled: Bool) {
@@ -215,20 +194,6 @@ public final class ModuleManager {
     }
 
     // MARK: - File Operations
-
-    @discardableResult
-    public func writeModule(filename: String, content: String, directory: String = "plugins") -> Bool {
-        backup.createBackup()
-        let file = configDir.appending(path: directory).appending(path: filename)
-        do {
-            try content.write(to: file, atomically: true, encoding: .utf8)
-            logger.info("Wrote \(directory)/\(filename)")
-            return true
-        } catch {
-            logger.error("Failed to write \(filename): \(error)")
-            return false
-        }
-    }
 
     @discardableResult
     public func deleteModule(filename: String, directory: String = "plugins") -> Bool {

@@ -59,10 +59,6 @@ declare const macotron: {
         show(title: string, body: string, opts?: { sound?: boolean }): void;
     };
 
-    camera: {
-        isActive(): boolean;
-    };
-
     url: {
         on(scheme: string, host: string, callback: (event: { url: string; scheme: string; host: string; path: string }) => void): void;
         open(url: string, bundleID?: string, profile?: string): boolean;

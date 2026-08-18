@@ -60,9 +60,7 @@ Sources/
 │   ├── ScreenModule.swift
 │   ├── ShellModule.swift
 │   ├── NotifyModule.swift
-│   ├── CameraModule.swift
 │   ├── URLSchemeModule.swift
-│   ├── USBModule.swift
 │   ├── FileSystemModule.swift
 │   ├── ClipboardModule.swift
 │   ├── AIModule.swift           # Exposes macotron.ai to plugins
@@ -73,7 +71,6 @@ Sources/
 │   ├── HTTPModule.swift
 │   ├── MenuBarModule.swift
 │   ├── DisplayModule.swift
-│   ├── TimerModule.swift
 │   ├── LocalStorageModule.swift
 │   └── KeychainModule.swift
 │
@@ -81,7 +78,6 @@ Sources/
     ├── AIProvider.swift
     ├── ClaudeProvider.swift
     ├── OpenAIProvider.swift
-    ├── GeminiProvider.swift
     └── LocalProvider.swift      # Apple Foundation Models
 ```
 
@@ -100,7 +96,7 @@ The user picks one directory. That directory is the plugins workdir and a git re
 ├── AGENTS.md                # app-owned — do not edit
 ├── CLAUDE.md                # app-owned — do not edit
 ├── plugins/
-│   └── example-hello.js
+│   └── *.js
 └── .cache/                  # bytecode (gitignored)
 ```
 

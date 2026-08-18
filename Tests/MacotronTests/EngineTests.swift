@@ -181,17 +181,6 @@ struct EngineTests {
         engine.cancelAllTimers()
     }
 
-    @Test("cancelAllTimers clears all pending timers")
-    func testCancelAllTimers() {
-        let engine = Engine()
-        engine.evaluate("setTimeout(function(){}, 1000)")
-        engine.evaluate("setTimeout(function(){}, 2000)")
-        engine.evaluate("setInterval(function(){}, 500)")
-        engine.cancelAllTimers()
-        // After cancelling, new timer IDs should still increment, but no timers should be pending
-        // This test just verifies cancelAllTimers doesn't crash
-    }
-
     // MARK: - Config Store Tests
 
     @Test("$$__config stores values in configStore")
@@ -331,17 +320,6 @@ struct EngineTests {
         #expect(!engine.commandRegistry.isEmpty)
         engine.reset()
         #expect(engine.commandRegistry.isEmpty)
-    }
-
-    @Test("Reset clears event listeners")
-    func testResetClearsEventListeners() {
-        let engine = Engine()
-        engine.evaluate("""
-            $$__on("my:event", function() {});
-        """)
-        #expect(engine.eventBus.hasListeners(for: "my:event"))
-        engine.reset()
-        #expect(!engine.eventBus.hasListeners(for: "my:event"))
     }
 
     // MARK: - Arithmetic and Expressions

@@ -26,7 +26,6 @@ public final class Engine {
     private var modules: [NativeModule] = []
     private var timers: [UInt32: DispatchSourceTimer] = [:]
     private var nextTimerID: UInt32 = 1
-    private var shouldInterrupt = false
     private var interruptDeadline: Date?
 
     /// Registered commands keyed by stable id
@@ -134,7 +133,7 @@ public final class Engine {
             if let deadline = engine.interruptDeadline, Date() > deadline {
                 return 1
             }
-            return engine.shouldInterrupt ? 1 : 0
+            return 0
         }, opaque)
     }
 

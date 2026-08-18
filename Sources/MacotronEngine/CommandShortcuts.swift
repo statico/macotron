@@ -17,17 +17,8 @@ public struct CommandShortcuts: Equatable, Sendable {
         bindings[commandId] = normalized
     }
 
-    public mutating func clear(commandId: String) {
-        bindings.removeValue(forKey: commandId)
-    }
-
     public func combo(for commandId: String) -> String {
         bindings[commandId] ?? ""
-    }
-
-    public func commandId(forCombo combo: String) -> String? {
-        let normalized = combo.lowercased()
-        return bindings.first(where: { $0.value == normalized })?.key
     }
 
     public static func load(from object: Any?) -> CommandShortcuts {
