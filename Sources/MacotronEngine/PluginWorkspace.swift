@@ -205,6 +205,7 @@ public final class PluginWorkspace {
         "modules": [:] as [String: Any],
         "pluginSettings": [:] as [String: Any],
         "disabledPlugins": [] as [String],
+        "commandShortcuts": [:] as [String: String],
         "security": ["shell": ["allow": [] as [String], "strict": false]],
     ]
 
@@ -268,6 +269,30 @@ public final class PluginWorkspace {
           macotron.notify.show("Hello", "From a Macotron plugin");
         });
         ```
+
+        ## Launcher commands
+
+        ```js
+        macotron.command("Generate Lorem Ipsum", "Placeholder text", (args) => {
+          macotron.clipboard.set(String(args.count) + " " + args.unit);
+        }, {
+          id: "lorem-ipsum",
+          arguments: [
+            { name: "count", type: "number", placeholder: "Count", default: 3 },
+            { name: "unit", type: "dropdown", placeholder: "Unit", default: "paragraphs",
+              choices: [
+                { title: "Words", value: "words" },
+                { title: "Lines", value: "lines" },
+                { title: "Paragraphs", value: "paragraphs" },
+              ],
+            },
+          ],
+        });
+        ```
+
+        The three-argument form still works. `id` is optional; the default is `{filename}/{name}`.
+        Set `id` if the user will assign a shortcut. Users set shortcuts in Settings → Plugins.
+        Do not call `keyboard.on` for launcher commands.
 
         ## Permissions
 
@@ -347,6 +372,7 @@ public final class PluginWorkspace {
           "modules": {},
           "pluginSettings": {},
           "disabledPlugins": [],
+          "commandShortcuts": {},
           "security": { "shell": { "allow": [], "strict": false } }
         }
         ```
@@ -363,6 +389,8 @@ public final class PluginWorkspace {
         Plugins may call `macotron.ai.claude()`, `macotron.ai.openai()`, or `macotron.ai.local()`.
         Prefer a `password` option for API keys (the user sets it in Settings);
         `macotron.keychain.get("anthropic-api-key")` also works for shared keys.
+        `ai.chat` / `ai.stream` accept a string or `[{role, content}]`. Use `stream` with
+        `onChunk` for token updates. Save chat history yourself via `localStorage`.
         """
     }
 

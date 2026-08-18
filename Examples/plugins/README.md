@@ -23,6 +23,7 @@ Copy into your Macotron workdir `plugins/` to try. Most register launcher comman
 | demo-weather.js | http + menubar | Refresh Weather |
 | demo-pomodoro.js | timer + menubar | Start Pomodoro |
 | demo-datetime.js | clipboard.set | Insert ISO Date |
+| demo-lorem.js | command arguments | Generate Lorem Ipsum |
 | demo-screen-ai-summary.js | screen + ai | Summarize Screen |
 | demo-ai-chat.js | panel + ai | AI Chat |
 | demo-window-hopper.js | window.getAll + panel | Switch Window |

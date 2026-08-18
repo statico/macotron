@@ -102,7 +102,12 @@ public final class DebugServer {
 
         case (_, "/commands"):
             let cmds = engine.commandRegistry.map { (key, val) in
-                ["name": val.name, "description": val.description]
+                [
+                    "id": val.id,
+                    "name": val.name,
+                    "description": val.description,
+                    "arguments": val.arguments.map(\.name),
+                ] as [String: Any]
             }
             let data = try! JSONSerialization.data(withJSONObject: cmds)
             return (data, "application/json")

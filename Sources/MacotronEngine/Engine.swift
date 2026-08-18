@@ -5,6 +5,15 @@ import os
 
 private let logger = Logger(subsystem: "com.macotron", category: "engine")
 
+public struct RegisteredCommand {
+    public let id: String
+    public let name: String
+    public let description: String
+    public let pluginFile: String
+    public let arguments: [CommandArgumentSpec]
+    public var callback: JSValue
+}
+
 @MainActor
 public final class Engine {
     /// Semver of the plugin-facing JS API (`macotron.version.api`).
@@ -20,8 +29,8 @@ public final class Engine {
     private var shouldInterrupt = false
     private var interruptDeadline: Date?
 
-    /// Registered commands (name → callback)
-    public var commandRegistry: [String: (name: String, description: String, callback: JSValue)] = [:]
+    /// Registered commands keyed by stable id
+    public var commandRegistry: [String: RegisteredCommand] = [:]
 
     /// Config store (populated by macotron.config() calls)
     public var configStore: [String: Any] = [:]
@@ -235,13 +244,36 @@ public final class Engine {
                 let name = JSBridge.toString(ctx, argv[0]) ?? ""
                 let desc = JSBridge.toString(ctx, argv[1]) ?? ""
                 let opaque = JS_GetContextOpaque(ctx)
-                if let opaque {
-                    let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-                    let callback = JS_DupValue(ctx, argv[2])
-                    engine.commandRegistry[name] = (name: name, description: desc, callback: callback)
+                guard let opaque else { return QJS_Undefined() }
+                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+                let callback = JS_DupValue(ctx, argv[2])
+
+                var opts: [String: Any] = [:]
+                if argc >= 4, !JSBridge.isUndefined(argv[3]), !JSBridge.isNull(argv[3]) {
+                    opts = JSBridge.jsToSwift(ctx, argv[3]) as? [String: Any] ?? [:]
                 }
+
+                let pluginFile = engine.currentEvaluatingFile ?? ""
+                var commandID = pluginFile.isEmpty ? name : "\(pluginFile)/\(name)"
+                if let explicit = opts["id"] as? String, !explicit.isEmpty {
+                    commandID = explicit
+                }
+                let arguments = CommandArgumentSpec.parseList(opts["arguments"])
+
+                if engine.commandRegistry[commandID] != nil {
+                    NSLog("[Macotron] command id '%@' overwritten", commandID)
+                }
+
+                engine.commandRegistry[commandID] = RegisteredCommand(
+                    id: commandID,
+                    name: name,
+                    description: desc,
+                    pluginFile: pluginFile,
+                    arguments: arguments,
+                    callback: callback
+                )
                 return QJS_Undefined()
-            }, "$$__registerCommand", 3))
+            }, "$$__registerCommand", 4))
 
         // $$__requirePermissions — called by macotron.requirePermissions()
         JS_SetPropertyStr(context, global, "$$__requirePermissions",
@@ -395,6 +427,16 @@ public final class Engine {
         if let str { JS_FreeCString(context, str) }
         JS_FreeValue(context, result)
         return (output, nil)
+    }
+
+    @discardableResult
+    public func invokeCommand(_ id: String, args: [String: Any] = [:]) -> Bool {
+        guard let cmd = commandRegistry[id] else { return false }
+        var arg = JSBridge.newObject(context, args)
+        _ = JS_Call(context, cmd.callback, QJS_Undefined(), 1, &arg)
+        JS_FreeValue(context, arg)
+        drainJobQueue()
+        return true
     }
 
     /// Compile JS source to bytecode for caching.
