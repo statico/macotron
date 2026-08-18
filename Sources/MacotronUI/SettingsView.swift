@@ -3,6 +3,18 @@ import AppKit
 import MacotronEngine
 import SwiftUI
 
+/// One choice in a `dropdown` plugin option
+public struct ModuleOptionChoice: Identifiable, Equatable {
+    public let value: String
+    public let label: String
+    public var id: String { value }
+
+    public init(value: String, label: String) {
+        self.value = value
+        self.label = label
+    }
+}
+
 /// A configurable option exposed by a plugin
 public struct ModuleOption: Identifiable {
     public let id: String
@@ -11,15 +23,26 @@ public struct ModuleOption: Identifiable {
     public let type: String
     public let defaultValue: Any
     public var currentValue: Any
+    public let required: Bool
+    /// Whether the option currently has a usable value (Keychain secret for passwords).
+    public let isSet: Bool
+    public let choices: [ModuleOptionChoice]
 
-    public init(key: String, label: String, type: String, defaultValue: Any, currentValue: Any) {
+    public init(key: String, label: String, type: String, defaultValue: Any, currentValue: Any,
+                required: Bool = false, isSet: Bool = true, choices: [ModuleOptionChoice] = []) {
         self.id = key
         self.key = key
         self.label = label
         self.type = type
         self.defaultValue = defaultValue
         self.currentValue = currentValue
+        self.required = required
+        self.isSet = isSet
+        self.choices = choices
     }
+
+    /// Required but without a value — Settings surfaces a needs-setup hint.
+    public var needsSetup: Bool { required && !isSet }
 }
 
 /// Summary info for a single plugin
@@ -70,6 +93,8 @@ public final class SettingsState: ObservableObject {
     public var writeShowMenuBarIcon: ((Bool) -> Void)?
     public var loadModuleSummaries: (() -> [ModuleSummary])?
     public var saveModuleOption: ((_ filename: String, _ key: String, _ value: Any) -> Void)?
+    public var saveModuleSecret: ((_ filename: String, _ key: String, _ secret: String) -> Void)?
+    public var clearModuleSecret: ((_ filename: String, _ key: String) -> Void)?
     public var deleteModule: ((_ filename: String) -> Bool)?
     public var changePluginsFolder: (() -> Void)?
     public var openPluginsFolder: (() -> Void)?
@@ -394,8 +419,19 @@ public struct SettingsView: View {
 struct ModuleSummaryRow: View {
     let summary: ModuleSummary
     @ObservedObject var state: SettingsState
-    @State private var isExpanded: Bool = false
+    @State private var isExpanded: Bool
     @State private var showDeleteAlert: Bool = false
+
+    /// Any required option without a value — expand the form and badge the row.
+    private var needsSetup: Bool {
+        summary.options.contains { $0.needsSetup }
+    }
+
+    init(summary: ModuleSummary, state: SettingsState) {
+        self.summary = summary
+        self._state = ObservedObject(wrappedValue: state)
+        self._isExpanded = State(initialValue: summary.options.contains { $0.needsSetup })
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -417,9 +453,15 @@ struct ModuleSummaryRow: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(summary.title)
-                        .font(.system(size: 13, weight: .medium))
-                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        Text(summary.title)
+                            .font(.system(size: 13, weight: .medium))
+                            .lineLimit(1)
+
+                        if needsSetup {
+                            badge(text: "Needs setup", color: .orange)
+                        }
+                    }
 
                     Text(summary.filename)
                         .font(.system(size: 10, design: .monospaced))
@@ -457,6 +499,12 @@ struct ModuleSummaryRow: View {
                 }
 
                 Spacer()
+
+                if !isExpanded && !summary.options.isEmpty {
+                    Text("\(summary.options.count) \(summary.options.count == 1 ? "setting" : "settings")")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                }
 
                 Button {
                     showDeleteAlert = true
@@ -517,6 +565,7 @@ struct ModuleOptionRow: View {
     @State private var boolValue: Bool = false
     @State private var numberValue: String = ""
     @State private var hotkeyValue: String = ""
+    @State private var passwordValue: String = ""
 
     var body: some View {
         Group {
@@ -532,7 +581,7 @@ struct ModuleOptionRow: View {
                     }
             case "number":
                 HStack(spacing: 8) {
-                    Text(option.label).font(.system(size: 12)).foregroundStyle(.secondary)
+                    labelText
                     TextField("", text: $numberValue)
                         .font(.system(size: 12, design: .monospaced))
                         .textFieldStyle(.roundedBorder)
@@ -547,16 +596,82 @@ struct ModuleOptionRow: View {
                 }
             case "keybinding":
                 HStack(spacing: 8) {
-                    Text(option.label).font(.system(size: 12)).foregroundStyle(.secondary)
+                    labelText
                     HotkeyRecorderView(combo: $hotkeyValue) {
                         state.saveModuleOption?(filename, option.key, hotkeyValue)
                         state.refreshModules()
                     }
                     .onAppear { hotkeyValue = (option.currentValue as? String) ?? "" }
                 }
+            case "dropdown":
+                HStack(spacing: 8) {
+                    labelText
+                    if option.choices.isEmpty {
+                        // Invalid declaration — the host logs a metadata warning.
+                        Text("No choices defined")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
+                    } else {
+                        Picker("", selection: Binding(
+                            get: { (option.currentValue as? String) ?? "" },
+                            set: { newValue in
+                                guard !newValue.isEmpty else { return }
+                                state.saveModuleOption?(filename, option.key, newValue)
+                                state.refreshModules()
+                            }
+                        )) {
+                            ForEach(option.choices) { choice in
+                                Text(choice.label).tag(choice.value)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .fixedSize()
+                    }
+                }
+            case "password":
+                HStack(spacing: 8) {
+                    labelText
+                    SecureField("Enter value", text: $passwordValue)
+                        .font(.system(size: 12, design: .monospaced))
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 200)
+                    Button("Set") {
+                        state.saveModuleSecret?(filename, option.key, passwordValue)
+                        passwordValue = ""
+                        state.refreshModules()
+                    }
+                    .controlSize(.small)
+                    .disabled(passwordValue.isEmpty)
+                    if option.isSet {
+                        Button("Clear") {
+                            state.clearModuleSecret?(filename, option.key)
+                            state.refreshModules()
+                        }
+                        .controlSize(.small)
+                    }
+                    Text(option.isSet ? "Set" : "Not set")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(option.isSet ? .green : .secondary)
+                }
+            case "file", "directory":
+                HStack(spacing: 8) {
+                    labelText
+                    let path = (option.currentValue as? String) ?? ""
+                    Text(path.isEmpty ? "Not set" : path)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(path.isEmpty ? .tertiary : .secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: 220, alignment: .leading)
+                        .help(path)
+                    Button("Choose…") {
+                        choosePath()
+                    }
+                    .controlSize(.small)
+                }
             default:
                 HStack(spacing: 8) {
-                    Text(option.label).font(.system(size: 12)).foregroundStyle(.secondary)
+                    labelText
                     TextField("", text: $stringValue)
                         .font(.system(size: 12, design: .monospaced))
                         .textFieldStyle(.roundedBorder)
@@ -568,5 +683,30 @@ struct ModuleOptionRow: View {
                 }
             }
         }
+    }
+
+    private var labelText: some View {
+        HStack(spacing: 6) {
+            Text(option.label)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+            if option.needsSetup {
+                Text("Required")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+
+    private func choosePath() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = option.type == "file"
+        panel.canChooseDirectories = option.type == "directory"
+        panel.canCreateDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Choose"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        state.saveModuleOption?(filename, option.key, url.path(percentEncoded: false))
+        state.refreshModules()
     }
 }

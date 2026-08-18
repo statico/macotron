@@ -198,6 +198,7 @@ public final class PluginWorkspace {
         "launcher": ["hotkey": "cmd+space"],
         "ui": ["showDockIcon": true, "showMenuBarIcon": true],
         "modules": [:] as [String: Any],
+        "pluginSettings": [:] as [String: Any],
         "security": ["shell": ["allow": [] as [String], "strict": false]],
     ]
 
@@ -285,6 +286,47 @@ public final class PluginWorkspace {
 
         The page may call `webkit.messageHandlers.macotron.postMessage(data)`.
 
+        ## Plugin settings
+
+        Declare configurable options with `macotron.module({ options })`. The user
+        edits values in Macotron Settings → Plugins; the plugin reads the resolved
+        values from the `macotron.module()` return value. Do not hand-edit
+        `pluginSettings` to configure plugins — use the Settings UI.
+
+        ```js
+        const opts = macotron.module({
+          title: "Chat",
+          description: "Talk to a model",
+          options: {
+            model: {
+              type: "dropdown",
+              label: "Model",
+              default: "sonnet",
+              choices: [
+                { value: "sonnet", label: "Claude Sonnet" },
+                { value: "opus", label: "Claude Opus" },
+              ],
+            },
+            apiKey: { type: "password", label: "Anthropic API key", required: true },
+            openHotkey: { type: "keybinding", label: "Open chat", default: "cmd+shift+c" },
+            notesFile: { type: "file", label: "Notes file" },
+            workspace: { type: "directory", label: "Workspace folder" },
+          },
+        });
+        // opts.apiKey === resolved secret string (or "")
+        ```
+
+        Option types: `string`, `boolean`, `number`, `keybinding`, `dropdown`
+        (requires `choices: [{ value, label }]`), `password`, `file`, `directory`.
+        Every option takes `label`, optional `default`, and optional `required`
+        (Settings shows a "Needs setup" hint while a required option is unset).
+
+        `password` options: the secret lives in the macOS Keychain. `settings.json`
+        stores only a Keychain ref like `macotron.plugin.chat.js.apiKey`. Refs may
+        be committed; real secrets must never appear in JSON or plugin source.
+        `macotron.module()` returns the resolved secret string, never the ref.
+        `file` / `directory` store absolute path strings.
+
         ## settings.json schema
 
         ```json
@@ -292,6 +334,7 @@ public final class PluginWorkspace {
           "launcher": { "hotkey": "cmd+space" },
           "ui": { "showDockIcon": true, "showMenuBarIcon": true },
           "modules": {},
+          "pluginSettings": {},
           "security": { "shell": { "allow": [], "strict": false } }
         }
         ```
@@ -299,12 +342,14 @@ public final class PluginWorkspace {
         ## Git
 
         Commit often on `main`. Never commit secrets (API keys, tokens, passwords).
-        Store secrets with `macotron.keychain`. Macotron only runs `git init`; you commit.
+        Declare `password` options and let the user set them in Settings, or store
+        secrets with `macotron.keychain`. Macotron only runs `git init`; you commit.
 
         ## AI from plugins
 
         Plugins may call `macotron.ai.claude()`, `macotron.ai.openai()`, or `macotron.ai.local()`.
-        Read API keys from the keychain: `macotron.keychain.get("anthropic-api-key")`.
+        Prefer a `password` option for API keys (the user sets it in Settings);
+        `macotron.keychain.get("anthropic-api-key")` also works for shared keys.
         """
     }
 
