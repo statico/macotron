@@ -11,7 +11,7 @@ private let logger = Logger(subsystem: "com.macotron", category: "keychain")
 public final class KeychainModule: NativeModule {
     public let name = "keychain"
 
-    private static let serviceName = "com.macotron"
+    private static let serviceName = KeychainStore.serviceName
 
     public init() {}
 
@@ -19,43 +19,17 @@ public final class KeychainModule: NativeModule {
 
     /// Write a value to the Keychain. Usable from Swift without a JS context.
     public static func writeToKeychain(key: String, value: String) {
-        guard let data = value.data(using: .utf8) else { return }
-
-        let searchQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: serviceName,
-            kSecAttrAccount as String: key,
-        ]
-        let updateAttrs: [String: Any] = [
-            kSecValueData as String: data,
-        ]
-
-        let status = SecItemUpdate(searchQuery as CFDictionary, updateAttrs as CFDictionary)
-        if status == errSecItemNotFound {
-            var addQuery = searchQuery
-            addQuery[kSecValueData as String] = data
-            SecItemAdd(addQuery as CFDictionary, nil)
-        }
+        KeychainStore.write(account: key, value: value)
     }
 
     /// Read a value from the Keychain by key name. Usable from Swift without a JS context.
     public static func readFromKeychain(key: String) -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: serviceName,
-            kSecAttrAccount as String: key,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
+        KeychainStore.read(account: key)
+    }
 
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        if status == errSecSuccess, let data = result as? Data,
-           let str = String(data: data, encoding: .utf8) {
-            return str
-        }
-        return nil
+    /// Delete a value from the Keychain. Usable from Swift without a JS context.
+    public static func deleteFromKeychain(key: String) {
+        KeychainStore.delete(account: key)
     }
 
     // MARK: - NativeModule
@@ -72,20 +46,8 @@ public final class KeychainModule: NativeModule {
             guard let ctx, let argv, argc >= 1 else { return QJS_Null() }
             guard let key = JSBridge.toString(ctx, argv[0]) else { return QJS_Null() }
 
-            let query: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: KeychainModule.serviceName,
-                kSecAttrAccount as String: key,
-                kSecReturnData as String: true,
-                kSecMatchLimit as String: kSecMatchLimitOne,
-            ]
-
-            var result: AnyObject?
-            let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-            if status == errSecSuccess, let data = result as? Data,
-               let str = String(data: data, encoding: .utf8) {
-                return JSBridge.newString(ctx, str)
+            if let value = KeychainStore.read(account: key) {
+                return JSBridge.newString(ctx, value)
             }
             return QJS_Null()
         }, "get", 1))
@@ -96,32 +58,7 @@ public final class KeychainModule: NativeModule {
             guard let key = JSBridge.toString(ctx, argv[0]),
                   let value = JSBridge.toString(ctx, argv[1]) else { return QJS_Undefined() }
 
-            guard let valueData = value.data(using: .utf8) else { return QJS_Undefined() }
-
-            // Try to update first
-            let searchQuery: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: KeychainModule.serviceName,
-                kSecAttrAccount as String: key,
-            ]
-            let updateAttrs: [String: Any] = [
-                kSecValueData as String: valueData,
-            ]
-
-            let updateStatus = SecItemUpdate(searchQuery as CFDictionary, updateAttrs as CFDictionary)
-
-            if updateStatus == errSecItemNotFound {
-                // Item doesn't exist yet -- add it
-                var addQuery = searchQuery
-                addQuery[kSecValueData as String] = valueData
-                let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
-                if addStatus != errSecSuccess {
-                    logger.error("keychain.set: SecItemAdd failed with status \(addStatus)")
-                }
-            } else if updateStatus != errSecSuccess {
-                logger.error("keychain.set: SecItemUpdate failed with status \(updateStatus)")
-            }
-
+            KeychainStore.write(account: key, value: value)
             return QJS_Undefined()
         }, "set", 2))
 
@@ -130,17 +67,7 @@ public final class KeychainModule: NativeModule {
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             guard let key = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
 
-            let query: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: KeychainModule.serviceName,
-                kSecAttrAccount as String: key,
-            ]
-
-            let status = SecItemDelete(query as CFDictionary)
-            if status != errSecSuccess && status != errSecItemNotFound {
-                logger.error("keychain.delete: SecItemDelete failed with status \(status)")
-            }
-
+            KeychainStore.delete(account: key)
             return QJS_Undefined()
         }, "delete", 1))
 

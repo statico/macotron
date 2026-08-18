@@ -76,6 +76,27 @@ public final class ModuleManager {
         saveModuleSettings(settings)
     }
 
+    /// Store a password option: secret goes to the Keychain, settings.json gets the ref.
+    public func saveModuleSecret(filename: String, key: String, secret: String) {
+        let account = KeychainStore.pluginOptionAccount(filename: filename, key: key)
+        KeychainStore.write(account: account, value: secret)
+        saveModuleOption(filename: filename, key: key, value: account)
+    }
+
+    /// Clear a password option: delete the Keychain item and remove the JSON ref.
+    public func clearModuleSecret(filename: String, key: String) {
+        var settings = loadModuleSettings()
+        var fileSettings = settings[filename] ?? [:]
+        // Delete whatever ref is stored — it may differ from the computed account
+        // if the plugin file was renamed since the secret was set.
+        if let ref = fileSettings[key] as? String, !ref.isEmpty {
+            KeychainStore.delete(account: ref)
+        }
+        fileSettings.removeValue(forKey: key)
+        settings[filename] = fileSettings
+        saveModuleSettings(settings)
+    }
+
     // MARK: - Reload
 
     public func reloadAll() {
@@ -85,15 +106,17 @@ public final class ModuleManager {
         engine.reset()
         engine.moduleSettings = loadModuleSettings()
 
-        if let runtimeURL = Bundle.main.url(forResource: "macotron-runtime", withExtension: "js"),
-           let runtimeJS = try? String(contentsOf: runtimeURL, encoding: .utf8) {
-            engine.evaluate(runtimeJS, filename: "macotron-runtime.js")
-        }
-
         // Map settings.json into configStore (replaces config.js + macotron.config())
         engine.configStore = workspace.readSettings()
 
         engine.registerAllModules()
+
+        // Evaluate the runtime after the final registerAllModules: registration
+        // replaces the global macotron object, so helpers must land on it last.
+        if let runtimeURL = Bundle.main.url(forResource: "macotron-runtime", withExtension: "js"),
+           let runtimeJS = try? String(contentsOf: runtimeURL, encoding: .utf8) {
+            engine.evaluate(runtimeJS, filename: "macotron-runtime.js")
+        }
 
         let pluginFiles = listJSFiles(in: workspace.pluginsDir)
             .sorted { $0.lastPathComponent < $1.lastPathComponent }

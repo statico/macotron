@@ -291,12 +291,22 @@ public final class Engine {
                 // Store the metadata for the settings UI to read later
                 engine.moduleMetadata[filename] = metadata
 
-                // Build resolved options: defaults merged with user overrides
+                // Build resolved options: defaults merged with user overrides.
+                // Password options store a Keychain account ref in settings.json;
+                // the plugin always sees the resolved secret (or ""), never the ref.
                 let optionDefs = metadata["options"] as? [String: [String: Any]] ?? [:]
                 let userOverrides = engine.moduleSettings[filename] ?? [:]
                 var resolved: [String: Any] = [:]
                 for (key, def) in optionDefs {
-                    if let userVal = userOverrides[key] {
+                    let type = def["type"] as? String ?? "string"
+                    if type == "password" {
+                        if let ref = userOverrides[key] as? String, !ref.isEmpty,
+                           let secret = KeychainStore.read(account: ref), !secret.isEmpty {
+                            resolved[key] = secret
+                        } else {
+                            resolved[key] = ""
+                        }
+                    } else if let userVal = userOverrides[key] {
                         resolved[key] = userVal
                     } else if let defaultVal = def["default"] {
                         resolved[key] = defaultVal
