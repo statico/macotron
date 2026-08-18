@@ -15,7 +15,7 @@ public final class SettingsWindow {
     /// The window is not resizable, so the content is pinned to this size. The
     /// root view fills its parent, which would otherwise grow the window to the
     /// full height of the screen.
-    private static let contentSize = NSSize(width: 660, height: 460)
+    private static let contentSize = NSSize(width: 760, height: 520)
 
     public func show() {
         // Switch to regular activation policy so the Edit menu appears (enables Cmd+V paste)
