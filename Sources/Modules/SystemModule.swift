@@ -1,8 +1,10 @@
 // SystemModule.swift — macotron.system: CPU temp, memory, battery info
 import CQuickJS
+import Darwin
 import Foundation
 import MacotronEngine
 import IOKit.ps
+import Metal
 import os
 
 private let logger = Logger(subsystem: "com.macotron", category: "system")
@@ -130,6 +132,84 @@ public final class SystemModule: NativeModule {
                 "used": max(0, total - free)
             ])
         }, "disk", 0))
+
+        // macotron.system.network() -> {bytesIn, bytesOut}
+        JS_SetPropertyStr(ctx, systemObj, "network",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+
+            var bytesIn: UInt64 = 0
+            var bytesOut: UInt64 = 0
+            var ifaddr: UnsafeMutablePointer<ifaddrs>?
+            if getifaddrs(&ifaddr) == 0, let first = ifaddr {
+                defer { freeifaddrs(ifaddr) }
+                var ptr: UnsafeMutablePointer<ifaddrs>? = first
+                while let cur = ptr {
+                    let name = String(cString: cur.pointee.ifa_name)
+                    if name != "lo0",
+                       let addr = cur.pointee.ifa_addr, addr.pointee.sa_family == UInt8(AF_LINK),
+                       let data = cur.pointee.ifa_data {
+                        let ifd = data.assumingMemoryBound(to: if_data.self)
+                        bytesIn += UInt64(ifd.pointee.ifi_ibytes)
+                        bytesOut += UInt64(ifd.pointee.ifi_obytes)
+                    }
+                    ptr = cur.pointee.ifa_next
+                }
+            }
+
+            return JSBridge.newObject(ctx, [
+                "bytesIn": Double(bytesIn),
+                "bytesOut": Double(bytesOut)
+            ])
+        }, "network", 0))
+
+        // macotron.system.processes(limit?) -> [{name, pid, cpu}]
+        JS_SetPropertyStr(ctx, systemObj, "processes",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+
+            var limit = 10
+            if let argv, argc > 0, !JS_IsUndefined(argv[0]), !JS_IsNull(argv[0]) {
+                limit = max(0, Int(JSBridge.toInt32(ctx, argv[0])))
+            }
+
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/bin/ps")
+            proc.arguments = ["-Ao", "pid,pcpu,comm", "-r"]
+            let pipe = Pipe()
+            proc.standardOutput = pipe
+            proc.standardError = FileHandle.nullDevice
+            do {
+                try proc.run()
+                proc.waitUntilExit()
+            } catch {
+                return JSBridge.newArray(ctx, [])
+            }
+
+            let text = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            var results: [Any] = []
+            for line in text.split(separator: "\n").dropFirst() {
+                if results.count >= limit { break }
+                let parts = line.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+                guard parts.count >= 3,
+                      let pid = Int(parts[0]),
+                      let cpu = Double(parts[1]) else { continue }
+                results.append([
+                    "name": parts.dropFirst(2).joined(separator: " "),
+                    "pid": pid,
+                    "cpu": cpu
+                ] as [String: Any])
+            }
+            return JSBridge.newArray(ctx, results)
+        }, "processes", 1))
+
+        // macotron.system.gpu() -> {name} | null
+        JS_SetPropertyStr(ctx, systemObj, "gpu",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+            guard let name = MTLCreateSystemDefaultDevice()?.name else { return QJS_Null() }
+            return JSBridge.newObject(ctx, ["name": name])
+        }, "gpu", 0))
 
         JS_SetPropertyStr(ctx, macotron, "system", systemObj)
         JS_FreeValue(ctx, macotron)
