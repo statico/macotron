@@ -196,7 +196,12 @@ public final class PluginWorkspace {
 
     public static let defaultSettings: [String: Any] = [
         "launcher": ["hotkey": "cmd+space"],
-        "ui": ["showDockIcon": true, "showMenuBarIcon": true],
+        "ui": [
+            "showDockIcon": true,
+            "showMenuBarIcon": true,
+            "appearance": "system",
+            "textScale": 1.0,
+        ],
         "modules": [:] as [String: Any],
         "pluginSettings": [:] as [String: Any],
         "disabledPlugins": [] as [String],
