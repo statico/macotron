@@ -149,6 +149,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.settingsState.requestedTab = tab
                 self?.settingsWindow.show()
             }
+            debugServer?.onToggleLauncher = { [weak self] in
+                self?.launcherPanel.toggle()
+            }
             debugServer?.captureLauncher = {
                 let view = LauncherView().frame(width: 680, height: 480)
                 return Self.renderViewToPNG(view, size: NSSize(width: 680, height: 480))

@@ -16,6 +16,7 @@ public final class DebugServer {
 
     public var onOpenSettings: (() -> Void)?
     public var onOpenSettingsTab: ((Int) -> Void)?
+    public var onToggleLauncher: (() -> Void)?
     public var captureWindow: ((Int?) -> Data?)?
     public var captureLauncher: (() -> Data?)?
     public var captureWizard: ((String?) -> Data?)?
@@ -126,6 +127,10 @@ public final class DebugServer {
             onOpenSettingsTab?(tab)
             return ("opened".data(using: .utf8)!, "text/plain")
 
+        case (_, "/open"):
+            onToggleLauncher?()
+            return ("toggled".data(using: .utf8)!, "text/plain")
+
         case (_, "/screenshot"):
             // Optional ?view=launcher or ?tab=N query parameter
             let params = Dictionary(uniqueKeysWithValues:
@@ -156,6 +161,7 @@ public final class DebugServer {
                 "GET  /commands       - List registered commands",
                 "GET  /backups        - List config backups",
                 "POST /open-settings  - Open settings (body: {\"tab\": 0})",
+                "POST /open           - Toggle the launcher panel",
                 "GET  /screenshot     - Screenshot frontmost Macotron window",
             ]
             let text = "Macotron Debug Server\n\nRoutes:\n" + routes.joined(separator: "\n")

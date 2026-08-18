@@ -35,9 +35,13 @@ public final class LauncherPanel: NSPanel {
         isOpaque = false
         hasShadow = true
         animationBehavior = .utilityWindow
-        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
+        // No .transient and no hidesOnDeactivate: both auto-hide the panel the
+        // instant this accessory app loses active status, which races with the
+        // global-hotkey activation and makes the launcher flash and vanish.
+        // Dismissal is handled explicitly via windowDidResignKey instead.
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         becomesKeyOnlyIfNeeded = false
-        hidesOnDeactivate = true
+        hidesOnDeactivate = false
         center()
 
         // Vibrancy background
@@ -55,6 +59,7 @@ public final class LauncherPanel: NSPanel {
         visual.addSubview(contentView)
 
         self.contentView = visual
+        self.delegate = self
     }
 
     public override var canBecomeKey: Bool { true }
@@ -102,6 +107,7 @@ public final class LauncherPanel: NSPanel {
         if let textField = contentView?.firstEditableTextField() {
             makeFirstResponder(textField)
         }
+        isShown = true
     }
 
     /// Dismiss on Escape key
@@ -109,10 +115,15 @@ public final class LauncherPanel: NSPanel {
         toggle()
     }
 
+    /// True once the panel is fully shown, so the resign-key handler ignores the
+    /// transient key changes that happen while it is still being revealed.
+    private var isShown = false
+
     public func toggle() {
         if isVisible {
             orderOut(nil)
             pendingReveal = false
+            isShown = false
         } else {
             // Use cached height on subsequent opens to avoid the tall-then-shrink flash.
             // On first open, use maxHeight so SwiftUI has full space for layout.
@@ -141,6 +152,7 @@ public final class LauncherPanel: NSPanel {
                 if let textField = contentView?.firstEditableTextField() {
                     makeFirstResponder(textField)
                 }
+                isShown = true
             } else {
                 // First open — show invisible, wait for SwiftUI to report height.
                 alphaValue = 0
@@ -154,5 +166,17 @@ public final class LauncherPanel: NSPanel {
                 }
             }
         }
+    }
+}
+
+extension LauncherPanel: NSWindowDelegate {
+    /// Dismiss when the launcher loses key focus — clicking another app or
+    /// window, or switching away. This replaces the activation-based auto-hide
+    /// that was racing with the global hotkey.
+    public func windowDidResignKey(_ notification: Notification) {
+        guard isShown, isVisible else { return }
+        orderOut(nil)
+        pendingReveal = false
+        isShown = false
     }
 }
