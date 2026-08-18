@@ -139,8 +139,7 @@ public final class AIModule: NativeModule {
 
     // MARK: - Client Object Builder
 
-    /// Create a JS object with .chat(prompt, opts) and .stream(prompt, opts) methods.
-    /// These methods perform synchronous HTTP calls via a semaphore (temporary approach).
+    /// Create a JS object with .chat and .stream methods.
     @MainActor
     private static func createClientObject(
         ctx: OpaquePointer,
@@ -150,7 +149,6 @@ public final class AIModule: NativeModule {
     ) -> JSValue {
         let clientObj = JS_NewObject(ctx)
 
-        // Store provider info as properties on the object
         JS_SetPropertyStr(ctx, clientObj, "_provider", JSBridge.newString(ctx, providerName))
         if let apiKey {
             JS_SetPropertyStr(ctx, clientObj, "_apiKey", JSBridge.newString(ctx, apiKey))
@@ -159,14 +157,17 @@ public final class AIModule: NativeModule {
             JS_SetPropertyStr(ctx, clientObj, "_model", JSBridge.newString(ctx, model))
         }
 
-        // .chat(prompt, opts?) → string
         JS_SetPropertyStr(ctx, clientObj, "chat",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
 
-            let prompt = JSBridge.toString(ctx, argv[0]) ?? ""
+            let messages: [AIChatMessage]
+            do {
+                messages = try AIModule.parseMessages(ctx: ctx, value: argv[0])
+            } catch {
+                return error.localizedDescription.withCString { QJS_ThrowTypeError(ctx, $0) }
+            }
 
-            // Read provider config from `this`
             let providerVal = JSBridge.getProperty(ctx, thisVal, "_provider")
             let providerName = JSBridge.toString(ctx, providerVal) ?? "unknown"
             JS_FreeValue(ctx, providerVal)
@@ -179,7 +180,6 @@ public final class AIModule: NativeModule {
             let storedModel = JSBridge.toString(ctx, modelVal)
             JS_FreeValue(ctx, modelVal)
 
-            // Parse optional opts from second argument
             var requestModel = storedModel
             var maxTokens = 4096
             var temperature = 0.7
@@ -219,42 +219,57 @@ public final class AIModule: NativeModule {
                 systemPrompt: systemPrompt
             )
 
-            // Create the provider and call synchronously via semaphore
             let config = AIProviderFactory.ProviderConfig(apiKey: apiKey, model: storedModel)
             let provider = AIProviderFactory.create(name: providerName, config: config)
 
-            let box = ResultBox()
-            let semaphore = DispatchSemaphore(value: 0)
+            var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
+            let promise = JS_NewPromiseCapability(ctx, &resolving)
+            let resolve = JS_DupValue(ctx, resolving[0])
+            let reject = JS_DupValue(ctx, resolving[1])
+            JS_FreeValue(ctx, resolving[0])
+            JS_FreeValue(ctx, resolving[1])
+
+            let opaque = JS_GetContextOpaque(ctx)
+            guard let opaque else { return promise }
+            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            nonisolated(unsafe) let capturedCtx = ctx
 
             Task.detached {
                 do {
-                    box.result = try await provider.chat(prompt: prompt, options: options)
+                    let text = try await provider.chat(messages: messages, options: options)
+                    DispatchQueue.main.async {
+                        var value = JSBridge.newString(capturedCtx, text)
+                        _ = JS_Call(capturedCtx, resolve, QJS_Undefined(), 1, &value)
+                        JS_FreeValue(capturedCtx, value)
+                        JS_FreeValue(capturedCtx, resolve)
+                        JS_FreeValue(capturedCtx, reject)
+                        engine.drainJobQueue()
+                    }
                 } catch {
-                    box.error = error.localizedDescription
+                    DispatchQueue.main.async {
+                        var value = JSBridge.newString(capturedCtx, error.localizedDescription)
+                        _ = JS_Call(capturedCtx, reject, QJS_Undefined(), 1, &value)
+                        JS_FreeValue(capturedCtx, value)
+                        JS_FreeValue(capturedCtx, resolve)
+                        JS_FreeValue(capturedCtx, reject)
+                        engine.drainJobQueue()
+                    }
                 }
-                semaphore.signal()
             }
 
-            let waitResult = semaphore.wait(timeout: .now() + 120)
-            if waitResult == .timedOut {
-                logger.error("AI chat timed out for provider \(providerName)")
-                return JSBridge.newString(ctx, "Error: request timed out")
-            }
-
-            if let error = box.error {
-                logger.error("AI chat error: \(error)")
-                return JSBridge.newString(ctx, "Error: \(error)")
-            }
-
-            return JSBridge.newString(ctx, box.result ?? "")
+            return promise
         }, "chat", 2))
 
-        // .stream(prompt, opts?) → string (full response; streaming happens internally)
         JS_SetPropertyStr(ctx, clientObj, "stream",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
 
-            let prompt = JSBridge.toString(ctx, argv[0]) ?? ""
+            let messages: [AIChatMessage]
+            do {
+                messages = try AIModule.parseMessages(ctx: ctx, value: argv[0])
+            } catch {
+                return error.localizedDescription.withCString { QJS_ThrowTypeError(ctx, $0) }
+            }
 
             let providerVal = JSBridge.getProperty(ctx, thisVal, "_provider")
             let providerName = JSBridge.toString(ctx, providerVal) ?? "unknown"
@@ -316,7 +331,7 @@ public final class AIModule: NativeModule {
             Task.detached {
                 do {
                     box.result = try await provider.stream(
-                        prompt: prompt,
+                        messages: messages,
                         options: options,
                         onChunk: { chunk in
                             logger.debug("Stream chunk: \(chunk.prefix(50))")
@@ -343,5 +358,33 @@ public final class AIModule: NativeModule {
         }, "stream", 2))
 
         return clientObj
+    }
+
+    private static func parseMessages(ctx: OpaquePointer, value: JSValue) throws -> [AIChatMessage] {
+        if JS_IsString(value) {
+            let text = JSBridge.toString(ctx, value) ?? ""
+            return try AIChatMessages.normalize([.user(text)])
+        }
+        let lengthVal = JSBridge.getProperty(ctx, value, "length")
+        defer { JS_FreeValue(ctx, lengthVal) }
+        guard !JSBridge.isUndefined(lengthVal) else {
+            throw AIChatMessageError.emptyMessages
+        }
+        let length = Int(JSBridge.toInt32(ctx, lengthVal))
+        var messages: [AIChatMessage] = []
+        for i in 0..<length {
+            let elem = JS_GetPropertyUint32(ctx, value, UInt32(i))
+            defer { JS_FreeValue(ctx, elem) }
+            let roleVal = JSBridge.getProperty(ctx, elem, "role")
+            let contentVal = JSBridge.getProperty(ctx, elem, "content")
+            defer {
+                JS_FreeValue(ctx, roleVal)
+                JS_FreeValue(ctx, contentVal)
+            }
+            let role = JSBridge.toString(ctx, roleVal) ?? ""
+            let content = JSBridge.toString(ctx, contentVal) ?? ""
+            messages.append(AIChatMessage(role: role, content: content))
+        }
+        return try AIChatMessages.normalize(messages)
     }
 }
