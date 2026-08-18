@@ -252,28 +252,28 @@ struct ResultRow: View {
     var textScale: CGFloat = 1.0
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             if let nsImage = result.nsImage {
                 Image(nsImage: nsImage)
                     .resizable()
-                    .frame(width: 32 * textScale, height: 32 * textScale)
-                    .cornerRadius(7)
+                    .frame(width: 20 * textScale, height: 20 * textScale)
+                    .cornerRadius(4)
             } else {
                 Image(systemName: iconForType(result.type))
-                    .font(.system(size: 16 * textScale))
-                    .frame(width: 32 * textScale, height: 32 * textScale)
+                    .font(.system(size: 11 * textScale))
+                    .frame(width: 20 * textScale, height: 20 * textScale)
                     .background(.quaternary)
-                    .cornerRadius(7)
+                    .cornerRadius(4)
                     .foregroundStyle(.secondary)
             }
 
-            VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: 6) {
                 Text(result.title)
-                    .font(.system(size: 14 * textScale, weight: .medium))
+                    .font(.system(size: 13 * textScale, weight: .medium))
                     .lineLimit(1)
                 if !result.subtitle.isEmpty {
                     Text(result.subtitle)
-                        .font(.system(size: 11 * textScale))
+                        .font(.system(size: 12 * textScale))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -286,7 +286,7 @@ struct ResultRow: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 7)
+        .padding(.vertical, 4)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
