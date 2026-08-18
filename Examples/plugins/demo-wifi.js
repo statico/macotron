@@ -1,11 +1,13 @@
 // demo-wifi.js
 // APIs: macotron.network.wifiSSID, macotron.network.interfaces, macotron.on("wifi:changed"), macotron.notify, macotron.command
 
+let lastChange = null;
+
 macotron.on("wifi:changed", (info) => {
-    macotron.notify.show("Wi-Fi", info.ssid || "Disconnected");
+    lastChange = info.ssid || "Disconnected";
 });
 
 macotron.command("Wi-Fi SSID", "Show the current Wi-Fi network name", () => {
-    const ssid = macotron.network.wifiSSID();
-    macotron.notify.show("Wi-Fi", ssid || "Not connected");
+    const ssid = macotron.network.wifiSSID() || "Not connected";
+    macotron.notify.show("Wi-Fi", lastChange ? `${ssid} — last change: ${lastChange}` : ssid);
 });

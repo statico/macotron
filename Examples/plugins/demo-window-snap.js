@@ -3,8 +3,7 @@
 
 macotron.requirePermissions(["accessibility"]);
 
-const enabled = macotron.window.setSnapEnabled(true);
-macotron.notify.show("Window Snap", enabled ? "Drag-to-edge snapping is on" : "Could not enable snapping");
+macotron.window.setSnapEnabled(true);
 
 macotron.command("Toggle Window Snap", "Enable or disable drag-to-edge snapping", () => {
     const next = !macotron.window.isSnapEnabled();
