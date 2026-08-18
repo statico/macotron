@@ -20,6 +20,8 @@ declare const macotron: {
         focused(): { id: number; title: string; app: string; frame: { x: number; y: number; width: number; height: number } } | null;
         move(id: number, frame: { x?: number; y?: number; width?: number; height?: number }): boolean;
         moveToFraction(id: number, frac: { x?: number; y?: number; w?: number; h?: number }): boolean;
+        setSnapEnabled(enabled: boolean): boolean;
+        isSnapEnabled(): boolean;
     };
 
     keyboard: {
@@ -59,7 +61,10 @@ declare const macotron: {
     clipboard: {
         text(): string;
         set(text: string): void;
-        history(): Array<{ id: string; text: string; kind: "text"; ts: number }>;
+        setImage(base64: string): boolean;
+        history(): Array<{ id: string; text: string; kind: "text" | "image"; ts: number }>;
+        paste(id: string): boolean;
+        remove(id: string): boolean;
         clearHistory(): void;
     };
 
@@ -68,6 +73,24 @@ declare const macotron: {
         set(abbr: string, body: string): void;
         remove(abbr: string): void;
         insert(abbr: string): boolean;
+        setExpansionEnabled(enabled: boolean): boolean;
+        isExpansionEnabled(): boolean;
+    };
+
+    power: {
+        preventSleep(opts?: { display?: boolean; reason?: string }): boolean;
+        allowSleep(): void;
+        isPreventing(): boolean;
+    };
+
+    network: {
+        wifiSSID(): string | null;
+        interfaces(): Array<{ name: string; ip: string }>;
+    };
+
+    idle: {
+        seconds(): number;
+        setThreshold(seconds: number): void;
     };
 
     ai: {
@@ -101,6 +124,9 @@ declare const macotron: {
         memory(): { total: number; used: number; free: number };
         battery(): { level: number; charging: boolean };
         disk(): { total: number; free: number; used: number };
+        network(): { bytesIn: number; bytesOut: number };
+        processes(limit?: number): Array<{ name: string; pid: number; cpu: number }>;
+        gpu(): { name: string } | null;
     };
 
     http: {
@@ -120,6 +146,10 @@ declare const macotron: {
 
     display: {
         list(): Array<{ id: number; width: number; height: number; main: boolean }>;
+        getBrightness(id?: number): number;
+        setBrightness(level: number, id?: number): boolean;
+        setXDREnabled(enabled: boolean): boolean;
+        isXDREnabled(): boolean;
     };
 
     keychain: {

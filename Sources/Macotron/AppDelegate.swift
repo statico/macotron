@@ -626,6 +626,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.addModule(PanelModule())
         engine.addModule(CalendarModule())
         engine.addModule(OCRModule())
+        engine.addModule(PowerModule())
+        engine.addModule(NetworkModule())
+        engine.addModule(IdleModule())
     }
 
     private func executeCommand(_ id: String) {
