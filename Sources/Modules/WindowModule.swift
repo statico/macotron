@@ -3,21 +3,34 @@ import AppKit
 import CQuickJS
 import MacotronEngine
 import ApplicationServices
+import CoreGraphics
 import Foundation
 import os
 
 private let logger = Logger(subsystem: "com.macotron", category: "window")
+private let snapEdgeThreshold: CGFloat = 20
+
+/// Global state for the snap CGEvent tap callback (C function pointer cannot capture).
+private final class WindowSnapState: @unchecked Sendable {
+    weak var module: WindowModule?
+    var eventTap: CFMachPort?
+    static let shared = WindowSnapState()
+}
 
 @MainActor
 public final class WindowModule: NativeModule {
     public let name = "window"
 
     private weak var engine: Engine?
+    private var eventTap: CFMachPort?
+    private var runLoopSource: CFRunLoopSource?
+    private var snapEnabled = false
 
     public init() {}
 
     public func register(in engine: Engine, options: [String: Any]) {
         self.engine = engine
+        WindowSnapState.shared.module = self
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
@@ -52,9 +65,31 @@ public final class WindowModule: NativeModule {
             return WindowModule.jsMoveToFraction(ctx, windowID: windowID, opts: opts)
         }, "moveToFraction", 2))
 
+        // ---------- setSnapEnabled(enabled) ----------
+        JS_SetPropertyStr(ctx, windowObj, "setSnapEnabled", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
+            let enabled = JSBridge.toBool(ctx, argv[0])
+            let ok = WindowSnapState.shared.module?.setSnapEnabled(enabled) ?? false
+            return QJS_NewBool(ctx, ok ? 1 : 0)
+        }, "setSnapEnabled", 1))
+
+        // ---------- isSnapEnabled() ----------
+        JS_SetPropertyStr(ctx, windowObj, "isSnapEnabled", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_NewBool(ctx!, 0) }
+            let on = WindowSnapState.shared.module?.snapEnabled ?? false
+            return QJS_NewBool(ctx, on ? 1 : 0)
+        }, "isSnapEnabled", 0))
+
         JS_SetPropertyStr(ctx, macotron, "window", windowObj)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
+    }
+
+    public func cleanup() {
+        teardownSnapTap()
+        snapEnabled = false
+        WindowSnapState.shared.module = nil
+        WindowSnapState.shared.eventTap = nil
     }
 
     // MARK: - AX Helpers
@@ -280,47 +315,188 @@ public final class WindowModule: NativeModule {
             return QJS_NewBool(ctx, 0)
         }
 
-        // Get the main screen dimensions
         guard let screen = NSScreen.main else {
             return QJS_NewBool(ctx, 0)
         }
-        let screenFrame = screen.visibleFrame
 
-        // Read fractional values (0.0 to 1.0)
         let xVal = JSBridge.getProperty(ctx, opts, "x")
         let yVal = JSBridge.getProperty(ctx, opts, "y")
         let wVal = JSBridge.getProperty(ctx, opts, "w")
         let hVal = JSBridge.getProperty(ctx, opts, "h")
 
-        let currentFrame = windowFrame(win)
-        var newOrigin = currentFrame.origin
-        var newSize = currentFrame.size
+        var fx: CGFloat?
+        var fy: CGFloat?
+        var fw: CGFloat?
+        var fh: CGFloat?
 
-        if !JSBridge.isUndefined(xVal) {
-            newOrigin.x = screenFrame.origin.x + CGFloat(JSBridge.toDouble(ctx, xVal)) * screenFrame.width
-        }
-        if !JSBridge.isUndefined(yVal) {
-            newOrigin.y = screenFrame.origin.y + CGFloat(JSBridge.toDouble(ctx, yVal)) * screenFrame.height
-        }
-        if !JSBridge.isUndefined(wVal) {
-            newSize.width = CGFloat(JSBridge.toDouble(ctx, wVal)) * screenFrame.width
-        }
-        if !JSBridge.isUndefined(hVal) {
-            newSize.height = CGFloat(JSBridge.toDouble(ctx, hVal)) * screenFrame.height
-        }
+        if !JSBridge.isUndefined(xVal) { fx = CGFloat(JSBridge.toDouble(ctx, xVal)) }
+        if !JSBridge.isUndefined(yVal) { fy = CGFloat(JSBridge.toDouble(ctx, yVal)) }
+        if !JSBridge.isUndefined(wVal) { fw = CGFloat(JSBridge.toDouble(ctx, wVal)) }
+        if !JSBridge.isUndefined(hVal) { fh = CGFloat(JSBridge.toDouble(ctx, hVal)) }
 
         JS_FreeValue(ctx, xVal)
         JS_FreeValue(ctx, yVal)
         JS_FreeValue(ctx, wVal)
         JS_FreeValue(ctx, hVal)
 
-        let posOk = setWindowPosition(win, point: newOrigin)
-        let sizeOk = setWindowSize(win, size: newSize)
+        let ok = applyFraction(win, x: fx, y: fy, w: fw, h: fh, screen: screen)
+        return QJS_NewBool(ctx, ok ? 1 : 0)
+    }
 
-        return QJS_NewBool(ctx, (posOk || sizeOk) ? 1 : 0)
+    // MARK: - Snap
+
+    @discardableResult
+    func setSnapEnabled(_ enabled: Bool) -> Bool {
+        if engine?.dryRun == true {
+            snapEnabled = enabled
+            return true
+        }
+        if enabled {
+            guard setupSnapTap() else {
+                snapEnabled = false
+                return false
+            }
+            snapEnabled = true
+            return true
+        }
+        teardownSnapTap()
+        snapEnabled = false
+        return true
+    }
+
+    private func setupSnapTap() -> Bool {
+        guard eventTap == nil else { return true }
+
+        let eventMask: CGEventMask = (1 << CGEventType.leftMouseUp.rawValue)
+        let callback: CGEventTapCallBack = { _, type, event, _ -> Unmanaged<CGEvent>? in
+            if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+                if let tap = WindowSnapState.shared.eventTap {
+                    CGEvent.tapEnable(tap: tap, enable: true)
+                }
+                return Unmanaged.passRetained(event)
+            }
+            guard type == .leftMouseUp else { return Unmanaged.passRetained(event) }
+            DispatchQueue.main.async {
+                WindowSnapState.shared.module?.snapFocusedWindow(at: NSEvent.mouseLocation)
+            }
+            return Unmanaged.passRetained(event)
+        }
+
+        eventTap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .listenOnly,
+            eventsOfInterest: eventMask,
+            callback: callback,
+            userInfo: nil
+        )
+
+        guard let eventTap else {
+            logger.error("Failed to create window snap CGEvent tap")
+            return false
+        }
+
+        WindowSnapState.shared.eventTap = eventTap
+        runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
+        if let runLoopSource {
+            CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+        }
+        CGEvent.tapEnable(tap: eventTap, enable: true)
+        logger.info("Window snap event tap installed")
+        return true
+    }
+
+    private func teardownSnapTap() {
+        if let eventTap {
+            CGEvent.tapEnable(tap: eventTap, enable: false)
+            CFMachPortInvalidate(eventTap)
+        }
+        if let runLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+        }
+        eventTap = nil
+        runLoopSource = nil
+        WindowSnapState.shared.eventTap = nil
+    }
+
+    /// ponytail: any leftMouseUp near an edge snaps; upgrade to drag-session tracking if false positives matter
+    private func snapFocusedWindow(at point: CGPoint) {
+        guard snapEnabled else { return }
+        guard let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) else { return }
+        let f = screen.frame
+        let t = snapEdgeThreshold
+        let left = point.x <= f.minX + t
+        let right = point.x >= f.maxX - t
+        let top = point.y >= f.maxY - t
+        let bottom = point.y <= f.minY + t
+        guard left || right || top || bottom else { return }
+
+        let fx: CGFloat
+        let fy: CGFloat
+        let fw: CGFloat
+        let fh: CGFloat
+
+        if (left || right) && (top || bottom) {
+            fx = right ? 0.5 : 0
+            fy = bottom ? 0.5 : 0
+            fw = 0.5
+            fh = 0.5
+        } else if left {
+            fx = 0; fy = 0; fw = 0.5; fh = 1
+        } else if right {
+            fx = 0.5; fy = 0; fw = 0.5; fh = 1
+        } else if top {
+            fx = 0; fy = 0; fw = 1; fh = 1
+        } else {
+            return
+        }
+
+        guard let win = Self.focusedAXWindow() else { return }
+        _ = Self.applyFraction(win, x: fx, y: fy, w: fw, h: fh, screen: screen)
+    }
+
+    private static func focusedAXWindow() -> AXUIElement? {
+        let sysWide = AXUIElementCreateSystemWide()
+        var focusedAppRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            sysWide,
+            kAXFocusedApplicationAttribute as CFString,
+            &focusedAppRef
+        ) == .success, let focusedApp = focusedAppRef else { return nil }
+
+        var focusedWinRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            focusedApp as! AXUIElement,
+            kAXFocusedWindowAttribute as CFString,
+            &focusedWinRef
+        ) == .success, let focusedWin = focusedWinRef else { return nil }
+
+        return (focusedWin as! AXUIElement)
     }
 
     // MARK: - AX Mutation Helpers
+
+    /// Apply fractional frame relative to screen.visibleFrame (same math as moveToFraction).
+    private static func applyFraction(
+        _ win: AXUIElement,
+        x: CGFloat?,
+        y: CGFloat?,
+        w: CGFloat?,
+        h: CGFloat?,
+        screen: NSScreen
+    ) -> Bool {
+        let screenFrame = screen.visibleFrame
+        let currentFrame = windowFrame(win)
+        var origin = currentFrame.origin
+        var size = currentFrame.size
+        if let x { origin.x = screenFrame.origin.x + x * screenFrame.width }
+        if let y { origin.y = screenFrame.origin.y + y * screenFrame.height }
+        if let w { size.width = w * screenFrame.width }
+        if let h { size.height = h * screenFrame.height }
+        let posOk = setWindowPosition(win, point: origin)
+        let sizeOk = setWindowSize(win, size: size)
+        return posOk || sizeOk
+    }
 
     private static func setWindowPosition(_ win: AXUIElement, point: CGPoint) -> Bool {
         var pt = point
