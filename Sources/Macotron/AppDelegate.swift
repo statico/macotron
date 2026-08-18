@@ -136,11 +136,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         applyUIPrefsFromSettings()
         installLauncherHotkey()
         moduleManager.startWatching()
-
-        moduleManager.onDidReload = { [weak self] in
-            self?.refreshPermissions()
-            self?.applyUIPrefsFromSettings()
-        }
+        installModuleManagerCallbacks()
         refreshPermissions()
 
         if CommandLine.arguments.contains("--debug-server") {
@@ -196,6 +192,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         moduleManager = ModuleManager(engine: engine, workspace: workspace)
+        installModuleManagerCallbacks()
         settingsState.configDirURL = workspaceRoot
         moduleManager.reloadAll()
         applyUIPrefsFromSettings()
@@ -204,6 +201,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         installLauncherHotkey()
         moduleManager.startWatching()
         settingsState.load()
+    }
+
+    private func installModuleManagerCallbacks() {
+        moduleManager.onDidReload = { [weak self] in
+            self?.refreshPermissions()
+            self?.applyUIPrefsFromSettings()
+        }
     }
 
     // MARK: - Settings
