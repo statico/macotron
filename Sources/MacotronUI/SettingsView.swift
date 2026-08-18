@@ -56,10 +56,12 @@ public struct ModuleSummary: Identifiable {
     public let hotkeys: [String]
     public let hasErrors: Bool
     public let errorMessage: String?
+    public let isEnabled: Bool
 
     public init(filename: String, title: String = "", description: String,
                 options: [ModuleOption] = [], events: [String] = [],
-                hotkeys: [String] = [], hasErrors: Bool = false, errorMessage: String? = nil) {
+                hotkeys: [String] = [], hasErrors: Bool = false, errorMessage: String? = nil,
+                isEnabled: Bool = true) {
         self.id = filename
         self.filename = filename
         self.title = title.isEmpty ? String(filename.dropLast(3)) : title
@@ -69,6 +71,7 @@ public struct ModuleSummary: Identifiable {
         self.hotkeys = hotkeys
         self.hasErrors = hasErrors
         self.errorMessage = errorMessage
+        self.isEnabled = isEnabled
     }
 }
 
@@ -104,6 +107,7 @@ public final class SettingsState: ObservableObject {
     public var saveModuleOption: ((_ filename: String, _ key: String, _ value: Any) -> Void)?
     public var saveModuleSecret: ((_ filename: String, _ key: String, _ secret: String) -> Void)?
     public var clearModuleSecret: ((_ filename: String, _ key: String) -> Void)?
+    public var setModuleEnabled: ((_ filename: String, _ enabled: Bool) -> Void)?
     public var deleteModule: ((_ filename: String) -> Bool)?
     public var changePluginsFolder: (() -> Void)?
     public var openPluginsFolder: (() -> Void)?
@@ -174,6 +178,7 @@ public final class SettingsState: ObservableObject {
 public struct SettingsView: View {
     @ObservedObject var state: SettingsState
     @State private var selectedTab: Int
+    @State private var selectedPlugin: String?
 
     public init(state: SettingsState, initialTab: Int = 0) {
         self.state = state
@@ -379,44 +384,76 @@ public struct SettingsView: View {
     }
 
     private var pluginsTab: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                Button("Browse plugins on GitHub") {
-                    NSWorkspace.shared.open(githubPluginsURL)
-                }
-                .controlSize(.small)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 10)
-            .padding(.bottom, 4)
-
-            if state.moduleSummaries.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "puzzlepiece.extension")
-                        .font(.system(size: 32))
-                        .foregroundStyle(.tertiary)
-                    Text("No plugins installed")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                    Text("Add .js files to the plugins/ folder, or browse GitHub.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 1) {
+        HStack(spacing: 0) {
+            VStack(spacing: 0) {
+                if state.moduleSummaries.isEmpty {
+                    emptyPluginsPlaceholder
+                } else {
+                    List(selection: $selectedPlugin) {
                         ForEach(state.moduleSummaries) { summary in
-                            ModuleSummaryRow(summary: summary, state: state)
+                            PluginListRow(summary: summary)
+                                .tag(summary.filename)
                         }
                     }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
+                    .listStyle(.sidebar)
                 }
+
+                Divider()
+
+                HStack {
+                    Button("Browse plugins on GitHub") {
+                        NSWorkspace.shared.open(githubPluginsURL)
+                    }
+                    .controlSize(.small)
+                    Spacer()
+                }
+                .padding(8)
+            }
+            .frame(width: 210)
+
+            Divider()
+
+            if let selected = state.moduleSummaries.first(where: { $0.filename == selectedPlugin }) {
+                PluginDetailView(summary: selected, state: state)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Text("Select a plugin")
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .onAppear { state.refreshModules() }
+        .onAppear {
+            state.refreshModules()
+            selectInitialPlugin()
+        }
+        .onChange(of: state.moduleSummaries.map(\.filename)) {
+            selectInitialPlugin()
+        }
+    }
+
+    private var emptyPluginsPlaceholder: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "puzzlepiece.extension")
+                .font(.system(size: 32))
+                .foregroundStyle(.tertiary)
+            Text("No plugins installed")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            Text("Add .js files to the plugins/ folder, or browse GitHub.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Prefer the first plugin that needs setup; otherwise keep the current
+    /// selection while it still exists on disk.
+    private func selectInitialPlugin() {
+        let filenames = state.moduleSummaries.map(\.filename)
+        if let selectedPlugin, filenames.contains(selectedPlugin) { return }
+        selectedPlugin = state.moduleSummaries.first { summary in
+            summary.options.contains { $0.needsSetup }
+        }?.filename ?? filenames.first
     }
 
     private var aboutTab: some View {
@@ -478,122 +515,76 @@ public struct SettingsView: View {
     }
 }
 
-struct ModuleSummaryRow: View {
+struct PluginListRow: View {
+    let summary: ModuleSummary
+
+    var body: some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(summary.title)
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(1)
+                Text(summary.filename)
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            if summary.hasErrors {
+                Circle().fill(.red).frame(width: 6, height: 6)
+            } else if summary.options.contains(where: { $0.needsSetup }) {
+                Circle().fill(.orange).frame(width: 6, height: 6)
+            }
+        }
+        .padding(.vertical, 2)
+        .opacity(summary.isEnabled ? 1 : 0.45)
+    }
+}
+
+struct PluginDetailView: View {
     let summary: ModuleSummary
     @ObservedObject var state: SettingsState
-    @State private var isExpanded: Bool
-    @State private var showDeleteAlert: Bool = false
+    @State private var showDeleteAlert = false
 
-    /// Any required option without a value — expand the form and badge the row.
     private var needsSetup: Bool {
         summary.options.contains { $0.needsSetup }
     }
 
-    init(summary: ModuleSummary, state: SettingsState) {
-        self.summary = summary
-        self._state = ObservedObject(wrappedValue: state)
-        self._isExpanded = State(initialValue: summary.options.contains { $0.needsSetup })
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                if !summary.options.isEmpty {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isExpanded.toggle()
-                        }
-                    } label: {
-                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 16, height: 16)
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    Spacer().frame(width: 16)
-                }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                header
 
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(summary.title)
-                            .font(.system(size: 13, weight: .medium))
-                            .lineLimit(1)
-
-                        if needsSetup {
-                            badge(text: "Needs setup", color: .orange)
-                        }
-                    }
-
-                    Text(summary.filename)
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
-
-                    if !summary.description.isEmpty {
-                        Text(summary.description)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
-
-                    if summary.hasErrors {
-                        HStack(spacing: 4) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 10))
-                            Text(summary.errorMessage ?? "Plugin has errors")
-                                .font(.system(size: 11))
-                                .lineLimit(2)
-                        }
-                        .foregroundStyle(.red)
-                    }
-
-                    if !summary.events.isEmpty || !summary.hotkeys.isEmpty {
-                        HStack(spacing: 4) {
-                            ForEach(summary.hotkeys, id: \.self) { hotkey in
-                                badge(text: hotkey, color: .blue)
-                            }
-                            ForEach(summary.events, id: \.self) { event in
-                                badge(text: event, color: .purple)
-                            }
-                        }
-                    }
-                }
-
-                Spacer()
-
-                if !isExpanded && !summary.options.isEmpty {
-                    Text("\(summary.options.count) \(summary.options.count == 1 ? "setting" : "settings")")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
-                }
-
-                Button {
-                    showDeleteAlert = true
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 12))
+                if !summary.description.isEmpty {
+                    Text(summary.description)
+                        .font(.callout)
                         .foregroundStyle(.secondary)
-                        .frame(width: 24, height: 24)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .buttonStyle(.plain)
-                .help("Delete plugin")
-            }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 8)
 
-            if isExpanded && !summary.options.isEmpty {
-                Divider().padding(.horizontal, 8)
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(summary.options) { option in
-                        ModuleOptionRow(option: option, filename: summary.filename, state: state)
-                    }
+                if summary.hasErrors { errorBox }
+
+                if !summary.isEnabled {
+                    disabledHint
+                } else {
+                    if !summary.hotkeys.isEmpty || !summary.events.isEmpty { badges }
+                    if !summary.options.isEmpty { settingsSection }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+
+                Divider()
+
+                HStack {
+                    Spacer()
+                    Button("Delete Plugin…", role: .destructive) {
+                        showDeleteAlert = true
+                    }
+                    .controlSize(.small)
+                }
             }
+            .padding(20)
         }
-        .background(RoundedRectangle(cornerRadius: 6).fill(.quaternary.opacity(0.5)))
         .alert("Delete Plugin?", isPresented: $showDeleteAlert) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
@@ -606,8 +597,88 @@ struct ModuleSummaryRow: View {
         }
     }
 
-    @ViewBuilder
-    private func badge(text: String, color: Color) -> some View {
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(summary.title)
+                    .font(.system(size: 15, weight: .semibold))
+                Text(summary.filename)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+            }
+
+            if needsSetup && summary.isEnabled {
+                Text("Needs setup")
+                    .font(.system(size: 9, weight: .medium))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(Color.orange.opacity(0.12))
+                    .foregroundStyle(.orange)
+                    .cornerRadius(3)
+            }
+
+            Spacer()
+
+            Toggle("Enabled", isOn: Binding(
+                get: { summary.isEnabled },
+                set: { state.setModuleEnabled?(summary.filename, $0) }
+            ))
+            .toggleStyle(.switch)
+            .controlSize(.small)
+        }
+    }
+
+    private var errorBox: some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 11))
+            Text(summary.errorMessage ?? "Plugin has errors")
+                .font(.system(size: 11))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundStyle(.red)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.red.opacity(0.08))
+        .cornerRadius(6)
+    }
+
+    private var disabledHint: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "pause.circle")
+            Text("This plugin is disabled. Enable it to run its commands and edit its settings.")
+                .font(.system(size: 11))
+        }
+        .foregroundStyle(.secondary)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.05))
+        .cornerRadius(6)
+    }
+
+    private var badges: some View {
+        HStack(spacing: 4) {
+            ForEach(summary.hotkeys, id: \.self) { hotkey in
+                detailBadge(text: hotkey, color: .blue)
+            }
+            ForEach(summary.events, id: \.self) { event in
+                detailBadge(text: event, color: .purple)
+            }
+        }
+    }
+
+    private var settingsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Settings")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+            ForEach(summary.options) { option in
+                ModuleOptionRow(option: option, filename: summary.filename, state: state)
+            }
+        }
+    }
+
+    private func detailBadge(text: String, color: Color) -> some View {
         Text(text)
             .font(.system(size: 9, weight: .medium))
             .padding(.horizontal, 5)
