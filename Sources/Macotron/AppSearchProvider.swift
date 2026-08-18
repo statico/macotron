@@ -24,14 +24,15 @@ final class AppSearchProvider {
         var seen = Set<String>()
         var entries: [AppEntry] = []
 
+        let fm = FileManager.default
         let searchDirs = [
             "/Applications",
             "/System/Applications",
             "/System/Applications/Utilities",
             "/Applications/Utilities",
+            fm.homeDirectoryForCurrentUser.appending(path: "Applications").path,
         ]
 
-        let fm = FileManager.default
         let workspace = NSWorkspace.shared
 
         for dir in searchDirs {
@@ -41,35 +42,6 @@ final class AppSearchProvider {
                 options: [.skipsHiddenFiles]
             ) else { continue }
 
-            for url in contents {
-                guard url.pathExtension == "app" else { continue }
-                guard let bundle = Bundle(url: url),
-                      let bundleID = bundle.bundleIdentifier else { continue }
-                guard !seen.contains(bundleID) else { continue }
-                seen.insert(bundleID)
-
-                let name = fm.displayName(atPath: url.path)
-                    .replacingOccurrences(of: ".app", with: "")
-                let icon = workspace.icon(forFile: url.path)
-                icon.size = NSSize(width: 32, height: 32)
-
-                entries.append(AppEntry(
-                    name: name,
-                    bundleID: bundleID,
-                    url: url,
-                    icon: icon
-                ))
-            }
-        }
-
-        // Also add user-installed apps from ~/Applications
-        let home = fm.homeDirectoryForCurrentUser
-        let userAppsDir = home.appending(path: "Applications")
-        if let contents = try? fm.contentsOfDirectory(
-            at: userAppsDir,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        ) {
             for url in contents {
                 guard url.pathExtension == "app" else { continue }
                 guard let bundle = Bundle(url: url),
@@ -109,10 +81,8 @@ final class AppSearchProvider {
                     id: app.bundleID,
                     title: app.name,
                     subtitle: "",
-                    icon: "app.fill",
                     type: .app,
-                    nsImage: app.icon,
-                    appURL: app.url
+                    nsImage: app.icon
                 )
             }
         }
@@ -131,10 +101,8 @@ final class AppSearchProvider {
                 id: item.entry.bundleID,
                 title: item.entry.name,
                 subtitle: "",
-                icon: "app.fill",
                 type: .app,
-                nsImage: item.entry.icon,
-                appURL: item.entry.url
+                nsImage: item.entry.icon
             )
         }
     }

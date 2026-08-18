@@ -124,7 +124,6 @@ enum PluginChecker {
     private static func registerModules(in engine: Engine) {
         engine.addModule(ShellModule())
         engine.addModule(FileSystemModule())
-        engine.addModule(TimerModule())
         engine.addModule(NotifyModule())
         engine.addModule(ClipboardModule())
         engine.addModule(KeyboardModule())
@@ -137,8 +136,6 @@ enum PluginChecker {
         engine.addModule(LocalStorageModule())
         engine.addModule(KeychainModule())
         engine.addModule(MenuBarModule())
-        engine.addModule(CameraModule())
-        engine.addModule(USBModule())
         engine.addModule(URLSchemeModule())
         engine.addModule(SpotlightModule())
         engine.addModule(AIModule())

@@ -100,11 +100,6 @@ public final class MenuBarManager: NSObject {
         rebuildMenu()
     }
 
-    public func clearDynamicItems() {
-        dynamicItems.removeAll()
-        rebuildMenu()
-    }
-
     public func setIcon(_ sfSymbolName: String) {
         symbolName = sfSymbolName
         refreshStatusImage()
