@@ -21,15 +21,17 @@ The app writes agent instruction files. Those files must not be edited by hand. 
 Plugins call `macotron.ai` for cloud or on-device models:
 
 ```javascript
-macotron.ai.claude({ model?, apiKey? })   // Anthropic API
-macotron.ai.openai({ model?, apiKey? })   // OpenAI API
-macotron.ai.gemini({ model?, apiKey? })   // Google Gemini API
-macotron.ai.local()                       // Apple Foundation Models (on-device)
+macotron.ai.claude({ model?, apiKey? })
+macotron.ai.openai({ model?, apiKey? })
+macotron.ai.local()
 
-// All return an object with:
-//   .chat(prompt, { image?, system? }) → Promise<string>
-//   .stream(prompt, { image?, system? }) → calls onChunk callback
+// string or [{ role: "user"|"assistant", content }]
+await ai.chat(promptOrMessages, { system?, model?, maxTokens?, temperature? })
+await ai.stream(promptOrMessages, { system?, onChunk?, ... })  // Promise<string>
 ```
+
+Multi-turn: pass the full message list each call. Persist history in plugin code
+(`localStorage` or `macotron.fs`). The host does not store chats.
 
 Store API keys in the Keychain through `macotron.keychain`, not in plugin source or git.
 
