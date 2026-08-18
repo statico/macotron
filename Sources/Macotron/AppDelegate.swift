@@ -233,6 +233,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self.moduleManager.saveModuleOption(filename: filename, key: key, value: value)
             self.moduleManager.reloadAll()
         }
+        settingsState.saveModuleSecret = { [weak self] filename, key, secret in
+            guard let self else { return }
+            self.moduleManager.saveModuleSecret(filename: filename, key: key, secret: secret)
+            self.moduleManager.reloadAll()
+        }
+        settingsState.clearModuleSecret = { [weak self] filename, key in
+            guard let self else { return }
+            self.moduleManager.clearModuleSecret(filename: filename, key: key)
+            self.moduleManager.reloadAll()
+        }
         settingsState.changePluginsFolder = { [weak self] in
             self?.pickAndSwitchPluginsFolder()
         }
@@ -289,9 +299,33 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     let label = def["label"] as? String ?? key
                     let defaultValue = def["default"] ?? ""
                     let currentValue = fileSettings[key] ?? defaultValue
+                    let required = def["required"] as? Bool ?? false
+
+                    let choices = ((def["choices"] as? [[String: Any]]) ?? []).compactMap { choice -> ModuleOptionChoice? in
+                        guard let value = choice["value"] as? String,
+                              let choiceLabel = choice["label"] as? String else { return nil }
+                        return ModuleOptionChoice(value: value, label: choiceLabel)
+                    }
+                    if type == "dropdown" && choices.isEmpty {
+                        NSLog("[Macotron] \(file.filename): dropdown option '\(key)' is missing choices")
+                    }
+
+                    let isSet: Bool
+                    switch type {
+                    case "password":
+                        let ref = fileSettings[key] as? String ?? ""
+                        let secret = ref.isEmpty ? nil : KeychainStore.read(account: ref)
+                        isSet = !(secret?.isEmpty ?? true)
+                    case "boolean", "number":
+                        isSet = (fileSettings[key] ?? def["default"]) != nil
+                    default:
+                        isSet = !(((fileSettings[key] ?? def["default"]) as? String) ?? "").isEmpty
+                    }
+
                     options.append(ModuleOption(
                         key: key, label: label, type: type,
-                        defaultValue: defaultValue, currentValue: currentValue
+                        defaultValue: defaultValue, currentValue: currentValue,
+                        required: required, isSet: isSet, choices: choices
                     ))
                 }
             }
@@ -300,7 +334,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             summaries.append(ModuleSummary(
                 filename: file.filename,
                 title: title,
-                description: file.description,
+                description: meta["description"] as? String ?? file.description,
                 options: options,
                 events: events,
                 hotkeys: hotkeys,

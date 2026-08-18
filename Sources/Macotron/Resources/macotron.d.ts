@@ -127,29 +127,62 @@ declare const macotron: {
 
     /**
      * Declare module metadata and configurable options.
-     * Returns resolved options (defaults merged with user overrides from Settings).
+     * Returns resolved options (user overrides from Settings, else defaults).
+     *
+     * Option types:
+     * - "string"      — text field. Plugin sees the string value.
+     * - "boolean"     — checkbox. Plugin sees true/false.
+     * - "number"      — number field. Plugin sees a number.
+     * - "keybinding"  — hotkey recorder. Plugin sees a combo like "cmd+shift+c".
+     * - "dropdown"    — popup menu. Requires `choices`. Plugin sees the choice value.
+     * - "password"    — secure field. The secret lives in the Keychain;
+     *                   settings.json stores only a Keychain ref. The plugin
+     *                   receives the resolved secret string ("" when unset) —
+     *                   never the ref. `default` is ignored; passwords start unset.
+     * - "file"        — absolute path chosen via NSOpenPanel (files).
+     * - "directory"   — absolute path chosen via NSOpenPanel (directories).
+     *
+     * Every option takes `label` (shown in Settings), optional `default`,
+     * and optional `required` (Settings shows a "Needs setup" hint while unset;
+     * commands are not blocked).
+     *
+     * Users configure values in Macotron Settings → Plugins. Never write real
+     * secrets into settings.json or plugin source.
      *
      * @example
      * const opts = macotron.module({
-     *     title: "Window Tiling",
+     *     title: "Chat",
+     *     description: "Talk to a model",
      *     options: {
-     *         leftHalf:  { type: "keybinding", default: "ctrl+opt+left", label: "Tile left half" },
-     *         gapSize:   { type: "number",     default: 0,               label: "Gap between windows (px)" },
-     *         enabled:   { type: "boolean",    default: true,            label: "Enable tiling" },
-     *         workspace: { type: "string",     default: "default",       label: "Workspace name" },
+     *         model:      { type: "dropdown",   label: "Model", default: "sonnet",
+     *                       choices: [
+     *                           { value: "sonnet", label: "Claude Sonnet" },
+     *                           { value: "opus",   label: "Claude Opus" },
+     *                       ] },
+     *         apiKey:     { type: "password",   label: "Anthropic API key", required: true },
+     *         openHotkey: { type: "keybinding", label: "Open chat", default: "cmd+shift+c" },
+     *         notesFile:  { type: "file",       label: "Notes file" },
+     *         workspace:  { type: "directory",  label: "Workspace folder" },
      *     }
      * });
-     * // opts.leftHalf === "ctrl+opt+left" (or user override)
+     * // opts.apiKey === resolved secret string (or "")
      */
     module(metadata: {
         title?: string;
-        options?: Record<string, {
-            type: "string" | "boolean" | "number" | "keybinding";
-            default: any;
-            label: string;
-        }>;
+        description?: string;
+        options?: Record<string, MacotronModuleOption>;
     }): Record<string, any>;
 };
+
+type MacotronModuleOption =
+    | { type: "string"; label: string; default?: string; required?: boolean }
+    | { type: "boolean"; label: string; default?: boolean; required?: boolean }
+    | { type: "number"; label: string; default?: number; required?: boolean }
+    | { type: "keybinding"; label: string; default?: string; required?: boolean }
+    | { type: "dropdown"; label: string; default?: string; required?: boolean; choices: Array<{ value: string; label: string }> }
+    | { type: "password"; label: string; required?: boolean }
+    | { type: "file"; label: string; default?: string; required?: boolean }
+    | { type: "directory"; label: string; default?: string; required?: boolean };
 
 interface AIClient {
     chat(prompt: string, opts?: { image?: string; system?: string }): Promise<string>;
