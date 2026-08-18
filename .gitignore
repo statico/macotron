@@ -11,3 +11,4 @@ DerivedData/
 .env
 .claude/
 tmp/
+.superpowers/
