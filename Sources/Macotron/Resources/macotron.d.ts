@@ -233,9 +233,26 @@ type MacotronModuleOption =
     | { type: "file"; label: string; default?: string; required?: boolean }
     | { type: "directory"; label: string; default?: string; required?: boolean };
 
+interface AIChatMessage {
+    role: "user" | "assistant";
+    content: string;
+}
+
 interface AIClient {
-    chat(prompt: string, opts?: { image?: string; system?: string }): Promise<string>;
-    stream(prompt: string, opts?: { image?: string; system?: string; onChunk?: (chunk: string) => void }): Promise<string>;
+    chat(
+        promptOrMessages: string | AIChatMessage[],
+        opts?: { system?: string; model?: string; maxTokens?: number; temperature?: number }
+    ): Promise<string>;
+    stream(
+        promptOrMessages: string | AIChatMessage[],
+        opts?: {
+            system?: string;
+            model?: string;
+            maxTokens?: number;
+            temperature?: number;
+            onChunk?: (chunk: string) => void;
+        }
+    ): Promise<string>;
 }
 
 declare const console: {
