@@ -49,5 +49,18 @@ struct PluginWorkspaceTests {
         #expect(FileManager.default.fileExists(atPath: dir.appending(path: "plugins").path(percentEncoded: false)))
         #expect(FileManager.default.fileExists(atPath: dir.appending(path: ".cache").path(percentEncoded: false)))
         #expect(FileManager.default.fileExists(atPath: dir.appending(path: "README.md").path(percentEncoded: false)))
+
+        let jsconfig = try String(
+            contentsOf: dir.appending(path: ".cache/jsconfig.json"),
+            encoding: .utf8
+        )
+        #expect(jsconfig.contains("checkJs"))
+        #expect(jsconfig.contains("../plugins/**/*.js"))
+        #expect(jsconfig.contains("macotron.d.ts"))
+
+        #expect(agents.contains("1.0.0"))
+        #expect(agents.contains("@macotron needs"))
+        #expect(agents.contains("tsc -p .cache --noEmit"))
+        #expect(agents.contains("--check"))
     }
 }

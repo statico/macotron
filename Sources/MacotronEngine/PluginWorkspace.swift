@@ -67,6 +67,7 @@ public final class PluginWorkspace {
         try fm.createDirectory(at: pluginsDir, withIntermediateDirectories: true)
         try fm.createDirectory(at: cacheDir, withIntermediateDirectories: true)
 
+        try seedTypecheckCache()
         migrateLegacyModulesIfNeeded()
 
         let gitignore = root.appending(path: ".gitignore")
@@ -106,6 +107,41 @@ public final class PluginWorkspace {
         if !fm.fileExists(atPath: settingsFile.path(percentEncoded: false)) {
             try writeSettings(Self.defaultSettings)
         }
+    }
+
+    /// Copy bundle `macotron.d.ts` and seed `.cache/jsconfig.json` for agent typecheck.
+    private func seedTypecheckCache() throws {
+        let dtsDest = cacheDir.appending(path: "macotron.d.ts")
+        if let src = Bundle.main.url(forResource: "macotron", withExtension: "d.ts") {
+            try? FileManager.default.removeItem(at: dtsDest)
+            do {
+                try FileManager.default.copyItem(at: src, to: dtsDest)
+            } catch {
+                logger.error("Failed to copy macotron.d.ts: \(error.localizedDescription)")
+            }
+        } else {
+            logger.info("macotron.d.ts not in bundle; skipping copy")
+        }
+
+        let jsconfig = """
+        {
+          "compilerOptions": {
+            "checkJs": true,
+            "noEmit": true,
+            "strict": true,
+            "target": "ES2020",
+            "module": "ESNext",
+            "types": []
+          },
+          "files": ["macotron.d.ts"],
+          "include": ["../plugins/**/*.js"]
+        }
+        """
+        try jsconfig.write(
+            to: cacheDir.appending(path: "jsconfig.json"),
+            atomically: true,
+            encoding: .utf8
+        )
     }
 
     /// One-time move of legacy modules/ into plugins/ when plugins/ is empty.
@@ -186,8 +222,35 @@ public final class PluginWorkspace {
 
         - `plugins/*.js` — plugin scripts. Macotron loads every `.js` file in alphabetical order.
         - `settings.json` — launcher hotkey, UI prefs, module options. Do not put secrets here.
-        - `.cache/` — bytecode cache. Gitignored. Do not edit.
+        - `.cache/` — bytecode cache and typecheck config. Gitignored. Do not edit.
         - `AGENTS.md` / `CLAUDE.md` — owned by Macotron. Overwritten on every launch.
+
+        ## API version
+
+        Current plugin API version is `\(Engine.apiVersion)` (`macotron.version.api`).
+        Bump only when the plugin-facing JS contract changes.
+
+        ## API compatibility pragma
+
+        Optional. Put at the top of a plugin when you need a minimum API version:
+
+        ```js
+        // @macotron needs 1.2
+        // also accepted: 1.2.0
+        ```
+
+        - Missing `needs` means `needs 1.0.0`.
+        - Short forms normalize (`1.2` → `1.2.0`) before compare.
+        - Host loads only if `host.api >= plugin.needs`.
+
+        ## Validate after edits
+
+        Before committing plugin changes, run both checks from this workdir:
+
+        1. Typecheck: `npx --yes typescript tsc -p .cache --noEmit`
+        2. Load check: `make check` or `~/Applications/Macotron.app/Contents/MacOS/Macotron --check plugins/your-file.js`
+
+        Commit only if both pass. Do not edit `AGENTS.md` / `CLAUDE.md`.
 
         ## Plugins
 

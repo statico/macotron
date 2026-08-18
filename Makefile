@@ -18,7 +18,7 @@ SIGN_IDENTITY ?= $(shell security find-identity -p codesigning 2>/dev/null | \
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run bundle clean cleanprefs dev reload eval health snippets commands release
+.PHONY: help build run bundle check clean cleanprefs dev reload eval health snippets commands release
 
 ##@ General
 
@@ -57,6 +57,9 @@ run: bundle ## Bundle and launch (kills existing instance first)
 	@pkill -x $(APP_NAME) 2>/dev/null || true
 	@sleep 0.3
 	open $(BUNDLE)
+
+check: bundle ## Typecheck load plugins (ARGS='plugins/foo.js' optional)
+	$(BUNDLE)/Contents/MacOS/$(APP_NAME) --check $(ARGS)
 
 dev: bundle ## Bundle and run with debug server on :7777
 	$(BUNDLE)/Contents/MacOS/$(APP_NAME) --debug-server
