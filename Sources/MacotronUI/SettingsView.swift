@@ -161,7 +161,18 @@ public final class SettingsState: ObservableObject {
     /// Re-reads the system status so a failed registration reverts the toggle.
     public func toggleLaunchAtLogin(_ value: Bool) {
         writeLaunchAtLogin?(value)
-        launchAtLogin = readLaunchAtLogin?() ?? false
+        let actual = readLaunchAtLogin?() ?? false
+        launchAtLogin = actual
+        if actual != value {
+            Task { @MainActor in
+                let alert = NSAlert()
+                alert.alertStyle = .warning
+                alert.messageText = "Macotron could not \(value ? "enable" : "disable") launch at login."
+                alert.informativeText = "Check System Settings → General → Login Items to approve or remove Macotron."
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+            }
+        }
     }
 
     public func selectAppearance(_ value: AppearanceSetting) {
@@ -252,97 +263,99 @@ public struct SettingsView: View {
     }
 
     private var generalTab: some View {
-        VStack(spacing: 0) {
-            permissionsSection
+        ScrollView {
+            VStack(spacing: 0) {
+                permissionsSection
 
-            formRow("Launch at Login") {
-                Toggle("Open Macotron when you log in", isOn: Binding(
-                    get: { state.launchAtLogin },
-                    set: { state.toggleLaunchAtLogin($0) }
-                ))
-                .toggleStyle(.checkbox)
-            }
-
-            formRow("Launcher Hotkey") {
-                HotkeyRecorderView(combo: $state.launcherHotkey) {
-                    state.saveHotkey()
+                formRow("Launch at Login") {
+                    Toggle("Open Macotron when you log in", isOn: Binding(
+                        get: { state.launchAtLogin },
+                        set: { state.toggleLaunchAtLogin($0) }
+                    ))
+                    .toggleStyle(.checkbox)
                 }
-            }
-            .zIndex(1)
-            .padding(.top, 8)
 
-            formDivider
-
-            formRow("Dock Icon") {
-                Toggle("Show Dock icon", isOn: Binding(
-                    get: { state.showDockIcon },
-                    set: { state.toggleDockIcon($0) }
-                ))
-                .toggleStyle(.checkbox)
-                .disabled(!state.showMenuBarIcon)
-            }
-
-            formRow("Menu Bar Icon") {
-                Toggle("Show in menu bar", isOn: Binding(
-                    get: { state.showMenuBarIcon },
-                    set: { state.toggleMenuBarIcon($0) }
-                ))
-                .toggleStyle(.checkbox)
-                .disabled(!state.showDockIcon)
-            }
-
-            formRow("Appearance") {
-                Picker("", selection: Binding(
-                    get: { state.appearance },
-                    set: { state.selectAppearance($0) }
-                )) {
-                    ForEach(AppearanceSetting.allCases) { option in
-                        Text(option.label).tag(option)
+                formRow("Launcher Hotkey") {
+                    HotkeyRecorderView(combo: $state.launcherHotkey) {
+                        state.saveHotkey()
                     }
                 }
-                .pickerStyle(.segmented)
-                .frame(width: 240)
-            }
+                .zIndex(1)
+                .padding(.top, 8)
 
-            formRow("Text Size") {
-                Picker("", selection: Binding(
-                    get: { state.textScale },
-                    set: { state.selectTextScale($0) }
-                )) {
-                    Text("80%").tag(0.8)
-                    Text("100%").tag(1.0)
-                    Text("120%").tag(1.2)
+                formDivider
+
+                formRow("Dock Icon") {
+                    Toggle("Show Dock icon", isOn: Binding(
+                        get: { state.showDockIcon },
+                        set: { state.toggleDockIcon($0) }
+                    ))
+                    .toggleStyle(.checkbox)
+                    .disabled(!state.showMenuBarIcon)
                 }
-                .pickerStyle(.segmented)
-                .frame(width: 240)
-            }
 
-            formDivider
+                formRow("Menu Bar Icon") {
+                    Toggle("Show in menu bar", isOn: Binding(
+                        get: { state.showMenuBarIcon },
+                        set: { state.toggleMenuBarIcon($0) }
+                    ))
+                    .toggleStyle(.checkbox)
+                    .disabled(!state.showDockIcon)
+                }
 
-            formRow("Plugins Folder") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(state.pluginsPath.isEmpty ? "(not set)" : state.pluginsPath)
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                        .truncationMode(.middle)
-
-                    HStack(spacing: 8) {
-                        Button("Change…") {
-                            state.changePluginsFolder?()
-                            state.load()
+                formRow("Appearance") {
+                    Picker("", selection: Binding(
+                        get: { state.appearance },
+                        set: { state.selectAppearance($0) }
+                    )) {
+                        ForEach(AppearanceSetting.allCases) { option in
+                            Text(option.label).tag(option)
                         }
-                        .controlSize(.small)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 240)
+                }
 
-                        Button("Open Folder") {
-                            state.openPluginsFolder?()
+                formRow("Text Size") {
+                    Picker("", selection: Binding(
+                        get: { state.textScale },
+                        set: { state.selectTextScale($0) }
+                    )) {
+                        Text("80%").tag(0.8)
+                        Text("100%").tag(1.0)
+                        Text("120%").tag(1.2)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 240)
+                }
+
+                formDivider
+
+                formRow("Plugins Folder") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(state.pluginsPath.isEmpty ? "(not set)" : state.pluginsPath)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .truncationMode(.middle)
+
+                        HStack(spacing: 8) {
+                            Button("Change…") {
+                                state.changePluginsFolder?()
+                                state.load()
+                            }
+                            .controlSize(.small)
+
+                            Button("Open Folder") {
+                                state.openPluginsFolder?()
+                            }
+                            .controlSize(.small)
                         }
-                        .controlSize(.small)
                     }
                 }
-            }
 
-            Spacer()
+                Spacer()
+            }
         }
     }
 
@@ -413,7 +426,10 @@ public struct SettingsView: View {
 
             Divider()
 
-            if let selected = state.moduleSummaries.first(where: { $0.filename == selectedPlugin }) {
+            if state.moduleSummaries.isEmpty {
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let selected = state.moduleSummaries.first(where: { $0.filename == selectedPlugin }) {
                 PluginDetailView(summary: selected, state: state)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {

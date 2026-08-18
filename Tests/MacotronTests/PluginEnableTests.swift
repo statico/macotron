@@ -52,4 +52,42 @@ struct PluginEnableTests {
         #expect(engine.commandRegistry["enabled-cmd"] != nil)
         #expect(engine.commandRegistry["disabled-cmd"] == nil)
     }
+
+    @Test("disabling the same filename twice is idempotent")
+    func disablingIsIdempotent() throws {
+        let (ws, dir) = try makeWorkspace()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let manager = ModuleManager(engine: Engine(), workspace: ws)
+
+        manager.setModuleEnabled(filename: "dupe.js", enabled: false)
+        manager.setModuleEnabled(filename: "dupe.js", enabled: false)
+        #expect(ws.readSettings()["disabledPlugins"] as? [String] == ["dupe.js"])
+    }
+
+    @Test("deleting a plugin prunes disabledPlugins so reinstall loads enabled")
+    func deletePrunesDisabledPlugins() throws {
+        let (ws, dir) = try makeWorkspace()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let pluginFile = ws.pluginsDir.appending(path: "regression.js")
+        try "$$__registerCommand('regression-cmd', 'regression', function(){});"
+            .write(to: pluginFile, atomically: true, encoding: .utf8)
+
+        let engine = Engine()
+        let manager = ModuleManager(engine: engine, workspace: ws)
+
+        manager.setModuleEnabled(filename: "regression.js", enabled: false)
+        #expect(!manager.isModuleEnabled(filename: "regression.js"))
+
+        #expect(manager.deleteModule(filename: "regression.js"))
+        #expect(manager.isModuleEnabled(filename: "regression.js"))
+        #expect((ws.readSettings()["disabledPlugins"] as? [String])?.isEmpty == true)
+
+        try "$$__registerCommand('regression-cmd', 'regression', function(){});"
+            .write(to: pluginFile, atomically: true, encoding: .utf8)
+        manager.reloadAll()
+
+        #expect(engine.commandRegistry["regression-cmd"] != nil)
+        #expect(manager.isModuleEnabled(filename: "regression.js"))
+    }
 }

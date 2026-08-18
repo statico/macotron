@@ -236,6 +236,9 @@ public final class ModuleManager {
         let file = configDir.appending(path: directory).appending(path: filename)
         do {
             try FileManager.default.removeItem(at: file)
+            if directory == "plugins" {
+                setModuleEnabled(filename: filename, enabled: true)
+            }
             logger.info("Deleted \(directory)/\(filename)")
             return true
         } catch {

@@ -110,7 +110,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.refreshPermissions()
         }
         menuBarManager.updateLauncherShortcut(resolveHotkey())
-        menuBarManager.setVisible(readUIBool("showMenuBarIcon", default: true))
+        menuBarManager.setVisible(readUIValue("showMenuBarIcon") as? Bool ?? true)
 
         appSearchProvider = AppSearchProvider()
 
@@ -139,6 +139,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         moduleManager.onDidReload = { [weak self] in
             self?.refreshPermissions()
+            self?.applyUIPrefsFromSettings()
         }
         refreshPermissions()
 
@@ -154,8 +155,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             debugServer?.onToggleLauncher = { [weak self] in
                 self?.launcherPanel.toggle()
             }
-            debugServer?.captureLauncher = {
-                let view = LauncherView().frame(width: 680, height: 480)
+            debugServer?.captureLauncher = { [weak self] in
+                let prefs = self?.launcherPrefs ?? LauncherPrefs()
+                let view = LauncherView(prefs: prefs).frame(width: 680, height: 480)
                 return Self.renderViewToPNG(view, size: NSSize(width: 680, height: 480))
             }
             debugServer?.captureWizard = { [weak self] step in
@@ -197,7 +199,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.configDirURL = workspaceRoot
         moduleManager.reloadAll()
         applyUIPrefsFromSettings()
-        menuBarManager?.setVisible(readUIBool("showMenuBarIcon", default: true))
+        menuBarManager?.setVisible(readUIValue("showMenuBarIcon") as? Bool ?? true)
         menuBarManager?.updateLauncherShortcut(resolveHotkey())
         installLauncherHotkey()
         moduleManager.startWatching()
@@ -225,18 +227,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         settingsState.readShowDockIcon = { [weak self] in
-            self?.readUIBool("showDockIcon", default: true) ?? true
+            self?.readUIValue("showDockIcon") as? Bool ?? true
         }
         settingsState.writeShowDockIcon = { [weak self] value in
-            self?.writeUIBool("showDockIcon", value)
+            self?.writeUIValue("showDockIcon", value)
             NSApp.setActivationPolicy(value ? .regular : .accessory)
             if value { NSApp.activate() }
         }
         settingsState.readShowMenuBarIcon = { [weak self] in
-            self?.readUIBool("showMenuBarIcon", default: true) ?? true
+            self?.readUIValue("showMenuBarIcon") as? Bool ?? true
         }
         settingsState.writeShowMenuBarIcon = { [weak self] value in
-            self?.writeUIBool("showMenuBarIcon", value)
+            self?.writeUIValue("showMenuBarIcon", value)
             self?.menuBarManager.setVisible(value)
         }
         settingsState.readLaunchAtLogin = { LaunchAtLogin.isEnabled }
@@ -252,7 +254,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         settingsState.readTextScale = { [weak self] in
             let raw = self?.readUIValue("textScale") as? Double ?? 1.0
-            return min(max(raw, 0.8), 1.2)
+            return LauncherPrefs.snapTextScale(raw)
         }
         settingsState.writeTextScale = { [weak self] value in
             guard let self else { return }
@@ -583,34 +585,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.configStore = workspace.readSettings()
     }
 
-    private func readUIBool(_ key: String, default defaultValue: Bool) -> Bool {
-        if let ui = engine?.configStore["ui"] as? [String: Any],
-           let value = ui[key] as? Bool {
-            return value
-        }
-        if let workspace,
-           let ui = workspace.readSettings()["ui"] as? [String: Any],
-           let value = ui[key] as? Bool {
-            return value
-        }
-        return defaultValue
-    }
-
-    private func writeUIBool(_ key: String, _ value: Bool) {
-        try? workspace.updateSettings { settings in
-            var ui = settings["ui"] as? [String: Any] ?? [:]
-            ui[key] = value
-            settings["ui"] = ui
-        }
-        engine.configStore = workspace.readSettings()
-    }
-
     private func applyUIPrefsFromSettings() {
-        let showDock = readUIBool("showDockIcon", default: true)
+        let showDock = readUIValue("showDockIcon") as? Bool ?? true
         NSApp.setActivationPolicy(showDock ? .regular : .accessory)
         AppearanceSetting.parse(readUIValue("appearance")).apply()
         let rawScale = readUIValue("textScale") as? Double ?? 1.0
-        launcherPrefs.textScale = CGFloat(min(max(rawScale, 0.8), 1.2))
+        launcherPrefs.textScale = CGFloat(LauncherPrefs.snapTextScale(rawScale))
     }
 
     private func setupMainMenu() {

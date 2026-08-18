@@ -4,7 +4,8 @@ import ServiceManagement
 @MainActor
 public enum LaunchAtLogin {
     public static var isEnabled: Bool {
-        SMAppService.mainApp.status == .enabled
+        let status = SMAppService.mainApp.status
+        return status == .enabled || status == .requiresApproval
     }
 
     /// Returns whether the system accepted the change. Callers re-read
