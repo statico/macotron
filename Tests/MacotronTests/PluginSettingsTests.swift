@@ -33,8 +33,21 @@ struct PluginSettingsTests {
 
     // MARK: - $$__module resolution
 
+    /// Compares two JSON strings as parsed dictionaries so key order does not matter.
+    /// $$__module builds its result from a Swift dictionary whose iteration order is
+    /// randomized per process, so string equality on the JSON output is flaky.
+    private func assertJSONEqual(_ actual: String?, _ expected: String) throws {
+        let actual = try #require(actual)
+        let actualData = Data(actual.utf8)
+        let expectedData = Data(expected.utf8)
+        let actualObj = try JSONSerialization.jsonObject(with: actualData)
+        let expectedObj = try JSONSerialization.jsonObject(with: expectedData)
+        #expect((actualObj as AnyObject).isEqual(to: expectedObj as Any),
+                "JSON mismatch: actual=\(actual) expected=\(expected)")
+    }
+
     @Test("$$__module resolves defaults and user overrides")
-    func moduleResolvesDefaultsAndOverrides() {
+    func moduleResolvesDefaultsAndOverrides() throws {
         let engine = Engine()
         engine.currentEvaluatingFile = "test.js"
         engine.moduleSettings = ["test.js": ["greeting": "hi"]]
@@ -47,11 +60,11 @@ struct PluginSettingsTests {
             JSON.stringify(opts);
         """)
         #expect(error == nil)
-        #expect(result == #"{"count":3,"greeting":"hi"}"#)
+        try assertJSONEqual(result, #"{"count":3,"greeting":"hi"}"#)
     }
 
     @Test("$$__module resolves password option from Keychain ref")
-    func moduleResolvesPasswordFromKeychain() {
+    func moduleResolvesPasswordFromKeychain() throws {
         let account = KeychainStore.pluginOptionAccount(filename: "test.js", key: "apiKey")
         KeychainStore.write(account: account, value: "secret-value-123")
         defer { KeychainStore.delete(account: account) }
@@ -67,11 +80,11 @@ struct PluginSettingsTests {
             JSON.stringify(opts);
         """)
         #expect(error == nil)
-        #expect(result == #"{"apiKey":"secret-value-123"}"#)
+        try assertJSONEqual(result, #"{"apiKey":"secret-value-123"}"#)
     }
 
     @Test("$$__module returns empty string for unset password")
-    func moduleUnsetPasswordIsEmpty() {
+    func moduleUnsetPasswordIsEmpty() throws {
         let engine = Engine()
         engine.currentEvaluatingFile = "test.js"
         engine.moduleSettings = [:]
@@ -83,11 +96,11 @@ struct PluginSettingsTests {
             JSON.stringify(opts);
         """)
         #expect(error == nil)
-        #expect(result == #"{"apiKey":""}"#)
+        try assertJSONEqual(result, #"{"apiKey":""}"#)
     }
 
     @Test("$$__module returns empty string when Keychain ref has no value")
-    func moduleDanglingPasswordRefIsEmpty() {
+    func moduleDanglingPasswordRefIsEmpty() throws {
         let engine = Engine()
         engine.currentEvaluatingFile = "test.js"
         engine.moduleSettings = ["test.js": ["apiKey": "macotron.plugin.test.js.apiKey.missing.\(UUID().uuidString)"]]
@@ -99,11 +112,11 @@ struct PluginSettingsTests {
             JSON.stringify(opts);
         """)
         #expect(error == nil)
-        #expect(result == #"{"apiKey":""}"#)
+        try assertJSONEqual(result, #"{"apiKey":""}"#)
     }
 
     @Test("$$__module ignores default for password options")
-    func modulePasswordIgnoresDefault() {
+    func modulePasswordIgnoresDefault() throws {
         let engine = Engine()
         engine.currentEvaluatingFile = "test.js"
         engine.moduleSettings = [:]
@@ -115,7 +128,7 @@ struct PluginSettingsTests {
             JSON.stringify(opts);
         """)
         #expect(error == nil)
-        #expect(result == #"{"apiKey":""}"#)
+        try assertJSONEqual(result, #"{"apiKey":""}"#)
     }
 
     // MARK: - ModuleManager secret storage
@@ -149,3 +162,4 @@ struct PluginSettingsTests {
         #expect(KeychainStore.read(account: account) == nil)
     }
 }
+
