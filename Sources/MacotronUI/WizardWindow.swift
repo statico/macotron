@@ -22,6 +22,11 @@ public final class WizardWindow {
 
     public var isVisible: Bool { window?.isVisible ?? false }
 
+    /// The window is not resizable, so the content is pinned to this size. The
+    /// root view fills its parent, which would otherwise grow the window to the
+    /// full height of the screen.
+    private static let contentSize = NSSize(width: 560, height: 520)
+
     public func show() {
         if let window, window.isVisible {
             window.makeKeyAndOrderFront(nil)
@@ -33,16 +38,18 @@ public final class WizardWindow {
         NSApp.setActivationPolicy(.regular)
 
         let wizardView = WizardView(state: wizardState, permissions: permissionsState)
+            .frame(width: Self.contentSize.width, height: Self.contentSize.height)
         let hostingView = NSHostingView(rootView: wizardView)
 
         let w = EscClosableWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 520),
+            contentRect: NSRect(origin: .zero, size: Self.contentSize),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
         )
         w.title = "Macotron Setup"
         w.contentView = hostingView
+        w.setContentSize(Self.contentSize)
         w.center()
         w.isReleasedWhenClosed = false
         w.level = .floating

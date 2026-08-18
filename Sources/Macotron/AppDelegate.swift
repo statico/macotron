@@ -22,6 +22,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var debugServer: DebugServer?
     private var didRegisterPermissions = false
     private var permissionTimer: Timer?
+    private var didFinishLaunching = false
 
     private static let wizardCompletedKey = "wizardCompleted"
 
@@ -49,6 +50,23 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         } else if !Permissions.missing(from: requiredPermissions()).isEmpty {
             showPermissionsWizard()
         }
+
+        didFinishLaunching = true
+    }
+
+    /// AppKit sends this when the user clicks the Dock icon or re-launches an
+    /// already-running Macotron from Spotlight or Finder. Ordinary app
+    /// switches such as Cmd-Tab arrive as activation instead, so opening
+    /// Settings here does not fight the user for focus.
+    public func applicationShouldHandleReopen(
+        _ sender: NSApplication,
+        hasVisibleWindows flag: Bool
+    ) -> Bool {
+        // Some launch paths deliver a reopen before the app is ready, and the
+        // wizard owns the screen while it is up.
+        guard didFinishLaunching, wizardWindow?.isVisible != true else { return true }
+        openSettingsAction()
+        return true
     }
 
     // MARK: - Bootstrap
