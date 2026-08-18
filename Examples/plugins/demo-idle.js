@@ -1,14 +1,17 @@
 // demo-idle.js
 // APIs: macotron.idle.seconds, macotron.idle.setThreshold, macotron.on("system:idle"), macotron.on("system:active"), macotron.notify, macotron.command
 
+let lastTransition = "none";
+
 macotron.on("system:idle", () => {
-    macotron.notify.show("Idle", "System is idle");
+    lastTransition = "idle";
 });
 
 macotron.on("system:active", () => {
-    macotron.notify.show("Active", "Input resumed");
+    lastTransition = "active";
 });
 
 macotron.command("Idle seconds", "Show seconds since last HID input", () => {
-    macotron.notify.show("Idle", `${Math.floor(macotron.idle.seconds())}s`);
+    const seconds = Math.floor(macotron.idle.seconds());
+    macotron.notify.show("Idle", `${seconds}s (last transition: ${lastTransition})`);
 });
