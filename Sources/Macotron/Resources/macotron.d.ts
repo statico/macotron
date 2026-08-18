@@ -44,7 +44,7 @@ declare const macotron: {
 
     url: {
         on(scheme: string, host: string, callback: (event: { url: string; scheme: string; host: string; path: string }) => void): void;
-        open(url: string, bundleID?: string): void;
+        open(url: string, bundleID?: string, profile?: string): boolean;
         registerHandler(scheme: string): void;
     };
 
@@ -59,6 +59,15 @@ declare const macotron: {
     clipboard: {
         text(): string;
         set(text: string): void;
+        history(): Array<{ id: string; text: string; kind: "text"; ts: number }>;
+        clearHistory(): void;
+    };
+
+    snippets: {
+        list(): Array<{ abbr: string; body: string }>;
+        set(abbr: string, body: string): void;
+        remove(abbr: string): void;
+        insert(abbr: string): boolean;
     };
 
     ai: {
@@ -76,12 +85,22 @@ declare const macotron: {
         list(): Array<{ name: string; bundleID: string; pid: number }>;
         launch(bundleID: string): void;
         switch(bundleID: string): void;
+        frontmost(): { name: string; bundleID: string; pid: number } | null;
+    };
+
+    calendar: {
+        upcoming(opts?: { hours?: number }): Array<{ id: string; title: string; start: number; end: number }>;
+    };
+
+    ocr: {
+        recognize(opts: { path?: string; image?: string }): Promise<string>;
     };
 
     system: {
         cpuTemp(): Promise<number>;
         memory(): { total: number; used: number; free: number };
         battery(): { level: number; charging: boolean };
+        disk(): { total: number; free: number; used: number };
     };
 
     http: {

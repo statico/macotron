@@ -44,14 +44,18 @@ public final class URLSchemeModule: NativeModule {
             return QJS_Undefined()
         }, "on", 3))
 
-        // macotron.url.open(url, bundleID?) — open URL in browser or specific app
+        // macotron.url.open(url, bundleID?, profile?) — open URL in browser or specific app
         JS_SetPropertyStr(ctx, urlObj, "open",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let urlString = JSBridge.toString(ctx, argv[0]) ?? ""
             var bundleID: String?
+            var profile: String?
             if argc >= 2 {
                 bundleID = JSBridge.toString(ctx, argv[1])
+            }
+            if argc >= 3 {
+                profile = JSBridge.toString(ctx, argv[2])
             }
 
             guard let url = URL(string: urlString) else {
@@ -61,6 +65,9 @@ public final class URLSchemeModule: NativeModule {
             if let bundleID {
                 // Open with specific application
                 let config = NSWorkspace.OpenConfiguration()
+                if let profile {
+                    config.arguments = ["--profile-directory=\(profile)"]
+                }
                 if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
                     NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config)
                 } else {
@@ -71,7 +78,7 @@ public final class URLSchemeModule: NativeModule {
             }
 
             return JSBridge.newBool(ctx, true)
-        }, "open", 2))
+        }, "open", 3))
 
         // macotron.url.registerHandler(scheme) — claim a URL scheme
         JS_SetPropertyStr(ctx, urlObj, "registerHandler",
