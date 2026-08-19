@@ -115,11 +115,6 @@ public final class LauncherPanel: NSPanel {
         return view?.subviews.first as? NSGlassEffectView
     }
 
-    public override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
-        let visible = (screen ?? self.screen)?.visibleFrame ?? LauncherPlacement.currentVisible()
-        return LauncherPlacement.frame(height: frameRect.height, visible: visible, pinTop: nil)
-    }
-
     public override var canBecomeKey: Bool { true }
     public override var canBecomeMain: Bool { false }
 
@@ -134,6 +129,7 @@ public final class LauncherPanel: NSPanel {
             || abs(frame.origin.x - newFrame.origin.x) > 1
             || abs(frame.width - newFrame.width) > 1 else { return }
         setFrame(newFrame, display: true)
+        logger.notice("after \(NSStringFromRect(self.frame), privacy: .public) host=\(NSStringFromRect(self.hostingView.frame), privacy: .public)")
     }
 
     private func reveal() {
@@ -186,6 +182,7 @@ public final class LauncherPanel: NSPanel {
             let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: nil)
             logPlacement("open", height: height, visible: visible, pinTop: nil, frame: newFrame)
             setFrame(newFrame, display: false)
+            logger.notice("after-open \(NSStringFromRect(self.frame), privacy: .public)")
             reveal()
         }
     }
