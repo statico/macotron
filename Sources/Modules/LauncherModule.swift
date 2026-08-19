@@ -167,9 +167,12 @@ public final class LauncherModule: NativeModule {
     }
 
     private func symbol(_ name: String?) -> NSImage? {
-        guard let name, !name.isEmpty else { return nil }
-        let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
-        image?.size = NSSize(width: 20, height: 20)
+        guard let name, !name.isEmpty,
+              let image = NSImage(systemSymbolName: name, accessibilityDescription: nil) else {
+            return nil
+        }
+        image.size = NSSize(width: 20, height: 20)
+        image.isTemplate = true
         return image
     }
 }

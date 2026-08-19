@@ -115,6 +115,11 @@ public final class LauncherPanel: NSPanel {
         return view?.subviews.first as? NSGlassEffectView
     }
 
+    public override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+        let visible = (screen ?? self.screen)?.visibleFrame ?? LauncherPlacement.currentVisible()
+        return LauncherPlacement.frame(height: frameRect.height, visible: visible, pinTop: nil)
+    }
+
     public override var canBecomeKey: Bool { true }
     public override var canBecomeMain: Bool { false }
 
@@ -122,9 +127,8 @@ public final class LauncherPanel: NSPanel {
     public func resizeToHeight(_ height: CGFloat) {
         let visible = currentVisible
         applySizeLimits(in: visible)
-        let pin = isVisible || isShown ? frame.maxY : nil
-        let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: pin)
-        logPlacement("resize", height: height, visible: visible, pinTop: pin, frame: newFrame)
+        let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: nil)
+        logPlacement("resize", height: height, visible: visible, pinTop: nil, frame: newFrame)
         lastContentHeight = newFrame.height
         guard abs(frame.height - newFrame.height) > 1 || abs(frame.origin.y - newFrame.origin.y) > 1
             || abs(frame.origin.x - newFrame.origin.x) > 1
@@ -202,6 +206,7 @@ public final class LauncherPanel: NSPanel {
             launcher \(reason, privacy: .public) \
             wantH=\(height, format: .fixed(precision: 1), privacy: .public) \
             pin=\(pinTop.map { String(format: "%.1f", $0) } ?? "nil", privacy: .public) \
+            current=\(NSStringFromRect(self.frame), privacy: .public) \
             visible=\(NSStringFromRect(visible), privacy: .public) \
             frame=\(NSStringFromRect(frame), privacy: .public) \
             topPct=\(topPct, format: .fixed(precision: 3), privacy: .public) \

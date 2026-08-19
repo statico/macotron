@@ -137,7 +137,7 @@ public struct LauncherView: View {
             }
         }
         .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, alignment: .top)
         .onChange(of: session.query) { _, newValue in
             applySearch(newValue)
         }
@@ -186,7 +186,7 @@ public struct LauncherView: View {
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 1) {
+                    VStack(alignment: .leading, spacing: 1) {
                         ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
                             ResultRow(result: result, isSelected: index == selectedIndex,
                                       textScale: prefs.textScale)
@@ -649,6 +649,8 @@ struct ResultRow: View {
             if let nsImage = result.nsImage {
                 Image(nsImage: nsImage)
                     .resizable()
+                    .renderingMode(nsImage.isTemplate ? .template : .original)
+                    .foregroundStyle(.primary)
                     .frame(width: 20 * textScale, height: 20 * textScale)
                     .cornerRadius(4)
             } else {
@@ -672,28 +674,32 @@ struct ResultRow: View {
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
             Image(systemName: "star.fill")
+                .symbolRenderingMode(.monochrome)
                 .font(.system(size: 9 * textScale))
                 .foregroundStyle(.primary)
                 .opacity(result.isFavorite ? 1 : 0)
                 .frame(width: 12 * textScale)
                 .accessibilityHidden(!result.isFavorite)
 
-            if !result.shortcut.isEmpty {
-                HStack(spacing: 2) {
-                    ForEach(HotkeyFormat.glyphs(result.shortcut), id: \.self) { part in
-                        Text(part)
-                            .font(.system(size: 10 * textScale, weight: .medium, design: .rounded))
+            Group {
+                if !result.shortcut.isEmpty {
+                    HStack(spacing: 2) {
+                        ForEach(HotkeyFormat.glyphs(result.shortcut), id: \.self) { part in
+                            Text(part)
+                                .font(.system(size: 10 * textScale, weight: .medium, design: .rounded))
+                        }
                     }
+                } else {
+                    Text(labelForType(result.type))
+                        .font(.system(size: 10 * textScale))
                 }
-                .foregroundStyle(.tertiary)
-            } else {
-                Text(labelForType(result.type))
-                    .font(.system(size: 10 * textScale))
-                    .foregroundStyle(.tertiary)
             }
+            .foregroundStyle(.tertiary)
+            .frame(width: 90 * textScale, alignment: .trailing)
+            .lineLimit(1)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
