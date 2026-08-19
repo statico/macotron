@@ -56,7 +56,7 @@ function paint() {
         subtitle: "GPU " + s.gpuN + "%",
         sfSymbol: "cpu",
         color: colorize ? tint(Math.max(s.cpu, s.gpuN)) : undefined,
-        // "CPU 100%" / "GPU 100%" at 10pt plus the 20pt icon. Proportional
+        // "CPU 100%" / "GPU 100%" at 10pt plus the 16pt icon. Proportional
         // digits would otherwise shift neighbors as usage ticks.
         minWidth: 96,
         menu: menu(s),
