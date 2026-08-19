@@ -17,16 +17,19 @@ final class PluginStatusItem: NSObject {
         guard let button = item.button else { return }
         button.title = ""
         button.image = nil
+        button.imagePosition = .noImage
         button.target = self
         button.action = #selector(clicked)
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         host.translatesAutoresizingMaskIntoConstraints = false
-        host.wantsLayer = true
         host.setContentHuggingPriority(.required, for: .horizontal)
         button.addSubview(host)
         NSLayoutConstraint.activate([
             host.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 4),
+            host.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -4),
             host.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+            host.topAnchor.constraint(greaterThanOrEqualTo: button.topAnchor),
+            host.bottomAnchor.constraint(lessThanOrEqualTo: button.bottomAnchor),
         ])
     }
 
@@ -72,10 +75,12 @@ final class PluginStatusItem: NSObject {
             secondary: secondary,
             image: image
         )
+        host.invalidateIntrinsicContentSize()
         host.layoutSubtreeIfNeeded()
+        // Extra points cover glyph overhang so text/art cannot paint into neighbors.
         let fitted = iconOnly
             ? NSStatusItem.squareLength
-            : max(ceil(host.fittingSize.width) + 8, NSStatusItem.squareLength)
+            : max(ceil(host.fittingSize.width) + 10, NSStatusItem.squareLength)
         item.length = max(fitted, CGFloat(minWidth ?? 0))
         button?.toolTip = subtitle.map { "\(title) — \($0)" } ?? title
     }
@@ -99,16 +104,14 @@ final class PluginStatusItem: NSObject {
         onClick?()
     }
 
-    fileprivate static let iconSize: CGFloat = 20
-    private static let symbolConfig = NSImage.SymbolConfiguration(pointSize: 20, weight: .medium)
+    fileprivate static let iconSize: CGFloat = 16
+    private static let symbolConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
 
     private static func loadImage(sfSymbol: String?, path: String?, color: NSColor?) -> NSImage? {
         if let path, !path.isEmpty {
             let expanded = (path as NSString).expandingTildeInPath
             if let img = NSImage(contentsOfFile: expanded) {
-                img.size = NSSize(width: iconSize, height: iconSize)
-                img.isTemplate = false
-                return img
+                return Self.thumbnail(img, length: iconSize)
             }
         }
         guard let sfSymbol, !sfSymbol.isEmpty,
@@ -121,6 +124,17 @@ final class PluginStatusItem: NSObject {
         }
         let out = img.withSymbolConfiguration(config) ?? img
         out.isTemplate = color == nil
+        return out
+    }
+
+    private static func thumbnail(_ source: NSImage, length: CGFloat) -> NSImage {
+        let size = NSSize(width: length, height: length)
+        let out = NSImage(size: size, flipped: false) { rect in
+            NSGraphicsContext.current?.imageInterpolation = .high
+            source.draw(in: rect, from: .zero, operation: .copy, fraction: 1)
+            return true
+        }
+        out.isTemplate = false
         return out
     }
 
@@ -173,8 +187,12 @@ private final class StatusHostView: NSView {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
+        clipsToBounds = true
+        wantsLayer = true
+        layer?.masksToBounds = true
         imageView.imageScaling = .scaleProportionallyUpOrDown
         imageView.wantsLayer = true
+        imageView.clipsToBounds = true
         imageView.layer?.masksToBounds = true
         imageView.layer?.cornerCurve = .continuous
         imageView.setContentHuggingPriority(.required, for: .horizontal)
@@ -183,8 +201,12 @@ private final class StatusHostView: NSView {
 
         titleField.lineBreakMode = .byTruncatingTail
         titleField.maximumNumberOfLines = 1
+        titleField.usesSingleLineMode = true
+        titleField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         subtitleField.lineBreakMode = .byTruncatingTail
         subtitleField.maximumNumberOfLines = 1
+        subtitleField.usesSingleLineMode = true
+        subtitleField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         textStack.orientation = .vertical
         textStack.alignment = .leading
@@ -210,6 +232,13 @@ private final class StatusHostView: NSView {
     }
 
     required init?(coder: NSCoder) { nil }
+
+    override func layout() {
+        super.layout()
+        clipsToBounds = true
+        layer?.masksToBounds = true
+        imageView.layer?.masksToBounds = true
+    }
 
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
