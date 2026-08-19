@@ -16,6 +16,12 @@ public final class LauncherSession: ObservableObject {
     }
 
     @Published public var pendingArgs: PendingArgs?
+    @Published public var query = ""
 
     public init() {}
+
+    public func reset() {
+        query = ""
+        pendingArgs = nil
+    }
 }

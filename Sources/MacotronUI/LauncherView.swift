@@ -33,7 +33,6 @@ public struct SearchResult: Identifiable {
 public struct LauncherView: View {
     @ObservedObject private var prefs: LauncherPrefs
     @ObservedObject private var session: LauncherSession
-    @State private var query = ""
     @State private var results: [SearchResult] = []
     @State private var selectedIndex = 0
     @State private var argValues: [String: String] = [:]
@@ -70,11 +69,8 @@ public struct LauncherView: View {
                         .font(.system(size: 20 * prefs.textScale))
                         .frame(width: 24, height: 24)
 
-                    TextField("Search commands and apps...", text: $query)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 20 * prefs.textScale, weight: .regular))
+                    LauncherQueryField(text: $session.query, fontSize: 20 * prefs.textScale, onSubmit: execute)
                         .frame(height: 24)
-                        .onSubmit { execute() }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
@@ -87,10 +83,9 @@ public struct LauncherView: View {
                 argumentForm
             } else {
                 searchResultsView
-                    .animation(.easeOut(duration: 0.15), value: query)
             }
 
-            if session.pendingArgs == nil && !query.isEmpty && !results.isEmpty {
+            if session.pendingArgs == nil && !session.query.isEmpty && !results.isEmpty {
                 Divider().opacity(0.5)
                 HStack(spacing: 16) {
                     shortcutHint(keys: ["return"], label: "Open")
@@ -103,12 +98,13 @@ public struct LauncherView: View {
             }
         }
         .fixedSize(horizontal: false, vertical: true)
-        .onChange(of: query) { _, newValue in
+        .ignoresSafeArea()
+        .onChange(of: session.query) { _, newValue in
             results = onSearch?(newValue) ?? []
             selectedIndex = 0
         }
         .onAppear {
-            results = onSearch?("") ?? []
+            results = onSearch?(session.query) ?? []
         }
         .onChange(of: session.pendingArgs?.commandId) { _, _ in
             if let pending = session.pendingArgs {
@@ -140,7 +136,7 @@ public struct LauncherView: View {
     @ViewBuilder
     private var searchResultsView: some View {
         if results.isEmpty {
-            Text(query.isEmpty ? "Type to search" : "No results")
+            Text(session.query.isEmpty ? "Type to search" : "No results")
                 .font(.system(size: 12 * prefs.textScale))
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity)
@@ -159,7 +155,7 @@ public struct LauncherView: View {
                     .padding(.vertical, 4)
                     .padding(.horizontal, 6)
                 }
-                .frame(maxHeight: 420)
+                .frame(height: min(420, CGFloat(results.count) * (20 * prefs.textScale + 10) + 8))
                 .onChange(of: selectedIndex) { _, newIndex in
                     if newIndex < results.count {
                         withAnimation(.easeOut(duration: 0.1)) {
@@ -212,7 +208,7 @@ public struct LauncherView: View {
                 arguments: result.commandArguments
             )
             prefill(result.commandArguments)
-            query = ""
+            session.query = ""
             results = []
             return
         }
@@ -224,7 +220,7 @@ public struct LauncherView: View {
         session.pendingArgs = nil
         argValues = [:]
         argError = nil
-        query = ""
+        session.query = ""
         results = onSearch?("") ?? []
         selectedIndex = 0
         return true
@@ -342,6 +338,62 @@ private struct ViewHeightKey: PreferenceKey {
     nonisolated(unsafe) static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
+    }
+}
+
+/// AppKit field so window resizes don't kill the field editor (SwiftUI TextField does).
+private struct LauncherQueryField: NSViewRepresentable {
+    @Binding var text: String
+    var fontSize: CGFloat
+    var onSubmit: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text, onSubmit: onSubmit)
+    }
+
+    func makeNSView(context: Context) -> NSTextField {
+        let field = NSTextField(string: text)
+        field.isBordered = false
+        field.drawsBackground = false
+        field.focusRingType = .none
+        field.placeholderString = "Search commands and apps..."
+        field.font = .systemFont(ofSize: fontSize)
+        field.maximumNumberOfLines = 1
+        field.cell?.isScrollable = true
+        field.delegate = context.coordinator
+        return field
+    }
+
+    func updateNSView(_ field: NSTextField, context: Context) {
+        context.coordinator.text = $text
+        context.coordinator.onSubmit = onSubmit
+        field.font = .systemFont(ofSize: fontSize)
+        if field.stringValue != text {
+            field.stringValue = text
+        }
+    }
+
+    final class Coordinator: NSObject, NSTextFieldDelegate {
+        var text: Binding<String>
+        var onSubmit: () -> Void
+
+        init(text: Binding<String>, onSubmit: @escaping () -> Void) {
+            self.text = text
+            self.onSubmit = onSubmit
+        }
+
+        func controlTextDidChange(_ obj: Notification) {
+            guard let field = obj.object as? NSTextField else { return }
+            text.wrappedValue = field.stringValue
+        }
+
+        func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+            if selector == #selector(NSResponder.insertNewline(_:)) {
+                onSubmit()
+                return true
+            }
+            return false
+        }
     }
 }
 
