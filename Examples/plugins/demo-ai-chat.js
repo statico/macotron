@@ -130,7 +130,7 @@ macotron.command("AI Chat", "Open a streaming chat panel", () => {
 <div id="log" class="grow scroll"></div>
 <div class="toolbar">
   <select id="model">${modelOptions(opts.model || "small")}</select>
-  <input id="input" autofocus placeholder="Message…">
+  <textarea id="input" autofocus rows="2" placeholder="Message…"></textarea>
   <button id="send" class="primary">Send</button>
   <button id="neu" class="secondary">New</button>
 </div>
@@ -142,6 +142,7 @@ function add(role, text) {
   el.className = "msg";
   el.dataset.role = role;
   if (role === "error") el.classList.add("bad");
+  el.textContent = text || "";
   log.appendChild(el);
   log.scrollTop = log.scrollHeight;
   return el;
@@ -157,7 +158,12 @@ document.getElementById("send").onclick = () => {
     model: document.getElementById("model").value,
   });
 };
-input.onkeydown = (e) => { if (e.key === "Enter") document.getElementById("send").click(); };
+input.onkeydown = (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    document.getElementById("send").click();
+  }
+};
 document.getElementById("neu").onclick = () => window.webkit.messageHandlers.macotron.postMessage({ type: "new" });
 window.__macotronReceive = (data) => {
   if (!data) return;
