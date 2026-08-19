@@ -1,16 +1,18 @@
-// demo-pomodoro.js
-// APIs: macotron.menubar, macotron.every, macotron.notify, macotron.command
+// APIs: macotron.menubar.status, macotron.every, macotron.notify, macotron.command
 
 const WORK_MS = 25 * 60 * 1000;
 let remaining = 0;
 let running = false;
 
-macotron.menubar.add("pomodoro", {
-    title: "Pomodoro",
-    icon: "timer",
-    section: "Focus",
-    onClick: start,
-});
+function paint() {
+    macotron.menubar.status("pomodoro", {
+        title: running ? fmt(remaining) : "Pomodoro",
+        sfSymbol: remaining <= 0 && !running ? "checkmark.circle" : "timer",
+        color: running ? "orange" : null,
+        bold: running,
+        onClick: start,
+    });
+}
 
 function fmt(ms) {
     const s = Math.max(0, Math.ceil(ms / 1000));
@@ -23,20 +25,21 @@ function tick() {
     if (remaining <= 0) {
         running = false;
         remaining = 0;
-        macotron.menubar.update("pomodoro", { title: "Done!", icon: "checkmark.circle" });
+        paint();
         macotron.notify.show("Pomodoro", "25 minutes — take a break", { sound: true });
         return;
     }
-    macotron.menubar.update("pomodoro", { title: fmt(remaining), icon: "timer" });
+    paint();
 }
 
 function start() {
     remaining = WORK_MS;
     running = true;
-    macotron.menubar.update("pomodoro", { title: fmt(remaining), icon: "timer" });
+    paint();
     macotron.notify.show("Pomodoro", "25:00 started");
 }
 
+paint();
 macotron.every(1000, tick);
 
 macotron.command("Start Pomodoro", "25-minute focus timer in the menubar", start);

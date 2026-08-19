@@ -3,9 +3,12 @@
 
 function refresh() {
     const on = macotron.power.isPreventing();
-    macotron.menubar.update("power", {
-        title: on ? "Awake ON" : "Awake OFF",
-        icon: on ? "cup.and.saucer.fill" : "cup.and.saucer",
+    macotron.menubar.status("power", {
+        title: on ? "Awake" : "Sleep",
+        sfSymbol: on ? "cup.and.saucer.fill" : "cup.and.saucer",
+        color: on ? "orange" : null,
+        bold: on,
+        onClick: toggle,
     });
 }
 
@@ -18,14 +21,7 @@ function toggle() {
     refresh();
 }
 
-macotron.menubar.add("power", {
-    title: "Awake OFF",
-    icon: "cup.and.saucer",
-    section: "System",
-    onClick: () => {
-        toggle();
-    },
-});
+refresh();
 
 macotron.command("Toggle Keep Awake", "Prevent or allow system sleep", () => {
     toggle();
