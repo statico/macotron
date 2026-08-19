@@ -44,7 +44,7 @@ macotron.panel.postMessage(id, data);
 macotron.panel.onMessage(id, (data) => { /* ... */ });
 ```
 
-`html` is inserted into a host document (system font, padding, light/dark). `rawHtml` is a full document, the old `html` behavior.
+`html` is inserted into a host document (system font, padding, light/dark). `rawHtml` is a full document, the old `html` behavior. In the page, `close()` closes the panel.
 
 **localStorage:** Standard web API backed by JSON under the workdir data store.
 

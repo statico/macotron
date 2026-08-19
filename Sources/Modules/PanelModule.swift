@@ -120,17 +120,28 @@ public final class PanelModule: NativeModule {
         if engine?.dryRun == true {
             return id
         }
-        let host = PanelHost(id: id, title: title, width: width, height: height, html: html, hostChrome: hostChrome) { [weak self] panelId, body in
+        let host = PanelHost(id: id, title: title, width: width, height: height, html: html, hostChrome: hostChrome, onMessage: { [weak self] panelId, body in
             self?.dispatchMessage(panelId: panelId, body: body)
-        }
+        }, onClosed: { [weak self] in
+            self?.forgetPanel(id)
+        })
         panels[id] = host
         host.show()
         return id
     }
 
     private func closePanel(_ id: String) {
-        panels[id]?.close()
+        let host = panels.removeValue(forKey: id)
+        host?.close()
+        forgetCallbacks(id)
+    }
+
+    private func forgetPanel(_ id: String) {
         panels.removeValue(forKey: id)
+        forgetCallbacks(id)
+    }
+
+    private func forgetCallbacks(_ id: String) {
         if let cbs = perIdCallbacks.removeValue(forKey: id), let ctx = engine?.context {
             for cb in cbs { JS_FreeValue(ctx, cb) }
         }
