@@ -236,7 +236,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.writeShowDockIcon = { [weak self] value in
             self?.writeUIValue("showDockIcon", value)
             NSApp.setActivationPolicy(value ? .regular : .accessory)
-            if value { NSApp.activate() }
+            if value { NSApp.activate(ignoringOtherApps: true) }
         }
         settingsState.readShowMenuBarIcon = { [weak self] in
             self?.readUIValue("showMenuBarIcon") as? Bool ?? true
@@ -703,14 +703,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func executeCommand(_ id: String, args: [String: Any] = [:]) {
+        if launcherPanel.isVisible {
+            launcherPanel.toggle()
+        }
         if engine.commandRegistry[id] != nil {
             _ = engine.invokeCommand(id, args: args)
-            launcherPanel.toggle()
             return
         }
-
         appSearchProvider.launchApp(bundleID: id)
-        launcherPanel.toggle()
     }
 
     private func handleCommandShortcut(_ commandId: String) {
