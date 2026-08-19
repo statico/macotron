@@ -11,6 +11,7 @@
 - `reset()` — Tear down context, cancel timers, re-create fresh
 - `addModule(_:)` / `registerAllModules()` — Register native modules
 - `commandRegistry` — Dictionary of registered JS commands
+- `pluginChecks` — Latest `macotron.checks()` rows, keyed by plugin filename
 - `logHandler` — Closure for `console.log` output
 
 Module loader resolves ES module imports relative to `moduleBaseDir` (the user plugins workdir).

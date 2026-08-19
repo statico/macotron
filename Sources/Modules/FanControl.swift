@@ -323,7 +323,7 @@ private enum FanError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unavailable: return "Fan control is not available on this Mac"
-        case .notPrivileged: return "Fan speed writes need administrator access"
+        case .notPrivileged: return "This Mac blocked fan-speed writes (administrator / SMC). Nothing to turn on in Settings."
         case .thermalLock: return "macOS thermal manager held the fans"
         case .keyMissing: return "Fan SMC key missing"
         case .io(let kr): return "SMC I/O error \(kr)"

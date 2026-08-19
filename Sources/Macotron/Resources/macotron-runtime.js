@@ -36,6 +36,10 @@ macotron.command = function(name, description, handler, opts) {
     $$__registerCommand(name, description, handler, opts || {});
 };
 
+macotron.checks = function(rows) {
+    $$__checks(Array.isArray(rows) ? rows : []);
+};
+
 macotron.log = function() {
     var args = Array.prototype.slice.call(arguments);
     $$__log(args.map(function(a) {

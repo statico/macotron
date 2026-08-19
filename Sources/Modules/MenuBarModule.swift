@@ -279,13 +279,16 @@ public final class MenuBarModule: NativeModule {
     fileprivate func bindClick(ctx: OpaquePointer, from val: JSValue, key: String) -> (() -> Void)? {
         guard JS_IsFunction(ctx, val) else { return nil }
         callbacks[key] = JS_DupValue(ctx, val)
+        let pluginFile = engine?.currentEvaluatingFile
         return { [weak self, weak engine] in
             guard let self, let engine, let ctx = engine.context else { return }
             guard let cb = self.callbacks[key] else { return }
-            let fn = JS_DupValue(ctx, cb)
-            _ = JS_Call(ctx, fn, QJS_Undefined(), 0, nil)
-            JS_FreeValue(ctx, fn)
-            engine.drainJobQueue()
+            engine.withEvaluatingFile(pluginFile) {
+                let fn = JS_DupValue(ctx, cb)
+                _ = JS_Call(ctx, fn, QJS_Undefined(), 0, nil)
+                JS_FreeValue(ctx, fn)
+                engine.drainJobQueue()
+            }
         }
     }
 

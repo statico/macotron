@@ -1,6 +1,7 @@
 macotron.plugin({
   title: "Fan",
   description: "Hold a fan-speed floor from the menu bar.",
+  help: "Click the fan icon in the menu bar to hold a 50% or 100% floor, or restore the system default. There is nothing to configure here — a keyboard shortcut is optional.\n\nIf a toast says administrator access or SMC error, this Mac is blocking fan-speed writes. That is a system limit, not a missing setting.",
 });
 
 function snapshot() {
@@ -46,6 +47,11 @@ function paint() {
         macotron.notify.toast("Fan", s.error, { color: "error" });
     }
     if (!s.error) lastError = "";
+    macotron.checks([{
+        title: "Speed control",
+        ok: !s.error,
+        message: s.error || (s.available ? "Ready" : "No fans on this Mac"),
+    }]);
 }
 
 function setFloor(percent) {

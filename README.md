@@ -50,6 +50,7 @@ No in-app coding agent. The plugins on disk are the source of truth.
 - Run Apple-shipped shell tools (`open`, `defaults`, `osascript`, …)
 - Keychain storage for API keys
 - Plugin options in Settings (text, toggles, dropdowns, passwords, files)
+- Plugin checks in Settings, with an orange warning when something is blocked
 - Chat with on-device Apple Intelligence
 - Chat with Claude, Gemini, or OpenAI
 - Stream model tokens into a panel

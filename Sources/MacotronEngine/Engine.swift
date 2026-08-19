@@ -59,6 +59,12 @@ public final class Engine {
     /// Keyed by filename → raw metadata dict from JS.
     public var moduleMetadata: [String: [String: Any]] = [:]
 
+    /// Latest `macotron.checks()` rows, keyed by plugin filename.
+    public var pluginChecks: [String: [PluginCheck]] = [:]
+
+    /// Fired after `pluginChecks` actually change (not on a no-op replace).
+    public var onPluginChecksChanged: (() -> Void)?
+
     /// User overrides for module options, loaded from module-settings.json.
     /// Keyed by filename → option key → value.
     public var moduleSettings: [String: [String: Any]] = [:]
@@ -357,7 +363,26 @@ public final class Engine {
                 return JSBridge.anyToJS(ctx, resolved)
             }, "$$__module", 1))
 
+        JS_SetPropertyStr(context, global, "$$__checks",
+            JS_NewCFunction(context, { ctx, thisVal, argc, argv -> JSValue in
+                guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
+                let opaque = JS_GetContextOpaque(ctx)
+                guard let opaque else { return QJS_Undefined() }
+                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+                engine.replaceChecks(JSBridge.jsToSwift(ctx, argv[0]))
+                return QJS_Undefined()
+            }, "$$__checks", 1))
+
         JS_FreeValue(context, global)
+    }
+
+    func replaceChecks(_ value: Any?) {
+        guard let file = currentEvaluatingFile, !file.isEmpty else { return }
+        let rows = PluginCheck.parseList(value)
+        let next: [PluginCheck]? = rows.isEmpty ? nil : rows
+        if pluginChecks[file] == next { return }
+        pluginChecks[file] = next
+        onPluginChecksChanged?()
     }
 
     func addDeclaredPermissions(_ value: Any?) {
@@ -376,6 +401,7 @@ public final class Engine {
         let id = nextTimerID
         nextTimerID += 1
         let protectedCallback = JS_DupValue(context, callback)
+        let pluginFile = currentEvaluatingFile
 
         let timer = DispatchSource.makeTimerSource(queue: .main)
         let interval = DispatchTimeInterval.milliseconds(Int(max(ms, 1)))
@@ -386,8 +412,10 @@ public final class Engine {
         }
         timer.setEventHandler { [weak self] in
             guard let self else { return }
-            _ = JS_Call(self.context, protectedCallback, QJS_Undefined(), 0, nil)
-            self.drainJobQueue()
+            self.withEvaluatingFile(pluginFile) {
+                _ = JS_Call(self.context, protectedCallback, QJS_Undefined(), 0, nil)
+                self.drainJobQueue()
+            }
             if !repeats {
                 JS_FreeValue(self.context, protectedCallback)
                 self.cancelTimer(id)
@@ -396,6 +424,15 @@ public final class Engine {
         timers[id] = timer
         timer.resume()
         return id
+    }
+
+    public func withEvaluatingFile(_ file: String?, _ body: () -> Void) {
+        let previous = currentEvaluatingFile
+        if let file, !file.isEmpty {
+            currentEvaluatingFile = file
+        }
+        defer { currentEvaluatingFile = previous }
+        body()
     }
 
     public func cancelTimer(_ id: UInt32) {
@@ -456,16 +493,18 @@ public final class Engine {
     @discardableResult
     public func invokeCommand(_ id: String, args: [String: Any] = [:]) -> Bool {
         guard let cmd = commandRegistry[id] else { return false }
-        var arg = JSBridge.newObject(context, args)
-        let result = JS_Call(context, cmd.callback, QJS_Undefined(), 1, &arg)
-        JS_FreeValue(context, arg)
-        if JS_IsException(result) {
-            let errStr = JSBridge.getExceptionString(context)
-            logger.error("Command \(id): \(errStr, privacy: .public)")
-        } else {
-            JS_FreeValue(context, result)
+        withEvaluatingFile(cmd.pluginFile) {
+            var arg = JSBridge.newObject(context, args)
+            let result = JS_Call(context, cmd.callback, QJS_Undefined(), 1, &arg)
+            JS_FreeValue(context, arg)
+            if JS_IsException(result) {
+                let errStr = JSBridge.getExceptionString(context)
+                logger.error("Command \(id): \(errStr, privacy: .public)")
+            } else {
+                JS_FreeValue(context, result)
+            }
+            drainJobQueue()
         }
-        drainJobQueue()
         return true
     }
 
@@ -560,6 +599,7 @@ public final class Engine {
         eventBus.removeAllListeners()
         moduleMetadata.removeAll()
         declaredPermissions.removeAll()
+        pluginChecks.removeAll()
 
         // Free old command callbacks
         for (_, cmd) in commandRegistry {
