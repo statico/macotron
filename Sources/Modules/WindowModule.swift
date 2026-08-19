@@ -8,7 +8,34 @@ import Foundation
 import os
 
 private let logger = Logger(subsystem: "com.macotron", category: "window")
-private let snapEdgeThreshold: CGFloat = 20
+
+private struct SnapZone {
+    var x: CGFloat
+    var y: CGFloat
+    var w: CGFloat
+    var h: CGFloat
+}
+
+private let defaultSnapZones: [String: SnapZone] = [
+    "left": SnapZone(x: 0, y: 0, w: 0.5, h: 1),
+    "right": SnapZone(x: 0.5, y: 0, w: 0.5, h: 1),
+    "top": SnapZone(x: 0, y: 0, w: 1, h: 1),
+    "bottom": SnapZone(x: 0, y: 0.5, w: 1, h: 0.5),
+    "tl": SnapZone(x: 0, y: 0, w: 0.5, h: 0.5),
+    "tr": SnapZone(x: 0.5, y: 0, w: 0.5, h: 0.5),
+    "bl": SnapZone(x: 0, y: 0.5, w: 0.5, h: 0.5),
+    "br": SnapZone(x: 0.5, y: 0.5, w: 0.5, h: 0.5),
+]
+
+private let snapSlotAliases: [String: String] = [
+    "left": "left", "right": "right", "top": "top", "bottom": "bottom",
+    "tl": "tl", "tr": "tr", "bl": "bl", "br": "br",
+    "top-left": "tl", "topleft": "tl", "nw": "tl",
+    "top-right": "tr", "topright": "tr", "ne": "tr",
+    "bottom-left": "bl", "bottomleft": "bl", "sw": "bl",
+    "bottom-right": "br", "bottomright": "br", "se": "br",
+    "maximize": "top", "full": "top",
+]
 
 /// Global state for the snap CGEvent tap callback (C function pointer cannot capture).
 private final class WindowSnapState: @unchecked Sendable {
@@ -25,6 +52,10 @@ public final class WindowModule: NativeModule {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var snapEnabled = false
+    private var snapThreshold: CGFloat = 20
+    private var snapCorner: CGFloat = 48
+    private var snapGap: CGFloat = 0
+    private var snapZones: [String: SnapZone] = defaultSnapZones
 
     public init() {}
 
@@ -80,6 +111,12 @@ public final class WindowModule: NativeModule {
             return QJS_NewBool(ctx, on ? 1 : 0)
         }, "isSnapEnabled", 0))
 
+        JS_SetPropertyStr(ctx, windowObj, "snap", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
+            let ok = WindowSnapState.shared.module?.configureSnap(ctx, argv[0]) ?? false
+            return QJS_NewBool(ctx, ok ? 1 : 0)
+        }, "snap", 1))
+
         JS_SetPropertyStr(ctx, macotron, "window", windowObj)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
@@ -88,6 +125,10 @@ public final class WindowModule: NativeModule {
     public func cleanup() {
         teardownSnapTap()
         snapEnabled = false
+        snapZones = defaultSnapZones
+        snapThreshold = 20
+        snapCorner = 48
+        snapGap = 0
         WindowSnapState.shared.module = nil
         WindowSnapState.shared.eventTap = nil
     }
@@ -339,7 +380,7 @@ public final class WindowModule: NativeModule {
         JS_FreeValue(ctx, wVal)
         JS_FreeValue(ctx, hVal)
 
-        let ok = applyFraction(win, x: fx, y: fy, w: fw, h: fh, screen: screen)
+        let ok = applyFraction(win, x: fx, y: fy, w: fw, h: fh, screen: screen, gap: 0)
         return QJS_NewBool(ctx, ok ? 1 : 0)
     }
 
@@ -419,40 +460,85 @@ public final class WindowModule: NativeModule {
         WindowSnapState.shared.eventTap = nil
     }
 
-    /// ponytail: any leftMouseUp near an edge snaps; upgrade to drag-session tracking if false positives matter
+    /// ponytail: any leftMouseUp in a configured slot snaps; upgrade to drag-session tracking if false positives matter
     private func snapFocusedWindow(at point: CGPoint) {
         guard snapEnabled else { return }
         guard let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) else { return }
-        let f = screen.frame
-        let t = snapEdgeThreshold
-        let left = point.x <= f.minX + t
-        let right = point.x >= f.maxX - t
-        let top = point.y >= f.maxY - t
-        let bottom = point.y <= f.minY + t
-        guard left || right || top || bottom else { return }
-
-        let fx: CGFloat
-        let fy: CGFloat
-        let fw: CGFloat
-        let fh: CGFloat
-
-        if (left || right) && (top || bottom) {
-            fx = right ? 0.5 : 0
-            fy = bottom ? 0.5 : 0
-            fw = 0.5
-            fh = 0.5
-        } else if left {
-            fx = 0; fy = 0; fw = 0.5; fh = 1
-        } else if right {
-            fx = 0.5; fy = 0; fw = 0.5; fh = 1
-        } else if top {
-            fx = 0; fy = 0; fw = 1; fh = 1
-        } else {
-            return
-        }
-
+        guard let slot = snapSlot(at: point, screen: screen), let zone = snapZones[slot] else { return }
         guard let win = Self.focusedAXWindow() else { return }
-        _ = Self.applyFraction(win, x: fx, y: fy, w: fw, h: fh, screen: screen)
+        _ = Self.applyFraction(win, x: zone.x, y: zone.y, w: zone.w, h: zone.h, screen: screen, gap: snapGap)
+    }
+
+    private func snapSlot(at point: CGPoint, screen: NSScreen) -> String? {
+        let f = screen.frame
+        let c = snapCorner
+        let t = snapThreshold
+        let leftC = point.x <= f.minX + c
+        let rightC = point.x >= f.maxX - c
+        let bottomC = point.y <= f.minY + c
+        let topC = point.y >= f.maxY - c
+        if leftC && topC { return "tl" }
+        if rightC && topC { return "tr" }
+        if leftC && bottomC { return "bl" }
+        if rightC && bottomC { return "br" }
+        if point.x <= f.minX + t { return "left" }
+        if point.x >= f.maxX - t { return "right" }
+        if point.y >= f.maxY - t { return "top" }
+        if point.y <= f.minY + t { return "bottom" }
+        return nil
+    }
+
+    func configureSnap(_ ctx: OpaquePointer, _ opts: JSValue) -> Bool {
+        if JS_IsBool(opts) {
+            return setSnapEnabled(JSBridge.toBool(ctx, opts))
+        }
+        let enabledVal = JSBridge.getProperty(ctx, opts, "enabled")
+        let enabled = JSBridge.isUndefined(enabledVal) || JSBridge.isNull(enabledVal)
+            ? true : JSBridge.toBool(ctx, enabledVal)
+        JS_FreeValue(ctx, enabledVal)
+
+        let thresholdVal = JSBridge.getProperty(ctx, opts, "threshold")
+        if !JSBridge.isUndefined(thresholdVal), !JSBridge.isNull(thresholdVal) {
+            snapThreshold = max(1, CGFloat(JSBridge.toDouble(ctx, thresholdVal)))
+        }
+        JS_FreeValue(ctx, thresholdVal)
+
+        let cornerVal = JSBridge.getProperty(ctx, opts, "corner")
+        if !JSBridge.isUndefined(cornerVal), !JSBridge.isNull(cornerVal) {
+            snapCorner = max(1, CGFloat(JSBridge.toDouble(ctx, cornerVal)))
+        }
+        JS_FreeValue(ctx, cornerVal)
+
+        let gapVal = JSBridge.getProperty(ctx, opts, "gap")
+        if !JSBridge.isUndefined(gapVal), !JSBridge.isNull(gapVal) {
+            snapGap = max(0, CGFloat(JSBridge.toDouble(ctx, gapVal)))
+        }
+        JS_FreeValue(ctx, gapVal)
+
+        let zonesVal = JSBridge.getProperty(ctx, opts, "zones")
+        if JS_IsObject(zonesVal), !JSBridge.isUndefined(zonesVal), !JSBridge.isNull(zonesVal), !JS_IsArray(zonesVal) {
+            snapZones = Self.parseSnapZones(ctx, zonesVal)
+        }
+        JS_FreeValue(ctx, zonesVal)
+
+        return setSnapEnabled(enabled)
+    }
+
+    private static func parseSnapZones(_ ctx: OpaquePointer, _ val: JSValue) -> [String: SnapZone] {
+        guard let dict = JSBridge.jsToSwift(ctx, val) as? [String: Any] else { return [:] }
+        var out: [String: SnapZone] = [:]
+        for (rawKey, raw) in dict {
+            let key = snapSlotAliases[rawKey.lowercased()] ?? rawKey.lowercased()
+            guard let frame = raw as? [String: Any] else { continue }
+            func num(_ k: String) -> CGFloat? {
+                if let d = frame[k] as? Double { return CGFloat(d) }
+                if let i = frame[k] as? Int { return CGFloat(i) }
+                return nil
+            }
+            guard let x = num("x"), let y = num("y"), let w = num("w"), let h = num("h") else { continue }
+            out[key] = SnapZone(x: x, y: y, w: w, h: h)
+        }
+        return out
     }
 
     private static func focusedAXWindow() -> AXUIElement? {
@@ -483,16 +569,18 @@ public final class WindowModule: NativeModule {
         y: CGFloat?,
         w: CGFloat?,
         h: CGFloat?,
-        screen: NSScreen
+        screen: NSScreen,
+        gap: CGFloat = 0
     ) -> Bool {
         let screenFrame = screen.visibleFrame
+        let g = gap
         let currentFrame = windowFrame(win)
         var origin = currentFrame.origin
         var size = currentFrame.size
-        if let x { origin.x = screenFrame.origin.x + x * screenFrame.width }
-        if let y { origin.y = screenFrame.origin.y + y * screenFrame.height }
-        if let w { size.width = w * screenFrame.width }
-        if let h { size.height = h * screenFrame.height }
+        if let x { origin.x = screenFrame.origin.x + x * screenFrame.width + g }
+        if let y { origin.y = screenFrame.origin.y + y * screenFrame.height + g }
+        if let w { size.width = max(1, w * screenFrame.width - 2 * g) }
+        if let h { size.height = max(1, h * screenFrame.height - 2 * g) }
         let posOk = setWindowPosition(win, point: origin)
         let sizeOk = setWindowSize(win, size: size)
         return posOk || sizeOk
