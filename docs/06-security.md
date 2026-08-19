@@ -67,7 +67,7 @@ enum CapabilityTier {
 
 ### Moderate (reversible side effects)
 
-`window.move`, `window.moveToFraction`, `notify.show`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `panel.open`, `panel.close`
+`window.move`, `window.moveToFraction`, `window.snap`, `window.setSnapEnabled`, `notify.show`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `panel.open`, `panel.close`
 
 ### Dangerous (system / network / filesystem)
 
