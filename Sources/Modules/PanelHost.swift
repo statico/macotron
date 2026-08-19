@@ -35,6 +35,21 @@ enum PanelShell {
             : "light-dark(#ffffff, #2c2c2e)"
         return """
     html { color-scheme: light dark; }
+    :root {
+      --macotron-accent: AccentColor;
+      --macotron-accent-text: AccentColorText;
+      --macotron-label: CanvasText;
+      --macotron-secondary-label: GrayText;
+      --macotron-fill: Canvas;
+      --macotron-control: ButtonFace;
+      --macotron-control-text: ButtonText;
+      --macotron-control-border: ButtonBorder;
+      --macotron-field: Field;
+      --macotron-field-text: FieldText;
+      --macotron-selected: Highlight;
+      --macotron-selected-text: HighlightText;
+      --macotron-link: LinkText;
+    }
     html, body { height: 100%; margin: 0; }
     body {
       display: flex;
@@ -87,6 +102,14 @@ enum PanelShell {
     }
     button:hover { background: light-dark(rgba(0,0,0,0.10), rgba(255,255,255,0.18)); }
     button.secondary { background: light-dark(rgba(0,0,0,0.04), rgba(255,255,255,0.08)); }
+    button.primary {
+      background: var(--macotron-accent);
+      color: var(--macotron-accent-text);
+    }
+    button.primary:hover {
+      background: var(--macotron-accent);
+      filter: brightness(1.08);
+    }
     button.block { display: block; width: 100%; text-align: left; }
     pre, code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
     pre { margin: 0; white-space: pre-wrap; }
@@ -96,9 +119,28 @@ enum PanelShell {
     .grow { flex: 1; min-height: 0; }
     .scroll { overflow: auto; }
     .toolbar { display: flex; gap: 8px; align-items: center; }
+    .toolbar input, .toolbar select, .toolbar button {
+      height: 28px;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
     .toolbar input { width: 0; flex: 1; min-width: 0; }
     .toolbar input.inline { width: 4.5em; flex: none; }
-    .toolbar select { width: auto; flex: none; min-width: 7em; }
+    .toolbar select {
+      width: auto;
+      flex: none;
+      min-width: 8.5em;
+      appearance: none;
+      padding-right: 22px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236e6e73' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+    }
+    @media (prefers-color-scheme: dark) {
+      .toolbar select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2398989d' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+      }
+    }
     """
     }
 
