@@ -18,7 +18,11 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | AIModule | `macotron.ai` | AI provider abstraction for plugins |
 | PanelModule | `macotron.panel` | Small WKWebView panels |
 | SpotlightModule | `macotron.spotlight` | NSMetadataQuery file search |
-| AppModule | `macotron.app` | NSWorkspace app launch/switch |
+| AppModule | `macotron.app` | NSWorkspace app launch/switch/hide/quit/menu |
+| AudioModule | `macotron.audio` | Default input/output, volume, mute |
+| SpacesModule | `macotron.spaces` | Mission Control spaces |
+| USBModule | `macotron.usb` | USB devices + attach/detach |
+| ShortcutsModule | `macotron.shortcuts` | List and run Shortcuts.app |
 | SystemModule | `macotron.system` | CPU usage, GPU usage, locale, memory, battery, temp |
 | HTTPModule | `macotron.http` | URLSession |
 | MenuBarModule | `macotron.menubar` | Custom menubar items |
@@ -28,10 +32,11 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | MediaModule | `macotron.media` | Now Playing metadata, artwork, play/pause |
 | LauncherModule | `macotron.launcher` | Extra rows in the quick launcher |
 | NotesModule | `macotron.notes` | List and open Apple Notes |
+| PowerModule | `macotron.power` | Prevent sleep, lock, sleep |
 
 ## Key JS APIs
 
-**Window:** `macotron.window.getAll()`, `.focused()`, `.focus(id)` (raise, unminimize, activate the app), `.move(id, frame)`, `.moveToFraction(id, {x,y,w,h,display?})` (fractions of the window's current display, or `display` from `macotron.display.list()`), `.snap({ enabled, threshold, corner, gap, zones })` — drag the focused window to a screen edge or corner (clicks do not snap). Zones are `{x,y,w,h}` fractions of the visible frame (same as `moveToFraction`). Omit a slot to disable it. `.setSnapEnabled` / `.isSnapEnabled` toggle without changing the map.
+**Window:** `macotron.window.getAll()`, `.focused()`, `.focus(id)` (raise, unminimize, activate the app), `.minimize(id, on?)`, `.close(id)`, `.setFullscreen(id, on)`, `.move(id, frame)`, `.moveToFraction(id, {x,y,w,h,display?})` (fractions of the window's current display, or `display` from `macotron.display.list()`), `.snap({ enabled, threshold, corner, gap, zones })` — drag the focused window to a screen edge or corner (clicks do not snap). Zones are `{x,y,w,h}` fractions of the visible frame (same as `moveToFraction`). Omit a slot to disable it. `.setSnapEnabled` / `.isSnapEnabled` toggle without changing the map. `window:created` and `window:focused` fire with `{ id, title, app }`.
 
 **System:** `macotron.system.cpu()` is `{ usage }` 0–100 since the last call. `gpu()` is `{ name, usage }` or `null`. `locale()` is `{ language, region, measurement: "metric"|"us" }`. `fans()` is current RPM plus an optional `floor` (50 or 100). `setFanFloor(100 | 50 | null)` holds a minimum; `null` is system default. The host never commands below firmware min, and yields to macOS when it already wants a higher speed.
 
@@ -41,7 +46,17 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Notes:** `macotron.notes.list()` is `{ id, title, folder }[]`. `open(id)` shows the note in the Notes app. macOS prompts to allow controlling Notes on first use.
 
-**App:** `macotron.app.launch(bundleID)` and `.switch(bundleID)` both open via Launch Services (`activates: true`), so a running app comes forward. `.list()`, `.frontmost()`, `app:activated`.
+**App:** `macotron.app.launch(bundleID)` and `.switch(bundleID)` both open via Launch Services (`activates: true`), so a running app comes forward. `.list()`, `.frontmost()`, `.hide(bundleID?)`, `.quit(bundleID?)`, `.menu(["File", "New"], bundleID?)`. Events: `app:activated`, `app:launched`, `app:terminated`.
+
+**Audio:** `devices()`, `input()`, `output()`, `setInput` / `setOutput` (id or name), `volume` / `setVolume` (0…1), `isMuted` / `setMuted`. `audio:changed` is `{ flags: ["input"|"output"|"devices"] }`.
+
+**Spaces:** `list()` is `{ id, index, desktop, display, current, type }[]`. `current()`, `go(2)` (Mission Control desktop number) or `go({ id })` / `go({ index, display })`. `moveWindow(windowId, spec)` tries SkyLight and returns false when SIP blocks it. `space:changed` fires on a desktop switch.
+
+**USB:** `usb.list()` is `{ name, vendor, vendorID, productID }[]`. `usb:changed` is the same plus `action: "add"|"remove"`.
+
+**Shortcuts:** `shortcuts.list()` and `shortcuts.run(name)` call `/usr/bin/shortcuts`.
+
+**Power:** `preventSleep` / `allowSleep` / `isPreventing`, plus `lock()` and `sleep()`. Events: `system:sleep`, `system:wake`, `system:lock`, `system:unlock`.
 
 **Keyboard:** `macotron.keyboard.on("tile-left", "ctrl+opt+left", callback)` — ids are unique per plugin; override the combo in Settings → Plugins. `keyboard.flags()` is `{ cmd, shift, ctrl, opt, caps, fn }`.
 

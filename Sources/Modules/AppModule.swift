@@ -10,9 +10,11 @@ private let logger = Logger(subsystem: "io.statico.macotron", category: "app")
 @MainActor
 public final class AppModule: NativeModule {
     public let name = "app"
+    public let moduleVersion = 2
 
     private weak var engine: Engine?
     private var activationObserver: NSObjectProtocol?
+    private var lifecycleObservers: [NSObjectProtocol] = []
     private var lastOther: [String: Any]?
     private static let ownBundleID = Bundle.main.bundleIdentifier ?? "io.statico.macotron"
 
@@ -89,13 +91,37 @@ public final class AppModule: NativeModule {
             return JSBridge.newObject(ctx, info)
         }, "frontmost", 0))
 
+        JS_SetPropertyStr(ctx, appObj, "hide", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx else { return JSBridge.newBool(ctx!, false) }
+            let id = argc > 0 ? JSBridge.toString(ctx, argv![0]) : nil
+            return JSBridge.newBool(ctx, AppControl.hide(id))
+        }, "hide", 1))
+
+        JS_SetPropertyStr(ctx, appObj, "quit", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx else { return JSBridge.newBool(ctx!, false) }
+            let id = argc > 0 ? JSBridge.toString(ctx, argv![0]) : nil
+            return JSBridge.newBool(ctx, AppControl.quit(id))
+        }, "quit", 1))
+
+        JS_SetPropertyStr(ctx, appObj, "menu", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
+            guard let path = (JSBridge.jsToSwift(ctx, argv[0]) as? [Any])?.compactMap({ $0 as? String }),
+                  !path.isEmpty else {
+                return JSBridge.newBool(ctx, false)
+            }
+            let bundleID = argc > 1 ? JSBridge.toString(ctx, argv[1]) : nil
+            guard let app = AppControl.running(bundleID) else { return JSBridge.newBool(ctx, false) }
+            return JSBridge.newBool(ctx, AppMenu.select(pid: app.processIdentifier, path: path))
+        }, "menu", 2))
+
         JS_SetPropertyStr(ctx, macotron, "app", appObj)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
 
         engine.configStore["__appModule"] = self
         guard !engine.dryRun else { return }
-        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+        let center = NSWorkspace.shared.notificationCenter
+        activationObserver = center.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
             object: nil,
             queue: .main
@@ -111,14 +137,40 @@ public final class AppModule: NativeModule {
                 self?.emitActivation(bundleID: bundleID, name: name, pid: pid)
             }
         }
+        observe(center, NSWorkspace.didLaunchApplicationNotification, "app:launched")
+        observe(center, NSWorkspace.didTerminateApplicationNotification, "app:terminated")
     }
 
     public func cleanup() {
+        let center = NSWorkspace.shared.notificationCenter
         if let activationObserver {
-            NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
+            center.removeObserver(activationObserver)
         }
+        for token in lifecycleObservers {
+            center.removeObserver(token)
+        }
+        lifecycleObservers = []
         activationObserver = nil
         engine = nil
+    }
+
+    private func observe(_ center: NotificationCenter, _ name: Notification.Name, _ event: String) {
+        let token = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
+            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  let info = AppControl.info(app) else { return }
+            Task { @MainActor [weak self] in
+                self?.emitApp(event, info)
+            }
+        }
+        lifecycleObservers.append(token)
+    }
+
+    private func emitApp(_ event: String, _ info: [String: Any]) {
+        guard let bundleID = info["bundleID"] as? String, bundleID != Self.ownBundleID else { return }
+        guard let engine, let ctx = engine.context else { return }
+        let data = JSBridge.newObject(ctx, info)
+        engine.eventBus.emit(event, engine: engine, data: data)
+        JS_FreeValue(ctx, data)
     }
 
     func frontmostInfo() -> [String: Any]? {

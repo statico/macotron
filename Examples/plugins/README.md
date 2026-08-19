@@ -22,6 +22,10 @@ Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew o
 | demo-power.js | power.* | Toggle Keep Awake |
 | demo-fan.js | system.fans / setFanFloor | Toggle Fan 100% |
 | demo-now-playing.js | media.nowPlaying, media:changed | Play/Pause, Next Track |
+| demo-audio.js | audio.devices / setOutput | Cycle Output |
+| demo-spaces.js | spaces.list / go | Next Space |
+| demo-usb.js | usb.list, usb:changed | USB Devices |
+| demo-shortcuts.js | shortcuts.list / run | (launcher rows) |
 | demo-notes.js | notes.list, launcher.set | (launcher rows) |
 | demo-wifi.js | network.wifiSSID, wifi:changed | Wi-Fi SSID |
 | demo-brightness.js | display brightness/XDR | Toggle XDR |

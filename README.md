@@ -39,8 +39,16 @@ No in-app coding agent. The plugins on disk are the source of truth.
 - Fan RPM and a minimum fan floor
 - Display brightness, XDR, gamma, identity, and `display:changed`
 - Post clicks, keys, Unicode, and scroll; tap HID (including Option-hold / `flagsChanged`)
-- List, launch, and switch apps
-- React when the frontmost app changes
+- List, launch, switch, hide, and quit apps
+- Choose an app menu item
+- React when an app launches, quits, or comes forward
+- Switch default audio input and output; volume and mute
+- List Mission Control spaces and switch desktops
+- USB attach and detach
+- Run Shortcuts.app shortcuts
+- Lock the Mac or put it to sleep; hear sleep, wake, and lock
+- Minimize, close, or fullscreen a window
+- React when a window is created or focused
 - Upcoming Calendar events
 - List and open Apple Notes
 - Custom URL schemes

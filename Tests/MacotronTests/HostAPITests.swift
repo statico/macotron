@@ -1,0 +1,82 @@
+import Foundation
+import Testing
+@testable import Modules
+
+@Suite("AudioDevices")
+struct AudioDevicesTests {
+    @Test("volume clamps to 0...1")
+    func clamp() {
+        #expect(AudioDevices.clampVolume(-1) == 0)
+        #expect(AudioDevices.clampVolume(0.25) == 0.25)
+        #expect(AudioDevices.clampVolume(2) == 1)
+    }
+}
+
+@Suite("Spaces")
+struct SpacesTests {
+    @Test("type names")
+    func types() {
+        #expect(Spaces.typeName(0) == "user")
+        #expect(Spaces.typeName(4) == "fullscreen")
+        #expect(Spaces.typeName(9) == "other")
+    }
+
+    @Test("parse display dictionaries")
+    func parse() {
+        let raw: [[String: Any]] = [
+            [
+                "Display Identifier": "ABC",
+                "Current Space": ["id64": 11],
+                "Spaces": [
+                    ["id64": 10, "type": 0],
+                    ["id64": 11, "type": 0],
+                    ["id64": 12, "type": 4],
+                ],
+            ],
+        ]
+        let spaces = Spaces.parse(raw)
+        #expect(spaces.count == 3)
+        #expect(spaces[0].desktop == 1)
+        #expect(spaces[1].desktop == 2)
+        #expect(spaces[1].current)
+        #expect(spaces[1].index == 2)
+        #expect(spaces[1].display == "ABC")
+        #expect(spaces[2].type == "fullscreen")
+        #expect(!spaces[0].current)
+    }
+
+    @Test("int coercion")
+    func ints() {
+        #expect(Spaces.int(3) == 3)
+        #expect(Spaces.int(NSNumber(value: 9)) == 9)
+        #expect(Spaces.int(2.0) == 2)
+        #expect(Spaces.int("x") == nil)
+    }
+}
+
+@Suite("AppMenu")
+struct AppMenuTests {
+    @Test("shortcut suffix is ignored")
+    func shortcut() {
+        #expect(AppMenu.stripShortcut("New\t⌘N") == "New")
+        #expect(AppMenu.match("New Window…", "New Window"))
+        #expect(AppMenu.match("Save", "Save"))
+        #expect(!AppMenu.match("Save As…", "Save"))
+    }
+}
+
+@Suite("ShortcutsCLI")
+struct ShortcutsCLITests {
+    @Test("list output splits on lines")
+    func parse() {
+        #expect(ShortcutsCLI.parseList("One\nTwo\n\nThree\n") == ["One", "Two", "Three"])
+    }
+}
+
+@Suite("AppControl")
+struct AppControlTests {
+    @Test("empty bundle id uses the frontmost app helper")
+    func running() {
+        #expect(AppControl.running("io.statico.macotron.missing-app") == nil)
+    }
+}

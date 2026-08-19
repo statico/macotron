@@ -64,6 +64,9 @@ declare const macotron: {
         } | null;
         /** Raise, unminimize, and activate the window's app. */
         focus(id: number): boolean;
+        minimize(id: number, on?: boolean): boolean;
+        close(id: number): boolean;
+        setFullscreen(id: number, on: boolean): boolean;
         move(id: number, frame: { x?: number; y?: number; width?: number; height?: number }): boolean;
         /** Fractions of the window's current display. Pass `display` from `macotron.display.list()` to send it to another screen. */
         moveToFraction(id: number, frac: { x?: number; y?: number; w?: number; h?: number; display?: number }): boolean;
@@ -202,6 +205,8 @@ declare const macotron: {
         preventSleep(opts?: { display?: boolean; reason?: string }): boolean;
         allowSleep(): void;
         isPreventing(): boolean;
+        lock(): boolean;
+        sleep(): boolean;
     };
 
     network: {
@@ -268,6 +273,45 @@ declare const macotron: {
         launch(bundleID: string): void;
         switch(bundleID: string): void;
         frontmost(): { name: string; bundleID: string; pid: number } | null;
+        hide(bundleID?: string): boolean;
+        quit(bundleID?: string): boolean;
+        /** AX menu path, e.g. `["File", "New Window"]`. Omit bundle id for the frontmost app. */
+        menu(path: string[], bundleID?: string): boolean;
+    };
+
+    audio: {
+        devices(): Array<{ id: number; name: string; uid: string; input: boolean; output: boolean }>;
+        input(): { id: number; name: string; uid: string; input: boolean; output: boolean } | null;
+        output(): { id: number; name: string; uid: string; input: boolean; output: boolean } | null;
+        setInput(idOrName: number | string): boolean;
+        setOutput(idOrName: number | string): boolean;
+        volume(id?: number | string): number | null;
+        setVolume(level: number, id?: number | string): boolean;
+        isMuted(id?: number | string): boolean;
+        setMuted(on: boolean, id?: number | string): boolean;
+    };
+
+    spaces: {
+        list(): Array<{
+            id: number;
+            index: number;
+            desktop: number;
+            display: string;
+            current: boolean;
+            type: string;
+        }>;
+        current(): { id: number; index: number; desktop: number; display: string; current: boolean; type: string } | null;
+        go(spec: number | { id?: number; index?: number; display?: string }): boolean;
+        moveWindow(windowID: number, spec: number | { id?: number; index?: number; display?: string }): boolean;
+    };
+
+    usb: {
+        list(): Array<{ name: string; vendor: string; vendorID: number; productID: number }>;
+    };
+
+    shortcuts: {
+        list(): string[];
+        run(name: string): boolean;
     };
 
     calendar: {

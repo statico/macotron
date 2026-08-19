@@ -7,6 +7,7 @@ import MacotronEngine
 @MainActor
 public final class PowerModule: NativeModule {
     public let name = "power"
+    public let moduleVersion = 2
 
     private var assertionID: IOPMAssertionID = 0
     private var active = false
@@ -54,12 +55,27 @@ public final class PowerModule: NativeModule {
             guard let module = powerModule(ctx) else { return JSBridge.newBool(ctx, false) }
             return JSBridge.newBool(ctx, module.active)
         }, "isPreventing", 0))
+
+        JS_SetPropertyStr(ctx, power, "lock", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return JSBridge.newBool(ctx!, false) }
+            return JSBridge.newBool(ctx, PowerActions.lock())
+        }, "lock", 0))
+
+        JS_SetPropertyStr(ctx, power, "sleep", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return JSBridge.newBool(ctx!, false) }
+            return JSBridge.newBool(ctx, PowerActions.sleep())
+        }, "sleep", 0))
+
         JS_SetPropertyStr(ctx, macotron, "power", power)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
+
+        guard !engine.dryRun else { return }
+        PowerWatch.start(engine)
     }
 
     public func cleanup() {
+        PowerWatch.stop()
         allowSleep()
     }
 

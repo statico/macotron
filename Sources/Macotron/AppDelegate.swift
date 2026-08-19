@@ -751,6 +751,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.addModule(NetworkModule())
         engine.addModule(IdleModule())
         engine.addModule(MediaModule())
+        engine.addModule(AudioModule())
+        engine.addModule(SpacesModule())
+        engine.addModule(USBModule())
+        engine.addModule(ShortcutsModule())
         let launcher = LauncherModule()
         launcherModule = launcher
         engine.addModule(launcher)
