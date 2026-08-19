@@ -27,7 +27,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 ## Key JS APIs
 
-**Window:** `macotron.window.getAll()`, `.focused()`, `.move(id, frame)`, `.moveToFraction(id, frame)`, `.snap({ enabled, threshold, corner, gap, zones })` — drag the focused window to a screen edge or corner to apply that zone. Zones are `{x,y,w,h}` fractions of the visible frame (same as `moveToFraction`). Omit a slot to disable it. `.setSnapEnabled` / `.isSnapEnabled` toggle without changing the map.
+**Window:** `macotron.window.getAll()`, `.focused()`, `.move(id, frame)`, `.moveToFraction(id, {x,y,w,h,display?})` (fractions of the window's current display, or `display` from `macotron.display.list()`), `.snap({ enabled, threshold, corner, gap, zones })` — drag the focused window to a screen edge or corner to apply that zone on that display. Zones are `{x,y,w,h}` fractions of the visible frame (same as `moveToFraction`). Omit a slot to disable it. `.setSnapEnabled` / `.isSnapEnabled` toggle without changing the map.
 
 **Keyboard:** `macotron.keyboard.on("tile-left", "ctrl+opt+left", callback)` — ids are unique per plugin; override the combo in Settings → Plugins.
 

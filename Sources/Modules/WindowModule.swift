@@ -224,12 +224,15 @@ public final class WindowModule: NativeModule {
             "width": Double(frame.size.width),
             "height": Double(frame.size.height)
         ]
-        let winDict: [String: Any] = [
+        var winDict: [String: Any] = [
             "id": Int(id),
             "title": windowTitle(win),
             "app": app,
             "frame": frameDict
         ]
+        if let displayID = screen(forAXFrame: frame).map(Self.displayID) {
+            winDict["display"] = Int(displayID)
+        }
         return JSBridge.newObject(ctx, winDict)
     }
 
@@ -349,14 +352,23 @@ public final class WindowModule: NativeModule {
         return QJS_NewBool(ctx, (posOk || sizeOk) ? 1 : 0)
     }
 
-    /// moveToFraction(id, {x?, y?, w?, h?}) -> bool
-    /// Fractions are relative to the main screen frame.
+    /// moveToFraction(id, {x?, y?, w?, h?, display?}) -> bool
+    /// Fractions are relative to the window's current display, or `display` from macotron.display.list().
     private static func jsMoveToFraction(_ ctx: OpaquePointer, windowID: Int32, opts: JSValue) -> JSValue {
         guard let win = resolveWindow(id: windowID) else {
             return QJS_NewBool(ctx, 0)
         }
 
-        guard let screen = NSScreen.main else {
+        var screen = Self.screen(forAXFrame: windowFrame(win)) ?? NSScreen.screens.first
+        let displayVal = JSBridge.getProperty(ctx, opts, "display")
+        if !JSBridge.isUndefined(displayVal), !JSBridge.isNull(displayVal) {
+            let id = CGDirectDisplayID(bitPattern: JSBridge.toInt32(ctx, displayVal))
+            if let match = Self.screen(displayID: id) {
+                screen = match
+            }
+        }
+        JS_FreeValue(ctx, displayVal)
+        guard let screen else {
             return QJS_NewBool(ctx, 0)
         }
 
@@ -562,7 +574,7 @@ public final class WindowModule: NativeModule {
 
     // MARK: - AX Mutation Helpers
 
-    /// Apply fractional frame relative to screen.visibleFrame (same math as moveToFraction).
+    /// Apply fractional frame relative to screen.visibleFrame in AX coordinates (y: 0 is the top).
     private static func applyFraction(
         _ win: AXUIElement,
         x: CGFloat?,
@@ -572,18 +584,60 @@ public final class WindowModule: NativeModule {
         screen: NSScreen,
         gap: CGFloat = 0
     ) -> Bool {
-        let screenFrame = screen.visibleFrame
+        let vis = cocoaRectToAX(screen.visibleFrame)
         let g = gap
         let currentFrame = windowFrame(win)
         var origin = currentFrame.origin
         var size = currentFrame.size
-        if let x { origin.x = screenFrame.origin.x + x * screenFrame.width + g }
-        if let y { origin.y = screenFrame.origin.y + y * screenFrame.height + g }
-        if let w { size.width = max(1, w * screenFrame.width - 2 * g) }
-        if let h { size.height = max(1, h * screenFrame.height - 2 * g) }
+        if let x { origin.x = vis.origin.x + x * vis.width + g }
+        if let y { origin.y = vis.origin.y + y * vis.height + g }
+        if let w { size.width = max(1, w * vis.width - 2 * g) }
+        if let h { size.height = max(1, h * vis.height - 2 * g) }
         let posOk = setWindowPosition(win, point: origin)
         let sizeOk = setWindowSize(win, size: size)
         return posOk || sizeOk
+    }
+
+    /// Screen whose Cocoa origin is (0,0) — AX/Quartz y is measured down from this screen's top.
+    private static func axOriginScreen() -> NSScreen? {
+        NSScreen.screens.first { $0.frame.origin == .zero } ?? NSScreen.screens.first
+    }
+
+    private static func axRectToCocoa(_ ax: CGRect) -> CGRect {
+        guard let primary = axOriginScreen() else { return ax }
+        let y = primary.frame.maxY - ax.origin.y - ax.size.height
+        return CGRect(x: ax.origin.x, y: y, width: ax.size.width, height: ax.size.height)
+    }
+
+    private static func cocoaRectToAX(_ cocoa: CGRect) -> CGRect {
+        guard let primary = axOriginScreen() else { return cocoa }
+        let y = primary.frame.maxY - cocoa.origin.y - cocoa.size.height
+        return CGRect(x: cocoa.origin.x, y: y, width: cocoa.size.width, height: cocoa.size.height)
+    }
+
+    private static func screen(forAXFrame ax: CGRect) -> NSScreen? {
+        let cocoa = axRectToCocoa(ax)
+        let center = CGPoint(x: cocoa.midX, y: cocoa.midY)
+        if let hit = NSScreen.screens.first(where: { $0.frame.contains(center) }) {
+            return hit
+        }
+        return NSScreen.screens.max { a, b in
+            area(a.frame.intersection(cocoa)) < area(b.frame.intersection(cocoa))
+        }
+    }
+
+    private static func screen(displayID: CGDirectDisplayID) -> NSScreen? {
+        NSScreen.screens.first {
+            Self.displayID(of: $0) == displayID
+        }
+    }
+
+    private static func displayID(of screen: NSScreen) -> CGDirectDisplayID {
+        screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID ?? 0
+    }
+
+    private static func area(_ rect: CGRect) -> CGFloat {
+        rect.isNull || rect.isInfinite ? 0 : rect.width * rect.height
     }
 
     private static func setWindowPosition(_ win: AXUIElement, point: CGPoint) -> Bool {
