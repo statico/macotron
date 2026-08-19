@@ -283,9 +283,7 @@ public struct LauncherView: View {
     }
 
     private var maxPanelHeight: CGFloat {
-        let visible = NSScreen.main?.visibleFrame
-            ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
-        return LauncherPlacement.maxHeight(in: visible)
+        LauncherPlacement.maxHeight(in: LauncherPlacement.currentVisible())
     }
 
     private var maxListHeight: CGFloat {

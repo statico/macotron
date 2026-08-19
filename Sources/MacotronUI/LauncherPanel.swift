@@ -1,5 +1,8 @@
 // LauncherPanel.swift — Floating NSPanel for the launcher
 import AppKit
+import os
+
+private let logger = Logger(subsystem: "io.statico.macotron", category: "launcher")
 
 private extension NSView {
     func firstEditableTextField() -> NSTextField? {
@@ -44,7 +47,6 @@ public final class LauncherPanel: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         becomesKeyOnlyIfNeeded = false
         hidesOnDeactivate = false
-        center()
         applyBackground(.translucent)
         self.delegate = self
     }
@@ -122,6 +124,7 @@ public final class LauncherPanel: NSPanel {
         applySizeLimits(in: visible)
         let pin = isVisible || isShown ? frame.maxY : nil
         let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: pin)
+        logPlacement("resize", height: height, visible: visible, pinTop: pin, frame: newFrame)
         lastContentHeight = newFrame.height
         guard abs(frame.height - newFrame.height) > 1 || abs(frame.origin.y - newFrame.origin.y) > 1
             || abs(frame.origin.x - newFrame.origin.x) > 1
@@ -177,20 +180,35 @@ public final class LauncherPanel: NSPanel {
             let visible = currentVisible
             applySizeLimits(in: visible)
             let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: nil)
+            logPlacement("open", height: height, visible: visible, pinTop: nil, frame: newFrame)
             setFrame(newFrame, display: false)
             reveal()
         }
     }
 
-    private var currentVisible: CGRect {
-        (screen ?? NSScreen.main ?? NSScreen.screens.first)?.visibleFrame
-            ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
-    }
+    private var currentVisible: CGRect { LauncherPlacement.currentVisible() }
 
     private func applySizeLimits(in visible: CGRect) {
         let width = LauncherPlacement.width(in: visible)
         minSize = NSSize(width: width, height: Self.minHeight)
         maxSize = NSSize(width: width, height: LauncherPlacement.maxHeight(in: visible))
+    }
+
+    private func logPlacement(_ reason: String, height: CGFloat, visible: CGRect, pinTop: CGFloat?, frame: CGRect) {
+        let topPct = visible.height > 0 ? (visible.maxY - frame.maxY) / visible.height : 0
+        let widthPct = visible.width > 0 ? frame.width / visible.width : 0
+        let heightPct = visible.height > 0 ? frame.height / visible.height : 0
+        logger.notice("""
+            launcher \(reason, privacy: .public) \
+            wantH=\(height, format: .fixed(precision: 1), privacy: .public) \
+            pin=\(pinTop.map { String(format: "%.1f", $0) } ?? "nil", privacy: .public) \
+            visible=\(NSStringFromRect(visible), privacy: .public) \
+            frame=\(NSStringFromRect(frame), privacy: .public) \
+            topPct=\(topPct, format: .fixed(precision: 3), privacy: .public) \
+            widthPct=\(widthPct, format: .fixed(precision: 3), privacy: .public) \
+            heightPct=\(heightPct, format: .fixed(precision: 3), privacy: .public) \
+            screen=\(self.screen?.localizedName ?? "none", privacy: .public)
+            """)
     }
 
     private func captureFrontApp() {
