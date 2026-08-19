@@ -6,13 +6,14 @@ import Testing
 struct LauncherPlacementTests {
     let visible = CGRect(x: 0, y: 80, width: 1440, height: 820)
 
-    @Test("open sits just under the menu bar")
+    @Test("open is centered in the visible frame")
     func open() {
         let f = LauncherPlacement.frame(height: 56, visible: visible, pinTop: nil)
-        #expect(f.maxY == visible.maxY - 12)
+        #expect(f.midY == visible.midY)
         #expect(f.height == 56)
         #expect(f.midX == visible.midX)
         #expect(f.minY > visible.minY)
+        #expect(f.maxY < visible.maxY)
     }
 
     @Test("resize pins the top and grows down")
