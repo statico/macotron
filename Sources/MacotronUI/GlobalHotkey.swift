@@ -4,7 +4,7 @@ import CoreGraphics
 import Carbon.HIToolbox
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "globalHotkey")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "globalHotkey")
 
 // MARK: - HotkeyCombo
 
@@ -385,5 +385,5 @@ public final class GlobalHotkey {
 
     // MARK: - Internal
 
-    private static let firedNotification = Notification.Name("com.macotron.globalHotkey.fired")
+    private static let firedNotification = Notification.Name("io.statico.macotron.globalHotkey.fired")
 }

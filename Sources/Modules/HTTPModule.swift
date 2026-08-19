@@ -4,7 +4,7 @@ import Foundation
 import MacotronEngine
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "http")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "http")
 
 @MainActor
 public final class HTTPModule: NativeModule {

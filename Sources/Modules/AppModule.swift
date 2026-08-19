@@ -5,7 +5,7 @@ import MacotronEngine
 import AppKit
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "app")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "app")
 
 @MainActor
 public final class AppModule: NativeModule {

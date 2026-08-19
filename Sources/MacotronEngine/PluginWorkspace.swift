@@ -2,7 +2,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "workspace")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "workspace")
 
 @MainActor
 public final class PluginWorkspace {

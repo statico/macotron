@@ -4,7 +4,7 @@ import Foundation
 import MacotronEngine
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "shell")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "shell")
 
 @MainActor
 public final class ShellModule: NativeModule {

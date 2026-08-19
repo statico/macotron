@@ -7,7 +7,7 @@ import MacotronEngine
 import ScreenCaptureKit
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "screen")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "screen")
 
 private final class CaptureResultBox: @unchecked Sendable {
     var base64: String?

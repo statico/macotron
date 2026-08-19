@@ -127,6 +127,7 @@ enum PluginChecker {
         engine.addModule(NotifyModule())
         engine.addModule(ClipboardModule())
         engine.addModule(KeyboardModule())
+        engine.addModule(EventModule())
         engine.addModule(WindowModule())
         engine.addModule(AppModule())
         engine.addModule(ScreenModule())

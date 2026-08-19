@@ -3,7 +3,7 @@
 import AppKit
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "permissions")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "permissions")
 
 public enum Permission: String, CaseIterable, Sendable, Identifiable {
     case inputMonitoring

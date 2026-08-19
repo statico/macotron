@@ -3,7 +3,7 @@ import CQuickJS
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "engine")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "engine")
 
 public struct RegisteredCommand {
     public let id: String

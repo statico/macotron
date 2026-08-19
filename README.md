@@ -37,7 +37,8 @@ No in-app coding agent. The plugins on disk are the source of truth.
 - CPU, GPU, memory, battery, disk, and process stats
 - CPU temperature
 - Fan RPM and a minimum fan floor
-- Display brightness and XDR headroom
+- Display brightness, XDR, gamma, identity, and `display:changed`
+- Post clicks, keys, Unicode, and scroll; tap HID (including Option-hold / `flagsChanged`)
 - List, launch, and switch apps
 - React when the frontmost app changes
 - Upcoming Calendar events

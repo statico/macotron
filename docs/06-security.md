@@ -67,15 +67,15 @@ enum CapabilityTier {
 
 ### Safe (read-only)
 
-`window.getAll`, `window.focused`, `clipboard.text`, `system.cpuTemp`, `system.memory`, `system.battery`, `app.list`, `spotlight.search`, `display.list`, `keychain.get`, `keychain.has`, `media.nowPlaying`, `notes.list`
+`window.getAll`, `window.focused`, `clipboard.text`, `system.cpuTemp`, `system.memory`, `system.battery`, `app.list`, `spotlight.search`, `display.list`, `keychain.get`, `keychain.has`, `media.nowPlaying`, `notes.list`, `keyboard.flags`, `mouse.location`, `mouse.buttons`
 
 ### Moderate (reversible side effects)
 
-`window.move`, `window.moveToFraction`, `window.snap`, `window.setSnapEnabled`, `notify.show`, `notify.toast`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `panel.open`, `panel.close`, `screen.pickColor`, `media.playPause`, `media.next`, `media.previous`, `launcher.set`, `notes.open`
+`window.move`, `window.moveToFraction`, `window.focus`, `window.snap`, `window.setSnapEnabled`, `notify.show`, `notify.toast`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `panel.open`, `panel.close`, `screen.pickColor`, `media.playPause`, `media.next`, `media.previous`, `launcher.set`, `notes.open`, `display.setGamma`, `display.restoreGamma`, `event.post`, `event.tap`, `mouse.warp`
 
 ### Dangerous (system / network / filesystem)
 
-`shell.run`, `fs.write`, `fs.delete`, `http.post`, `http.put`, `http.delete`, `url.open`, `url.registerHandler`, `keychain.set`, `keychain.delete`, `screen.capture`
+`shell.run`, `fs.write`, `fs.rename`, `http.post`, `http.put`, `http.delete`, `url.open`, `url.registerHandler`, `keychain.set`, `keychain.delete`, `screen.capture`
 
 ## Shell Command Approval
 

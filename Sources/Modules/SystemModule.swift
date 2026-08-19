@@ -8,7 +8,7 @@ import IOKit.ps
 import Metal
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "system")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "system")
 
 enum CPULoad {
     static func percent(from prev: host_cpu_load_info, to now: host_cpu_load_info) -> Double {

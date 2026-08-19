@@ -4,7 +4,7 @@ import Network
 import MacotronEngine
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "debug")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "debug")
 
 @MainActor
 public final class DebugServer {

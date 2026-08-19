@@ -5,7 +5,7 @@ import MacotronEngine
 import UserNotifications
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "notify")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "notify")
 
 /// Banners are otherwise suppressed while Macotron is the active app (launcher).
 private final class NotifyPresenter: NSObject, UNUserNotificationCenterDelegate {

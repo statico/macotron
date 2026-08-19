@@ -44,7 +44,7 @@ struct FanSnapshot {
 final class FanController: @unchecked Sendable {
     static let shared = FanController()
 
-    private let log = Logger(subsystem: "com.macotron", category: "fan")
+    private let log = Logger(subsystem: "io.statico.macotron", category: "fan")
     private let lock = NSLock()
     private let queue = DispatchQueue(label: "macotron.fan")
     private var connection: io_connect_t = 0

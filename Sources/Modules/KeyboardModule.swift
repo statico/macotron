@@ -6,7 +6,7 @@ import CoreGraphics
 import Carbon.HIToolbox
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "keyboard")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "keyboard")
 
 // MARK: - KeyCombo
 
@@ -271,6 +271,19 @@ public final class KeyboardModule: NativeModule {
 
             return QJS_Undefined()
         }, "on", 3))
+
+        JS_SetPropertyStr(ctx, keyboardObj, "flags", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return QJS_Undefined() }
+            let flags = CGEventSource.flagsState(.hidSystemState)
+            return JSBridge.newObject(ctx, [
+                "cmd": flags.contains(.maskCommand),
+                "shift": flags.contains(.maskShift),
+                "ctrl": flags.contains(.maskControl),
+                "opt": flags.contains(.maskAlternate),
+                "caps": flags.contains(.maskAlphaShift),
+                "fn": flags.contains(.maskSecondaryFn),
+            ])
+        }, "flags", 0))
 
         JS_SetPropertyStr(ctx, macotron, "keyboard", keyboardObj)
         JS_FreeValue(ctx, macotron)
