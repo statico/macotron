@@ -48,9 +48,10 @@ The app hot-reloads when any file in the workdir changes. That includes `setting
 
 ## Git
 
-The workdir is a git repo for local versioning.
+The workdir is a git repo for local versioning when Apple developer tools are present.
 
-- The app runs `git init` when it creates the workdir.
+- The app runs `git init` only if `xcode-select -p` succeeds (real git, not the CLT stub).
+- Git is optional. The app and plugins work without it.
 - External agents create commits. The app does not create commits.
 - Commit often on `main`.
 - Do not commit secrets. Use `macotron.keychain` for API keys.
@@ -83,6 +84,8 @@ The app seeds `README.md` once if the file is missing. Humans and agents can edi
 Plugins are `.js` files under `plugins/`. Each file registers hotkeys and hooks at load time. Community plugins can use the GitHub topic `macotron-plugin`:
 
 https://github.com/topics/macotron-plugin
+
+Plugins must run on a stock Mac. Use `macotron.*` and Apple-shipped CLI tools only. Do not depend on Homebrew, npm, or other third-party binaries.
 
 ## First-Run Flow
 

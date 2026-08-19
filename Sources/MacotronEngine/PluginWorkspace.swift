@@ -74,17 +74,21 @@ public final class PluginWorkspace {
         try Self.gitignoreContents.write(to: gitignore, atomically: true, encoding: .utf8)
 
         let gitDir = root.appending(path: ".git")
-        if !fm.fileExists(atPath: gitDir.path(percentEncoded: false)) {
+        if !fm.fileExists(atPath: gitDir.path(percentEncoded: false)), Self.gitIsUsable() {
             let proc = Process()
             proc.executableURL = URL(fileURLWithPath: "/usr/bin/git")
             proc.arguments = ["init"]
             proc.currentDirectoryURL = root
             proc.standardOutput = FileHandle.nullDevice
             proc.standardError = FileHandle.nullDevice
-            try proc.run()
-            proc.waitUntilExit()
-            if proc.terminationStatus != 0 {
-                logger.error("git init failed with status \(proc.terminationStatus)")
+            do {
+                try proc.run()
+                proc.waitUntilExit()
+                if proc.terminationStatus != 0 {
+                    logger.error("git init failed with status \(proc.terminationStatus)")
+                }
+            } catch {
+                logger.error("git init skipped: \(error.localizedDescription)")
             }
         }
 
@@ -106,6 +110,22 @@ public final class PluginWorkspace {
 
         if !fm.fileExists(atPath: settingsFile.path(percentEncoded: false)) {
             try writeSettings(Self.defaultSettings)
+        }
+    }
+
+    /// Real git, not the Xcode CLT stub. Workdir still works without it.
+    private static func gitIsUsable() -> Bool {
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/xcode-select")
+        proc.arguments = ["-p"]
+        proc.standardOutput = FileHandle.nullDevice
+        proc.standardError = FileHandle.nullDevice
+        do {
+            try proc.run()
+            proc.waitUntilExit()
+            return proc.terminationStatus == 0
+        } catch {
+            return false
         }
     }
 
@@ -239,6 +259,14 @@ public final class PluginWorkspace {
         Current plugin API version is `\(Engine.apiVersion)` (`macotron.version.api`).
         Bump only when the plugin-facing JS contract changes.
 
+        ## Built-in macOS only
+
+        Plugins must run on a stock Mac with only Macotron installed. Use `macotron.*`
+        APIs and Apple-shipped tools (`/usr/bin/open`, `/usr/bin/defaults`, `/bin/mv`).
+        Do not call Homebrew, npm, pip, ffmpeg, Chrome-only binaries, or other
+        third-party installs. Optional cloud AI keys are fine; they are not required
+        for the host or demo plugins to load.
+
         ## API compatibility pragma
 
         Optional. Put at the top of a plugin when you need a minimum API version:
@@ -254,12 +282,11 @@ public final class PluginWorkspace {
 
         ## Validate after edits
 
-        Before committing plugin changes, run both checks from this workdir:
+        Load-check from this workdir:
 
-        1. Typecheck: `npx --yes typescript tsc -p .cache --noEmit`
-        2. Load check: `make check` or `~/Applications/Macotron.app/Contents/MacOS/Macotron --check plugins/your-file.js`
+        `~/Applications/Macotron.app/Contents/MacOS/Macotron --check plugins/your-file.js`
 
-        Commit only if both pass. Do not edit `AGENTS.md` / `CLAUDE.md`.
+        Do not edit `AGENTS.md` / `CLAUDE.md`.
 
         ## Plugins
 
@@ -389,7 +416,8 @@ public final class PluginWorkspace {
 
         Commit often on `main`. Never commit secrets (API keys, tokens, passwords).
         Declare `password` options and let the user set them in Settings, or store
-        secrets with `macotron.keychain`. Macotron only runs `git init`; you commit.
+        secrets with `macotron.keychain`. Macotron runs `git init` only when Apple
+        developer tools are already installed. Git is optional.
 
         ## AI from plugins
 

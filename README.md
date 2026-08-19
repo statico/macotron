@@ -67,6 +67,10 @@ The workdir is a git repo that the app initializes. Layout:
 
 See [docs/10-plugins-workdir.md](docs/10-plugins-workdir.md) for the full layout.
 
+## Built-in macOS only
+
+Installing Macotron.app on a new Mac is enough. The host and demo plugins use Apple frameworks and Apple-shipped CLI tools (`/usr/bin/open`, `/usr/bin/defaults`, `/bin/mv`, `/bin/ps`). They do not need Homebrew, npm, Chrome, or other extra installs. Optional: cloud AI API keys, and git if you want the plugins folder as a repo (the app skips `git init` when developer tools are missing).
+
 ## Marketplace
 
 Browse community plugins on GitHub:
@@ -170,7 +174,7 @@ Run with `make dev` to start the debug server on port 7777:
 | JS Runtime | [quickjs-ng](https://github.com/quickjs-ng/quickjs) (embedded, ~400KB) |
 | Plugin AI | `macotron.ai` (Claude, OpenAI, Gemini, Foundation Models) |
 | Package Manager | Swift Package Manager |
-| Distribution | Direct download + Homebrew (not sandboxed) |
+| Distribution | Direct download (Homebrew cask is optional; the app does not need brew) |
 
 ## Documentation
 
