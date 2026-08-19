@@ -4,7 +4,7 @@ import MacotronUI
 
 @Suite("LauncherMatch")
 struct LauncherMatchTests {
-    @Test("empty query keeps plugin rows")
+    @Test("empty query is a zero-score match")
     func empty() {
         #expect(FuzzyMatch.best(query: "", targets: ["Shopping", "Notes"]) == 0)
     }

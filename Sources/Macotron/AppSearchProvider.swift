@@ -96,6 +96,13 @@ final class AppSearchProvider {
         }
     }
 
+    func entry(bundleID: String) -> AppEntry? {
+        if Date().timeIntervalSince(lastRefresh) > 30 {
+            refresh()
+        }
+        return allApps.first(where: { $0.bundleID == bundleID })
+    }
+
     /// Launch or switch to an app by bundle ID
     func launchApp(bundleID: String) {
         // Try to switch to running app first

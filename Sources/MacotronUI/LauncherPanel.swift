@@ -13,13 +13,12 @@ private extension NSView {
 
 @MainActor
 public final class LauncherPanel: NSPanel {
-    private static let panelWidth: CGFloat = 720
-    private static let minHeight: CGFloat = 52  // Search bar only
-    private static let maxHeight: CGFloat = 520
+    private static let panelWidth: CGFloat = LauncherPlacement.width
+    private static let minHeight: CGFloat = LauncherPlacement.minHeight
+    private static let maxHeight: CGFloat = LauncherPlacement.maxHeight
     private static let cornerRadius: CGFloat = 12
 
     private let hostingView: NSView
-    private var pendingReveal = false
     /// Cached content height from the last layout pass — used to open at the right size.
     private var lastContentHeight: CGFloat = 0
     public var onHide: (() -> Void)?
@@ -31,7 +30,7 @@ public final class LauncherPanel: NSPanel {
     public init(contentView: NSView) {
         hostingView = contentView
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: Self.panelWidth, height: Self.maxHeight),
+            contentRect: NSRect(x: 0, y: 0, width: Self.panelWidth, height: Self.minHeight),
             styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -42,7 +41,7 @@ public final class LauncherPanel: NSPanel {
         hasShadow = true
         minSize = NSSize(width: Self.panelWidth, height: Self.minHeight)
         maxSize = NSSize(width: Self.panelWidth, height: Self.maxHeight)
-        animationBehavior = .utilityWindow
+        animationBehavior = .none
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         becomesKeyOnlyIfNeeded = false
         hidesOnDeactivate = false
@@ -119,31 +118,16 @@ public final class LauncherPanel: NSPanel {
 
     /// Resize the panel to fit the given content height, keeping the top edge pinned.
     public func resizeToHeight(_ height: CGFloat) {
-        let clamped = min(max(height, Self.minHeight), Self.maxHeight)
-        lastContentHeight = clamped
-
-        if pendingReveal {
-            // First height report after toggle — snap to correct size and reveal.
-            let topY = frame.maxY
-            var newFrame = frame
-            newFrame.size.height = clamped
-            newFrame.origin.y = topY - clamped
-            setFrame(newFrame, display: true)
-            reveal()
-            return
-        }
-
-        guard abs(frame.height - clamped) > 1 else { return }
-
-        let topY = frame.maxY
-        var newFrame = frame
-        newFrame.size.height = clamped
-        newFrame.origin.y = topY - clamped
+        let visible = (screen ?? NSScreen.main)?.visibleFrame ?? frame
+        let pin = isVisible || isShown ? frame.maxY : nil
+        let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: pin)
+        lastContentHeight = newFrame.height
+        guard abs(frame.height - newFrame.height) > 1 || abs(frame.origin.y - newFrame.origin.y) > 1
+            || abs(frame.origin.x - newFrame.origin.x) > 1 else { return }
         setFrame(newFrame, display: true)
     }
 
     private func reveal() {
-        pendingReveal = false
         alphaValue = 1
         NSApp.activate(ignoringOtherApps: true)
         makeKeyAndOrderFront(nil)
@@ -158,9 +142,9 @@ public final class LauncherPanel: NSPanel {
         isOrderingOut = true
         super.orderOut(sender)
         isOrderingOut = false
-        pendingReveal = false
         isShown = false
         if wasVisible {
+            lastContentHeight = Self.minHeight
             onHide?()
             restoreFrontAppIfNeeded()
         }
@@ -181,46 +165,16 @@ public final class LauncherPanel: NSPanel {
             orderOut(nil)
         } else {
             captureFrontApp()
-            // Use cached height on subsequent opens to avoid the tall-then-shrink flash.
-            // On first open, use maxHeight so SwiftUI has full space for layout.
-            let initialHeight = lastContentHeight > 0 ? lastContentHeight : Self.maxHeight
-
-            var f = frame
-            f.size.height = initialHeight
-            setFrame(f, display: false)
-
-            // Place the launcher centered horizontally in the upper portion of the screen.
-            if let screen = NSScreen.main {
-                let sf = screen.visibleFrame
-                let x = sf.midX - Self.panelWidth / 2
-                let topY = sf.minY + sf.height * 0.78
-                let y = topY - initialHeight
-                setFrameOrigin(NSPoint(x: x, y: y))
+            let height = lastContentHeight > 0 ? lastContentHeight : Self.minHeight
+            let visible = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame
+            let newFrame: CGRect
+            if let visible {
+                newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: nil)
             } else {
-                center()
+                newFrame = CGRect(x: 0, y: 0, width: Self.panelWidth, height: height)
             }
-
-            if lastContentHeight > 0 {
-                // We know the right height — show immediately at the cached size.
-                // SwiftUI will animate-adjust if content changed since last close.
-                NSApp.activate(ignoringOtherApps: true)
-                makeKeyAndOrderFront(nil)
-                if let textField = contentView?.firstEditableTextField() {
-                    makeFirstResponder(textField)
-                }
-                isShown = true
-            } else {
-                // First open — show invisible, wait for SwiftUI to report height.
-                alphaValue = 0
-                pendingReveal = true
-                makeKeyAndOrderFront(nil)
-
-                // Safety fallback if SwiftUI doesn't report height quickly.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-                    guard let self, self.pendingReveal else { return }
-                    self.reveal()
-                }
-            }
+            setFrame(newFrame, display: false)
+            reveal()
         }
     }
 

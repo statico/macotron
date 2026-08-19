@@ -228,6 +228,7 @@ public final class PluginWorkspace {
         "disabledPlugins": [] as [String],
         "commandShortcuts": [:] as [String: String],
         "keyboardShortcuts": [:] as [String: String],
+        "launcherFavorites": [] as [String],
         "security": ["shell": ["allow": [] as [String], "strict": false]],
     ]
 
@@ -348,7 +349,8 @@ public final class PluginWorkspace {
         `html` is inserted into a host document (system font, padding, light/dark).
         `rawHtml` is a full document. `glass: true` (or `"regular"`) uses Liquid Glass
         with a transparent page background; `glass: "clear"` is the clearer variant.
-        In the page, `close()` closes the panel.
+        Host CSS exposes `--macotron-accent` (and related `--macotron-*` system colors);
+        `button.primary` uses the accent color. In the page, `close()` closes the panel.
         The page may also call `webkit.messageHandlers.macotron.postMessage(data)`.
 
         ## Plugin metadata and settings
@@ -424,6 +426,7 @@ public final class PluginWorkspace {
           "disabledPlugins": [],
           "commandShortcuts": {},
           "keyboardShortcuts": {},
+          "launcherFavorites": [],
           "security": { "shell": { "allow": [], "strict": false } }
         }
         ```
