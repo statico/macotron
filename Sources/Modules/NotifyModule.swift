@@ -7,6 +7,16 @@ import os
 
 private let logger = Logger(subsystem: "com.macotron", category: "notify")
 
+/// Banners are otherwise suppressed while Macotron is the active app (launcher).
+private final class NotifyPresenter: NSObject, UNUserNotificationCenterDelegate {
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .list, .sound]
+    }
+}
+
 @MainActor
 public final class NotifyModule: NativeModule {
     public let name = "notify"
@@ -14,6 +24,7 @@ public final class NotifyModule: NativeModule {
 
     private var notificationCenter: UNUserNotificationCenter?
     private var authorizationGranted = false
+    private let presenter = NotifyPresenter()
 
     public init() {}
 
@@ -28,6 +39,7 @@ public final class NotifyModule: NativeModule {
         let dryRun = engine.dryRun
 
         if !dryRun {
+            center.delegate = presenter
             center.requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
                 DispatchQueue.main.async {
                     self?.authorizationGranted = granted

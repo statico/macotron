@@ -13,6 +13,8 @@ public final class AppModule: NativeModule {
 
     private weak var engine: Engine?
     private var activationObserver: NSObjectProtocol?
+    private var lastOther: [String: Any]?
+    private static let ownBundleID = Bundle.main.bundleIdentifier ?? "com.macotron.app"
 
     public init() {}
 
@@ -111,24 +113,20 @@ public final class AppModule: NativeModule {
         // macotron.app.frontmost() -> {name, bundleID, pid} or null
         JS_SetPropertyStr(ctx, appObj, "frontmost",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
-            guard let ctx else { return QJS_Undefined() }
-
-            guard let app = NSWorkspace.shared.frontmostApplication,
-                  let bundleID = app.bundleIdentifier else {
+            guard let ctx, let opaque = JS_GetContextOpaque(ctx) else { return QJS_Null() }
+            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            guard let module = engine.configStore["__appModule"] as? AppModule,
+                  let info = module.frontmostInfo() else {
                 return QJS_Null()
             }
-
-            return JSBridge.newObject(ctx, [
-                "name": app.localizedName ?? bundleID,
-                "bundleID": bundleID,
-                "pid": Int(app.processIdentifier)
-            ])
+            return JSBridge.newObject(ctx, info)
         }, "frontmost", 0))
 
         JS_SetPropertyStr(ctx, macotron, "app", appObj)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
 
+        engine.configStore["__appModule"] = self
         guard !engine.dryRun else { return }
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
@@ -141,8 +139,9 @@ public final class AppModule: NativeModule {
                 return
             }
             let name = app.localizedName ?? bundleID
+            let pid = Int(app.processIdentifier)
             Task { @MainActor [weak self] in
-                self?.emitActivation(bundleID: bundleID, name: name)
+                self?.emitActivation(bundleID: bundleID, name: name, pid: pid)
             }
         }
     }
@@ -155,15 +154,28 @@ public final class AppModule: NativeModule {
         engine = nil
     }
 
-    private func emitActivation(bundleID: String, name: String) {
+    func frontmostInfo() -> [String: Any]? {
+        if let app = NSWorkspace.shared.frontmostApplication,
+           let bundleID = app.bundleIdentifier,
+           bundleID != Self.ownBundleID {
+            return [
+                "name": app.localizedName ?? bundleID,
+                "bundleID": bundleID,
+                "pid": Int(app.processIdentifier)
+            ]
+        }
+        return lastOther
+    }
+
+    private func emitActivation(bundleID: String, name: String, pid: Int) {
+        guard bundleID != Self.ownBundleID else { return }
+        lastOther = ["name": name, "bundleID": bundleID, "pid": pid]
+
         guard let engine, let ctx = engine.context else {
             return
         }
 
-        let data = JSBridge.newObject(ctx, [
-            "bundleID": bundleID,
-            "name": name
-        ])
+        let data = JSBridge.newObject(ctx, lastOther ?? [:])
         engine.eventBus.emit("app:activated", engine: engine, data: data)
         JS_FreeValue(ctx, data)
     }
