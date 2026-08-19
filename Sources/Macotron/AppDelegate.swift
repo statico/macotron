@@ -154,11 +154,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         registerModules()
+        installModuleManagerCallbacks()
         moduleManager.reloadAll()
         applyUIPrefsFromSettings()
         installLauncherHotkey()
         moduleManager.startWatching()
-        installModuleManagerCallbacks()
         refreshPermissions()
 
         if CommandLine.arguments.contains("--debug-server") {
@@ -754,9 +754,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func executeCommand(_ id: String, args: [String: Any] = [:]) {
-        if launcherPanel.isVisible {
-            launcherPanel.toggle()
-        }
+        launcherPanel.dismiss()
         if engine.commandRegistry[id] != nil {
             _ = engine.invokeCommand(id, args: args)
             return

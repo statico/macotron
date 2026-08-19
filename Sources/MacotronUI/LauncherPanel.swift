@@ -159,10 +159,16 @@ public final class LauncherPanel: NSPanel {
     /// transient key changes that happen while it is still being revealed.
     private var isShown = false
 
+    /// Hide the launcher. Escape restores the previous app; choosing a result does not.
+    public func dismiss(restoreFrontApp: Bool = false) {
+        shouldRestoreApp = restoreFrontApp
+        guard isVisible || isShown else { return }
+        orderOut(nil)
+    }
+
     public func toggle() {
         if isVisible {
-            shouldRestoreApp = true
-            orderOut(nil)
+            dismiss(restoreFrontApp: true)
         } else {
             captureFrontApp()
             let height = lastContentHeight > 0 ? lastContentHeight : Self.minHeight

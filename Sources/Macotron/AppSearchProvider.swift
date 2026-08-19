@@ -2,6 +2,7 @@
 import AppKit
 import MacotronUI
 import MacotronEngine
+import Modules
 
 @MainActor
 final class AppSearchProvider {
@@ -105,20 +106,7 @@ final class AppSearchProvider {
 
     /// Launch or switch to an app by bundle ID
     func launchApp(bundleID: String) {
-        // Try to switch to running app first
-        let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
-        if let app = running.first {
-            app.activate()
-            return
-        }
-
-        // Launch the app
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
-            return
-        }
-        let config = NSWorkspace.OpenConfiguration()
-        config.activates = true
-        NSWorkspace.shared.openApplication(at: url, configuration: config)
+        AppLaunch.open(bundleID: bundleID)
     }
 
     /// Reveal an app in Finder

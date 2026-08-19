@@ -61,29 +61,7 @@ public final class AppModule: NativeModule {
                 logger.error("app.launch: bundleID argument required")
                 return QJS_Undefined()
             }
-
-            guard let url = NSWorkspace.shared.urlForApplication(
-                withBundleIdentifier: bundleID
-            ) else {
-                logger.error("app.launch: no app found for \(bundleID)")
-                return JSBridge.newBool(ctx, false)
-            }
-
-            let config = NSWorkspace.OpenConfiguration()
-            config.activates = true
-
-            // Fire and forget — launch is async but we don't block
-            NSWorkspace.shared.openApplication(
-                at: url,
-                configuration: config,
-                completionHandler: { app, error in
-                    if let error {
-                        logger.error("app.launch failed: \(error.localizedDescription)")
-                    }
-                }
-            )
-
-            return JSBridge.newBool(ctx, true)
+            return JSBridge.newBool(ctx, AppLaunch.open(bundleID: bundleID))
         }, "launch", 1))
 
         // macotron.app.switch(bundleID) -> void (activate the app)
@@ -96,18 +74,7 @@ public final class AppModule: NativeModule {
                 logger.error("app.switch: bundleID argument required")
                 return QJS_Undefined()
             }
-
-            let apps = NSRunningApplication.runningApplications(
-                withBundleIdentifier: bundleID
-            )
-
-            guard let app = apps.first else {
-                logger.warning("app.switch: no running app for \(bundleID)")
-                return JSBridge.newBool(ctx, false)
-            }
-
-            let activated = app.activate()
-            return JSBridge.newBool(ctx, activated)
+            return JSBridge.newBool(ctx, AppLaunch.open(bundleID: bundleID))
         }, "switch", 1))
 
         // macotron.app.frontmost() -> {name, bundleID, pid} or null
@@ -178,5 +145,25 @@ public final class AppModule: NativeModule {
         let data = JSBridge.newObject(ctx, lastOther ?? [:])
         engine.eventBus.emit("app:activated", engine: engine, data: data)
         JS_FreeValue(ctx, data)
+    }
+}
+
+/// Launch or activate via Launch Services. `NSRunningApplication.activate()` from a
+/// background/menubar host does not steal focus.
+public enum AppLaunch {
+    @discardableResult
+    public static func open(bundleID: String) -> Bool {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+            logger.error("app.open: no app found for \(bundleID)")
+            return false
+        }
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = true
+        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, error in
+            if let error {
+                logger.error("app.open \(bundleID): \(error.localizedDescription)")
+            }
+        }
+        return true
     }
 }
