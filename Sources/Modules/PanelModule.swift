@@ -136,16 +136,10 @@ public final class PanelModule: NativeModule {
         let normalized = Self.normalizeMessageBody(body)
         let payload = JSBridge.anyToJS(ctx, normalized)
 
-        for cb in globalCallbacks {
+        for cb in globalCallbacks + (perIdCallbacks[panelId] ?? []) {
             var arg = JS_DupValue(ctx, payload)
             _ = JS_Call(ctx, cb, QJS_Undefined(), 1, &arg)
             JS_FreeValue(ctx, arg)
-        }
-        for cb in perIdCallbacks[panelId] ?? [] {
-            var args = [JSBridge.newString(ctx, panelId), JS_DupValue(ctx, payload)]
-            _ = JS_Call(ctx, cb, QJS_Undefined(), 2, &args)
-            JS_FreeValue(ctx, args[0])
-            JS_FreeValue(ctx, args[1])
         }
         JS_FreeValue(ctx, payload)
         engine.drainJobQueue()
