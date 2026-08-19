@@ -29,8 +29,8 @@ public final class WizardWindow {
 
     public func show() {
         if let window, window.isVisible {
+            NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
-            NSApp.activate()
             return
         }
 
@@ -53,14 +53,14 @@ public final class WizardWindow {
         w.center()
         w.isReleasedWhenClosed = false
         w.level = .floating
+        NSApp.activate(ignoringOtherApps: true)
         w.makeKeyAndOrderFront(nil)
 
-        // Force activation — necessary on first launch when the app starts as accessory
-        NSApp.activate()
+        // First launch starts as accessory; drop the floating level once we are key.
         DispatchQueue.main.async {
             w.level = .normal
+            NSApp.activate(ignoringOtherApps: true)
             w.makeKeyAndOrderFront(nil)
-            NSApp.activate()
         }
 
         self.window = w

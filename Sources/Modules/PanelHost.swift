@@ -2,6 +2,10 @@
 import AppKit
 import WebKit
 
+private final class PluginPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+}
+
 @MainActor
 final class PanelHost: NSObject, WKScriptMessageHandler {
     let id: String
@@ -20,7 +24,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler {
         let wv = WKWebView(frame: NSRect(x: 0, y: 0, width: width, height: height), configuration: config)
         self.webView = wv
 
-        let p = NSPanel(
+        let p = PluginPanel(
             contentRect: NSRect(x: 0, y: 0, width: width, height: height),
             styleMask: [.titled, .closable, .resizable, .utilityWindow],
             backing: .buffered,
@@ -29,6 +33,8 @@ final class PanelHost: NSObject, WKScriptMessageHandler {
         p.title = title
         p.isFloatingPanel = true
         p.level = .floating
+        p.hidesOnDeactivate = false
+        p.becomesKeyOnlyIfNeeded = false
         p.contentView = wv
         p.isReleasedWhenClosed = false
         self.panel = p
@@ -40,8 +46,16 @@ final class PanelHost: NSObject, WKScriptMessageHandler {
 
     func show() {
         panel.center()
+        bringToFront()
+        // Launcher/menu-bar dismissal on this pass steals key; claim it again after.
+        DispatchQueue.main.async { [weak self] in
+            self?.bringToFront()
+        }
+    }
+
+    private func bringToFront() {
+        NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
-        NSApp.activate()
     }
 
     func close() {
