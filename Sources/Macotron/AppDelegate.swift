@@ -767,7 +767,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleCommandShortcut(_ commandId: String) {
         guard let cmd = engine.commandRegistry[commandId] else {
-            executeCommand(commandId)
+            if launcherPanel.isVisible {
+                launcherPanel.dismiss()
+            }
+            if launcherModule?.run(commandId) == true {
+                return
+            }
+            appSearchProvider.launchApp(bundleID: commandId, hideIfFrontmost: true)
             return
         }
         switch CommandArgumentResolver.resolve(specs: cmd.arguments, raw: [:]) {

@@ -151,8 +151,18 @@ public final class AppModule: NativeModule {
 /// Launch or activate via Launch Services. `NSRunningApplication.activate()` from a
 /// background/menubar host does not steal focus.
 public enum AppLaunch {
+    public static func shouldHide(bundleID: String, frontmost: String?) -> Bool {
+        guard let frontmost, !bundleID.isEmpty else { return false }
+        return frontmost == bundleID
+    }
+
     @discardableResult
-    public static func open(bundleID: String) -> Bool {
+    public static func open(bundleID: String, hideIfFrontmost: Bool = false) -> Bool {
+        if hideIfFrontmost,
+           let front = NSWorkspace.shared.frontmostApplication,
+           shouldHide(bundleID: bundleID, frontmost: front.bundleIdentifier) {
+            return front.hide()
+        }
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
             logger.error("app.open: no app found for \(bundleID)")
             return false
