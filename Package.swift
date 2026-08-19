@@ -12,8 +12,7 @@ let package = Package(
             sources: ["quickjs-amalgam.c", "quickjs-swift-helpers.c"],
             publicHeadersPath: "include",
             cSettings: [
-                .define("CONFIG_VERSION", to: "\"0.12.1\""),
-                .define("CONFIG_BIGNUM"),
+                .define("CONFIG_VERSION", to: "\"0.16.1\""),
                 .unsafeFlags(["-w"]) // suppress warnings from third-party C code
             ]
         ),
