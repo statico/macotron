@@ -21,6 +21,7 @@ public final class LauncherPanel: NSPanel {
     private var pendingReveal = false
     /// Cached content height from the last layout pass — used to open at the right size.
     private var lastContentHeight: CGFloat = 0
+    public var onHide: (() -> Void)?
 
     public init(contentView: NSView) {
         // Start at maxHeight so SwiftUI has room to lay out content
@@ -101,6 +102,16 @@ public final class LauncherPanel: NSPanel {
         isShown = true
     }
 
+    public override func orderOut(_ sender: Any?) {
+        let wasVisible = isVisible || isShown
+        super.orderOut(sender)
+        pendingReveal = false
+        isShown = false
+        if wasVisible {
+            onHide?()
+        }
+    }
+
     /// Dismiss on Escape key
     public override func cancelOperation(_ sender: Any?) {
         toggle()
@@ -113,8 +124,6 @@ public final class LauncherPanel: NSPanel {
     public func toggle() {
         if isVisible {
             orderOut(nil)
-            pendingReveal = false
-            isShown = false
         } else {
             // Use cached height on subsequent opens to avoid the tall-then-shrink flash.
             // On first open, use maxHeight so SwiftUI has full space for layout.
@@ -167,7 +176,5 @@ extension LauncherPanel: NSWindowDelegate {
     public func windowDidResignKey(_ notification: Notification) {
         guard isShown, isVisible else { return }
         orderOut(nil)
-        pendingReveal = false
-        isShown = false
     }
 }

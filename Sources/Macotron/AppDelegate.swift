@@ -131,7 +131,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.launcherPanel.resizeToHeight(height)
             }
         )
-        launcherPanel = LauncherPanel(contentView: NSHostingView(rootView: launcherView))
+        let hostingView = NSHostingView(rootView: launcherView)
+        // Default intrinsic-size constraints fight resizeToHeight and vertically center the search field in leftover space.
+        hostingView.sizingOptions = []
+        hostingView.safeAreaRegions = []
+        launcherPanel = LauncherPanel(contentView: hostingView)
+        launcherPanel.onHide = { [weak self] in
+            self?.launcherSession.reset()
+        }
 
         registerModules()
         moduleManager.reloadAll()
