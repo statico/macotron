@@ -42,10 +42,23 @@ declare const macotron: {
     every(ms: number, callback: () => void | Promise<void>): () => void;
 
     window: {
-        getAll(): Array<{ id: number; title: string; app: string; frame: { x: number; y: number; width: number; height: number } }>;
-        focused(): { id: number; title: string; app: string; frame: { x: number; y: number; width: number; height: number } } | null;
+        getAll(): Array<{
+            id: number;
+            title: string;
+            app: string;
+            display?: number;
+            frame: { x: number; y: number; width: number; height: number };
+        }>;
+        focused(): {
+            id: number;
+            title: string;
+            app: string;
+            display?: number;
+            frame: { x: number; y: number; width: number; height: number };
+        } | null;
         move(id: number, frame: { x?: number; y?: number; width?: number; height?: number }): boolean;
-        moveToFraction(id: number, frac: { x?: number; y?: number; w?: number; h?: number }): boolean;
+        /** Fractions of the window's current display. Pass `display` from `macotron.display.list()` to send it to another screen. */
+        moveToFraction(id: number, frac: { x?: number; y?: number; w?: number; h?: number; display?: number }): boolean;
         setSnapEnabled(enabled: boolean): boolean;
         isSnapEnabled(): boolean;
         /** Drag-to-edge tiling. Zones are fractions of the visible frame (same as moveToFraction). Omit a slot to disable it. */

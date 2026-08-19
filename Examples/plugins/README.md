@@ -12,7 +12,7 @@ Copy into your Macotron workdir `plugins/` to try. Most register launcher comman
 | demo-idle.js | idle.*, system:idle/active | Idle seconds |
 | demo-ocr.js | ocr.recognize | OCR Screen |
 | demo-system-metrics.js | system.disk/network/gpu | System Metrics |
-| demo-window-tiling.js | window.moveToFraction | Tile Left/Right/Full |
+| demo-window-tiling.js | window.moveToFraction | Tile Left/Right/Full, next/prev display |
 | demo-window-snap.js | window.snap | Toggle Window Snap |
 | demo-browser-profiles.js | url.open profile | Open GitHub (Chrome Profile 1) |
 | demo-url-router.js | url.on / open | Open YouTube in Safari |
