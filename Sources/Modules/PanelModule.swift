@@ -61,18 +61,15 @@ public final class PanelModule: NativeModule {
                 ? nil : JSBridge.toString(ctx, htmlVal)
             JS_FreeValue(ctx, htmlVal)
 
-            let document: String
-            if let rawHtml, !rawHtml.isEmpty {
-                document = rawHtml
-            } else {
-                document = PanelShell.document(body: html ?? "")
-            }
+            let useShell = rawHtml == nil || rawHtml?.isEmpty == true
+            let document = useShell ? PanelShell.document(body: html ?? "") : rawHtml!
 
             let id = module.openPanel(
                 title: title,
                 width: width > 0 ? width : 420,
                 height: height > 0 ? height : 520,
-                html: document
+                html: document,
+                hostChrome: useShell
             )
             return JSBridge.newString(ctx, id)
         }, "open", 1))
@@ -118,12 +115,12 @@ public final class PanelModule: NativeModule {
         PanelModuleState.shared.module = nil
     }
 
-    private func openPanel(title: String, width: Int, height: Int, html: String) -> String {
+    private func openPanel(title: String, width: Int, height: Int, html: String, hostChrome: Bool) -> String {
         let id = UUID().uuidString
         if engine?.dryRun == true {
             return id
         }
-        let host = PanelHost(id: id, title: title, width: width, height: height, html: html) { [weak self] panelId, body in
+        let host = PanelHost(id: id, title: title, width: width, height: height, html: html, hostChrome: hostChrome) { [weak self] panelId, body in
             self?.dispatchMessage(panelId: panelId, body: body)
         }
         panels[id] = host
