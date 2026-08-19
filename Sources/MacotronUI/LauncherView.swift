@@ -11,17 +11,20 @@ public struct SearchResult: Identifiable {
     public let nsImage: NSImage?
     public let commandArguments: [CommandArgumentSpec]
     public let shortcut: String
+    public let kind: String
 
     public enum ResultType {
         case app
         case command
+        case plugin
     }
 
     public init(
         id: String, title: String, subtitle: String, type: ResultType,
         nsImage: NSImage? = nil,
         commandArguments: [CommandArgumentSpec] = [],
-        shortcut: String = ""
+        shortcut: String = "",
+        kind: String = ""
     ) {
         self.id = id
         self.title = title
@@ -30,6 +33,7 @@ public struct SearchResult: Identifiable {
         self.nsImage = nsImage
         self.commandArguments = commandArguments
         self.shortcut = shortcut
+        self.kind = kind
     }
 }
 
@@ -83,18 +87,18 @@ public struct LauncherView: View {
                 .padding(.vertical, 14)
                 .fixedSize(horizontal: false, vertical: true)
 
-                if !queryIsEmpty {
+                if !queryIsEmpty || !results.isEmpty {
                     Divider().opacity(0.5)
                 }
             }
 
             if session.pendingArgs != nil {
                 argumentForm
-            } else if !queryIsEmpty {
+            } else if !queryIsEmpty || !results.isEmpty {
                 searchResultsView
             }
 
-            if session.pendingArgs == nil && !queryIsEmpty && !results.isEmpty {
+            if session.pendingArgs == nil && !results.isEmpty {
                 Divider().opacity(0.5)
                 if isRecordingShortcut, selectedIndex < results.count {
                     HStack(spacing: 16) {
@@ -261,11 +265,7 @@ public struct LauncherView: View {
     }
 
     private func applySearch(_ query: String) {
-        if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            results = []
-        } else {
-            results = onSearch?(query) ?? []
-        }
+        results = onSearch?(query) ?? []
         selectedIndex = 0
         isRecordingShortcut = false
     }
@@ -635,6 +635,7 @@ struct ResultRow: View {
         switch type {
         case .app: return "app.fill"
         case .command: return "terminal.fill"
+        case .plugin: return "square.grid.2x2.fill"
         }
     }
 
@@ -642,6 +643,7 @@ struct ResultRow: View {
         switch type {
         case .app: return "Application"
         case .command: return "Command"
+        case .plugin: return result.kind.isEmpty ? "Plugin" : result.kind
         }
     }
 }

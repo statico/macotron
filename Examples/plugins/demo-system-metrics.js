@@ -1,6 +1,13 @@
-macotron.plugin({
-  title: "System Metrics",
-  description: "CPU and GPU usage in the menu bar.",
+const opts = macotron.plugin({
+    title: "System Metrics",
+    description: "CPU and GPU usage in the menu bar.",
+    options: {
+        colorize: {
+            type: "boolean",
+            label: "Colorize CPU and GPU by load",
+            default: true,
+        },
+    },
 });
 
 const GREEN = "#34C759";
@@ -43,10 +50,15 @@ function menu(s) {
 
 function paint() {
     const s = snapshot();
+    const colorize = opts.colorize !== false;
     macotron.menubar.status("system-metrics", {
-        title: "",
+        title: "CPU " + s.cpu + "%",
+        subtitle: "GPU " + s.gpuN + "%",
         sfSymbol: "cpu",
-        color: tint(Math.max(s.cpu, s.gpuN)),
+        color: colorize ? tint(Math.max(s.cpu, s.gpuN)) : undefined,
+        // "CPU 100%" / "GPU 100%" at 10pt plus the 20pt icon. Proportional
+        // digits would otherwise shift neighbors as usage ticks.
+        minWidth: 96,
         menu: menu(s),
     });
     macotron.menubar.add("system-metrics-menu", {

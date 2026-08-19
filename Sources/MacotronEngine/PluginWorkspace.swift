@@ -438,7 +438,8 @@ public final class PluginWorkspace {
 
         ## AI from plugins
 
-        Plugins may call `macotron.ai.claude()`, `macotron.ai.openai()`, or `macotron.ai.local()`.
+        Plugins may call `macotron.ai.claude()`, `macotron.ai.anthropic()`,
+        `macotron.ai.gemini()`, `macotron.ai.openai()`, or `macotron.ai.local()`.
         Prefer a `password` option for API keys (the user sets it in Settings);
         `macotron.keychain.get("anthropic-api-key")` also works for shared keys.
         `ai.chat` / `ai.stream` accept a string or `[{role, content}]`. Use `stream` with

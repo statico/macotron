@@ -23,6 +23,10 @@ public final class LauncherPanel: NSPanel {
     /// Cached content height from the last layout pass — used to open at the right size.
     private var lastContentHeight: CGFloat = 0
     public var onHide: (() -> Void)?
+    /// App that was frontmost before we activated, so Escape can give typing back.
+    private var appToRestore: NSRunningApplication?
+    private var shouldRestoreApp = false
+    private var isOrderingOut = false
 
     public init(contentView: NSView) {
         hostingView = contentView
@@ -36,6 +40,8 @@ public final class LauncherPanel: NSPanel {
         backgroundColor = .clear
         isOpaque = false
         hasShadow = true
+        minSize = NSSize(width: Self.panelWidth, height: Self.minHeight)
+        maxSize = NSSize(width: Self.panelWidth, height: Self.maxHeight)
         animationBehavior = .utilityWindow
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         becomesKeyOnlyIfNeeded = false
@@ -47,18 +53,23 @@ public final class LauncherPanel: NSPanel {
 
     public func applyBackground(_ style: LauncherBackground) {
         hostingView.removeFromSuperview()
-        if #available(macOS 26.0, *), let glass = contentView as? NSGlassEffectView {
-            glass.contentView = nil
+        if #available(macOS 26.0, *) {
+            Self.glass(in: contentView)?.contentView = nil
         }
-        let chrome = Self.makeChrome(style, size: NSSize(width: Self.panelWidth, height: lastContentHeight > 0 ? lastContentHeight : Self.maxHeight))
+        let height = lastContentHeight > 0 ? lastContentHeight : Self.minHeight
+        let chrome = Self.makeChrome(style, size: NSSize(width: Self.panelWidth, height: height))
         hostingView.frame = chrome.bounds
         hostingView.autoresizingMask = [.width, .height]
-        if #available(macOS 26.0, *), let glass = chrome as? NSGlassEffectView {
+        if #available(macOS 26.0, *), let glass = Self.glass(in: chrome) {
             glass.contentView = hostingView
         } else {
             chrome.addSubview(hostingView)
         }
         contentView = chrome
+        hasShadow = style != .glass
+        if lastContentHeight > 0 {
+            resizeToHeight(lastContentHeight)
+        }
     }
 
     private static func makeChrome(_ style: LauncherBackground, size: NSSize) -> NSView {
@@ -66,11 +77,18 @@ public final class LauncherPanel: NSPanel {
         switch style {
         case .glass:
             if #available(macOS 26.0, *) {
-                let glass = NSGlassEffectView(frame: frame)
+                let clip = NSView(frame: frame)
+                clip.wantsLayer = true
+                clip.layer?.cornerRadius = cornerRadius
+                clip.layer?.masksToBounds = true
+                clip.autoresizingMask = [.width, .height]
+                let glass = NSGlassEffectView(frame: clip.bounds)
                 glass.style = .regular
                 glass.cornerRadius = cornerRadius
+                glass.clipsToBounds = true
                 glass.autoresizingMask = [.width, .height]
-                return glass
+                clip.addSubview(glass)
+                return clip
             }
             fallthrough
         case .translucent:
@@ -88,6 +106,12 @@ public final class LauncherPanel: NSPanel {
             view.autoresizingMask = [.width, .height]
             return view
         }
+    }
+
+    @available(macOS 26.0, *)
+    private static func glass(in view: NSView?) -> NSGlassEffectView? {
+        if let glass = view as? NSGlassEffectView { return glass }
+        return view?.subviews.first as? NSGlassEffectView
     }
 
     public override var canBecomeKey: Bool { true }
@@ -131,11 +155,14 @@ public final class LauncherPanel: NSPanel {
 
     public override func orderOut(_ sender: Any?) {
         let wasVisible = isVisible || isShown
+        isOrderingOut = true
         super.orderOut(sender)
+        isOrderingOut = false
         pendingReveal = false
         isShown = false
         if wasVisible {
             onHide?()
+            restoreFrontAppIfNeeded()
         }
     }
 
@@ -150,8 +177,10 @@ public final class LauncherPanel: NSPanel {
 
     public func toggle() {
         if isVisible {
+            shouldRestoreApp = true
             orderOut(nil)
         } else {
+            captureFrontApp()
             // Use cached height on subsequent opens to avoid the tall-then-shrink flash.
             // On first open, use maxHeight so SwiftUI has full space for layout.
             let initialHeight = lastContentHeight > 0 ? lastContentHeight : Self.maxHeight
@@ -194,6 +223,25 @@ public final class LauncherPanel: NSPanel {
             }
         }
     }
+
+    private func captureFrontApp() {
+        let front = NSWorkspace.shared.frontmostApplication
+        if let front, front.processIdentifier != NSRunningApplication.current.processIdentifier {
+            appToRestore = front
+        } else {
+            appToRestore = nil
+        }
+    }
+
+    private func restoreFrontAppIfNeeded() {
+        defer {
+            shouldRestoreApp = false
+            appToRestore = nil
+        }
+        guard shouldRestoreApp, let app = appToRestore, !app.isTerminated else { return }
+        NSApp.yieldActivation(to: app)
+        _ = app.activate()
+    }
 }
 
 extension LauncherPanel: NSWindowDelegate {
@@ -201,7 +249,8 @@ extension LauncherPanel: NSWindowDelegate {
     /// window, or switching away. This replaces the activation-based auto-hide
     /// that was racing with the global hotkey.
     public func windowDidResignKey(_ notification: Notification) {
-        guard isShown, isVisible else { return }
+        guard isShown, isVisible, !isOrderingOut else { return }
+        shouldRestoreApp = false
         orderOut(nil)
     }
 }

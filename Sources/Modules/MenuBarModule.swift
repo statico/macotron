@@ -18,8 +18,11 @@ public protocol MenuBarModuleDelegate: AnyObject {
         title: String,
         subtitle: String?,
         color: String?,
+        subtitleColor: String?,
         bold: Bool,
         italic: Bool,
+        secondary: Bool,
+        minWidth: Double?,
         sfSymbol: String?,
         imagePath: String?,
         onClick: (() -> Void)?,
@@ -192,6 +195,11 @@ public final class MenuBarModule: NativeModule {
                 ? nil : JSBridge.toString(ctx, colorVal)
             JS_FreeValue(ctx, colorVal)
 
+            let subtitleColorVal = JSBridge.getProperty(ctx, opts, "subtitleColor")
+            let subtitleColor: String? = JSBridge.isUndefined(subtitleColorVal) || JSBridge.isNull(subtitleColorVal)
+                ? nil : JSBridge.toString(ctx, subtitleColorVal)
+            JS_FreeValue(ctx, subtitleColorVal)
+
             let boldVal = JSBridge.getProperty(ctx, opts, "bold")
             let bold = JSBridge.isUndefined(boldVal) || JSBridge.isNull(boldVal) ? false : JSBridge.toBool(ctx, boldVal)
             JS_FreeValue(ctx, boldVal)
@@ -199,6 +207,16 @@ public final class MenuBarModule: NativeModule {
             let italicVal = JSBridge.getProperty(ctx, opts, "italic")
             let italic = JSBridge.isUndefined(italicVal) || JSBridge.isNull(italicVal) ? false : JSBridge.toBool(ctx, italicVal)
             JS_FreeValue(ctx, italicVal)
+
+            let secondaryVal = JSBridge.getProperty(ctx, opts, "secondary")
+            let secondary = JSBridge.isUndefined(secondaryVal) || JSBridge.isNull(secondaryVal)
+                ? false : JSBridge.toBool(ctx, secondaryVal)
+            JS_FreeValue(ctx, secondaryVal)
+
+            let minWidthVal = JSBridge.getProperty(ctx, opts, "minWidth")
+            let minWidth: Double? = JSBridge.isUndefined(minWidthVal) || JSBridge.isNull(minWidthVal)
+                ? nil : JSBridge.toDouble(ctx, minWidthVal)
+            JS_FreeValue(ctx, minWidthVal)
 
             let sfVal = JSBridge.getProperty(ctx, opts, "sfSymbol")
             var sfSymbol: String? = JSBridge.isUndefined(sfVal) || JSBridge.isNull(sfVal)
@@ -227,8 +245,11 @@ public final class MenuBarModule: NativeModule {
                     title: title,
                     subtitle: subtitle,
                     color: color,
+                    subtitleColor: subtitleColor,
                     bold: bold,
                     italic: italic,
+                    secondary: secondary,
+                    minWidth: minWidth,
                     sfSymbol: sfSymbol,
                     imagePath: imagePath,
                     onClick: onClick,
@@ -260,10 +281,11 @@ public final class MenuBarModule: NativeModule {
         callbacks[key] = JS_DupValue(ctx, val)
         return { [weak self, weak engine] in
             guard let self, let engine, let ctx = engine.context else { return }
-            if let cb = self.callbacks[key] {
-                _ = JS_Call(ctx, cb, QJS_Undefined(), 0, nil)
-                engine.drainJobQueue()
-            }
+            guard let cb = self.callbacks[key] else { return }
+            let fn = JS_DupValue(ctx, cb)
+            _ = JS_Call(ctx, fn, QJS_Undefined(), 0, nil)
+            JS_FreeValue(ctx, fn)
+            engine.drainJobQueue()
         }
     }
 
