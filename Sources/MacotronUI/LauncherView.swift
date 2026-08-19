@@ -94,7 +94,6 @@ public struct LauncherView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
-                .fixedSize(horizontal: false, vertical: true)
 
                 if !queryIsEmpty || !results.isEmpty {
                     Divider().opacity(0.5)
@@ -139,8 +138,7 @@ public struct LauncherView: View {
                 }
             }
         }
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: session.query) { _, newValue in
             applySearch(newValue)
         }
@@ -214,11 +212,10 @@ public struct LauncherView: View {
                     .padding(.horizontal, 6)
                 }
                 .frame(height: listHeight)
+                .clipped()
                 .onChange(of: selectedIndex) { _, newIndex in
                     if newIndex < results.count {
-                        withAnimation(.easeOut(duration: 0.1)) {
-                            proxy.scrollTo(results[newIndex].id, anchor: .center)
-                        }
+                        proxy.scrollTo(results[newIndex].id, anchor: .top)
                     }
                 }
             }
