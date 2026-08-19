@@ -104,6 +104,7 @@ public struct LauncherView: View {
                 argumentForm
             } else if !queryIsEmpty || !results.isEmpty {
                 searchResultsView
+                    .frame(maxHeight: .infinity)
             }
 
             if session.pendingArgs == nil && !results.isEmpty {
@@ -138,7 +139,7 @@ public struct LauncherView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: session.query) { _, newValue in
             applySearch(newValue)
         }
@@ -211,8 +212,7 @@ public struct LauncherView: View {
                     .padding(.vertical, 4)
                     .padding(.horizontal, 6)
                 }
-                .frame(height: listHeight)
-                .clipped()
+                .frame(maxHeight: .infinity)
                 .onChange(of: selectedIndex) { _, newIndex in
                     if newIndex < results.count {
                         proxy.scrollTo(results[newIndex].id, anchor: .top)

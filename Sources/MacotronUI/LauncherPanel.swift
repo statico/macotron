@@ -42,7 +42,7 @@ public final class LauncherPanel: NSPanel {
         backgroundColor = .clear
         isOpaque = false
         hasShadow = true
-        applySizeLimits(in: seed, height: Self.minHeight)
+        applySizeLimits(in: seed)
         animationBehavior = .none
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         becomesKeyOnlyIfNeeded = false
@@ -123,19 +123,21 @@ public final class LauncherPanel: NSPanel {
     public override var canBecomeKey: Bool { true }
     public override var canBecomeMain: Bool { false }
 
-    /// Resize the panel to fit the given content height, keeping the top edge pinned.
+    /// Grow the panel to fit content. Never shrink while it is shown — shrinking
+    /// races NSHostingView and scrolls the search field off-screen.
     public func resizeToHeight(_ height: CGFloat) {
         let visible = currentVisible
         let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: nil)
-        applySizeLimits(in: visible, height: newFrame.height)
+        applySizeLimits(in: visible)
         logPlacement("resize", height: height, visible: visible, pinTop: nil, frame: newFrame)
-        lastContentHeight = newFrame.height
-        guard abs(frame.height - newFrame.height) > 1 || abs(frame.origin.y - newFrame.origin.y) > 1
-            || abs(frame.origin.x - newFrame.origin.x) > 1
-            || abs(frame.width - newFrame.width) > 1 else {
+        if isShown && newFrame.height <= frame.height + 1
+            && abs(frame.width - newFrame.width) <= 1
+            && abs(frame.origin.x - newFrame.origin.x) <= 1 {
+            lastContentHeight = max(lastContentHeight, newFrame.height)
             pinHost()
             return
         }
+        lastContentHeight = newFrame.height
         setFrame(newFrame, display: true)
         pinHost()
         logger.notice("after \(NSStringFromRect(self.frame), privacy: .public) host=\(NSStringFromRect(self.hostingView.frame), privacy: .public)")
@@ -193,7 +195,7 @@ public final class LauncherPanel: NSPanel {
             let height = lastContentHeight > 0 ? lastContentHeight : Self.minHeight
             let visible = currentVisible
             let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: nil)
-            applySizeLimits(in: visible, height: newFrame.height)
+            applySizeLimits(in: visible)
             logPlacement("open", height: height, visible: visible, pinTop: nil, frame: newFrame)
             setFrame(newFrame, display: false)
             pinHost()
@@ -203,7 +205,9 @@ public final class LauncherPanel: NSPanel {
     }
 
     public override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        applyingFrame = true
         super.setFrame(frameRect, display: flag)
+        applyingFrame = false
         pinHost()
     }
 
@@ -212,15 +216,19 @@ public final class LauncherPanel: NSPanel {
         hostingView.frame = parent.bounds
     }
 
-    public override func setContentSize(_ size: NSSize) {}
+    public override func setContentSize(_ size: NSSize) {
+        guard applyingFrame else { return }
+        super.setContentSize(size)
+    }
+
+    private var applyingFrame = false
 
     private var currentVisible: CGRect { LauncherPlacement.currentVisible() }
 
-    private func applySizeLimits(in visible: CGRect, height: CGFloat) {
+    private func applySizeLimits(in visible: CGRect) {
         let width = LauncherPlacement.width(in: visible)
-        let h = max(Self.minHeight, height)
-        minSize = NSSize(width: width, height: h)
-        maxSize = NSSize(width: width, height: h)
+        minSize = NSSize(width: width, height: Self.minHeight)
+        maxSize = NSSize(width: width, height: LauncherPlacement.maxHeight(in: visible))
     }
 
     private func logPlacement(_ reason: String, height: CGFloat, visible: CGRect, pinTop: CGFloat?, frame: CGRect) {
