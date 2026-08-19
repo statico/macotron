@@ -7,12 +7,13 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | Module | JS Namespace | Purpose |
 |---|---|---|
 | WindowModule | `macotron.window` | AXUIElement window management |
+| EventModule | `macotron.event` / `macotron.mouse` | HID click/key/scroll post, event taps, cursor |
 | KeyboardModule | `macotron.keyboard` | CGEventTap global shortcuts |
 | ScreenModule | `macotron.screen` | ScreenCaptureKit screenshots + color picker |
 | ShellModule | `macotron.shell` | Process/command execution (with allowlist) |
 | NotifyModule | `macotron.notify` | UserNotifications + one-line HUD toasts |
 | URLSchemeModule | `macotron.url` | URL handler registration |
-| FileSystemModule | `macotron.fs` | File read/write/watch (FSEvents) |
+| FileSystemModule | `macotron.fs` | File read/write/rename/watch (FSEvents) |
 | ClipboardModule | `macotron.clipboard` | NSPasteboard |
 | AIModule | `macotron.ai` | AI provider abstraction for plugins |
 | PanelModule | `macotron.panel` | Small WKWebView panels |
@@ -21,7 +22,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | SystemModule | `macotron.system` | CPU usage, GPU usage, locale, memory, battery, temp |
 | HTTPModule | `macotron.http` | URLSession |
 | MenuBarModule | `macotron.menubar` | Custom menubar items |
-| DisplayModule | `macotron.display` | Display settings, spaces |
+| DisplayModule | `macotron.display` | Displays, brightness, gamma, XDR |
 | LocalStorageModule | `localStorage` | JSON-backed key-value (global) |
 | KeychainModule | `macotron.keychain` | macOS Keychain secrets |
 | MediaModule | `macotron.media` | Now Playing metadata, artwork, play/pause |
@@ -30,7 +31,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 ## Key JS APIs
 
-**Window:** `macotron.window.getAll()`, `.focused()`, `.move(id, frame)`, `.moveToFraction(id, {x,y,w,h,display?})` (fractions of the window's current display, or `display` from `macotron.display.list()`), `.snap({ enabled, threshold, corner, gap, zones })` — drag the focused window to a screen edge or corner (clicks do not snap). Zones are `{x,y,w,h}` fractions of the visible frame (same as `moveToFraction`). Omit a slot to disable it. `.setSnapEnabled` / `.isSnapEnabled` toggle without changing the map.
+**Window:** `macotron.window.getAll()`, `.focused()`, `.focus(id)` (raise, unminimize, activate the app), `.move(id, frame)`, `.moveToFraction(id, {x,y,w,h,display?})` (fractions of the window's current display, or `display` from `macotron.display.list()`), `.snap({ enabled, threshold, corner, gap, zones })` — drag the focused window to a screen edge or corner (clicks do not snap). Zones are `{x,y,w,h}` fractions of the visible frame (same as `moveToFraction`). Omit a slot to disable it. `.setSnapEnabled` / `.isSnapEnabled` toggle without changing the map.
 
 **System:** `macotron.system.cpu()` is `{ usage }` 0–100 since the last call. `gpu()` is `{ name, usage }` or `null`. `locale()` is `{ language, region, measurement: "metric"|"us" }`. `fans()` is current RPM plus an optional `floor` (50 or 100). `setFanFloor(100 | 50 | null)` holds a minimum; `null` is system default. The host never commands below firmware min, and yields to macOS when it already wants a higher speed.
 
@@ -40,9 +41,15 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Notes:** `macotron.notes.list()` is `{ id, title, folder }[]`. `open(id)` shows the note in the Notes app. macOS prompts to allow controlling Notes on first use.
 
-**Keyboard:** `macotron.keyboard.on("tile-left", "ctrl+opt+left", callback)` — ids are unique per plugin; override the combo in Settings → Plugins.
+**Keyboard:** `macotron.keyboard.on("tile-left", "ctrl+opt+left", callback)` — ids are unique per plugin; override the combo in Settings → Plugins. `keyboard.flags()` is `{ cmd, shift, ctrl, opt, caps, fn }`.
+
+**Event:** `macotron.event.post({ type: "click"|"key"|"unicode"|"scroll", ... })` posts HID. `event.tap(["flagsChanged","scroll"], cb)` listens; return `false` to swallow. Coords are Cocoa (same as `window.frame`). `macotron.mouse.location()`, `.warp(x, y)`, `.buttons()`.
+
+**Display:** `list()` is `{ id, width, height, main, frame, visibleFrame, scale, rotation, builtin, mirrored, serial, mm }`. `display:changed` fires with `{ id, flags }` (`add`, `remove`, `move`, `main`, `mode`, `enable`, `disable`, `mirror`, `unmirror`, `shape`). `getBrightness` / `setBrightness`, `setXDREnabled`. `setGamma({ red, green, blue }, black?, id?)` writes the display LUT (omit `id` for every screen). Red-only night vision is `setGamma({ red: 1, green: 0, blue: 0 })`. `restoreGamma()` puts ColorSync back. Plugin unload also restores ColorSync.
 
 **Shell:** `macotron.shell.run(cmd, args)` — first call to an unapproved command prompts Allow Once / Always Allow / Deny.
+
+**Files:** `read`, `write`, `exists`, `list`, `watch`, `rename(from, to)`. Paths expand `~`. `rename` fails if `to` already exists.
 
 **MenuBar:** `macotron.menubar.add(id, config)` (rows in the Macotron menu; `menu` is a nested dropdown), `.status(id, config)` (extra item next to the Macotron icon: `title`, `subtitle`, `color`, `subtitleColor`, `bold`, `italic`, `secondary`, `minWidth` in points, `sfSymbol`, `image` file path, `onClick`, `menu`), `.update`, `.remove`, `.setIcon`, `.setTitle`. Two-line extras use the same size and color for both lines unless `secondary` is set (smaller, dimmer subtitle).
 

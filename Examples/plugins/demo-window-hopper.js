@@ -1,20 +1,11 @@
-// APIs: window.getAll, app.list, app.switch, panel, command
+// APIs: window.getAll, window.focus, panel, command
 macotron.plugin({
   title: "Window Hopper",
   description: "Switch to a window by name.",
   permissions: ["accessibility"],
 });
 
-function bundleForAppName(name) {
-    const apps = macotron.app.list();
-    const exact = apps.find((app) => app.name === name);
-    if (exact) return exact.bundleID;
-    const lower = name.toLowerCase();
-    const fuzzy = apps.find((app) => app.name.toLowerCase() === lower);
-    return fuzzy ? fuzzy.bundleID : null;
-}
-
-macotron.command("Switch Window", "Pick a window and bring its app forward", () => {
+macotron.command("Switch Window", "Pick a window and bring it forward", () => {
     const windows = macotron.window.getAll();
     const rows = windows.map((win, index) => {
         const title = (win.title || "Untitled").replace(/[<>&]/g, "");
@@ -45,9 +36,7 @@ document.getElementById("list").onclick = (e) => {
     macotron.panel.onMessage(id, (data) => {
         if (!data || data.type !== "pick") return;
         const win = windows[data.index];
-        if (!win) return;
-        const bundleID = bundleForAppName(win.app);
-        if (bundleID) macotron.app.switch(bundleID);
+        if (win) macotron.window.focus(win.id);
         macotron.panel.close(id);
     });
 });

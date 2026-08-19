@@ -713,6 +713,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         self.keyboardModule = keyboard
         engine.addModule(keyboard)
+        engine.addModule(EventModule())
 
         engine.addModule(WindowModule())
         engine.addModule(AppModule())

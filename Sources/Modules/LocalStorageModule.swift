@@ -4,7 +4,7 @@ import Foundation
 import MacotronEngine
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "localStorage")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "localStorage")
 
 @MainActor
 public final class LocalStorageModule: NativeModule {

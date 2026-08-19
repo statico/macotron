@@ -4,7 +4,7 @@ import Foundation
 import MacotronEngine
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "fs")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "fs")
 
 // MARK: - FSWatcher Support
 
@@ -79,7 +79,7 @@ private final class ActiveWatcher {
 @MainActor
 public final class FileSystemModule: NativeModule {
     public let name = "fs"
-    public let moduleVersion = 1
+    public let moduleVersion = 2
 
     public var defaultOptions: [String: Any] {
         ["sandboxRoot": NSHomeDirectory()]
@@ -221,6 +221,28 @@ public final class FileSystemModule: NativeModule {
             let exists = FileManager.default.fileExists(atPath: expandedPath)
             return JSBridge.newBool(ctx, exists)
         }, "exists", 1))
+
+        // -----------------------------------------------------------------
+        // macotron.fs.rename(from, to) -> void
+        // -----------------------------------------------------------------
+        JS_SetPropertyStr(ctx, fsObj, "rename", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx, let argv, argc >= 2 else {
+                return QJS_ThrowTypeError(ctx, "fs.rename requires from and to arguments")
+            }
+            guard let from = JSBridge.toString(ctx, argv[0]),
+                  let to = JSBridge.toString(ctx, argv[1]) else {
+                return QJS_ThrowTypeError(ctx, "fs.rename: from and to must be strings")
+            }
+            let src = NSString(string: from).expandingTildeInPath
+            let dest = NSString(string: to).expandingTildeInPath
+            do {
+                try FileManager.default.moveItem(atPath: src, toPath: dest)
+                logger.info("fs.rename: \(src) -> \(dest)")
+                return QJS_Undefined()
+            } catch {
+                return QJS_ThrowInternalError(ctx, "fs.rename failed: \(error.localizedDescription)")
+            }
+        }, "rename", 2))
 
         // -----------------------------------------------------------------
         // macotron.fs.list(path) -> string[]

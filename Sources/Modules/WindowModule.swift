@@ -7,7 +7,7 @@ import CoreGraphics
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "window")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "window")
 
 private struct SnapZone {
     var x: CGFloat
@@ -71,6 +71,7 @@ private final class WindowSnapState: @unchecked Sendable {
 @MainActor
 public final class WindowModule: NativeModule {
     public let name = "window"
+    public let moduleVersion = 2
 
     private weak var engine: Engine?
     private var eventTap: CFMachPort?
@@ -103,6 +104,12 @@ public final class WindowModule: NativeModule {
             guard let ctx else { return QJS_Undefined() }
             return WindowModule.jsFocused(ctx)
         }, "focused", 0))
+
+        // ---------- focus(id) ----------
+        JS_SetPropertyStr(ctx, windowObj, "focus", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
+            return WindowModule.jsFocus(ctx, windowID: JSBridge.toInt32(ctx, argv[0]))
+        }, "focus", 1))
 
         // ---------- move(id, {x?, y?, width?, height?}) ----------
         JS_SetPropertyStr(ctx, windowObj, "move", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
@@ -342,6 +349,20 @@ public final class WindowModule: NativeModule {
 
         let appName = NSRunningApplication(processIdentifier: pid)?.localizedName ?? "Unknown"
         return windowToJS(ctx, pid: pid, index: windowIndex, app: appName, win: axWin)
+    }
+
+    /// focus(id) -> bool — raise, unminimize, activate the owning app
+    private static func jsFocus(_ ctx: OpaquePointer, windowID: Int32) -> JSValue {
+        guard let win = resolveWindow(id: windowID) else {
+            return QJS_NewBool(ctx, 0)
+        }
+        AXUIElementSetAttributeValue(win, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+        AXUIElementPerformAction(win, kAXRaiseAction as CFString)
+        AXUIElementSetAttributeValue(win, kAXMainAttribute as CFString, kCFBooleanTrue)
+        AXUIElementSetAttributeValue(win, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+        let pid = pid_t(windowID / 1000)
+        _ = NSRunningApplication(processIdentifier: pid)?.activate()
+        return QJS_NewBool(ctx, 1)
     }
 
     /// move(id, {x?, y?, width?, height?}) -> bool

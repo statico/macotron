@@ -1,4 +1,4 @@
-// APIs: fs.list, ocr.recognize, shell.run, command, notify
+// APIs: fs.list, ocr.recognize, fs.rename, command, notify
 macotron.plugin({
   title: "Screenshot Rename",
   description: "Rename screenshots from OCR text.",
@@ -18,11 +18,6 @@ function newestScreenshot() {
     return names.length ? names[names.length - 1] : null;
 }
 
-async function homeDir() {
-    const result = await macotron.shell.run("/usr/bin/printenv", ["HOME"]);
-    return (result.stdout || "").trim();
-}
-
 macotron.command("Rename Last Screenshot", "OCR the newest Desktop screenshot and rename it", async () => {
     const name = newestScreenshot();
     if (!name) {
@@ -32,7 +27,6 @@ macotron.command("Rename Last Screenshot", "OCR the newest Desktop screenshot an
     const src = "~/Desktop/" + name;
     try {
         const text = await macotron.ocr.recognize({ path: src });
-        const home = await homeDir();
         let destName = slug(text) + ".png";
         let dest = "~/Desktop/" + destName;
         let n = 2;
@@ -41,9 +35,7 @@ macotron.command("Rename Last Screenshot", "OCR the newest Desktop screenshot an
             dest = "~/Desktop/" + destName;
             n += 1;
         }
-        if (dest !== src) {
-            await macotron.shell.run("/bin/mv", [home + "/Desktop/" + name, home + "/Desktop/" + destName]);
-        }
+        if (dest !== src) macotron.fs.rename(src, dest);
         macotron.notify.toast("Screenshot renamed", destName, { color: "success" });
     } catch (err) {
         macotron.notify.toast("Screenshot rename failed", String(err), { color: "failure" });

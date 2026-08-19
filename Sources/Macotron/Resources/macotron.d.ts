@@ -56,6 +56,8 @@ declare const macotron: {
             display?: number;
             frame: { x: number; y: number; width: number; height: number };
         } | null;
+        /** Raise, unminimize, and activate the window's app. */
+        focus(id: number): boolean;
         move(id: number, frame: { x?: number; y?: number; width?: number; height?: number }): boolean;
         /** Fractions of the window's current display. Pass `display` from `macotron.display.list()` to send it to another screen. */
         moveToFraction(id: number, frac: { x?: number; y?: number; w?: number; h?: number; display?: number }): boolean;
@@ -83,6 +85,44 @@ declare const macotron: {
 
     keyboard: {
         on(id: string, defaultCombo: string, callback: () => void): void;
+        /** Current modifier state from the HID system. */
+        flags(): { cmd: boolean; shift: boolean; ctrl: boolean; opt: boolean; caps: boolean; fn: boolean };
+    };
+
+    event: {
+        post(
+            event:
+                | { type: "click"; button?: "left" | "right" | "middle"; x?: number; y?: number }
+                | { type: "key"; key: string; flags?: Array<"cmd" | "shift" | "ctrl" | "opt" | "fn" | "caps"> }
+                | { type: "unicode"; string: string }
+                | { type: "scroll"; dx?: number; dy?: number; pixel?: boolean }
+        ): boolean;
+        /**
+         * HID tap. Return `false` to swallow the event. Host-posted events are ignored
+         * so a tap cannot loop on `event.post`.
+         */
+        tap(
+            types: string | string[],
+            callback: (e: {
+                type: string;
+                flags: string[];
+                x: number;
+                y: number;
+                keyCode?: number;
+                dx?: number;
+                dy?: number;
+                button?: string;
+                down?: boolean;
+            }) => boolean | void
+        ): void;
+    };
+
+    mouse: {
+        /** Cocoa screen points (origin bottom-left of the main display). */
+        location(): { x: number; y: number };
+        warp(x: number, y: number): boolean;
+        warp(point: { x: number; y: number }): boolean;
+        buttons(): { left: boolean; right: boolean; center: boolean };
     };
 
     screen: {
@@ -127,6 +167,8 @@ declare const macotron: {
         read(path: string): string;
         write(path: string, content: string): void;
         exists(path: string): boolean;
+        /** Fails if `to` already exists. Both paths expand `~`. */
+        rename(from: string, to: string): void;
         list(path: string): string[];
         watch(path: string, callback: (event: { path: string; type: string }) => void): () => void;
     };
@@ -298,9 +340,36 @@ declare const macotron: {
     };
 
     display: {
-        list(): Array<{ id: number; width: number; height: number; main: boolean }>;
+        list(): Array<{
+            id: number;
+            width: number;
+            height: number;
+            main: boolean;
+            frame: { x: number; y: number; width: number; height: number };
+            visibleFrame: { x: number; y: number; width: number; height: number };
+            scale: number;
+            rotation: number;
+            builtin: boolean;
+            mirrored: boolean;
+            serial: number;
+            mm: { width: number; height: number };
+        }>;
         getBrightness(id?: number): number;
         setBrightness(level: number, id?: number): boolean;
+        /**
+         * Per-channel gamma LUT. `white` / `black` are `{ red, green, blue }` in 0…1.
+         * Omit `id` to apply to every display. Red-only: `setGamma({ red: 1, green: 0, blue: 0 })`.
+         */
+        setGamma(
+            white: { red?: number; green?: number; blue?: number },
+            black?: { red?: number; green?: number; blue?: number } | number,
+            id?: number
+        ): boolean;
+        getGamma(id?: number): {
+            white: { red: number; green: number; blue: number };
+            black: { red: number; green: number; blue: number };
+        };
+        restoreGamma(): boolean;
         setXDREnabled(enabled: boolean): boolean;
         isXDREnabled(): boolean;
     };

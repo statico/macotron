@@ -2,7 +2,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "backup")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "backup")
 
 @MainActor
 public final class ConfigBackup {

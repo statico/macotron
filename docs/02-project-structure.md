@@ -57,6 +57,7 @@ Sources/
 ├── Modules/                     # Native API modules
 │   ├── WindowModule.swift
 │   ├── KeyboardModule.swift
+│   ├── EventModule.swift
 │   ├── ScreenModule.swift
 │   ├── ShellModule.swift
 │   ├── NotifyModule.swift

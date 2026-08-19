@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "ai.gemini")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "ai.gemini")
 
 public final class GeminiProvider: AIProvider, @unchecked Sendable {
     public let providerName = "gemini"

@@ -3,12 +3,12 @@ import Foundation
 import Security
 import os
 
-private let logger = Logger(subsystem: "com.macotron", category: "keychain-store")
+private let logger = Logger(subsystem: "io.statico.macotron", category: "keychain-store")
 
 /// Generic-password Keychain storage. Lives in MacotronEngine so `$$__module`
 /// can resolve `password` option refs without depending on the Modules target.
 public enum KeychainStore {
-    public static let serviceName = "com.macotron"
+    public static let serviceName = "io.statico.macotron"
 
     /// Stable Keychain account id for a plugin's password option.
     /// Example: `macotron.plugin.chat.js.apiKey`
