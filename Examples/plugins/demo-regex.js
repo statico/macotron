@@ -5,24 +5,29 @@ macotron.command("Regex Workbench", "Test a regular expression against sample te
         title: "Regex",
         width: 520,
         height: 420,
-        html: `<input id="pat" class="mono" placeholder="pattern">
-<label><input id="flags" class="inline mono" value="g" size="4"> flags</label>
-<textarea id="src" class="mono grow" placeholder="sample text"></textarea>
-<pre id="out" class="grow scroll muted"></pre>
+        html: `<div class="toolbar">
+  <input id="pat" class="mono" placeholder="Pattern" autofocus>
+  <input id="flags" class="inline mono" value="g" maxlength="8" title="Flags" placeholder="flags">
+</div>
+<textarea id="src" class="mono grow" placeholder="Sample text"></textarea>
+<pre id="out" class="grow scroll muted">Matches appear here</pre>
 <script>
 function run() {
   const pat = document.getElementById("pat").value;
   const flags = document.getElementById("flags").value;
   const src = document.getElementById("src").value;
-  try {
-    const re = new RegExp(pat, flags);
-    const matches = [...src.matchAll(re)].map((m, i) =>
-      (i + 1) + ": " + JSON.stringify(m[0]) + (m.length > 1 ? "  groups=" + JSON.stringify(m.slice(1)) : "")
-    );
-    document.getElementById("out").textContent = matches.length ? matches.join("\\n") : "No matches";
-  } catch (err) {
-    document.getElementById("out").textContent = String(err);
-  }
+    const out = document.getElementById("out");
+    try {
+      const re = new RegExp(pat, flags);
+      const matches = [...src.matchAll(re)].map((m, i) =>
+        (i + 1) + ": " + JSON.stringify(m[0]) + (m.length > 1 ? "  groups=" + JSON.stringify(m.slice(1)) : "")
+      );
+      out.textContent = matches.length ? matches.join("\\n") : "No matches";
+      out.classList.toggle("muted", !matches.length);
+    } catch (err) {
+      out.textContent = String(err);
+      out.classList.remove("muted");
+    }
 }
 document.getElementById("pat").oninput = run;
 document.getElementById("flags").oninput = run;

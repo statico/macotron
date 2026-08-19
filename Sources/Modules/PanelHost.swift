@@ -68,6 +68,7 @@ enum PanelShell {
     .scroll { overflow: auto; }
     .toolbar { display: flex; gap: 8px; align-items: center; }
     .toolbar input { width: 0; flex: 1; min-width: 0; }
+    .toolbar input.inline { width: 4.5em; flex: none; }
     """
 
     static func document(body: String) -> String {
