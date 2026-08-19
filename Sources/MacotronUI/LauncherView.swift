@@ -278,7 +278,20 @@ public struct LauncherView: View {
 
     private var listHeight: CGFloat {
         let row = 20 * prefs.textScale + 10
-        return min(420, CGFloat(results.count) * row + 8)
+        let content = CGFloat(results.count) * row + 8
+        return min(content, maxListHeight)
+    }
+
+    private var maxPanelHeight: CGFloat {
+        let visible = NSScreen.main?.visibleFrame
+            ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
+        return LauncherPlacement.maxHeight(in: visible)
+    }
+
+    private var maxListHeight: CGFloat {
+        let scale = prefs.textScale
+        let chrome: CGFloat = 52 + 1 + 1 + 16 + 14 * scale
+        return max(20 * scale + 10, maxPanelHeight - chrome)
     }
 
     /// Window height from known chrome, not SwiftUI geometry. Measuring the
@@ -287,7 +300,10 @@ public struct LauncherView: View {
         let scale = prefs.textScale
         if let pending = session.pendingArgs {
             let error: CGFloat = argError == nil ? 0 : 18
-            return max(LauncherPlacement.minHeight, 48 + CGFloat(pending.arguments.count) * 36 + error)
+            return min(
+                maxPanelHeight,
+                max(LauncherPlacement.minHeight, 48 + CGFloat(pending.arguments.count) * 36 + error)
+            )
         }
         var height: CGFloat = 52
         if queryIsEmpty && results.isEmpty {
@@ -299,7 +315,7 @@ public struct LauncherView: View {
         } else {
             height += listHeight + 1 + 16 + 14 * scale
         }
-        return min(LauncherPlacement.maxHeight, height)
+        return min(maxPanelHeight, height)
     }
 
     private func applySearch(_ query: String) {
