@@ -13,8 +13,14 @@ public struct CommandShortcuts: Equatable, Sendable {
             bindings.removeValue(forKey: commandId)
             return
         }
-        bindings = bindings.filter { $0.value != normalized }
+        removeCombo(normalized)
         bindings[commandId] = normalized
+    }
+
+    public mutating func removeCombo(_ combo: String) {
+        let normalized = combo.lowercased().trimmingCharacters(in: .whitespaces)
+        guard !normalized.isEmpty else { return }
+        bindings = bindings.filter { $0.value != normalized }
     }
 
     public func combo(for commandId: String) -> String {

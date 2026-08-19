@@ -206,6 +206,7 @@ public final class PluginWorkspace {
         "pluginSettings": [:] as [String: Any],
         "disabledPlugins": [] as [String],
         "commandShortcuts": [:] as [String: String],
+        "keyboardShortcuts": [:] as [String: String],
         "security": ["shell": ["allow": [] as [String], "strict": false]],
     ]
 
@@ -265,10 +266,12 @@ public final class PluginWorkspace {
         Put one `.js` file per plugin under `plugins/`. Register hotkeys at load time:
 
         ```js
-        macotron.keyboard.on("cmd+shift+h", () => {
+        macotron.keyboard.on("hello", "cmd+shift+h", () => {
           macotron.notify.show("Hello", "From a Macotron plugin");
         });
         ```
+
+        Ids are unique per plugin. Users override the combo in Settings → Plugins.
 
         ## Launcher commands
 
@@ -292,7 +295,8 @@ public final class PluginWorkspace {
 
         The three-argument form still works. `id` is optional; the default is `{filename}/{name}`.
         Set `id` if the user will assign a shortcut. Users set shortcuts in Settings → Plugins.
-        Do not call `keyboard.on` for launcher commands.
+        Do not call `keyboard.on` for launcher commands. `keyboard.on(id, default, callback)`
+        is for global hotkeys; those combos are also overridable in Settings → Plugins.
 
         ## Permissions
 
@@ -375,6 +379,7 @@ public final class PluginWorkspace {
           "pluginSettings": {},
           "disabledPlugins": [],
           "commandShortcuts": {},
+          "keyboardShortcuts": {},
           "security": { "shell": { "allow": [], "strict": false } }
         }
         ```

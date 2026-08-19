@@ -164,9 +164,14 @@ private struct HostBinding {
     let combo: KeyCombo
 }
 
+private struct PluginBinding {
+    let eventName: String
+    var combo: KeyCombo
+}
+
 private final class KeyboardTapState: @unchecked Sendable {
     let lock = NSLock()
-    var combos: [KeyCombo] = []
+    var pluginBindings: [PluginBinding] = []
     var hostBindings: [HostBinding] = []
     weak var module: KeyboardModule?
 
@@ -196,6 +201,20 @@ public final class KeyboardModule: NativeModule {
         state.lock.unlock()
     }
 
+    public func setPluginBindings(_ bindings: [(eventName: String, combo: String)]) {
+        let parsed: [PluginBinding] = bindings.compactMap { item in
+            guard let combo = KeyCombo.parse(item.combo) else {
+                NSLog("[Macotron] Skipping invalid plugin shortcut '%@'", item.combo)
+                return nil
+            }
+            return PluginBinding(eventName: item.eventName, combo: combo)
+        }
+        let state = KeyboardTapState.shared
+        state.lock.lock()
+        state.pluginBindings = parsed
+        state.lock.unlock()
+    }
+
     private weak var engine: Engine?
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -212,33 +231,46 @@ public final class KeyboardModule: NativeModule {
 
         let keyboardObj = JS_NewObject(ctx)
 
-        // ---------- on(combo, callback) ----------
+        // ---------- on(id, defaultCombo, callback) ----------
         JS_SetPropertyStr(ctx, keyboardObj, "on", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
-            guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
-            guard let comboStr = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
-
-            // Register the JS callback on the event bus under "keyboard:{combo}"
-            let eventName = "keyboard:\(comboStr.lowercased())"
-            let opaque = JS_GetContextOpaque(ctx)
-            if let opaque {
-                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-                engine.eventBus.on(eventName, callback: argv[1], ctx: ctx)
+            guard let ctx, let argv, argc >= 3 else {
+                return QJS_ThrowTypeError(ctx, "keyboard.on(id, default, callback)")
+            }
+            guard let key = JSBridge.toString(ctx, argv[0]), !key.isEmpty else {
+                return QJS_ThrowTypeError(ctx, "keyboard.on requires an id")
+            }
+            guard let defaultCombo = JSBridge.toString(ctx, argv[1]), !defaultCombo.isEmpty else {
+                return QJS_ThrowTypeError(ctx, "keyboard.on requires a default shortcut")
             }
 
-            // Parse and register the combo in the global tap state
+            let opaque = JS_GetContextOpaque(ctx)
+            guard let opaque else { return QJS_Undefined() }
+            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            let pluginFile = engine.currentEvaluatingFile ?? ""
+            let fullId = pluginFile.isEmpty ? key : "\(pluginFile)/\(key)"
+            let table = CommandShortcuts.load(from: engine.configStore["keyboardShortcuts"])
+            let comboStr = table.bindings[fullId] ?? defaultCombo
+
+            engine.hotkeyRegistry[fullId] = RegisteredHotkey(
+                id: fullId,
+                pluginFile: pluginFile,
+                key: key,
+                defaultCombo: defaultCombo
+            )
+            engine.eventBus.on("keyboard:\(fullId)", callback: argv[2], ctx: ctx)
+
             if let combo = KeyCombo.parse(comboStr) {
                 let state = KeyboardTapState.shared
                 state.lock.lock()
-                if !state.combos.contains(combo) {
-                    state.combos.append(combo)
-                }
+                state.pluginBindings.removeAll { $0.eventName == "keyboard:\(fullId)" }
+                state.pluginBindings.append(PluginBinding(eventName: "keyboard:\(fullId)", combo: combo))
                 state.lock.unlock()
             } else {
                 logger.warning("Failed to parse keyboard combo: \(comboStr)")
             }
 
             return QJS_Undefined()
-        }, "on", 2))
+        }, "on", 3))
 
         JS_SetPropertyStr(ctx, macotron, "keyboard", keyboardObj)
         JS_FreeValue(ctx, macotron)
@@ -254,7 +286,7 @@ public final class KeyboardModule: NativeModule {
     public func cleanup() {
         teardownEventTap()
         KeyboardTapState.shared.lock.lock()
-        KeyboardTapState.shared.combos.removeAll()
+        KeyboardTapState.shared.pluginBindings.removeAll()
         KeyboardTapState.shared.hostBindings.removeAll()
         KeyboardTapState.shared.module = nil
         KeyboardTapState.shared.lock.unlock()
@@ -284,7 +316,7 @@ public final class KeyboardModule: NativeModule {
 
             let state = KeyboardTapState.shared
             state.lock.lock()
-            let combos = state.combos
+            let pluginBindings = state.pluginBindings
             let hostBindings = state.hostBindings
             state.lock.unlock()
 
@@ -298,18 +330,15 @@ public final class KeyboardModule: NativeModule {
                 }
             }
 
-            for combo in combos {
-                if combo.matches(event) {
-                    let comboRaw = combo.raw
-                    // Dispatch back to MainActor to emit via eventBus
+            for binding in pluginBindings {
+                if binding.combo.matches(event) {
+                    let eventName = binding.eventName
                     DispatchQueue.main.async {
                         let state = KeyboardTapState.shared
                         guard let module = state.module else { return }
                         guard let engine = module.engine else { return }
-                        let eventName = "keyboard:\(comboRaw)"
                         engine.eventBus.emit(eventName, engine: engine)
                     }
-                    // Consume the event so it does not propagate
                     return nil
                 }
             }
