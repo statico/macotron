@@ -1,18 +1,16 @@
-// APIs: command, clipboard.set, notify, panel
+// APIs: command, panel
 
-macotron.command("Calculator", "Evaluate an expression and copy the result", () => {
+macotron.command("Calculator", "Evaluate an expression as you type", () => {
     const id = macotron.panel.open({
         title: "Calculator",
         width: 360,
         height: 180,
         html: `<input id="q" class="mono" autofocus placeholder="2 + 2 * 10">
-<p id="out" class="muted">Enter an expression</p>
+<p id="out" class="muted">Type an expression</p>
 <script>
 const out = document.getElementById("out");
-document.getElementById("q").onkeydown = (e) => {
-  if (e.key !== "Enter") return;
-  const expr = e.target.value.trim();
-  window.webkit.messageHandlers.macotron.postMessage({ type: "calc", expr });
+document.getElementById("q").oninput = (e) => {
+  window.webkit.messageHandlers.macotron.postMessage({ type: "calc", expr: e.target.value });
 };
 window.__macotronReceive = (data) => {
   if (data && data.error) out.textContent = data.error;
@@ -24,22 +22,23 @@ window.__macotronReceive = (data) => {
     macotron.panel.onMessage(id, (data) => {
         if (!data || data.type !== "calc") return;
         const expr = String(data.expr || "").trim();
-        if (!/^[0-9+\-*/().%\s]+$/.test(expr) || !expr) {
+        if (!expr) {
+            macotron.panel.postMessage(id, { error: "Type an expression" });
+            return;
+        }
+        if (!/^[0-9+\-*/().%\s]+$/.test(expr)) {
             macotron.panel.postMessage(id, { error: "Use numbers and + - * / % ( ) only" });
             return;
         }
         try {
             const result = Function('"use strict"; return (' + expr + ")")();
             if (typeof result !== "number" || !isFinite(result)) {
-                macotron.panel.postMessage(id, { error: "Not a finite number" });
+                macotron.panel.postMessage(id, { error: "…" });
                 return;
             }
-            const text = String(result);
-            macotron.clipboard.set(text);
-            macotron.panel.postMessage(id, { result: text });
-            macotron.notify.show("Calculator", text);
-        } catch (err) {
-            macotron.panel.postMessage(id, { error: String(err) });
+            macotron.panel.postMessage(id, { result: String(result) });
+        } catch {
+            macotron.panel.postMessage(id, { error: "…" });
         }
     });
 });
