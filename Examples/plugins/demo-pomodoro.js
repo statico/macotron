@@ -10,7 +10,10 @@ function paint() {
         sfSymbol: remaining <= 0 && !running ? "checkmark.circle" : "timer",
         color: running ? "orange" : null,
         bold: running,
-        onClick: start,
+        menu: [
+            { title: "Start", onClick: start },
+            { title: "Stop", onClick: stop },
+        ],
     });
 }
 
@@ -37,6 +40,12 @@ function start() {
     running = true;
     paint();
     macotron.notify.show("Pomodoro", "25:00 started");
+}
+
+function stop() {
+    running = false;
+    remaining = 0;
+    paint();
 }
 
 paint();

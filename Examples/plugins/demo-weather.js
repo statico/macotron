@@ -23,7 +23,9 @@ function render(title, color) {
         title: title,
         sfSymbol: "cloud.sun",
         color: color,
-        onClick: () => refreshWeather(),
+        menu: [
+            { title: "Refresh", onClick: () => refreshWeather() },
+        ],
     });
 }
 
