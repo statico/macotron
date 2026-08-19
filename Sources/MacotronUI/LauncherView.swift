@@ -12,6 +12,7 @@ public struct SearchResult: Identifiable {
     public let commandArguments: [CommandArgumentSpec]
     public let shortcut: String
     public let kind: String
+    public let isFavorite: Bool
 
     public enum ResultType {
         case app
@@ -24,7 +25,8 @@ public struct SearchResult: Identifiable {
         nsImage: NSImage? = nil,
         commandArguments: [CommandArgumentSpec] = [],
         shortcut: String = "",
-        kind: String = ""
+        kind: String = "",
+        isFavorite: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -34,6 +36,7 @@ public struct SearchResult: Identifiable {
         self.commandArguments = commandArguments
         self.shortcut = shortcut
         self.kind = kind
+        self.isFavorite = isFavorite
     }
 }
 
@@ -51,6 +54,7 @@ public struct LauncherView: View {
     public var onRevealInFinder: ((String) -> Void)?
     public var onSearch: ((String) -> [SearchResult])?
     public var onAssignShortcut: ((String, String) -> Void)?
+    public var onToggleFavorite: ((String) -> Void)?
     public var onHeightChange: ((CGFloat) -> Void)?
 
     public init(
@@ -60,6 +64,7 @@ public struct LauncherView: View {
         onRevealInFinder: ((String) -> Void)? = nil,
         onSearch: ((String) -> [SearchResult])? = nil,
         onAssignShortcut: ((String, String) -> Void)? = nil,
+        onToggleFavorite: ((String) -> Void)? = nil,
         onHeightChange: ((CGFloat) -> Void)? = nil
     ) {
         self._prefs = ObservedObject(wrappedValue: prefs)
@@ -68,6 +73,7 @@ public struct LauncherView: View {
         self.onRevealInFinder = onRevealInFinder
         self.onSearch = onSearch
         self.onAssignShortcut = onAssignShortcut
+        self.onToggleFavorite = onToggleFavorite
         self.onHeightChange = onHeightChange
     }
 
@@ -116,6 +122,12 @@ public struct LauncherView: View {
                         shortcutHint(keys: ["return"], label: "Open")
                         shortcutHint(keys: ["cmd", "return"], label: "Reveal in Finder")
                         shortcutHint(keys: ["cmd", "K"], label: "Set shortcut")
+                        if selectedIndex < results.count {
+                            shortcutHint(
+                                keys: ["cmd", "S"],
+                                label: results[selectedIndex].isFavorite ? "Unfavorite" : "Favorite"
+                            )
+                        }
                         Spacer()
                         shortcutHint(keys: ["esc"], label: "Close")
                     }
@@ -125,12 +137,13 @@ public struct LauncherView: View {
             }
         }
         .fixedSize(horizontal: false, vertical: true)
-        .ignoresSafeArea()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: session.query) { _, newValue in
             applySearch(newValue)
         }
         .onAppear {
             applySearch(session.query)
+            onHeightChange?(panelHeight)
         }
         .onChange(of: session.pendingArgs?.commandId) { _, _ in
             if let pending = session.pendingArgs {
@@ -142,23 +155,22 @@ public struct LauncherView: View {
                 focusedArg = nil
             }
         }
-        .background(KeyEventHandler(
-            onArrowUp: { moveSelection(-1) },
-            onArrowDown: { moveSelection(1) },
-            onCmdReturn: { executeSelectedWithModifier() },
-            onCmdK: { beginShortcutRecording() },
-            onEscape: { handleEscape() },
-            onRecordedCombo: { saveRecordedShortcut($0) },
-            onClearShortcut: { saveRecordedShortcut("") },
-            interceptListKeys: session.pendingArgs == nil && !isRecordingShortcut,
-            isRecording: isRecordingShortcut
-        ))
-        .background(
-            GeometryReader { geo in
-                Color.clear.preference(key: ViewHeightKey.self, value: geo.size.height)
-            }
-        )
-        .onPreferenceChange(ViewHeightKey.self) { height in
+        .background {
+            KeyEventHandler(
+                onArrowUp: { moveSelection(-1) },
+                onArrowDown: { moveSelection(1) },
+                onCmdReturn: { executeSelectedWithModifier() },
+                onCmdK: { beginShortcutRecording() },
+                onCmdS: { toggleSelectedFavorite() },
+                onEscape: { handleEscape() },
+                onRecordedCombo: { saveRecordedShortcut($0) },
+                onClearShortcut: { saveRecordedShortcut("") },
+                interceptListKeys: session.pendingArgs == nil && !isRecordingShortcut,
+                isRecording: isRecordingShortcut
+            )
+            .frame(width: 0, height: 0)
+        }
+        .onChange(of: panelHeight) { _, height in
             onHeightChange?(height)
         }
     }
@@ -185,7 +197,7 @@ public struct LauncherView: View {
                     .padding(.vertical, 4)
                     .padding(.horizontal, 6)
                 }
-                .frame(height: min(420, CGFloat(results.count) * (20 * prefs.textScale + 10) + 8))
+                .frame(height: listHeight)
                 .onChange(of: selectedIndex) { _, newIndex in
                     if newIndex < results.count {
                         withAnimation(.easeOut(duration: 0.1)) {
@@ -264,6 +276,32 @@ public struct LauncherView: View {
         session.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var listHeight: CGFloat {
+        let row = 20 * prefs.textScale + 10
+        return min(420, CGFloat(results.count) * row + 8)
+    }
+
+    /// Window height from known chrome, not SwiftUI geometry. Measuring the
+    /// hosting view reports the panel's current size and never shrinks.
+    private var panelHeight: CGFloat {
+        let scale = prefs.textScale
+        if let pending = session.pendingArgs {
+            let error: CGFloat = argError == nil ? 0 : 18
+            return max(LauncherPlacement.minHeight, 48 + CGFloat(pending.arguments.count) * 36 + error)
+        }
+        var height: CGFloat = 52
+        if queryIsEmpty && results.isEmpty {
+            return LauncherPlacement.minHeight
+        }
+        height += 1
+        if results.isEmpty {
+            height += 48 + 12 * scale
+        } else {
+            height += listHeight + 1 + 16 + 14 * scale
+        }
+        return min(LauncherPlacement.maxHeight, height)
+    }
+
     private func applySearch(_ query: String) {
         results = onSearch?(query) ?? []
         selectedIndex = 0
@@ -273,6 +311,18 @@ public struct LauncherView: View {
     private func beginShortcutRecording() {
         guard session.pendingArgs == nil, selectedIndex < results.count else { return }
         isRecordingShortcut = true
+    }
+
+    private func toggleSelectedFavorite() {
+        guard session.pendingArgs == nil, selectedIndex < results.count else { return }
+        let id = results[selectedIndex].id
+        onToggleFavorite?(id)
+        applySearch(session.query)
+        if let idx = results.firstIndex(where: { $0.id == id }) {
+            selectedIndex = idx
+        } else if selectedIndex >= results.count {
+            selectedIndex = max(0, results.count - 1)
+        }
     }
 
     private func saveRecordedShortcut(_ combo: String) {
@@ -397,13 +447,6 @@ public struct LauncherView: View {
     }
 }
 
-private struct ViewHeightKey: PreferenceKey {
-    nonisolated(unsafe) static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
 /// AppKit field so window resizes don't kill the field editor (SwiftUI TextField does).
 private struct LauncherQueryField: NSViewRepresentable {
     @Binding var text: String
@@ -465,6 +508,7 @@ struct KeyEventHandler: NSViewRepresentable {
     var onArrowDown: () -> Void
     var onCmdReturn: () -> Void
     var onCmdK: () -> Void
+    var onCmdS: (() -> Void)?
     var onEscape: (() -> Bool)?
     var onRecordedCombo: ((String) -> Void)?
     var onClearShortcut: (() -> Void)?
@@ -486,6 +530,7 @@ struct KeyEventHandler: NSViewRepresentable {
         view.onArrowDown = onArrowDown
         view.onCmdReturn = onCmdReturn
         view.onCmdK = onCmdK
+        view.onCmdS = onCmdS
         view.onEscape = onEscape
         view.onRecordedCombo = onRecordedCombo
         view.onClearShortcut = onClearShortcut
@@ -498,6 +543,7 @@ struct KeyEventHandler: NSViewRepresentable {
         var onArrowDown: (() -> Void)?
         var onCmdReturn: (() -> Void)?
         var onCmdK: (() -> Void)?
+        var onCmdS: (() -> Void)?
         var onEscape: (() -> Bool)?
         var onRecordedCombo: ((String) -> Void)?
         var onClearShortcut: (() -> Void)?
@@ -542,6 +588,12 @@ struct KeyEventHandler: NSViewRepresentable {
                !flags.contains(.option), !flags.contains(.control),
                event.charactersIgnoringModifiers?.lowercased() == "k" {
                 onCmdK?()
+                return true
+            }
+            if interceptListKeys, flags.contains(.command), !flags.contains(.shift),
+               !flags.contains(.option), !flags.contains(.control),
+               event.charactersIgnoringModifiers?.lowercased() == "s" {
+                onCmdS?()
                 return true
             }
             if interceptListKeys, flags.contains(.control) && !flags.contains(.command) {
@@ -607,6 +659,12 @@ struct ResultRow: View {
             }
 
             Spacer()
+
+            if result.isFavorite {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 9 * textScale))
+                    .foregroundStyle(.yellow)
+            }
 
             if !result.shortcut.isEmpty {
                 HStack(spacing: 2) {

@@ -137,6 +137,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     otherKey: "keyboardShortcuts"
                 )
             },
+            onToggleFavorite: { [weak self] id in
+                self?.toggleFavorite(id)
+            },
             onHeightChange: { [weak self] height in
                 self?.launcherPanel.resizeToHeight(height)
             }
@@ -825,22 +828,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private func search(_ query: String) -> [SearchResult] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let pluginHits = launcherModule?.allHits() ?? []
+        let favorites = LauncherFavorites.load(from: workspace.readSettings()["launcherFavorites"])
+        let shortcuts = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
 
         if q.isEmpty {
-            return pluginHits.prefix(50).map { hit in
-                SearchResult(
-                    id: hit.id,
-                    title: hit.title,
-                    subtitle: hit.subtitle,
-                    type: .plugin,
-                    nsImage: hit.image,
-                    kind: hit.kind
-                )
+            return favorites.ids.compactMap { id in
+                result(id: id, pluginHits: pluginHits, shortcuts: shortcuts, isFavorite: true)
             }
         }
 
         var results: [SearchResult] = []
-        let shortcuts = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
 
         for (_, cmd) in engine.commandRegistry {
             if let score = FuzzyMatch.score(query: q, target: cmd.name), score > 0 {
@@ -850,7 +847,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     subtitle: cmd.description,
                     type: .command,
                     commandArguments: cmd.arguments,
-                    shortcut: shortcuts.combo(for: cmd.id)
+                    shortcut: shortcuts.combo(for: cmd.id),
+                    isFavorite: favorites.contains(cmd.id)
                 ))
             }
         }
@@ -862,7 +860,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 subtitle: app.subtitle,
                 type: app.type,
                 nsImage: app.nsImage,
-                shortcut: shortcuts.combo(for: app.id)
+                shortcut: shortcuts.combo(for: app.id),
+                isFavorite: favorites.contains(app.id)
             )
         })
 
@@ -874,7 +873,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     subtitle: hit.subtitle,
                     type: .plugin,
                     nsImage: hit.image,
-                    kind: hit.kind
+                    kind: hit.kind,
+                    isFavorite: favorites.contains(hit.id)
                 ))
             }
         }
@@ -889,6 +889,57 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         return Array(results.prefix(20))
+    }
+
+    private func result(
+        id: String,
+        pluginHits: [LauncherHit],
+        shortcuts: CommandShortcuts,
+        isFavorite: Bool
+    ) -> SearchResult? {
+        if let hit = pluginHits.first(where: { $0.id == id }) {
+            return SearchResult(
+                id: hit.id,
+                title: hit.title,
+                subtitle: hit.subtitle,
+                type: .plugin,
+                nsImage: hit.image,
+                kind: hit.kind,
+                isFavorite: isFavorite
+            )
+        }
+        if let cmd = engine.commandRegistry[id] {
+            return SearchResult(
+                id: cmd.id,
+                title: cmd.name,
+                subtitle: cmd.description,
+                type: .command,
+                commandArguments: cmd.arguments,
+                shortcut: shortcuts.combo(for: cmd.id),
+                isFavorite: isFavorite
+            )
+        }
+        if let app = appSearchProvider.entry(bundleID: id) {
+            return SearchResult(
+                id: app.bundleID,
+                title: app.name,
+                subtitle: "",
+                type: .app,
+                nsImage: app.icon,
+                shortcut: shortcuts.combo(for: app.bundleID),
+                isFavorite: isFavorite
+            )
+        }
+        return nil
+    }
+
+    private func toggleFavorite(_ id: String) {
+        try? workspace.updateSettings { settings in
+            var favs = LauncherFavorites.load(from: settings["launcherFavorites"])
+            favs.toggle(id)
+            settings["launcherFavorites"] = favs.jsonObject()
+        }
+        engine.configStore = workspace.readSettings()
     }
 
     /// Render offscreen for screenshots. The view is hosted in a real window so

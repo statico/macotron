@@ -14,7 +14,7 @@ No in-app coding agent. The plugins on disk are the source of truth.
 
 - Quick launcher for apps and commands
 - Fuzzy search as you type
-- Extra launcher rows from plugins (Notes and the like)
+- Extra launcher rows from plugins (Notes and the like); star items with ⌘S to pin them on open
 - Per-command keyboard shortcuts
 - Global hotkeys, changeable in Settings
 - Tile windows to halves, corners, and other displays
