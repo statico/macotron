@@ -23,6 +23,14 @@ struct PanelShellTests {
         #expect(!opaque.contains("background: transparent"))
     }
 
+    @Test("host CSS exposes system color variables")
+    func systemColorVariables() {
+        let css = PanelShell.css(glass: false)
+        #expect(css.contains("--macotron-accent: AccentColor"))
+        #expect(css.contains("--macotron-control: ButtonFace"))
+        #expect(css.contains("button.primary"))
+    }
+
     @Test("glass parses true, regular/translucent, and clear")
     func glassParse() {
         #expect(PanelGlass.parse(true) == .regular)

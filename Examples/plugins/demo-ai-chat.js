@@ -1,17 +1,16 @@
 const opts = macotron.plugin({
     title: "AI Chat",
-    description: "Chat with the on-device small model, Claude, or Gemini.",
+    description: "Chat with the on-device model, Claude, or Gemini.",
     options: {
         model: {
             type: "dropdown",
             label: "Model",
             default: "small",
             choices: [
-                { value: "small", label: "Small" },
-                { value: "gpu", label: "GPU" },
-                { value: "sonnet", label: "Sonnet" },
-                { value: "opus", label: "Opus" },
-                { value: "gemini", label: "Gemini" },
+                { value: "small", label: "On-device (Apple Intelligence)" },
+                { value: "sonnet", label: "Claude Sonnet" },
+                { value: "opus", label: "Claude Opus" },
+                { value: "gemini", label: "Gemini Flash" },
             ],
         },
         anthropicKey: {
@@ -28,11 +27,10 @@ const opts = macotron.plugin({
 const STORE_KEY = "macotron.ai-chat.v1";
 const MAX_CHATS = 50;
 const MODELS = [
-    { value: "small", label: "Small" },
-    { value: "gpu", label: "GPU" },
-    { value: "sonnet", label: "Sonnet" },
-    { value: "opus", label: "Opus" },
-    { value: "gemini", label: "Gemini" },
+    { value: "small", label: "On-device", group: "This Mac · Apple Intelligence" },
+    { value: "sonnet", label: "Claude Sonnet", group: "Cloud · needs API key" },
+    { value: "opus", label: "Claude Opus", group: "Cloud · needs API key" },
+    { value: "gemini", label: "Gemini Flash", group: "Cloud · needs API key" },
 ];
 
 function loadState() {
@@ -77,6 +75,22 @@ function client(model) {
     return macotron.ai.local();
 }
 
+function modelOptions(selected) {
+    const current = selected === "gpu" ? "small" : selected;
+    let html = "";
+    let group = "";
+    for (const m of MODELS) {
+        if (m.group !== group) {
+            if (group) html += "</optgroup>";
+            group = m.group;
+            html += "<optgroup label=\"" + group + "\">";
+        }
+        html += "<option value=\"" + m.value + "\"" + (m.value === current ? " selected" : "") + ">" + m.label + "</option>";
+    }
+    if (group) html += "</optgroup>";
+    return html;
+}
+
 macotron.command("AI Chat", "Open a streaming chat panel", () => {
     const state = loadState();
     if (!state.chats.length) {
@@ -86,20 +100,38 @@ macotron.command("AI Chat", "Open a streaming chat panel", () => {
         saveState(state);
     }
 
-    const selected = opts.model || "small";
-    const options = MODELS.map((m) =>
-        "<option value=\"" + m.value + "\"" + (m.value === selected ? " selected" : "") + ">" + m.label + "</option>"
-    ).join("");
-
     const id = macotron.panel.open({
         title: "AI Chat",
         width: 440,
         height: 520,
-        html: `<div id="log" class="grow scroll"></div>
+        html: `<style>
+#log { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 8px; }
+.msg { max-width: 82%; white-space: pre-wrap; word-wrap: break-word; }
+.msg[data-role="user"] {
+  align-self: flex-end;
+  padding: 8px 14px;
+  border-radius: 18px;
+  background: var(--macotron-accent);
+  color: var(--macotron-accent-text);
+}
+.msg[data-role="assistant"] {
+  align-self: flex-start;
+  padding: 2px 4px;
+  color: var(--macotron-label);
+}
+.msg[data-role="error"] {
+  align-self: flex-start;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--macotron-control-border) 35%, transparent);
+  color: inherit;
+}
+</style>
+<div id="log" class="grow scroll"></div>
 <div class="toolbar">
-  <select id="model">${options}</select>
+  <select id="model">${modelOptions(opts.model || "small")}</select>
   <input id="input" autofocus placeholder="Message…">
-  <button id="send">Send</button>
+  <button id="send" class="primary">Send</button>
   <button id="neu" class="secondary">New</button>
 </div>
 <script>
@@ -107,14 +139,12 @@ const log = document.getElementById("log");
 const input = document.getElementById("input");
 function add(role, text) {
   const el = document.createElement("div");
+  el.className = "msg";
   el.dataset.role = role;
-  el.style.margin = "0 0 10px";
-  el.style.whiteSpace = "pre-wrap";
-  el.innerHTML = "<b>" + role + "</b><div></div>";
-  el.lastChild.textContent = text || "";
+  if (role === "error") el.classList.add("bad");
   log.appendChild(el);
   log.scrollTop = log.scrollHeight;
-  return el.lastChild;
+  return el;
 }
 let streamEl = null;
 document.getElementById("send").onclick = () => {

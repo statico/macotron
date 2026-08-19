@@ -37,7 +37,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Media:** `macotron.media.nowPlaying()` is `{ playing, title, artist, album, app, bundle, artwork? }`. `artwork` is a JPEG path when iTunes Search finds a cover. `playPause()` / `next()` / `previous()` talk to the system Now Playing target (Spotify, Music, SomaFM, Safari, …). `media:changed` fires when the snapshot changes.
 
-**Launcher:** `macotron.launcher.set(id, items)` replaces that plugin's extra rows in the quick launcher. Each item is `{ id, title, subtitle?, app?, sfSymbol?, kind?, onClick }`. `app` is a bundle ID (Notes uses `com.apple.Notes`). With an empty query the launcher lists these rows (up to 50). Typing filters them with apps and commands.
+**Launcher:** `macotron.launcher.set(id, items)` replaces that plugin's extra rows in the quick launcher. Each item is `{ id, title, subtitle?, app?, sfSymbol?, kind?, onClick }`. `app` is a bundle ID (Notes uses `com.apple.Notes`). An empty query shows only starred items (⌘S). Typing filters plugin rows with apps and commands.
 
 **Notes:** `macotron.notes.list()` is `{ id, title, folder }[]`. `open(id)` shows the note in the Notes app. macOS prompts to allow controlling Notes on first use.
 
@@ -67,6 +67,8 @@ macotron.panel.onMessage(id, (data) => { /* ... */ });
 ```
 
 `html` is inserted into a host document (system font, padding, light/dark). `rawHtml` is a full document, the old `html` behavior. `glass: true` or `"regular"` is translucent Liquid Glass; `"clear"` is the clearer style. Host `html` pages get a transparent background so the glass shows through. In the page, `close()` closes the panel.
+
+Host CSS defines system colors as variables: `--macotron-accent`, `--macotron-accent-text`, `--macotron-label`, `--macotron-secondary-label`, `--macotron-fill`, `--macotron-control`, `--macotron-control-text`, `--macotron-control-border`, `--macotron-field`, `--macotron-field-text`, `--macotron-selected`, `--macotron-selected-text`, `--macotron-link`. They follow the system appearance. `button.primary` uses the accent color.
 
 **localStorage:** Standard web API backed by JSON under the workdir data store.
 
