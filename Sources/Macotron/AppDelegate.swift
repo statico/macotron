@@ -815,4 +815,29 @@ extension MenuBarManager: MenuBarModuleDelegate {
     public func menuBarSetTitle(text: String) {
         setTitle(text)
     }
+
+    public func menuBarSetStatus(
+        id: String,
+        title: String,
+        subtitle: String?,
+        color: String?,
+        bold: Bool,
+        italic: Bool,
+        sfSymbol: String?,
+        imagePath: String?,
+        onClick: (() -> Void)?
+    ) {
+        setStatus(
+            id: id, title: title, subtitle: subtitle, color: color,
+            bold: bold, italic: italic, sfSymbol: sfSymbol, imagePath: imagePath, onClick: onClick
+        )
+    }
+
+    public func menuBarRemoveStatus(id: String) {
+        removeStatus(id: id)
+    }
+
+    public func menuBarRemoveAllStatus() {
+        removeAllStatus()
+    }
 }

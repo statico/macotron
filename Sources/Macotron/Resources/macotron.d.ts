@@ -157,6 +157,21 @@ declare const macotron: {
         remove(id: string): void;
         setIcon(sfSymbolName: string): void;
         setTitle(text: string): void;
+        /** Extra status item next to the Macotron icon (SwiftBar-style). */
+        status(
+            id: string,
+            opts: {
+                title: string;
+                subtitle?: string;
+                color?: string;
+                bold?: boolean;
+                italic?: boolean;
+                sfSymbol?: string;
+                icon?: string;
+                image?: string;
+                onClick?: () => void;
+            }
+        ): void;
     };
 
     display: {
