@@ -166,8 +166,24 @@ declare const macotron: {
         setThreshold(seconds: number): void;
     };
 
+    media: {
+        nowPlaying(): {
+            playing: boolean;
+            title: string;
+            artist: string;
+            album: string;
+            app: string;
+            bundle: string;
+            artwork?: string;
+        };
+        playPause(): void;
+        next(): void;
+        previous(): void;
+    };
+
     ai: {
         claude(opts?: { model?: string; apiKey?: string }): AIClient;
+        anthropic(opts?: { model?: string; apiKey?: string }): AIClient;
         openai(opts?: { model?: string; apiKey?: string }): AIClient;
         gemini(opts?: { model?: string; apiKey?: string }): AIClient;
         local(): AIClient;
@@ -175,6 +191,28 @@ declare const macotron: {
 
     spotlight: {
         search(query: string): Promise<Array<{ path: string; name: string; kind: string }>>;
+    };
+
+    launcher: {
+        set(
+            id: string,
+            items: Array<{
+                id: string;
+                title: string;
+                subtitle?: string;
+                /** Bundle ID, e.g. `com.apple.Notes`. */
+                app?: string;
+                sfSymbol?: string;
+                kind?: string;
+                onClick?: () => void;
+            }>
+        ): void;
+        remove(id: string): void;
+    };
+
+    notes: {
+        list(): Array<{ id: string; title: string; folder: string }>;
+        open(id: string): void;
     };
 
     app: {
@@ -202,6 +240,24 @@ declare const macotron: {
         network(): { bytesIn: number; bytesOut: number };
         processes(limit?: number): Array<{ name: string; pid: number; cpu: number }>;
         gpu(): { name: string; usage: number } | null;
+        /**
+         * Fan floor. `floor` is 50 or 100 while Macotron is holding a minimum;
+         * omitted means system default. Actual RPM is never forced below what
+         * macOS already wants.
+         */
+        fans(): {
+            available: boolean;
+            floor?: number;
+            error?: string;
+            fans: Array<{ index: number; rpm: number; min: number; max: number }>;
+        };
+        /** `null` restores system default. Left-click demo uses 100. */
+        setFanFloor(percent: number | null): {
+            available: boolean;
+            floor?: number;
+            error?: string;
+            fans: Array<{ index: number; rpm: number; min: number; max: number }>;
+        };
     };
 
     http: {
@@ -224,8 +280,13 @@ declare const macotron: {
                 title: string;
                 subtitle?: string;
                 color?: string;
+                subtitleColor?: string;
                 bold?: boolean;
                 italic?: boolean;
+                /** Smaller, dimmer subtitle. Default is the same size and color as title. */
+                secondary?: boolean;
+                /** Minimum extra width in points. Stops proportional digits from shifting neighbors. */
+                minWidth?: number;
                 sfSymbol?: string;
                 icon?: string;
                 image?: string;
