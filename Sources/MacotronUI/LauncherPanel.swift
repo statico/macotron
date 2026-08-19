@@ -126,6 +126,30 @@ public final class LauncherPanel: NSPanel {
     public override var canBecomeKey: Bool { true }
     public override var canBecomeMain: Bool { false }
 
+    /// Queue a resize for the next run loop turn.
+    ///
+    /// Content height changes arrive from SwiftUI while AppKit is still inside
+    /// the search field's text-change processing. Resizing the window there
+    /// leaves the content view, its clip view, and the hosting view holding a
+    /// mix of old and new geometry, which is what pushes the search field off
+    /// the top. Deferring puts the resize on a settled layout, and coalescing
+    /// collapses a burst of keystrokes into one resize.
+    public func requestHeight(_ height: CGFloat) {
+        pendingHeight = height
+        guard !resizeScheduled else { return }
+        resizeScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.resizeScheduled = false
+            guard let height = self.pendingHeight else { return }
+            self.pendingHeight = nil
+            self.resizeToHeight(height)
+        }
+    }
+
+    private var pendingHeight: CGFloat?
+    private var resizeScheduled = false
+
     /// Size the window to content. SwiftUI is told that size first so only the
     /// results list can overflow, like overflow-y: auto on that section.
     public func resizeToHeight(_ height: CGFloat) {
@@ -143,12 +167,6 @@ public final class LauncherPanel: NSPanel {
         logPlacement(isShown ? "resize" : "open", height: height, visible: visible, pinTop: pin, frame: newFrame)
         setFrame(newFrame, display: true)
         pinHost()
-        logger.notice("after \(NSStringFromRect(self.frame), privacy: .public) host=\(NSStringFromRect(self.hostingView.frame), privacy: .public)")
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            self.pinHost()
-            logger.notice("async \(NSStringFromRect(self.frame), privacy: .public) host=\(NSStringFromRect(self.hostingView.frame), privacy: .public)")
-        }
     }
 
     private func reveal() {
@@ -163,6 +181,7 @@ public final class LauncherPanel: NSPanel {
 
     public override func orderOut(_ sender: Any?) {
         let wasVisible = isVisible || isShown
+        pendingHeight = nil
         isOrderingOut = true
         super.orderOut(sender)
         isOrderingOut = false
@@ -194,6 +213,7 @@ public final class LauncherPanel: NSPanel {
             dismiss(restoreFrontApp: true)
         } else {
             captureFrontApp()
+            pendingHeight = nil
             resizeToHeight(lastHeight)
             reveal()
         }

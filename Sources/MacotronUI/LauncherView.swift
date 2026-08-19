@@ -105,7 +105,7 @@ public struct LauncherView: View {
                         .frame(height: 24)
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 14)
+                .frame(height: LauncherPlacement.searchHeight)
                 .layoutPriority(1)
 
                 if !queryIsEmpty || !results.isEmpty {
@@ -132,7 +132,7 @@ public struct LauncherView: View {
                         shortcutHint(keys: ["esc"], label: "Cancel")
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .frame(height: LauncherPlacement.footerHeight(scale: prefs.textScale))
                     .layoutPriority(1)
                 } else {
                     HStack(spacing: 16) {
@@ -149,7 +149,7 @@ public struct LauncherView: View {
                         shortcutHint(keys: ["esc"], label: "Close")
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .frame(height: LauncherPlacement.footerHeight(scale: prefs.textScale))
                     .layoutPriority(1)
                 }
             }
@@ -213,12 +213,14 @@ public struct LauncherView: View {
             Text("No results")
                 .font(.system(size: 12 * prefs.textScale))
                 .foregroundStyle(.tertiary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 24)
+                .frame(
+                    maxWidth: .infinity,
+                    minHeight: LauncherPlacement.emptyStateHeight(scale: prefs.textScale)
+                )
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 1) {
+                    VStack(alignment: .leading, spacing: LauncherPlacement.rowSpacing) {
                         ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
                             ResultRow(result: result, isSelected: index == selectedIndex,
                                       textScale: prefs.textScale)
@@ -226,7 +228,7 @@ public struct LauncherView: View {
                                 .onTapGesture { executeResult(result) }
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, LauncherPlacement.listPadding / 2)
                     .padding(.horizontal, 6)
                 }
                 .frame(minHeight: 0, maxHeight: .infinity)

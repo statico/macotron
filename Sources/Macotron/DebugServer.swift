@@ -18,6 +18,7 @@ public final class DebugServer {
     public var captureWindow: ((Int?) -> Data?)?
     public var captureLauncher: (() -> Data?)?
     public var captureWizard: ((String?) -> Data?)?
+    public var onSetQuery: ((String) -> Void)?
 
     public init(engine: Engine, moduleManager: ModuleManager, port: UInt16 = 7777) {
         self.engine = engine
@@ -134,6 +135,12 @@ public final class DebugServer {
             onToggleLauncher?()
             return ("toggled".data(using: .utf8)!, "text/plain")
 
+        case (_, "/query"):
+            let body = extractBody(request)
+            let text = parseJSON(body)?["q"] as? String ?? ""
+            onSetQuery?(text)
+            return ("set".data(using: .utf8)!, "text/plain")
+
         case (_, "/screenshot"):
             // Optional ?view=launcher or ?tab=N query parameter
             let params = Dictionary(uniqueKeysWithValues:
@@ -165,6 +172,7 @@ public final class DebugServer {
                 "GET  /backups        - List config backups",
                 "POST /open-settings  - Open settings (body: {\"tab\": 0})",
                 "POST /open           - Toggle the launcher panel",
+                "POST /query          - Set the launcher query (body: {\"q\": \"...\"})",
                 "GET  /screenshot     - Screenshot frontmost Macotron window",
             ]
             let text = "Macotron Debug Server\n\nRoutes:\n" + routes.joined(separator: "\n")
