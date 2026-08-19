@@ -104,9 +104,9 @@ final class AppSearchProvider {
         return allApps.first(where: { $0.bundleID == bundleID })
     }
 
-    /// Launch or switch to an app by bundle ID
-    func launchApp(bundleID: String) {
-        AppLaunch.open(bundleID: bundleID)
+    /// Launch or switch to an app by bundle ID. A shortcut can hide if it is already front.
+    func launchApp(bundleID: String, hideIfFrontmost: Bool = false) {
+        AppLaunch.open(bundleID: bundleID, hideIfFrontmost: hideIfFrontmost)
     }
 
     /// Reveal an app in Finder
