@@ -2,6 +2,8 @@
 
 Copy into your Macotron workdir `plugins/` to try. Most register launcher commands.
 
+Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew or other extra apps.
+
 | File | APIs | Commands |
 |---|---|---|
 | demo-clipboard-history.js | clipboard.history | Clipboard History |
@@ -14,7 +16,7 @@ Copy into your Macotron workdir `plugins/` to try. Most register launcher comman
 | demo-system-metrics.js | system.disk/network/gpu | System Metrics |
 | demo-window-tiling.js | window.moveToFraction | Tile Left/Right/Full, next/prev display |
 | demo-window-snap.js | window.snap | Toggle Window Snap |
-| demo-browser-profiles.js | url.open profile | Open GitHub (Chrome Profile 1) |
+| demo-browser-profiles.js | url.open | Open GitHub in Safari |
 | demo-url-router.js | url.on / open | Open YouTube in Safari |
 | demo-power.js | power.* | Toggle Keep Awake |
 | demo-wifi.js | network.wifiSSID, wifi:changed | Wi-Fi SSID |
@@ -28,7 +30,6 @@ Copy into your Macotron workdir `plugins/` to try. Most register launcher comman
 | demo-window-hopper.js | window.getAll + panel | Switch Window |
 | demo-devutils.js | clipboard | UUID, timestamp, Base64, JWT |
 | demo-calculator.js | panel | Calculator |
-| demo-homebrew.js | shell brew | Brew List, Brew Copy Outdated |
 | demo-regex.js | panel | Regex Workbench |
 | demo-present-mode.js | defaults + Finder | Toggle Present Mode |
 | demo-security-checklist.js | shell probes | Security Checklist |

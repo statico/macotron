@@ -67,7 +67,7 @@ https://github.com/topics/macotron-plugin
 | JS Runtime | QuickJS via [quickjs-ng](https://github.com/quickjs-ng/quickjs) (embedded C library, ~400KB) |
 | Package Manager | Swift Package Manager |
 | Min Target | macOS 15 Sequoia (macOS 26 Tahoe for Foundation Models) |
-| Distribution | Direct download + Homebrew (not App Store — needs Accessibility and Input Monitoring) |
+| Distribution | Direct download (optional Homebrew cask; the app does not need brew) |
 
 ### Why QuickJS over JavaScriptCore?
 

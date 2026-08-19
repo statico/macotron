@@ -60,7 +60,8 @@ struct PluginWorkspaceTests {
 
         #expect(agents.contains("1.0.0"))
         #expect(agents.contains("@macotron needs"))
-        #expect(agents.contains("tsc -p .cache --noEmit"))
+        #expect(agents.contains("stock Mac"))
         #expect(agents.contains("--check"))
+        #expect(!agents.contains("npx"))
     }
 }
