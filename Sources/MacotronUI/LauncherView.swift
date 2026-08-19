@@ -84,6 +84,7 @@ public struct LauncherView: View {
                 argumentForm
             } else {
                 searchResultsView
+                    .animation(.easeOut(duration: 0.15), value: query)
             }
 
             if session.pendingArgs == nil && !query.isEmpty && !results.isEmpty {
@@ -209,15 +210,15 @@ public struct LauncherView: View {
         onExecuteCommand?(result.id, [:])
     }
 
-    private func handleEscape() {
-        if session.pendingArgs != nil {
-            session.pendingArgs = nil
-            argValues = [:]
-            argError = nil
-            query = ""
-            results = onSearch?("") ?? []
-            selectedIndex = 0
-        }
+    private func handleEscape() -> Bool {
+        guard session.pendingArgs != nil else { return false }
+        session.pendingArgs = nil
+        argValues = [:]
+        argError = nil
+        query = ""
+        results = onSearch?("") ?? []
+        selectedIndex = 0
+        return true
     }
 
     private func prefill(_ specs: [CommandArgumentSpec]) {
@@ -332,7 +333,7 @@ struct KeyEventHandler: NSViewRepresentable {
     var onArrowUp: () -> Void
     var onArrowDown: () -> Void
     var onCmdReturn: () -> Void
-    var onEscape: (() -> Void)?
+    var onEscape: (() -> Bool)?
 
     func makeNSView(context: Context) -> KeyEventNSView {
         let view = KeyEventNSView()
@@ -354,20 +355,50 @@ struct KeyEventHandler: NSViewRepresentable {
         var onArrowUp: (() -> Void)?
         var onArrowDown: (() -> Void)?
         var onCmdReturn: (() -> Void)?
-        var onEscape: (() -> Void)?
+        var onEscape: (() -> Bool)?
+        private var monitor: Any?
 
-        override var acceptsFirstResponder: Bool { true }
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+                self.monitor = nil
+            }
+            guard window != nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                guard let self, event.window == self.window else { return event }
+                return self.consume(event) ? nil : event
+            }
+        }
 
-        override func keyDown(with event: NSEvent) {
-            if event.modifierFlags.contains(.command) && event.keyCode == 36 {
+        private func consume(_ event: NSEvent) -> Bool {
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if flags.contains(.command) && event.keyCode == 36 {
                 onCmdReturn?()
-                return
+                return true
+            }
+            if flags.contains(.control) && !flags.contains(.command) {
+                switch event.charactersIgnoringModifiers {
+                case "p", "P":
+                    onArrowUp?()
+                    return true
+                case "n", "N":
+                    onArrowDown?()
+                    return true
+                default: break
+                }
             }
             switch event.keyCode {
-            case 126: onArrowUp?()
-            case 125: onArrowDown?()
-            case 53: onEscape?()
-            default: super.keyDown(with: event)
+            case 126:
+                onArrowUp?()
+                return true
+            case 125:
+                onArrowDown?()
+                return true
+            case 53:
+                return onEscape?() ?? false
+            default:
+                return false
             }
         }
     }
