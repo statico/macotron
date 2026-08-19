@@ -66,12 +66,18 @@ public struct ModuleSummary: Identifiable {
     public let options: [ModuleOption]
     public let events: [String]
     public let hotkeys: [PluginCommandSummary]
+    public let help: String
+    public let checks: [PluginCheck]
     public let hasErrors: Bool
     public let errorMessage: String?
     public let isEnabled: Bool
     public let commands: [PluginCommandSummary]
 
+    public var needsSetup: Bool { options.contains { $0.needsSetup } }
+    public var hasFailedChecks: Bool { checks.contains { !$0.ok } }
+
     public init(filename: String, title: String = "", description: String,
+                help: String = "", checks: [PluginCheck] = [],
                 options: [ModuleOption] = [], events: [String] = [],
                 hotkeys: [PluginCommandSummary] = [], hasErrors: Bool = false, errorMessage: String? = nil,
                 isEnabled: Bool = true, commands: [PluginCommandSummary] = []) {
@@ -79,6 +85,8 @@ public struct ModuleSummary: Identifiable {
         self.filename = filename
         self.title = title.isEmpty ? String(filename.dropLast(3)) : title
         self.description = description
+        self.help = help
+        self.checks = checks
         self.options = options
         self.events = events
         self.hotkeys = hotkeys
@@ -602,7 +610,7 @@ struct PluginListRow: View {
             if summary.hasErrors {
                 Circle().fill(.red).frame(width: 6, height: 6)
                     .padding(.top, 4)
-            } else if summary.options.contains(where: { $0.needsSetup }) {
+            } else if summary.needsSetup || summary.hasFailedChecks {
                 Circle().fill(.orange).frame(width: 6, height: 6)
                     .padding(.top, 4)
             }
@@ -617,16 +625,14 @@ struct PluginDetailView: View {
     @ObservedObject var state: SettingsState
     @State private var showDeleteAlert = false
 
-    private var needsSetup: Bool {
-        summary.options.contains { $0.needsSetup }
-    }
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 header
 
                 if summary.hasErrors { errorBox }
+                if !summary.help.isEmpty { helpBox }
+                if !summary.checks.isEmpty { checksSection }
 
                 if !summary.isEnabled {
                     disabledHint
@@ -667,14 +673,11 @@ struct PluginDetailView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(summary.title)
                         .font(.system(size: 16, weight: .semibold))
-                    if needsSetup && summary.isEnabled {
-                        Text("Needs setup")
-                            .font(.system(size: 9, weight: .medium))
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.12))
-                            .foregroundStyle(.orange)
-                            .cornerRadius(3)
+                    if summary.needsSetup && summary.isEnabled {
+                        detailBadge(text: "Needs setup", color: .orange)
+                    }
+                    if summary.hasFailedChecks && summary.isEnabled {
+                        detailBadge(text: "Warning", color: .orange)
                     }
                 }
                 if !summary.description.isEmpty {
@@ -712,6 +715,43 @@ struct PluginDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.red.opacity(0.08))
         .cornerRadius(6)
+    }
+
+    private var helpBox: some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: "info.circle")
+                .font(.system(size: 11))
+            Text(summary.help)
+                .font(.system(size: 11))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundStyle(.secondary)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.05))
+        .cornerRadius(6)
+    }
+
+    private var checksSection: some View {
+        pluginSection("Checks") {
+            ForEach(Array(summary.checks.enumerated()), id: \.offset) { _, check in
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: check.ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(check.ok ? Color.green : Color.orange)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(check.title)
+                            .font(.system(size: 12, weight: .medium))
+                        if !check.message.isEmpty {
+                            Text(check.message)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private var disabledHint: some View {

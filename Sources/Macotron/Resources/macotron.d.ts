@@ -40,6 +40,12 @@ declare const macotron: {
     log(...args: any[]): void;
     sleep(ms: number): Promise<void>;
     every(ms: number, callback: () => void | Promise<void>): () => void;
+    /**
+     * Replace this plugin's Checks list in Settings → Plugins.
+     * A row with `ok: false` shows an orange warning on the plugin.
+     * Pass `[]` to clear. Call again whenever the status changes.
+     */
+    checks(rows: Array<{ title: string; ok: boolean; message?: string }>): void;
 
     window: {
         getAll(): Array<{
@@ -444,6 +450,8 @@ declare const macotron: {
     plugin(metadata: {
         title?: string;
         description?: string;
+        /** Extra explanation shown in Settings → Plugins. */
+        help?: string;
         permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording">;
         options?: Record<string, MacotronModuleOption>;
     }): Record<string, any>;
@@ -451,6 +459,7 @@ declare const macotron: {
     module(metadata: {
         title?: string;
         description?: string;
+        help?: string;
         permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording">;
         options?: Record<string, MacotronModuleOption>;
     }): Record<string, any>;

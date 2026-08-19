@@ -62,6 +62,7 @@ struct PluginWorkspaceTests {
         #expect(agents.contains("@macotron needs"))
         #expect(agents.contains("stock Mac"))
         #expect(agents.contains("--check"))
+        #expect(agents.contains("macotron.checks"))
         #expect(!agents.contains("npx"))
     }
 }

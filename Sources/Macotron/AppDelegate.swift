@@ -228,6 +228,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.applyUIPrefsFromSettings()
             self?.installCommandShortcuts()
             self?.rebindPluginHotkeys()
+            self?.settingsState.refreshModules()
         }
     }
 
@@ -298,6 +299,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         settingsState.loadModuleSummaries = { [weak self] in
             self?.buildPluginSummaries() ?? []
+        }
+        engine.onPluginChecksChanged = { [weak self] in
+            self?.settingsState.refreshModules()
         }
         settingsState.deleteModule = { [weak self] filename in
             guard let self else { return false }
@@ -457,6 +461,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 filename: file.filename,
                 title: title,
                 description: meta["description"] as? String ?? file.description,
+                help: meta["help"] as? String ?? "",
+                checks: engine.pluginChecks[file.filename] ?? [],
                 options: options,
                 events: events,
                 hotkeys: hotkeys,

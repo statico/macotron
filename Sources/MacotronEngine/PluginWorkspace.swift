@@ -363,6 +363,7 @@ public final class PluginWorkspace {
         const opts = macotron.plugin({
           title: "Chat",
           description: "Talk to a model",
+          help: "Set an API key below for cloud models.",
           permissions: ["accessibility"],
         });
         ```
@@ -409,6 +410,16 @@ public final class PluginWorkspace {
         be committed; real secrets must never appear in JSON or plugin source.
         `macotron.plugin()` returns the resolved secret string, never the ref.
         `file` / `directory` store absolute path strings.
+
+        Report host problems with `macotron.checks([{ title, ok, message }])`.
+        Replace the list each call; `[]` clears it. A failed check (`ok: false`)
+        shows an orange warning on the plugin in Settings → Plugins.
+
+        ```js
+        macotron.checks([
+          { title: "Speed control", ok: false, message: "This Mac blocked fan-speed writes." },
+        ]);
+        ```
 
         ## settings.json schema
 
