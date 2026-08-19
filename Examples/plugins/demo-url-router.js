@@ -9,10 +9,6 @@ macotron.url.on("https", "www.youtube.com", (event) => {
     macotron.url.open(event.url, "com.apple.Safari");
 });
 
-macotron.url.on("https", "*", (event) => {
-    macotron.url.open(event.url, "company.thebrowser.Browser");
-});
-
 macotron.command("Open YouTube in Safari", "Open youtube.com via the URL router", () => {
     macotron.url.open("https://www.youtube.com", "com.apple.Safari");
 });

@@ -27,7 +27,7 @@ The app re-checks on launch, after every plugin reload, when it becomes active, 
 
 The first check calls the system request API for each missing permission. That call registers Macotron in the matching System Settings list. The app does not open System Settings by itself. The user opens it from a button.
 
-**Not sandboxed.** Distribution uses a direct `.dmg` download (notarized) plus `brew install --cask macotron`.
+**Not sandboxed.** Distribution is a direct `.dmg` download (notarized). A Homebrew cask is optional and is not required to run Macotron.
 
 ## Secrets
 
