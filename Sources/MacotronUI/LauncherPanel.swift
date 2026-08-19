@@ -20,14 +20,17 @@ public final class LauncherPanel: NSPanel {
     private static let cornerRadius: CGFloat = 12
 
     private let hostingView: NSView
+    private let windowFrame: LauncherFrame
+    private var lastHeight: CGFloat = LauncherPlacement.minHeight
     public var onHide: (() -> Void)?
     /// App that was frontmost before we activated, so Escape can give typing back.
     private var appToRestore: NSRunningApplication?
     private var shouldRestoreApp = false
     private var isOrderingOut = false
 
-    public init(contentView: NSView) {
+    public init(contentView: NSView, windowFrame: LauncherFrame) {
         hostingView = contentView
+        self.windowFrame = windowFrame
         let seed = NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
         let seedWidth = LauncherPlacement.width(in: seed)
         super.init(
@@ -56,7 +59,7 @@ public final class LauncherPanel: NSPanel {
             Self.glass(in: contentView)?.contentView = nil
         }
         let visible = currentVisible
-        let height = isShown ? LauncherPlacement.maxHeight(in: visible) : Self.minHeight
+        let height = isShown ? lastHeight : Self.minHeight
         let width = LauncherPlacement.width(in: visible)
         let chrome = Self.makeChrome(style, size: NSSize(width: width, height: height))
         let pin = HostPinView(frame: chrome.bounds)
@@ -74,7 +77,7 @@ public final class LauncherPanel: NSPanel {
         contentView = chrome
         hasShadow = style != .glass
         if isShown {
-            fitOpenFrame()
+            resizeToHeight(lastHeight)
         }
     }
 
@@ -123,14 +126,21 @@ public final class LauncherPanel: NSPanel {
     public override var canBecomeKey: Bool { true }
     public override var canBecomeMain: Bool { false }
 
-    /// Open at the 18% band max height and stay there. Resizing per keystroke
-    /// races NSHostingView and scrolls the search field off-screen.
-    private func fitOpenFrame() {
+    /// Size the window to content. SwiftUI is told that size first so only the
+    /// results list can overflow, like overflow-y: auto on that section.
+    public func resizeToHeight(_ height: CGFloat) {
         let visible = currentVisible
-        let height = LauncherPlacement.maxHeight(in: visible)
-        let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: nil)
+        let pin = isShown ? frame.maxY : nil
+        let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: pin)
         applySizeLimits(in: visible, height: newFrame.height)
-        logPlacement("open", height: height, visible: visible, pinTop: nil, frame: newFrame)
+        lastHeight = newFrame.height
+        windowFrame.size = newFrame.size
+        if abs(frame.width - newFrame.width) < 0.5 && abs(frame.height - newFrame.height) < 0.5
+            && abs(frame.origin.x - newFrame.origin.x) < 0.5 && abs(frame.origin.y - newFrame.origin.y) < 0.5 {
+            pinHost()
+            return
+        }
+        logPlacement(isShown ? "resize" : "open", height: height, visible: visible, pinTop: pin, frame: newFrame)
         setFrame(newFrame, display: true)
         pinHost()
         logger.notice("after \(NSStringFromRect(self.frame), privacy: .public) host=\(NSStringFromRect(self.hostingView.frame), privacy: .public)")
@@ -184,7 +194,7 @@ public final class LauncherPanel: NSPanel {
             dismiss(restoreFrontApp: true)
         } else {
             captureFrontApp()
-            fitOpenFrame()
+            resizeToHeight(lastHeight)
             reveal()
         }
     }
@@ -193,6 +203,7 @@ public final class LauncherPanel: NSPanel {
         applyingFrame = true
         super.setFrame(frameRect, display: flag)
         applyingFrame = false
+        windowFrame.size = frame.size
         pinHost()
     }
 
