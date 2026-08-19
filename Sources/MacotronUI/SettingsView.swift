@@ -332,7 +332,7 @@ public struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 240)
+                    .frame(width: 280, alignment: .leading)
                 }
 
                 formRow("Text Size") {
@@ -345,7 +345,7 @@ public struct SettingsView: View {
                         Text("120%").tag(1.2)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 240)
+                    .frame(width: 280, alignment: .leading)
                 }
 
                 formDivider
@@ -530,10 +530,10 @@ public struct SettingsView: View {
         _ label: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             Text(label)
                 .foregroundStyle(.secondary)
-                .frame(width: labelWidth, alignment: .trailing)
+                .frame(width: labelWidth, alignment: .leading)
 
             content()
                 .frame(maxWidth: .infinity, alignment: .leading)
