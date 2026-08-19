@@ -30,12 +30,13 @@ struct LauncherPlacementTests {
         #expect(abs(maxH - visible.height * (1 - 2 * LauncherPlacement.topFraction)) < 0.5)
     }
 
-    @Test("width is the golden central column of the visible frame")
-    func goldenWidth() {
+    @Test("width is 750 unless the display is narrower")
+    func maxWidth() {
         let w = LauncherPlacement.width(in: visible)
-        let expected = visible.width / (LauncherPlacement.phi * LauncherPlacement.phi)
-        #expect(abs(w - expected) < 0.5)
-        #expect(w < visible.width * 0.5)
+        #expect(w == LauncherPlacement.maxWidth)
+        let narrow = CGRect(x: 0, y: 0, width: 400, height: 300)
+        let nw = LauncherPlacement.width(in: narrow)
+        #expect(nw == 400 - 2 * LauncherPlacement.margin)
     }
 
     @Test("tall content stays in the 18 percent band")

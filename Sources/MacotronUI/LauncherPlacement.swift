@@ -5,7 +5,7 @@ enum LauncherPlacement {
     static let minHeight: CGFloat = 56
     /// Inset from the top of the visible frame when the launcher opens.
     static let topFraction: CGFloat = 0.18
-    static let phi: CGFloat = (1 + CGFloat(5).squareRoot()) / 2
+    static let maxWidth: CGFloat = 750
     static let margin: CGFloat = 12
 
     /// Visible frame of the display under the mouse, then main, then first.
@@ -21,11 +21,9 @@ enum LauncherPlacement {
         max(minHeight, visible.height * (1 - 2 * topFraction))
     }
 
-    /// Central column: `1 / φ²` of the visible width (~38%).
+    /// 750pt, or the visible width minus side margins if the display is narrower.
     static func width(in visible: CGRect) -> CGFloat {
-        let column = visible.width / (phi * phi)
-        let cap = max(minHeight, visible.width - 2 * margin)
-        return min(column, cap)
+        min(maxWidth, max(minHeight, visible.width - 2 * margin))
     }
 
     /// Frame for the launcher inside `visible`. Open (`pinTop` nil) sits `topFraction`
