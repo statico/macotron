@@ -118,7 +118,7 @@ enum PanelShell {
     .bad { color: light-dark(#d70015, #ff6961); }
     .grow { flex: 1; min-height: 0; }
     .scroll { overflow: auto; }
-    .toolbar { display: flex; gap: 8px; align-items: center; }
+    .toolbar { display: flex; gap: 8px; align-items: flex-end; }
     .toolbar input, .toolbar select, .toolbar button {
       height: 28px;
       padding-top: 0;
@@ -126,6 +126,15 @@ enum PanelShell {
     }
     .toolbar input { width: 0; flex: 1; min-width: 0; }
     .toolbar input.inline { width: 4.5em; flex: none; }
+    .toolbar textarea {
+      width: 0;
+      flex: 1;
+      min-width: 0;
+      min-height: 52px;
+      height: auto;
+      padding: 10px 12px;
+      line-height: 1.35;
+    }
     .toolbar select {
       width: auto;
       flex: none;
@@ -252,6 +261,12 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
             name: NSWindow.willCloseNotification,
             object: p
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(windowDidBecomeKey),
+            name: NSWindow.didBecomeKeyNotification,
+            object: p
+        )
     }
 
     private static func embed(_ webView: WKWebView, glass: PanelGlass, size: NSSize) -> NSView {
@@ -309,6 +324,10 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         focusDefaultField()
     }
 
+    @objc private func windowDidBecomeKey(_ notification: Notification) {
+        focusDefaultField()
+    }
+
     @objc private func windowWillClose(_ notification: Notification) {
         tearDown()
         onClosed()
@@ -322,6 +341,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "macotron")
         webView.uiDelegate = nil
         NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: panel)
+        NotificationCenter.default.removeObserver(self, name: NSWindow.didBecomeKeyNotification, object: panel)
     }
 
     private func handleZoomKey(_ event: NSEvent) -> Bool {

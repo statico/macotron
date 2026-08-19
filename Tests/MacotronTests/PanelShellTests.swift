@@ -29,6 +29,8 @@ struct PanelShellTests {
         #expect(css.contains("--macotron-accent: AccentColor"))
         #expect(css.contains("--macotron-control: ButtonFace"))
         #expect(css.contains("button.primary"))
+        #expect(css.contains(".toolbar textarea"))
+        #expect(css.contains("min-height: 52px"))
     }
 
     @Test("glass parses true, regular/translucent, and clear")
