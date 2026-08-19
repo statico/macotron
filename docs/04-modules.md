@@ -41,6 +41,8 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Notes:** `macotron.notes.list()` is `{ id, title, folder }[]`. `open(id)` shows the note in the Notes app. macOS prompts to allow controlling Notes on first use.
 
+**App:** `macotron.app.launch(bundleID)` and `.switch(bundleID)` both open via Launch Services (`activates: true`), so a running app comes forward. `.list()`, `.frontmost()`, `app:activated`.
+
 **Keyboard:** `macotron.keyboard.on("tile-left", "ctrl+opt+left", callback)` — ids are unique per plugin; override the combo in Settings → Plugins. `keyboard.flags()` is `{ cmd, shift, ctrl, opt, caps, fn }`.
 
 **Event:** `macotron.event.post({ type: "click"|"key"|"unicode"|"scroll", ... })` posts HID. `event.tap(["flagsChanged","scroll"], cb)` listens; return `false` to swallow. Coords are Cocoa (same as `window.frame`). `macotron.mouse.location()`, `.warp(x, y)`, `.buttons()`.

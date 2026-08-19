@@ -300,7 +300,6 @@ public final class KeyboardModule: NativeModule {
         teardownEventTap()
         KeyboardTapState.shared.lock.lock()
         KeyboardTapState.shared.pluginBindings.removeAll()
-        KeyboardTapState.shared.hostBindings.removeAll()
         KeyboardTapState.shared.module = nil
         KeyboardTapState.shared.lock.unlock()
         registeredCombos.removeAll()
