@@ -71,7 +71,7 @@ private final class WindowSnapState: @unchecked Sendable {
 @MainActor
 public final class WindowModule: NativeModule {
     public let name = "window"
-    public let moduleVersion = 2
+    public let moduleVersion = 3
 
     private weak var engine: Engine?
     private var eventTap: CFMachPort?
@@ -148,12 +148,35 @@ public final class WindowModule: NativeModule {
             return QJS_NewBool(ctx, ok ? 1 : 0)
         }, "snap", 1))
 
+        JS_SetPropertyStr(ctx, windowObj, "minimize", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
+            let on = argc < 2 || JSBridge.toBool(ctx, argv[1])
+            return QJS_NewBool(ctx, WindowAX.minimize(JSBridge.toInt32(ctx, argv[0]), on) ? 1 : 0)
+        }, "minimize", 2))
+
+        JS_SetPropertyStr(ctx, windowObj, "close", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
+            return QJS_NewBool(ctx, WindowAX.close(JSBridge.toInt32(ctx, argv[0])) ? 1 : 0)
+        }, "close", 1))
+
+        JS_SetPropertyStr(ctx, windowObj, "setFullscreen", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 2 else { return QJS_NewBool(ctx!, 0) }
+            return QJS_NewBool(
+                ctx,
+                WindowAX.setFullscreen(JSBridge.toInt32(ctx, argv[0]), JSBridge.toBool(ctx, argv[1])) ? 1 : 0
+            )
+        }, "setFullscreen", 2))
+
         JS_SetPropertyStr(ctx, macotron, "window", windowObj)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
+
+        guard !engine.dryRun else { return }
+        WindowWatch.start(engine)
     }
 
     public func cleanup() {
+        WindowWatch.stop()
         teardownSnapTap()
         snapEnabled = false
         snapZones = defaultSnapZones

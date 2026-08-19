@@ -34,7 +34,7 @@ struct PluginNeedsTests {
         #expect(needs > host)
         #expect(!(host >= needs))
         #expect(PluginNeeds.unmetMessage(needs: needs, host: host)
-                == "Needs Macotron API 1.2 (this host is 1.0)")
+                == "Needs Macotron API 1.2 (this host is 1.1)")
     }
 
     @Test("Invalid pragma fails")

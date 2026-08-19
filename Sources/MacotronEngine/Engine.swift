@@ -31,7 +31,7 @@ public struct RegisteredHotkey {
 @MainActor
 public final class Engine {
     /// Semver of the plugin-facing JS API (`macotron.version.api`).
-    nonisolated public static let apiVersion = "1.0.0"
+    nonisolated public static let apiVersion = "1.1.0"
 
     public private(set) var runtime: OpaquePointer!
     public private(set) var context: OpaquePointer!
