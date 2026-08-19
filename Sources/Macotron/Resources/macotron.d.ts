@@ -48,6 +48,24 @@ declare const macotron: {
         moveToFraction(id: number, frac: { x?: number; y?: number; w?: number; h?: number }): boolean;
         setSnapEnabled(enabled: boolean): boolean;
         isSnapEnabled(): boolean;
+        /** Drag-to-edge tiling. Zones are fractions of the visible frame (same as moveToFraction). Omit a slot to disable it. */
+        snap(opts: boolean | {
+            enabled?: boolean;
+            threshold?: number;
+            corner?: number;
+            gap?: number;
+            zones?: {
+                left?: { x: number; y: number; w: number; h: number };
+                right?: { x: number; y: number; w: number; h: number };
+                top?: { x: number; y: number; w: number; h: number };
+                bottom?: { x: number; y: number; w: number; h: number };
+                tl?: { x: number; y: number; w: number; h: number };
+                tr?: { x: number; y: number; w: number; h: number };
+                bl?: { x: number; y: number; w: number; h: number };
+                br?: { x: number; y: number; w: number; h: number };
+                [slot: string]: { x: number; y: number; w: number; h: number } | undefined;
+            };
+        }): boolean;
     };
 
     keyboard: {
