@@ -38,11 +38,13 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 **Panel:**
 
 ```js
-const id = macotron.panel.open({ title: "Chat", width: 420, height: 520, html: "..." });
+const id = macotron.panel.open({ title: "Chat", width: 420, height: 520, html: "<p>Hi</p>" });
 macotron.panel.close(id);
 macotron.panel.postMessage(id, data);
 macotron.panel.onMessage(id, (data) => { /* ... */ });
 ```
+
+`html` is inserted into a host document (system font, padding, light/dark). `rawHtml` is a full document, the old `html` behavior.
 
 **localStorage:** Standard web API backed by JSON under the workdir data store.
 

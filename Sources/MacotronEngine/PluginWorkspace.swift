@@ -309,13 +309,15 @@ public final class PluginWorkspace {
         ## Panel API (stub)
 
         ```js
-        const id = macotron.panel.open({ title: "Chat", width: 420, height: 520, html: "..." });
+        const id = macotron.panel.open({ title: "Chat", width: 420, height: 520, html: "<p>Hi</p>" });
         macotron.panel.close(id);
         macotron.panel.postMessage(id, { hello: true });
         macotron.panel.onMessage(id, (data) => { /* ... */ });
         ```
 
-        The page may call `webkit.messageHandlers.macotron.postMessage(data)`.
+        `html` is inserted into a host document (system font, padding, light/dark).
+        `rawHtml` is a full document. The page may call
+        `webkit.messageHandlers.macotron.postMessage(data)`.
 
         ## Plugin settings
 

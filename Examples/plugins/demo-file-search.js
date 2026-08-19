@@ -5,9 +5,8 @@ macotron.command("Search Files", "Spotlight search and copy the selected path", 
         title: "Search Files",
         width: 520,
         height: 420,
-        html: `<!DOCTYPE html><html><body style="font:13px system-ui;margin:12px">
-<input id="q" autofocus placeholder="Search files…" style="width:100%;padding:8px">
-<div id="list" style="margin-top:10px"></div>
+        html: `<input id="q" autofocus placeholder="Search files…">
+<div id="list" class="grow scroll"></div>
 <script>
 let timer;
 document.getElementById("q").oninput = (e) => {
@@ -26,10 +25,10 @@ window.__macotronReceive = (data) => {
   if (!data || !data.hits) return;
   document.getElementById("list").innerHTML = data.hits.map((h) =>
     "<div data-path=\\"" + h.path.replace(/"/g, "") + "\\" style=\\"padding:6px 0;cursor:pointer\\"><b>" +
-    h.name + "</b><div style=\\"color:#888;font:11px ui-monospace,monospace\\">" + h.path + "</div></div>"
-  ).join("") || "<p>No results</p>";
+    h.name + "</b><div class=\\"muted mono\\">" + h.path + "</div></div>"
+  ).join("") || "<p class=\\"muted\\">No results</p>";
 };
-</script></body></html>`,
+</script>`,
     });
 
     macotron.panel.onMessage(id, async (data) => {

@@ -51,15 +51,28 @@ public final class PanelModule: NativeModule {
             let height = Int(JSBridge.toInt32(ctx, heightVal))
             JS_FreeValue(ctx, heightVal)
 
+            let rawVal = JSBridge.getProperty(ctx, opts, "rawHtml")
+            let rawHtml: String? = JSBridge.isUndefined(rawVal) || JSBridge.isNull(rawVal)
+                ? nil : JSBridge.toString(ctx, rawVal)
+            JS_FreeValue(ctx, rawVal)
+
             let htmlVal = JSBridge.getProperty(ctx, opts, "html")
-            let html = JSBridge.toString(ctx, htmlVal) ?? ""
+            let html: String? = JSBridge.isUndefined(htmlVal) || JSBridge.isNull(htmlVal)
+                ? nil : JSBridge.toString(ctx, htmlVal)
             JS_FreeValue(ctx, htmlVal)
+
+            let document: String
+            if let rawHtml, !rawHtml.isEmpty {
+                document = rawHtml
+            } else {
+                document = PanelShell.document(body: html ?? "")
+            }
 
             let id = module.openPanel(
                 title: title,
                 width: width > 0 ? width : 420,
                 height: height > 0 ? height : 520,
-                html: html
+                html: document
             )
             return JSBridge.newString(ctx, id)
         }, "open", 1))

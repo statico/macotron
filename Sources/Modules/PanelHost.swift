@@ -2,6 +2,75 @@
 import AppKit
 import WebKit
 
+enum PanelShell {
+    static func document(body: String) -> String {
+        let head = """
+        <!DOCTYPE html><html lang="en"><head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="color-scheme" content="light dark">
+        <style>
+        :root { color-scheme: light dark; }
+        html, body { height: 100%; margin: 0; }
+        body {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          box-sizing: border-box;
+          padding: 16px;
+          font: 13px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+          color: CanvasText;
+          background: Canvas;
+        }
+        h1, h2, h3 { margin: 0; font-weight: 600; }
+        h1 { font-size: 18px; }
+        h2 { font-size: 15px; }
+        h3 { font-size: 13px; }
+        p { margin: 0; }
+        a { color: LinkText; }
+        input, textarea, select, button { font: inherit; color: inherit; }
+        input, textarea, select {
+          box-sizing: border-box;
+          width: 100%;
+          padding: 8px 10px;
+          border: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
+          border-radius: 8px;
+          background: Field;
+          color: FieldText;
+        }
+        textarea { resize: vertical; }
+        textarea.grow { resize: none; }
+        input.inline { width: auto; }
+        button {
+          padding: 8px 12px;
+          border: 0;
+          border-radius: 8px;
+          background: color-mix(in srgb, CanvasText 12%, Canvas);
+          cursor: pointer;
+        }
+        button:hover { background: color-mix(in srgb, CanvasText 18%, Canvas); }
+        button.secondary { background: color-mix(in srgb, CanvasText 8%, Canvas); }
+        button.block { display: block; width: 100%; text-align: left; }
+        pre, code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+        pre { margin: 0; white-space: pre-wrap; }
+        .muted { color: color-mix(in srgb, CanvasText 55%, Canvas); }
+        .ok { color: #248a3d; }
+        .bad { color: #d70015; }
+        .grow { flex: 1; min-height: 0; }
+        .scroll { overflow: auto; }
+        .toolbar { display: flex; gap: 8px; align-items: center; }
+        .toolbar input { width: 0; flex: 1; min-width: 0; }
+        @media (prefers-color-scheme: dark) {
+          .ok { color: #32d74b; }
+          .bad { color: #ff6961; }
+        }
+        </style>
+        </head><body>
+        """
+        return head + body + "</body></html>"
+    }
+}
+
 private final class PluginPanel: NSPanel {
     override var canBecomeKey: Bool { true }
 }
@@ -22,6 +91,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler {
         config.userContentController = controller
 
         let wv = WKWebView(frame: NSRect(x: 0, y: 0, width: width, height: height), configuration: config)
+        wv.underPageBackgroundColor = NSColor.windowBackgroundColor
         self.webView = wv
 
         let p = PluginPanel(

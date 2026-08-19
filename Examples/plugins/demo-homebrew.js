@@ -11,16 +11,14 @@ macotron.command("Brew List", "Show installed Homebrew formulae", async () => {
         const result = await brew(["list", "--formula"]);
         const names = (result.stdout || "").trim().split(/\s+/).filter(Boolean);
         const rows = names.map((name) =>
-            `<div style="padding:4px 0;font:13px ui-monospace,monospace">${name.replace(/[<>&]/g, "")}</div>`
+            `<div class="mono">${name.replace(/[<>&]/g, "")}</div>`
         ).join("");
         macotron.panel.open({
             title: "Homebrew",
             width: 360,
             height: 480,
-            html: `<!DOCTYPE html><html><body style="margin:12px;font:13px system-ui">
-<h3 style="margin:0 0 8px">Installed formulae (${names.length})</h3>
-${rows || "<p>None</p>"}
-</body></html>`,
+            html: `<h3>Installed formulae (${names.length})</h3>
+<div class="grow scroll">${rows || '<p class="muted">None</p>'}</div>`,
         });
     } catch (err) {
         macotron.notify.show("Homebrew", String(err));

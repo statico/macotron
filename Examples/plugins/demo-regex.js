@@ -5,11 +5,10 @@ macotron.command("Regex Workbench", "Test a regular expression against sample te
         title: "Regex",
         width: 520,
         height: 420,
-        html: `<!DOCTYPE html><html><body style="font:13px system-ui;margin:14px">
-<input id="pat" placeholder="pattern" style="width:100%;padding:6px;font:13px ui-monospace,monospace">
-<label style="display:block;margin:8px 0"><input id="flags" value="g" style="width:60px;font:13px ui-monospace,monospace"> flags</label>
-<textarea id="src" rows="8" style="width:100%;font:13px ui-monospace,monospace" placeholder="sample text"></textarea>
-<pre id="out" style="white-space:pre-wrap;margin-top:10px;min-height:80px"></pre>
+        html: `<input id="pat" class="mono" placeholder="pattern">
+<label><input id="flags" class="inline mono" value="g" size="4"> flags</label>
+<textarea id="src" class="mono grow" placeholder="sample text"></textarea>
+<pre id="out" class="grow scroll muted"></pre>
 <script>
 function run() {
   const pat = document.getElementById("pat").value;
@@ -28,7 +27,7 @@ function run() {
 document.getElementById("pat").oninput = run;
 document.getElementById("flags").oninput = run;
 document.getElementById("src").oninput = run;
-</script></body></html>`,
+</script>`,
     });
     void id;
 });
