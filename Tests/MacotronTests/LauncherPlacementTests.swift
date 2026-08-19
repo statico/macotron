@@ -30,11 +30,12 @@ struct LauncherPlacementTests {
         #expect(abs(maxH - visible.height * (1 - 2 * LauncherPlacement.topFraction)) < 0.5)
     }
 
-    @Test("max size is a landscape golden rectangle")
-    func golden() {
-        let maxH = LauncherPlacement.maxHeight(in: visible)
+    @Test("width is the golden central column of the visible frame")
+    func goldenWidth() {
         let w = LauncherPlacement.width(in: visible)
-        #expect(abs(w / maxH - LauncherPlacement.phi) < 0.01)
+        let expected = visible.width / (LauncherPlacement.phi * LauncherPlacement.phi)
+        #expect(abs(w - expected) < 0.5)
+        #expect(w < visible.width * 0.5)
     }
 
     @Test("tall content stays in the 18 percent band")
