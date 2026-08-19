@@ -58,7 +58,6 @@ public struct LauncherView: View {
     public var onSearch: ((String) -> [SearchResult])?
     public var onAssignShortcut: ((String, String) -> Void)?
     public var onToggleFavorite: ((String) -> Void)?
-    public var onHeightChange: ((CGFloat) -> Void)?
 
     public init(
         prefs: LauncherPrefs = LauncherPrefs(),
@@ -67,8 +66,7 @@ public struct LauncherView: View {
         onRevealInFinder: ((String) -> Void)? = nil,
         onSearch: ((String) -> [SearchResult])? = nil,
         onAssignShortcut: ((String, String) -> Void)? = nil,
-        onToggleFavorite: ((String) -> Void)? = nil,
-        onHeightChange: ((CGFloat) -> Void)? = nil
+        onToggleFavorite: ((String) -> Void)? = nil
     ) {
         self._prefs = ObservedObject(wrappedValue: prefs)
         self._session = ObservedObject(wrappedValue: session)
@@ -77,7 +75,6 @@ public struct LauncherView: View {
         self.onSearch = onSearch
         self.onAssignShortcut = onAssignShortcut
         self.onToggleFavorite = onToggleFavorite
-        self.onHeightChange = onHeightChange
     }
 
     public var body: some View {
@@ -139,7 +136,8 @@ public struct LauncherView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(width: panelSize.width, height: panelSize.height, alignment: .top)
+        .clipped()
         .onChange(of: session.query) { _, newValue in
             applySearch(newValue)
         }
@@ -147,10 +145,10 @@ public struct LauncherView: View {
             applySearch(session.query)
             launcherLog.notice("""
                 appear n=\(self.results.count, privacy: .public) \
-                panelH=\(self.panelHeight, format: .fixed(precision: 1), privacy: .public) \
+                size=\(self.panelSize.width, format: .fixed(precision: 0), privacy: .public)x\
+                \(self.panelSize.height, format: .fixed(precision: 0), privacy: .public) \
                 queryLen=\(self.session.query.count, privacy: .public)
                 """)
-            onHeightChange?(panelHeight)
         }
         .onChange(of: session.pendingArgs?.commandId) { _, _ in
             if let pending = session.pendingArgs {
@@ -177,16 +175,11 @@ public struct LauncherView: View {
             )
             .frame(width: 0, height: 0)
         }
-        .onChange(of: panelHeight) { _, height in
+        .onChange(of: results.count) { _, n in
             launcherLog.notice("""
-                content n=\(self.results.count, privacy: .public) \
-                listH=\(self.listHeight, format: .fixed(precision: 1), privacy: .public) \
-                panelH=\(height, format: .fixed(precision: 1), privacy: .public) \
-                maxListH=\(self.maxListHeight, format: .fixed(precision: 1), privacy: .public) \
-                scale=\(self.prefs.textScale, format: .fixed(precision: 2), privacy: .public) \
+                content n=\(n, privacy: .public) \
                 queryLen=\(self.session.query.count, privacy: .public)
                 """)
-            onHeightChange?(height)
         }
     }
 
@@ -289,44 +282,14 @@ public struct LauncherView: View {
         session.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private var listHeight: CGFloat {
-        let row = 20 * prefs.textScale + 10
-        let content = CGFloat(results.count) * row + 8
-        return min(content, maxListHeight)
-    }
-
-    private var maxPanelHeight: CGFloat {
-        LauncherPlacement.maxHeight(in: LauncherPlacement.currentVisible())
-    }
-
-    private var maxListHeight: CGFloat {
-        let scale = prefs.textScale
-        let chrome: CGFloat = 52 + 1 + 1 + 16 + 14 * scale
-        return max(20 * scale + 10, maxPanelHeight - chrome)
-    }
-
-    /// Window height from known chrome, not SwiftUI geometry. Measuring the
-    /// hosting view reports the panel's current size and never shrinks.
-    private var panelHeight: CGFloat {
-        let scale = prefs.textScale
-        if let pending = session.pendingArgs {
-            let error: CGFloat = argError == nil ? 0 : 18
-            return min(
-                maxPanelHeight,
-                max(LauncherPlacement.minHeight, 48 + CGFloat(pending.arguments.count) * 36 + error)
-            )
-        }
-        var height: CGFloat = 52
-        if queryIsEmpty && results.isEmpty {
-            return LauncherPlacement.minHeight
-        }
-        height += 1
-        if results.isEmpty {
-            height += 48 + 12 * scale
-        } else {
-            height += listHeight + 1 + 16 + 14 * scale
-        }
-        return min(maxPanelHeight, height)
+    /// Match the panel: SwiftUI must not layout taller than the window, or
+    /// AppKit scrolls the focused search field off-screen.
+    private var panelSize: CGSize {
+        let visible = LauncherPlacement.currentVisible()
+        return CGSize(
+            width: LauncherPlacement.width(in: visible),
+            height: LauncherPlacement.maxHeight(in: visible)
+        )
     }
 
     private func applySearch(_ query: String) {
@@ -741,8 +704,15 @@ public final class PinnedHostingView<Content: View>: NSHostingView<Content> {
 
     public override func layout() {
         super.layout()
-        if let s = superview {
-            frame = s.bounds
-        }
+        pinToSuperview()
+    }
+
+    public override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(superview?.bounds.size ?? newSize)
+    }
+
+    private func pinToSuperview() {
+        guard let s = superview, frame != s.bounds else { return }
+        frame = s.bounds
     }
 }

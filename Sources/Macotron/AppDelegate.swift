@@ -139,9 +139,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onToggleFavorite: { [weak self] id in
                 self?.toggleFavorite(id)
-            },
-            onHeightChange: { [weak self] height in
-                self?.launcherPanel.resizeToHeight(height)
             }
         )
         let hostingView = PinnedHostingView(rootView: launcherView)
