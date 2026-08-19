@@ -190,7 +190,8 @@ declare const macotron: {
     };
 
     panel: {
-        open(opts: { title?: string; width?: number; height?: number; html: string }): string;
+        /** `html` is body markup in a host document (fonts, padding, light/dark). `rawHtml` is a full document. */
+        open(opts: { title?: string; width?: number; height?: number; html?: string; rawHtml?: string }): string;
         close(id: string): void;
         postMessage(id: string, data: any): void;
         onMessage(id: string, callback: (data: any) => void): void;

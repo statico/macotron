@@ -5,9 +5,8 @@ macotron.command("Calculator", "Evaluate an expression and copy the result", () 
         title: "Calculator",
         width: 360,
         height: 180,
-        html: `<!DOCTYPE html><html><body style="font:14px system-ui;margin:16px">
-<input id="q" autofocus placeholder="2 + 2 * 10" style="width:100%;padding:8px;font:16px ui-monospace,monospace">
-<p id="out" style="margin:12px 0 0;color:#888">Enter an expression</p>
+        html: `<input id="q" class="mono" autofocus placeholder="2 + 2 * 10">
+<p id="out" class="muted">Enter an expression</p>
 <script>
 const out = document.getElementById("out");
 document.getElementById("q").onkeydown = (e) => {
@@ -19,7 +18,7 @@ window.__macotronReceive = (data) => {
   if (data && data.error) out.textContent = data.error;
   if (data && data.result != null) out.textContent = data.result;
 };
-</script></body></html>`,
+</script>`,
     });
 
     macotron.panel.onMessage(id, (data) => {
