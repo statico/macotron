@@ -42,7 +42,7 @@ public final class LauncherPanel: NSPanel {
         backgroundColor = .clear
         isOpaque = false
         hasShadow = true
-        applySizeLimits(in: seed)
+        applySizeLimits(in: seed, height: Self.minHeight)
         animationBehavior = .none
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         becomesKeyOnlyIfNeeded = false
@@ -61,6 +61,8 @@ public final class LauncherPanel: NSPanel {
         let chrome = Self.makeChrome(style, size: NSSize(width: width, height: height))
         let pin = HostPinView(frame: chrome.bounds)
         pin.autoresizingMask = [.width, .height]
+        pin.wantsLayer = true
+        pin.layer?.masksToBounds = true
         hostingView.frame = pin.bounds
         hostingView.autoresizingMask = [.width, .height]
         pin.addSubview(hostingView)
@@ -124,16 +126,24 @@ public final class LauncherPanel: NSPanel {
     /// Resize the panel to fit the given content height, keeping the top edge pinned.
     public func resizeToHeight(_ height: CGFloat) {
         let visible = currentVisible
-        applySizeLimits(in: visible)
         let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: nil)
+        applySizeLimits(in: visible, height: newFrame.height)
         logPlacement("resize", height: height, visible: visible, pinTop: nil, frame: newFrame)
         lastContentHeight = newFrame.height
         guard abs(frame.height - newFrame.height) > 1 || abs(frame.origin.y - newFrame.origin.y) > 1
             || abs(frame.origin.x - newFrame.origin.x) > 1
-            || abs(frame.width - newFrame.width) > 1 else { return }
+            || abs(frame.width - newFrame.width) > 1 else {
+            pinHost()
+            return
+        }
         setFrame(newFrame, display: true)
         pinHost()
         logger.notice("after \(NSStringFromRect(self.frame), privacy: .public) host=\(NSStringFromRect(self.hostingView.frame), privacy: .public)")
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.pinHost()
+            logger.notice("async \(NSStringFromRect(self.frame), privacy: .public) host=\(NSStringFromRect(self.hostingView.frame), privacy: .public)")
+        }
     }
 
     private func reveal() {
@@ -182,8 +192,8 @@ public final class LauncherPanel: NSPanel {
             captureFrontApp()
             let height = lastContentHeight > 0 ? lastContentHeight : Self.minHeight
             let visible = currentVisible
-            applySizeLimits(in: visible)
             let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: nil)
+            applySizeLimits(in: visible, height: newFrame.height)
             logPlacement("open", height: height, visible: visible, pinTop: nil, frame: newFrame)
             setFrame(newFrame, display: false)
             pinHost()
@@ -202,12 +212,15 @@ public final class LauncherPanel: NSPanel {
         hostingView.frame = parent.bounds
     }
 
+    public override func setContentSize(_ size: NSSize) {}
+
     private var currentVisible: CGRect { LauncherPlacement.currentVisible() }
 
-    private func applySizeLimits(in visible: CGRect) {
+    private func applySizeLimits(in visible: CGRect, height: CGFloat) {
         let width = LauncherPlacement.width(in: visible)
-        minSize = NSSize(width: width, height: Self.minHeight)
-        maxSize = NSSize(width: width, height: LauncherPlacement.maxHeight(in: visible))
+        let h = max(Self.minHeight, height)
+        minSize = NSSize(width: width, height: h)
+        maxSize = NSSize(width: width, height: h)
     }
 
     private func logPlacement(_ reason: String, height: CGFloat, visible: CGRect, pinTop: CGFloat?, frame: CGRect) {

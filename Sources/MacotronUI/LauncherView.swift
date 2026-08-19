@@ -138,7 +138,7 @@ public struct LauncherView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, alignment: .top)
         .onChange(of: session.query) { _, newValue in
             applySearch(newValue)
         }
@@ -730,6 +730,19 @@ struct ResultRow: View {
         case .app: return "Application"
         case .command: return "Command"
         case .plugin: return result.kind.isEmpty ? "Plugin" : result.kind
+        }
+    }
+}
+
+public final class PinnedHostingView<Content: View>: NSHostingView<Content> {
+    public override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
+    }
+
+    public override func layout() {
+        super.layout()
+        if let s = superview {
+            frame = s.bounds
         }
     }
 }
