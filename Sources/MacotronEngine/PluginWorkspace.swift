@@ -306,8 +306,9 @@ public final class PluginWorkspace {
         Ids are unique per plugin. Users override the combo in Settings → Plugins.
 
         `macotron.notify.toast(title, body?, { position, duration, sfSymbol, color })` is a
-        one-line HUD on the screen under the cursor (3s default). `color: "success"` is a
-        green check. `macotron.notify.show` is a system banner.
+        one-line HUD on the screen under the cursor (3s default). `color` is `info`,
+        `success` (green check), `error` (red x), or `warning` (orange triangle).
+        `macotron.notify.show` is a system banner.
         `macotron.screen.pickColor()` opens the system magnifier and returns
         `{ hex, r, g, b, x, y }` or `null`.
 

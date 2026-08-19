@@ -43,7 +43,7 @@ function paint() {
     });
     if (s.error && s.error !== lastError) {
         lastError = s.error;
-        macotron.notify.toast("Fan", s.error);
+        macotron.notify.toast("Fan", s.error, { color: "error" });
     }
     if (!s.error) lastError = "";
 }
@@ -59,7 +59,7 @@ function setFloor(percent) {
 function toggle() {
     const s = snapshot();
     if (!s.available) {
-        macotron.notify.toast("Fan", s.error || "No fans on this Mac");
+        macotron.notify.toast("Fan", s.error || "No fans on this Mac", { color: s.error ? "error" : "info" });
         return;
     }
     setFloor(s.floor ? null : 100);

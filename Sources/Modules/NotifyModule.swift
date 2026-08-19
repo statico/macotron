@@ -138,7 +138,7 @@ public final class NotifyModule: NativeModule {
         // macotron.notify.toast(title, body?, opts?)
         //   opts.position — "top" | "bottom" (default "bottom")
         //   opts.duration — milliseconds (default 3000)
-        //   opts.color    — "success" | "failure" | name | #RRGGBB
+        //   opts.color    — "info" | "success" | "error" | "warning" | name | #RRGGBB
         JS_SetPropertyStr(ctx, notifyObj, "toast", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else {
                 return QJS_ThrowTypeError(ctx, "notify.toast requires a title")
