@@ -29,6 +29,9 @@ public final class MenuBarManager: NSObject {
         }
     }
 
+    /// Extra NSStatusItems registered by plugins, next to the Macotron icon.
+    private var extraStatusItems: [String: PluginStatusItem] = [:]
+
     /// Items registered by JS modules, keyed by ID
     private var dynamicItems: [(id: String, config: MenuItemConfig)] = []
 
@@ -141,6 +144,40 @@ public final class MenuBarManager: NSObject {
 
     public func setTitle(_ text: String) {
         statusItem.button?.title = text
+    }
+
+    public func setStatus(
+        id: String,
+        title: String,
+        subtitle: String?,
+        color: String?,
+        bold: Bool,
+        italic: Bool,
+        sfSymbol: String?,
+        imagePath: String?,
+        onClick: (() -> Void)?
+    ) {
+        let extra = extraStatusItems[id] ?? PluginStatusItem(id: id)
+        extraStatusItems[id] = extra
+        extra.apply(
+            title: title,
+            subtitle: subtitle,
+            color: color,
+            bold: bold,
+            italic: italic,
+            sfSymbol: sfSymbol,
+            imagePath: imagePath,
+            onClick: onClick
+        )
+    }
+
+    public func removeStatus(id: String) {
+        extraStatusItems.removeValue(forKey: id)?.remove()
+    }
+
+    public func removeAllStatus() {
+        extraStatusItems.values.forEach { $0.remove() }
+        extraStatusItems.removeAll()
     }
 
     public func setVisible(_ visible: Bool) {

@@ -1,5 +1,5 @@
 // demo-weather.js
-// APIs: macotron.module, macotron.http.get, macotron.menubar, macotron.every, macotron.notify, macotron.command
+// APIs: macotron.module, macotron.http.get, macotron.menubar.status, macotron.every, macotron.notify, macotron.command
 
 const opts = macotron.module({
     title: "Weather",
@@ -18,16 +18,19 @@ const opts = macotron.module({
     },
 });
 
-macotron.menubar.add("weather", {
-    title: "Weather…",
-    icon: "cloud.sun",
-    section: "Info",
-});
+function render(title, color) {
+    macotron.menubar.status("weather", {
+        title: title,
+        sfSymbol: "cloud.sun",
+        color: color,
+        onClick: () => refreshWeather(),
+    });
+}
 
 async function refreshWeather() {
     const loc = (opts.location || "").trim();
     const path = loc ? encodeURIComponent(loc) : "";
-    const url = `https://wttr.in/${path}?format=%l:+%c+%t`;
+    const url = `https://wttr.in/${path}?format=%c+%t`;
 
     try {
         const res = await macotron.http.get(url, {
@@ -37,15 +40,9 @@ async function refreshWeather() {
             throw new Error(`HTTP ${res.status}`);
         }
         const title = res.body.trim().replace(/\n/g, " ");
-        macotron.menubar.update("weather", {
-            title: title || "Weather N/A",
-            icon: "cloud.sun",
-        });
+        render(title || "Weather", null);
     } catch (err) {
-        macotron.menubar.update("weather", {
-            title: "Weather —",
-            icon: "exclamationmark.triangle",
-        });
+        render("Weather —", "red");
         macotron.log("weather fetch failed", err);
     }
 }
