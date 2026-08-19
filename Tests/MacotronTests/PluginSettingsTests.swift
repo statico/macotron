@@ -131,6 +131,17 @@ struct PluginSettingsTests {
         try assertJSONEqual(result, #"{"apiKey":""}"#)
     }
 
+    @Test("$$__module records permissions")
+    func moduleRecordsPermissions() {
+        let engine = Engine()
+        engine.currentEvaluatingFile = "test.js"
+        let (_, error) = engine.evaluate("""
+            $$__module({ title: "OCR", permissions: ["screenRecording", "accessibility"] });
+        """)
+        #expect(error == nil)
+        #expect(engine.declaredPermissions == ["screenRecording", "accessibility"])
+    }
+
     // MARK: - ModuleManager secret storage
 
     @Test("saveModuleSecret stores ref in settings and secret in Keychain; clear removes both")

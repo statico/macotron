@@ -1,5 +1,9 @@
 // APIs: window.moveToFraction, keyboard, command
-macotron.requirePermissions(["accessibility"]);
+macotron.plugin({
+  title: "Window Tiling",
+  description: "Snap the focused window to halves and corners.",
+  permissions: ["accessibility"],
+});
 
 const tile = (frame) => {
   const window = macotron.window.focused();

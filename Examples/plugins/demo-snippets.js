@@ -1,3 +1,8 @@
+macotron.plugin({
+  title: "Snippets",
+  description: "Text expansions you can insert from the launcher.",
+});
+
 macotron.snippets.set("omw", "On my way!");
 macotron.snippets.set(";date", new Date().toLocaleDateString());
 macotron.snippets.setExpansionEnabled(true);

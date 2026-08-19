@@ -1,15 +1,26 @@
-// APIs: ocr.recognize, screen.capture, clipboard.set, command
-macotron.requirePermissions(["screenRecording"]);
+// APIs: ocr.recognize, screen.capture, clipboard.set, notify.toast, command
+macotron.plugin({
+  title: "OCR",
+  description: "Select a screen area and copy the text.",
+  permissions: ["screenRecording"],
+});
 
-async function ocrScreen() {
+async function ocrSelection() {
+    macotron.notify.toast("Select the area of the screen you want to OCR", { duration: 4000 });
     try {
-        const text = await macotron.ocr.recognize({ image: await macotron.screen.capture() });
+        const image = await macotron.screen.capture({ selection: true });
+        if (!image) return;
+        const text = await macotron.ocr.recognize({ image });
+        if (!text) {
+            macotron.notify.toast("No text found");
+            return;
+        }
         macotron.clipboard.set(text);
-        macotron.notify.show("OCR", text || "No text found");
+        macotron.notify.toast("Text copied to clipboard", { color: "success" });
     } catch (error) {
-        macotron.notify.show("OCR failed", String(error));
+        macotron.notify.toast("OCR failed", String(error));
     }
 }
 
-macotron.keyboard.on("ocr", "cmd+shift+o", ocrScreen);
-macotron.command("OCR Screen", "Capture screen, OCR text, copy to clipboard", ocrScreen);
+macotron.keyboard.on("ocr", "cmd+shift+o", ocrSelection);
+macotron.command("OCR Selection", "Drag a box, OCR the text, copy to clipboard", ocrSelection);

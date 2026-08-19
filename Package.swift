@@ -60,7 +60,7 @@ let package = Package(
         // Tests
         .testTarget(
             name: "MacotronTests",
-            dependencies: ["MacotronEngine", "MacotronUI", "AI"]
+            dependencies: ["MacotronEngine", "MacotronUI", "AI", "Modules"]
         ),
     ]
 )

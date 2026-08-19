@@ -1,6 +1,6 @@
 # Macotron Overview
 
-Macotron is a thin macOS host for JavaScript automation plugins. Macotron is a modern Hammerspoon, with extras like xbar.
+Macotron is a modern Hammerspoon: a thin native macOS host for JavaScript automation plugins.
 
 External coding agents edit plugins. The app does not ship an in-app coding agent. You open the plugins directory in Cursor or Claude Code. The agent writes `.js` files. Macotron loads and runs them.
 

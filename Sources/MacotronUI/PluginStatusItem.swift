@@ -8,6 +8,7 @@ final class PluginStatusItem: NSObject {
     private let host = StatusHostView()
     private var onClick: (() -> Void)?
     private var menuKeep: [PluginMenu.Action] = []
+    private var dropdown: NSMenu?
 
     init(id: String) {
         self.id = id
@@ -18,14 +19,14 @@ final class PluginStatusItem: NSObject {
         button.image = nil
         button.target = self
         button.action = #selector(clicked)
+        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         host.translatesAutoresizingMaskIntoConstraints = false
         host.wantsLayer = true
+        host.setContentHuggingPriority(.required, for: .horizontal)
         button.addSubview(host)
         NSLayoutConstraint.activate([
-            host.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 4),
-            host.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -4),
-            host.topAnchor.constraint(equalTo: button.topAnchor),
-            host.bottomAnchor.constraint(equalTo: button.bottomAnchor),
+            host.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+            host.centerYAnchor.constraint(equalTo: button.centerYAnchor),
         ])
     }
 
@@ -43,16 +44,20 @@ final class PluginStatusItem: NSObject {
         self.onClick = onClick
         menuKeep.removeAll()
         if menu.isEmpty {
-            item.menu = nil
-            item.button?.target = self
-            item.button?.action = #selector(clicked)
+            dropdown = nil
         } else {
-            item.menu = PluginMenu.make(menu, retaining: &menuKeep)
-            item.button?.target = nil
-            item.button?.action = nil
+            dropdown = PluginMenu.make(menu, retaining: &menuKeep)
         }
+        item.menu = nil
+        let button = item.button
+        button?.target = self
+        button?.action = #selector(clicked)
         let nsColor = Self.parseColor(color)
         let image = Self.loadImage(sfSymbol: sfSymbol, path: imagePath, color: nsColor)
+        let iconOnly = title.isEmpty && (subtitle ?? "").isEmpty
+        button?.image = nil
+        button?.contentTintColor = nil
+        host.isHidden = false
         host.configure(
             title: title,
             subtitle: subtitle,
@@ -62,8 +67,10 @@ final class PluginStatusItem: NSObject {
             image: image
         )
         host.layoutSubtreeIfNeeded()
-        item.length = max(host.fittingSize.width + 10, 18)
-        item.button?.toolTip = subtitle.map { "\(title) — \($0)" } ?? title
+        item.length = iconOnly
+            ? NSStatusItem.squareLength
+            : max(ceil(host.fittingSize.width) + 8, NSStatusItem.squareLength)
+        button?.toolTip = subtitle.map { "\(title) — \($0)" } ?? title
     }
 
     func remove() {
@@ -71,14 +78,28 @@ final class PluginStatusItem: NSObject {
     }
 
     @objc private func clicked() {
+        let event = item.button?.window?.currentEvent ?? NSApp.currentEvent
+        let menuClick = event?.type == .rightMouseUp
+            || event?.modifierFlags.contains(.control) == true
+        if (menuClick || onClick == nil), let dropdown, let button = item.button {
+            if let event, event.type == .rightMouseUp || event.type == .leftMouseUp {
+                NSMenu.popUpContextMenu(dropdown, with: event, for: button)
+            } else {
+                dropdown.popUp(positioning: nil, at: NSPoint(x: 0, y: 0), in: button)
+            }
+            return
+        }
         onClick?()
     }
+
+    fileprivate static let iconSize: CGFloat = 20
+    private static let symbolConfig = NSImage.SymbolConfiguration(pointSize: 20, weight: .medium)
 
     private static func loadImage(sfSymbol: String?, path: String?, color: NSColor?) -> NSImage? {
         if let path, !path.isEmpty {
             let expanded = (path as NSString).expandingTildeInPath
             if let img = NSImage(contentsOfFile: expanded) {
-                img.size = NSSize(width: 16, height: 16)
+                img.size = NSSize(width: iconSize, height: iconSize)
                 img.isTemplate = color == nil
                 return img
             }
@@ -87,12 +108,13 @@ final class PluginStatusItem: NSObject {
               let img = NSImage(systemSymbolName: sfSymbol, accessibilityDescription: nil) else {
             return nil
         }
+        var config = symbolConfig
         if let color {
-            img.isTemplate = false
-            return img.withSymbolConfiguration(.init(paletteColors: [color])) ?? img
+            config = config.applying(.init(paletteColors: [color]))
         }
-        img.isTemplate = true
-        return img
+        let out = img.withSymbolConfiguration(config) ?? img
+        out.isTemplate = color == nil
+        return out
     }
 
     static func parseColor(_ raw: String?) -> NSColor? {
@@ -136,7 +158,7 @@ private final class StatusHostView: NSView {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        imageView.imageScaling = .scaleProportionallyDown
+        imageView.imageScaling = .scaleProportionallyUpOrDown
         imageView.setContentHuggingPriority(.required, for: .horizontal)
 
         titleField.lineBreakMode = .byTruncatingTail
@@ -162,8 +184,8 @@ private final class StatusHostView: NSView {
             root.trailingAnchor.constraint(equalTo: trailingAnchor),
             root.topAnchor.constraint(equalTo: topAnchor),
             root.bottomAnchor.constraint(equalTo: bottomAnchor),
-            imageView.widthAnchor.constraint(equalToConstant: 16),
-            imageView.heightAnchor.constraint(equalToConstant: 16),
+            imageView.widthAnchor.constraint(equalToConstant: PluginStatusItem.iconSize),
+            imageView.heightAnchor.constraint(equalToConstant: PluginStatusItem.iconSize),
         ])
     }
 
@@ -172,14 +194,17 @@ private final class StatusHostView: NSView {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
     func configure(title: String, subtitle: String?, color: NSColor?, bold: Bool, italic: Bool, image: NSImage?) {
+        let hasTitle = !title.isEmpty
         let twoLine = !(subtitle ?? "").isEmpty
         titleField.stringValue = title
+        titleField.isHidden = !hasTitle
         titleField.font = Self.font(size: twoLine ? 10 : 13, bold: bold, italic: italic)
         titleField.textColor = color ?? .labelColor
         subtitleField.stringValue = subtitle ?? ""
         subtitleField.isHidden = !twoLine
         subtitleField.font = Self.font(size: 9, bold: false, italic: italic)
         subtitleField.textColor = color?.withAlphaComponent(0.75) ?? .secondaryLabelColor
+        textStack.isHidden = !hasTitle && !twoLine
         imageView.image = image
         imageView.isHidden = image == nil
         invalidateIntrinsicContentSize()
@@ -235,6 +260,8 @@ enum PluginMenu {
                 boxes.append(box)
                 row.target = box
                 row.action = #selector(Action.invoke)
+            } else {
+                row.isEnabled = false
             }
             menu.addItem(row)
         }

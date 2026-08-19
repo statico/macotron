@@ -10,10 +10,14 @@ The first-run wizard does not demand permissions up front. The required set is t
 | **Accessibility** | Baseline | Move and focus windows |
 | **Screen Recording** | Declared by a plugin | Capture the screen |
 
-A plugin declares what it needs at load time:
+A plugin declares what it needs in `macotron.plugin()`:
 
 ```js
-macotron.requirePermissions(["accessibility", "screenRecording"]);
+macotron.plugin({
+  title: "OCR",
+  description: "Select a screen area and copy the text.",
+  permissions: ["accessibility", "screenRecording"],
+});
 ```
 
 ## Permission Alerts
@@ -67,7 +71,7 @@ enum CapabilityTier {
 
 ### Moderate (reversible side effects)
 
-`window.move`, `window.moveToFraction`, `window.snap`, `window.setSnapEnabled`, `notify.show`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `panel.open`, `panel.close`
+`window.move`, `window.moveToFraction`, `window.snap`, `window.setSnapEnabled`, `notify.show`, `notify.toast`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `panel.open`, `panel.close`, `screen.pickColor`
 
 ### Dangerous (system / network / filesystem)
 

@@ -51,11 +51,11 @@ public final class Engine {
     /// Config store (populated by macotron.config() calls)
     public var configStore: [String: Any] = [:]
 
-    /// Permission names declared by plugins via `macotron.requirePermissions()`.
+    /// Permission names declared by plugins via `macotron.plugin({ permissions })`.
     /// Cleared on every reload.
     public var declaredPermissions: Set<String> = []
 
-    /// Module metadata (populated by macotron.module() calls during execution).
+    /// Plugin metadata (populated by macotron.plugin() calls during execution).
     /// Keyed by filename → raw metadata dict from JS.
     public var moduleMetadata: [String: [String: Any]] = [:]
 
@@ -299,14 +299,7 @@ public final class Engine {
                 guard let opaque else { return QJS_Undefined() }
                 let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
 
-                let value = JSBridge.jsToSwift(ctx, argv[0])
-                if let list = value as? [Any] {
-                    for item in list {
-                        if let name = item as? String { engine.declaredPermissions.insert(name) }
-                    }
-                } else if let name = value as? String {
-                    engine.declaredPermissions.insert(name)
-                }
+                engine.addDeclaredPermissions(JSBridge.jsToSwift(ctx, argv[0]))
                 return QJS_Undefined()
             }, "$$__requirePermissions", 1))
 
@@ -324,7 +317,7 @@ public final class Engine {
                 return QJS_Undefined()
             }, "$$__config", 1))
 
-        // $$__module — called by macotron.module() to declare metadata & options.
+        // $$__module — called by macotron.plugin() to declare metadata & options.
         // Stores metadata, returns resolved options (defaults merged with user overrides).
         JS_SetPropertyStr(context, global, "$$__module",
             JS_NewCFunction(context, { ctx, thisVal, argc, argv -> JSValue in
@@ -336,8 +329,8 @@ public final class Engine {
                 let metadata = JSBridge.jsToSwift(ctx, argv[0]) as? [String: Any] ?? [:]
                 let filename = engine.currentEvaluatingFile ?? "<unknown>"
 
-                // Store the metadata for the settings UI to read later
                 engine.moduleMetadata[filename] = metadata
+                engine.addDeclaredPermissions(metadata["permissions"])
 
                 // Build resolved options: defaults merged with user overrides.
                 // Password options store a Keychain account ref in settings.json;
@@ -365,6 +358,16 @@ public final class Engine {
             }, "$$__module", 1))
 
         JS_FreeValue(context, global)
+    }
+
+    func addDeclaredPermissions(_ value: Any?) {
+        if let list = value as? [Any] {
+            for item in list {
+                if let name = item as? String { declaredPermissions.insert(name) }
+            }
+        } else if let name = value as? String {
+            declaredPermissions.insert(name)
+        }
     }
 
     // MARK: - Timer Management
@@ -419,6 +422,11 @@ public final class Engine {
     }
 
     // MARK: - Evaluate
+
+    /// Plugins share one context; wrap so `const opts` in two files does not collide.
+    public static func isolatedPlugin(_ source: String) -> String {
+        "(function(){\n\(source)\n})();"
+    }
 
     /// Evaluate JS code, auto-detecting ES modules. Returns (result, error).
     @discardableResult

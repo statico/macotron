@@ -221,6 +221,7 @@ public final class PluginWorkspace {
             "showMenuBarIcon": true,
             "appearance": "system",
             "textScale": 1.0,
+            "launcherBackground": "translucent",
         ],
         "modules": [:] as [String: Any],
         "pluginSettings": [:] as [String: Any],
@@ -290,15 +291,24 @@ public final class PluginWorkspace {
 
         ## Plugins
 
-        Put one `.js` file per plugin under `plugins/`. Register hotkeys at load time:
+        Put one `.js` file per plugin under `plugins/`. Each file runs in its own
+        function scope, so `const opts` in two plugins does not collide.
+
+        Register hotkeys at load time:
 
         ```js
         macotron.keyboard.on("hello", "cmd+shift+h", () => {
-          macotron.notify.show("Hello", "From a Macotron plugin");
+          macotron.notify.toast("Hello", "From a Macotron plugin");
         });
         ```
 
         Ids are unique per plugin. Users override the combo in Settings → Plugins.
+
+        `macotron.notify.toast(title, body?, { position, duration, sfSymbol, color })` is a
+        one-line HUD on the screen under the cursor (3s default). `color: "success"` is a
+        green check. `macotron.notify.show` is a system banner.
+        `macotron.screen.pickColor()` opens the system magnifier and returns
+        `{ hex, r, g, b, x, y }` or `null`.
 
         ## Launcher commands
 
@@ -321,44 +331,50 @@ public final class PluginWorkspace {
         ```
 
         The three-argument form still works. `id` is optional; the default is `{filename}/{name}`.
-        Set `id` if the user will assign a shortcut. Users set shortcuts in Settings → Plugins.
-        Do not call `keyboard.on` for launcher commands. `keyboard.on(id, default, callback)`
-        is for global hotkeys; those combos are also overridable in Settings → Plugins.
-
-        ## Permissions
-
-        Declare the macOS permissions a plugin needs at the top of the file:
-
-        ```js
-        macotron.requirePermissions(["accessibility"]);
-        ```
-
-        Valid names: `accessibility`, `inputMonitoring`, `screenRecording`.
-        Macotron shows a red warning in the menu bar until the user grants them.
-        Window control needs `accessibility`. Screen capture needs `screenRecording`.
+        Set `id` if the user will assign a shortcut. Users set shortcuts in Settings → Plugins
+        or in the launcher with ⌘K on the selected result (apps too). Do not call `keyboard.on`
+        for launcher commands. `keyboard.on(id, default, callback)` is for global hotkeys;
+        those combos are also overridable in Settings → Plugins.
 
         ## Panel API (stub)
 
         ```js
-        const id = macotron.panel.open({ title: "Chat", width: 420, height: 520, html: "<p>Hi</p>" });
+        const id = macotron.panel.open({ title: "Chat", width: 420, height: 520, html: "<p>Hi</p>", glass: true });
         macotron.panel.close(id);
         macotron.panel.postMessage(id, { hello: true });
         macotron.panel.onMessage(id, (data) => { /* ... */ });
         ```
 
         `html` is inserted into a host document (system font, padding, light/dark).
-        `rawHtml` is a full document. In the page, `close()` closes the panel.
+        `rawHtml` is a full document. `glass: true` (or `"regular"`) uses Liquid Glass
+        with a transparent page background; `glass: "clear"` is the clearer variant.
+        In the page, `close()` closes the panel.
         The page may also call `webkit.messageHandlers.macotron.postMessage(data)`.
 
-        ## Plugin settings
+        ## Plugin metadata and settings
 
-        Declare configurable options with `macotron.module({ options })`. The user
-        edits values in Macotron Settings → Plugins; the plugin reads the resolved
-        values from the `macotron.module()` return value. Do not hand-edit
+        Every plugin must declare a title and description so they appear in
+        Settings → Plugins. Put macOS permissions on the same call:
+
+        ```js
+        const opts = macotron.plugin({
+          title: "Chat",
+          description: "Talk to a model",
+          permissions: ["accessibility"],
+        });
+        ```
+
+        Valid permission names: `accessibility`, `inputMonitoring`, `screenRecording`.
+        Macotron shows a red warning in the menu bar until the user grants them.
+        Window control needs `accessibility`. Screen capture needs `screenRecording`.
+
+        Add `options` on the same call to expose configurable settings. The user
+        edits values in Settings → Plugins; the plugin reads the resolved values
+        from the `macotron.plugin()` return value. Do not hand-edit
         `pluginSettings` to configure plugins — use the Settings UI.
 
         ```js
-        const opts = macotron.module({
+        const opts = macotron.plugin({
           title: "Chat",
           description: "Talk to a model",
           options: {
@@ -388,7 +404,7 @@ public final class PluginWorkspace {
         `password` options: the secret lives in the macOS Keychain. `settings.json`
         stores only a Keychain ref like `macotron.plugin.chat.js.apiKey`. Refs may
         be committed; real secrets must never appear in JSON or plugin source.
-        `macotron.module()` returns the resolved secret string, never the ref.
+        `macotron.plugin()` returns the resolved secret string, never the ref.
         `file` / `directory` store absolute path strings.
 
         ## settings.json schema
@@ -400,7 +416,8 @@ public final class PluginWorkspace {
             "showDockIcon": true,
             "showMenuBarIcon": true,
             "appearance": "system",
-            "textScale": 1.0
+            "textScale": 1.0,
+            "launcherBackground": "translucent"
           },
           "modules": {},
           "pluginSettings": {},

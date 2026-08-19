@@ -16,15 +16,16 @@ public final class LauncherPanel: NSPanel {
     private static let panelWidth: CGFloat = 720
     private static let minHeight: CGFloat = 52  // Search bar only
     private static let maxHeight: CGFloat = 520
+    private static let cornerRadius: CGFloat = 12
 
-    /// Set after toggle() to defer visibility until SwiftUI reports content height.
+    private let hostingView: NSView
     private var pendingReveal = false
     /// Cached content height from the last layout pass — used to open at the right size.
     private var lastContentHeight: CGFloat = 0
     public var onHide: (() -> Void)?
 
     public init(contentView: NSView) {
-        // Start at maxHeight so SwiftUI has room to lay out content
+        hostingView = contentView
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: Self.panelWidth, height: Self.maxHeight),
             styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
@@ -36,31 +37,57 @@ public final class LauncherPanel: NSPanel {
         isOpaque = false
         hasShadow = true
         animationBehavior = .utilityWindow
-        // No .transient and no hidesOnDeactivate: both auto-hide the panel the
-        // instant this accessory app loses active status, which races with the
-        // global-hotkey activation and makes the launcher flash and vanish.
-        // Dismissal is handled explicitly via windowDidResignKey instead.
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         becomesKeyOnlyIfNeeded = false
         hidesOnDeactivate = false
         center()
-
-        // Vibrancy background
-        let visual = NSVisualEffectView(frame: .zero)
-        visual.material = .hudWindow
-        visual.state = .active
-        visual.blendingMode = .behindWindow
-        visual.wantsLayer = true
-        visual.layer?.cornerRadius = 12
-        visual.layer?.masksToBounds = true
-        visual.autoresizingMask = [.width, .height]
-
-        contentView.frame = visual.bounds
-        contentView.autoresizingMask = [.width, .height]
-        visual.addSubview(contentView)
-
-        self.contentView = visual
+        applyBackground(.translucent)
         self.delegate = self
+    }
+
+    public func applyBackground(_ style: LauncherBackground) {
+        hostingView.removeFromSuperview()
+        if #available(macOS 26.0, *), let glass = contentView as? NSGlassEffectView {
+            glass.contentView = nil
+        }
+        let chrome = Self.makeChrome(style, size: NSSize(width: Self.panelWidth, height: lastContentHeight > 0 ? lastContentHeight : Self.maxHeight))
+        hostingView.frame = chrome.bounds
+        hostingView.autoresizingMask = [.width, .height]
+        if #available(macOS 26.0, *), let glass = chrome as? NSGlassEffectView {
+            glass.contentView = hostingView
+        } else {
+            chrome.addSubview(hostingView)
+        }
+        contentView = chrome
+    }
+
+    private static func makeChrome(_ style: LauncherBackground, size: NSSize) -> NSView {
+        let frame = NSRect(origin: .zero, size: size)
+        switch style {
+        case .glass:
+            if #available(macOS 26.0, *) {
+                let glass = NSGlassEffectView(frame: frame)
+                glass.style = .regular
+                glass.cornerRadius = cornerRadius
+                glass.autoresizingMask = [.width, .height]
+                return glass
+            }
+            fallthrough
+        case .translucent:
+            let visual = NSVisualEffectView(frame: frame)
+            visual.material = .hudWindow
+            visual.state = .active
+            visual.blendingMode = .behindWindow
+            visual.wantsLayer = true
+            visual.layer?.cornerRadius = cornerRadius
+            visual.layer?.masksToBounds = true
+            visual.autoresizingMask = [.width, .height]
+            return visual
+        case .opaque:
+            let view = OpaqueLauncherChrome(frame: frame)
+            view.autoresizingMask = [.width, .height]
+            return view
+        }
     }
 
     public override var canBecomeKey: Bool { true }
@@ -133,7 +160,7 @@ public final class LauncherPanel: NSPanel {
             f.size.height = initialHeight
             setFrame(f, display: false)
 
-            // Launcher placement: centered horizontally, upper portion of screen.
+            // Place the launcher centered horizontally in the upper portion of the screen.
             if let screen = NSScreen.main {
                 let sf = screen.visibleFrame
                 let x = sf.midX - Self.panelWidth / 2
@@ -176,5 +203,27 @@ extension LauncherPanel: NSWindowDelegate {
     public func windowDidResignKey(_ notification: Notification) {
         guard isShown, isVisible else { return }
         orderOut(nil)
+    }
+}
+
+private final class OpaqueLauncherChrome: NSView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.cornerRadius = 12
+        layer?.masksToBounds = true
+        paint()
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    override func viewDidChangeEffectiveAppearance() {
+        paint()
+    }
+
+    private func paint() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        }
     }
 }

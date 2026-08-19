@@ -2,7 +2,7 @@ APP_NAME = Macotron
 BUILD_DIR = /tmp/macotron-build
 BUNDLE = $(HOME)/Applications/$(APP_NAME).app
 BINARY = $(BUILD_DIR)/debug/$(APP_NAME)
-BUNDLE_ID = com.macotron.app
+BUNDLE_ID = io.statico.macotron
 
 # Stable signing keeps a fixed CDHash, so macOS permissions persist across builds.
 # Create the certificate in Keychain Access → Certificate Assistant → Create a

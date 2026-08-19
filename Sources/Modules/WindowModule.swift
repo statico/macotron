@@ -37,10 +37,34 @@ private let snapSlotAliases: [String: String] = [
     "maximize": "top", "full": "top",
 ]
 
+struct SnapDrag {
+    var start: CGPoint?
+    var dragging = false
+    static let slop: CGFloat = 8
+
+    mutating func down(_ p: CGPoint) {
+        start = p
+        dragging = false
+    }
+
+    mutating func moved(_ p: CGPoint) {
+        guard let start else { return }
+        if hypot(p.x - start.x, p.y - start.y) > Self.slop { dragging = true }
+    }
+
+    mutating func up() -> Bool {
+        let ok = dragging
+        start = nil
+        dragging = false
+        return ok
+    }
+}
+
 /// Global state for the snap CGEvent tap callback (C function pointer cannot capture).
 private final class WindowSnapState: @unchecked Sendable {
     weak var module: WindowModule?
     var eventTap: CFMachPort?
+    var drag = SnapDrag()
     static let shared = WindowSnapState()
 }
 
@@ -420,7 +444,10 @@ public final class WindowModule: NativeModule {
     private func setupSnapTap() -> Bool {
         guard eventTap == nil else { return true }
 
-        let eventMask: CGEventMask = (1 << CGEventType.leftMouseUp.rawValue)
+        let eventMask: CGEventMask =
+            (1 << CGEventType.leftMouseDown.rawValue)
+            | (1 << CGEventType.leftMouseDragged.rawValue)
+            | (1 << CGEventType.leftMouseUp.rawValue)
         let callback: CGEventTapCallBack = { _, type, event, _ -> Unmanaged<CGEvent>? in
             if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
                 if let tap = WindowSnapState.shared.eventTap {
@@ -428,9 +455,20 @@ public final class WindowModule: NativeModule {
                 }
                 return Unmanaged.passRetained(event)
             }
-            guard type == .leftMouseUp else { return Unmanaged.passRetained(event) }
-            DispatchQueue.main.async {
-                WindowSnapState.shared.module?.snapFocusedWindow(at: NSEvent.mouseLocation)
+            let point = NSEvent.mouseLocation
+            switch type {
+            case .leftMouseDown:
+                WindowSnapState.shared.drag.down(point)
+            case .leftMouseDragged:
+                WindowSnapState.shared.drag.moved(point)
+            case .leftMouseUp:
+                if WindowSnapState.shared.drag.up() {
+                    DispatchQueue.main.async {
+                        WindowSnapState.shared.module?.snapFocusedWindow(at: NSEvent.mouseLocation)
+                    }
+                }
+            default:
+                break
             }
             return Unmanaged.passRetained(event)
         }
@@ -470,9 +508,9 @@ public final class WindowModule: NativeModule {
         eventTap = nil
         runLoopSource = nil
         WindowSnapState.shared.eventTap = nil
+        WindowSnapState.shared.drag = SnapDrag()
     }
 
-    /// ponytail: any leftMouseUp in a configured slot snaps; upgrade to drag-session tracking if false positives matter
     private func snapFocusedWindow(at point: CGPoint) {
         guard snapEnabled else { return }
         guard let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) else { return }

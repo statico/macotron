@@ -143,7 +143,7 @@ public final class ModuleManager {
         }
 
         let filename = file.lastPathComponent
-        let cachePath = cacheDir.appending(path: filename + ".bc")
+        let cachePath = cacheDir.appending(path: filename + ".iife.bc")
 
         switch PluginNeeds.parse(source) {
         case .failure(let error):
@@ -163,6 +163,7 @@ public final class ModuleManager {
         engine.currentEvaluatingFile = filename
         defer { engine.currentEvaluatingFile = nil }
 
+        let isolated = Engine.isolatedPlugin(source)
         if let cacheData = try? Data(contentsOf: cachePath),
            let cacheDate = try? FileManager.default.attributesOfItem(
                atPath: cachePath.path(percentEncoded: false)
@@ -177,11 +178,11 @@ public final class ModuleManager {
         }
 
         let fullPath = file.path(percentEncoded: false)
-        let (_, error) = engine.evaluate(source, filename: fullPath)
+        let (_, error) = engine.evaluate(isolated, filename: fullPath)
         if let error {
             logger.error("\(filename): \(error)")
             lastReloadErrors.append((filename: filename, error: error))
-        } else if let bytecode = engine.compileToBytecode(source, filename: fullPath) {
+        } else if let bytecode = engine.compileToBytecode(isolated, filename: fullPath) {
             try? bytecode.write(to: cachePath)
         }
     }

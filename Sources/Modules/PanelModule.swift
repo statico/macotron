@@ -61,15 +61,25 @@ public final class PanelModule: NativeModule {
                 ? nil : JSBridge.toString(ctx, htmlVal)
             JS_FreeValue(ctx, htmlVal)
 
+            let glassVal = JSBridge.getProperty(ctx, opts, "glass")
+            let glass: PanelGlass
+            if JSBridge.isUndefined(glassVal) || JSBridge.isNull(glassVal) {
+                glass = .none
+            } else {
+                glass = PanelGlass.parse(JSBridge.jsToSwift(ctx, glassVal))
+            }
+            JS_FreeValue(ctx, glassVal)
+
             let useShell = rawHtml == nil || rawHtml?.isEmpty == true
-            let document = useShell ? PanelShell.document(body: html ?? "") : rawHtml!
+            let document = useShell ? PanelShell.document(body: html ?? "", glass: glass.isEnabled) : rawHtml!
 
             let id = module.openPanel(
                 title: title,
                 width: width > 0 ? width : 420,
                 height: height > 0 ? height : 520,
                 html: document,
-                hostChrome: useShell
+                hostChrome: useShell,
+                glass: glass
             )
             return JSBridge.newString(ctx, id)
         }, "open", 1))
@@ -115,12 +125,12 @@ public final class PanelModule: NativeModule {
         PanelModuleState.shared.module = nil
     }
 
-    private func openPanel(title: String, width: Int, height: Int, html: String, hostChrome: Bool) -> String {
+    private func openPanel(title: String, width: Int, height: Int, html: String, hostChrome: Bool, glass: PanelGlass) -> String {
         let id = UUID().uuidString
         if engine?.dryRun == true {
             return id
         }
-        let host = PanelHost(id: id, title: title, width: width, height: height, html: html, hostChrome: hostChrome, onMessage: { [weak self] panelId, body in
+        let host = PanelHost(id: id, title: title, width: width, height: height, html: html, hostChrome: hostChrome, glass: glass, onMessage: { [weak self] panelId, body in
             self?.dispatchMessage(panelId: panelId, body: body)
         }, onClosed: { [weak self] in
             self?.forgetPanel(id)

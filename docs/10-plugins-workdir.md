@@ -30,7 +30,8 @@ Example:
     "showDockIcon": true,
     "showMenuBarIcon": true,
     "appearance": "system",
-    "textScale": 1.0
+    "textScale": 1.0,
+    "launcherBackground": "translucent"
   },
   "modules": {},
   "pluginSettings": {},
@@ -42,7 +43,7 @@ Example:
 ```
 Disabled plugins stay on disk but are not loaded; manage them in Settings → Plugins.
 
-Launcher commands can declare `arguments` on `macotron.command`. Users assign per-command shortcuts in Settings → Plugins; those bindings live in `commandShortcuts`. Plugin hotkeys from `keyboard.on(id, default, callback)` are overridable there too (`keyboardShortcuts`). Do not register `keyboard.on` for launcher commands.
+Launcher commands can declare `arguments` on `macotron.command`. Users assign per-command shortcuts in Settings → Plugins or in the launcher with ⌘K on a selected result (apps included). Those bindings live in `commandShortcuts`. Plugin hotkeys from `keyboard.on(id, default, callback)` are overridable in Settings (`keyboardShortcuts`). Do not register `keyboard.on` for launcher commands.
 
 The app hot-reloads when any file in the workdir changes. That includes `settings.json` and files under `plugins/`.
 
