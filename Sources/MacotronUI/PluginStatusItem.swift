@@ -1,4 +1,5 @@
 import AppKit
+import MacotronEngine
 
 @MainActor
 final class PluginStatusItem: NSObject {
@@ -6,6 +7,7 @@ final class PluginStatusItem: NSObject {
     private let item: NSStatusItem
     private let host = StatusHostView()
     private var onClick: (() -> Void)?
+    private var menuKeep: [PluginMenu.Action] = []
 
     init(id: String) {
         self.id = id
@@ -35,9 +37,20 @@ final class PluginStatusItem: NSObject {
         italic: Bool,
         sfSymbol: String?,
         imagePath: String?,
-        onClick: (() -> Void)?
+        onClick: (() -> Void)?,
+        menu: [MenuBarEntry] = []
     ) {
         self.onClick = onClick
+        menuKeep.removeAll()
+        if menu.isEmpty {
+            item.menu = nil
+            item.button?.target = self
+            item.button?.action = #selector(clicked)
+        } else {
+            item.menu = PluginMenu.make(menu, retaining: &menuKeep)
+            item.button?.target = nil
+            item.button?.action = nil
+        }
         let nsColor = Self.parseColor(color)
         let image = Self.loadImage(sfSymbol: sfSymbol, path: imagePath, color: nsColor)
         host.configure(
@@ -185,5 +198,46 @@ private final class StatusHostView: NSView {
             font = NSFontManager.shared.convert(font, toHaveTrait: traits)
         }
         return font
+    }
+}
+
+enum PluginMenu {
+    final class Action: NSObject {
+        let run: () -> Void
+        init(_ run: @escaping () -> Void) { self.run = run }
+        @objc func invoke(_ sender: Any?) { run() }
+    }
+
+    static func item(title: String, icon: String?) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        if let icon {
+            if icon.count <= 2 {
+                item.title = "\(icon) \(title)"
+            } else {
+                item.image = NSImage(systemSymbolName: icon, accessibilityDescription: nil)
+            }
+        }
+        return item
+    }
+
+    static func make(_ entries: [MenuBarEntry], retaining boxes: inout [Action]) -> NSMenu {
+        let menu = NSMenu()
+        for entry in entries {
+            if entry.isSeparator {
+                menu.addItem(.separator())
+                continue
+            }
+            let row = item(title: entry.title, icon: entry.icon)
+            if !entry.children.isEmpty {
+                row.submenu = make(entry.children, retaining: &boxes)
+            } else if let onClick = entry.onClick {
+                let box = Action(onClick)
+                boxes.append(box)
+                row.target = box
+                row.action = #selector(Action.invoke)
+            }
+            menu.addItem(row)
+        }
+        return menu
     }
 }

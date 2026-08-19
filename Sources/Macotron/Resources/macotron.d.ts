@@ -1,6 +1,13 @@
 // Type definitions for Macotron JS API
 // These are provided to AI models for code generation
 
+interface MenuBarMenuItem {
+    title: string;
+    icon?: string;
+    onClick?: () => void;
+    menu?: MenuBarMenuItem[];
+}
+
 declare const macotron: {
     version: {
         app: string;
@@ -152,7 +159,7 @@ declare const macotron: {
     };
 
     menubar: {
-        add(id: string, opts: { title: string; icon?: string; shortcut?: string; onClick?: () => void; section?: string; refresh?: number }): void;
+        add(id: string, opts: { title: string; icon?: string; shortcut?: string; onClick?: () => void; section?: string; refresh?: number; menu?: MenuBarMenuItem[] }): void;
         update(id: string, opts: { title?: string; icon?: string }): void;
         remove(id: string): void;
         setIcon(sfSymbolName: string): void;
@@ -170,6 +177,7 @@ declare const macotron: {
                 icon?: string;
                 image?: string;
                 onClick?: () => void;
+                menu?: MenuBarMenuItem[];
             }
         ): void;
     };

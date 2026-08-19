@@ -8,7 +8,7 @@ import MacotronEngine
 /// MenuBarManager (in MacotronUI) conforms to this and is assigned at app startup.
 @MainActor
 public protocol MenuBarModuleDelegate: AnyObject {
-    func menuBarAddItem(id: String, title: String, icon: String?, section: String?, onClick: (() -> Void)?)
+    func menuBarAddItem(id: String, title: String, icon: String?, section: String?, onClick: (() -> Void)?, menu: [MenuBarEntry])
     func menuBarUpdateItem(id: String, title: String?, icon: String?)
     func menuBarRemoveItem(id: String)
     func menuBarSetIcon(sfSymbolName: String)
@@ -22,7 +22,8 @@ public protocol MenuBarModuleDelegate: AnyObject {
         italic: Bool,
         sfSymbol: String?,
         imagePath: String?,
-        onClick: (() -> Void)?
+        onClick: (() -> Void)?,
+        menu: [MenuBarEntry]
     )
     func menuBarRemoveStatus(id: String)
     func menuBarRemoveAllStatus()
@@ -78,31 +79,13 @@ public final class MenuBarModule: NativeModule {
             JS_FreeValue(ctx, sectionVal)
 
             let onClickVal = JSBridge.getProperty(ctx, opts, "onClick")
-            let hasOnClick = !(JSBridge.isUndefined(onClickVal) || JSBridge.isNull(onClickVal))
 
-            // Find the MenuBarModule instance via engine's modules
-            // We stash ourselves in the engine's configStore under a private key.
             if let mod = engine.configStore["__menuBarModule"] as? MenuBarModule {
-                // Free any previously stored callback for this id
-                if let prev = mod.callbacks[id] {
-                    JS_FreeValue(ctx, prev)
-                }
-                if hasOnClick {
-                    mod.callbacks[id] = JS_DupValue(ctx, onClickVal)
-                } else {
-                    mod.callbacks.removeValue(forKey: id)
-                }
-
-                let onClick: (() -> Void)? = hasOnClick ? { [weak mod, weak engine] in
-                    guard let mod, let engine, let ctx = engine.context else { return }
-                    if let cb = mod.callbacks[id] {
-                        _ = JS_Call(ctx, cb, QJS_Undefined(), 0, nil)
-                        engine.drainJobQueue()
-                    }
-                } : nil
-
+                mod.dropCallbacks(for: id, ctx: ctx)
+                let onClick: (() -> Void)? = mod.bindClick(ctx: ctx, from: onClickVal, key: id)
+                let menu = mod.readMenu(ctx: ctx, from: opts, prefix: id)
                 mod.delegate?.menuBarAddItem(
-                    id: id, title: title, icon: icon, section: section, onClick: onClick
+                    id: id, title: title, icon: icon, section: section, onClick: onClick, menu: menu
                 )
             }
 
@@ -147,9 +130,7 @@ public final class MenuBarModule: NativeModule {
             guard let id = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
 
             if let mod = engine.configStore["__menuBarModule"] as? MenuBarModule {
-                if let cb = mod.callbacks.removeValue(forKey: id) {
-                    JS_FreeValue(ctx, cb)
-                }
+                mod.dropCallbacks(for: id, ctx: ctx)
                 mod.delegate?.menuBarRemoveStatus(id: id)
                 mod.delegate?.menuBarRemoveItem(id: id)
             }
@@ -236,24 +217,11 @@ public final class MenuBarModule: NativeModule {
             JS_FreeValue(ctx, imageVal)
 
             let onClickVal = JSBridge.getProperty(ctx, opts, "onClick")
-            let hasOnClick = !(JSBridge.isUndefined(onClickVal) || JSBridge.isNull(onClickVal))
 
             if let mod = engine.configStore["__menuBarModule"] as? MenuBarModule {
-                if let prev = mod.callbacks[id] {
-                    JS_FreeValue(ctx, prev)
-                }
-                if hasOnClick {
-                    mod.callbacks[id] = JS_DupValue(ctx, onClickVal)
-                } else {
-                    mod.callbacks.removeValue(forKey: id)
-                }
-                let onClick: (() -> Void)? = hasOnClick ? { [weak mod, weak engine] in
-                    guard let mod, let engine, let ctx = engine.context else { return }
-                    if let cb = mod.callbacks[id] {
-                        _ = JS_Call(ctx, cb, QJS_Undefined(), 0, nil)
-                        engine.drainJobQueue()
-                    }
-                } : nil
+                mod.dropCallbacks(for: id, ctx: ctx)
+                let onClick: (() -> Void)? = mod.bindClick(ctx: ctx, from: onClickVal, key: id)
+                let menu = mod.readMenu(ctx: ctx, from: opts, prefix: id)
                 mod.delegate?.menuBarSetStatus(
                     id: id,
                     title: title,
@@ -263,7 +231,8 @@ public final class MenuBarModule: NativeModule {
                     italic: italic,
                     sfSymbol: sfSymbol,
                     imagePath: imagePath,
-                    onClick: onClick
+                    onClick: onClick,
+                    menu: menu
                 )
             }
             JS_FreeValue(ctx, onClickVal)
@@ -276,6 +245,64 @@ public final class MenuBarModule: NativeModule {
 
         // Stash self in configStore so C callbacks can find us
         engine.configStore["__menuBarModule"] = self
+    }
+
+    fileprivate func dropCallbacks(for id: String, ctx: OpaquePointer) {
+        for key in callbacks.keys.filter({ $0 == id || $0.hasPrefix(id + "#") }) {
+            if let cb = callbacks.removeValue(forKey: key) {
+                JS_FreeValue(ctx, cb)
+            }
+        }
+    }
+
+    fileprivate func bindClick(ctx: OpaquePointer, from val: JSValue, key: String) -> (() -> Void)? {
+        guard JS_IsFunction(ctx, val) else { return nil }
+        callbacks[key] = JS_DupValue(ctx, val)
+        return { [weak self, weak engine] in
+            guard let self, let engine, let ctx = engine.context else { return }
+            if let cb = self.callbacks[key] {
+                _ = JS_Call(ctx, cb, QJS_Undefined(), 0, nil)
+                engine.drainJobQueue()
+            }
+        }
+    }
+
+    fileprivate func readMenu(ctx: OpaquePointer, from opts: JSValue, prefix: String) -> [MenuBarEntry] {
+        let menuVal = JSBridge.getProperty(ctx, opts, "menu")
+        defer { JS_FreeValue(ctx, menuVal) }
+        return parseMenu(ctx: ctx, menuVal, prefix: prefix)
+    }
+
+    private func parseMenu(ctx: OpaquePointer, _ val: JSValue, prefix: String) -> [MenuBarEntry] {
+        guard JS_IsArray(val) else { return [] }
+        let lenVal = JS_GetPropertyStr(ctx, val, "length")
+        let len = JSBridge.toInt32(ctx, lenVal)
+        JS_FreeValue(ctx, lenVal)
+        var entries: [MenuBarEntry] = []
+        for idx in 0..<len {
+            let elem = JS_GetPropertyUint32(ctx, val, UInt32(idx))
+            let key = "\(prefix)#\(idx)"
+            if JS_IsString(elem) {
+                entries.append(MenuBarEntry(title: JSBridge.toString(ctx, elem) ?? "-"))
+            } else if JS_IsObject(elem) {
+                let titleVal = JSBridge.getProperty(ctx, elem, "title")
+                let title = JSBridge.toString(ctx, titleVal) ?? ""
+                JS_FreeValue(ctx, titleVal)
+                let iconVal = JSBridge.getProperty(ctx, elem, "icon")
+                let icon: String? = JSBridge.isUndefined(iconVal) || JSBridge.isNull(iconVal)
+                    ? nil : JSBridge.toString(ctx, iconVal)
+                JS_FreeValue(ctx, iconVal)
+                let onClickVal = JSBridge.getProperty(ctx, elem, "onClick")
+                let onClick = bindClick(ctx: ctx, from: onClickVal, key: key)
+                JS_FreeValue(ctx, onClickVal)
+                let nestedVal = JSBridge.getProperty(ctx, elem, "menu")
+                let children = parseMenu(ctx: ctx, nestedVal, prefix: key)
+                JS_FreeValue(ctx, nestedVal)
+                entries.append(MenuBarEntry(title: title, icon: icon, onClick: onClick, children: children))
+            }
+            JS_FreeValue(ctx, elem)
+        }
+        return entries
     }
 
     public func cleanup() {

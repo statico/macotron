@@ -20,17 +20,20 @@ public final class MenuBarManager: NSObject {
         public let icon: String?
         public let section: String?
         public let callback: (() -> Void)?
+        public let menu: [MenuBarEntry]
 
-        public init(title: String, icon: String? = nil, section: String? = nil, callback: (() -> Void)? = nil) {
+        public init(title: String, icon: String? = nil, section: String? = nil, callback: (() -> Void)? = nil, menu: [MenuBarEntry] = []) {
             self.title = title
             self.icon = icon
             self.section = section
             self.callback = callback
+            self.menu = menu
         }
     }
 
     /// Extra NSStatusItems registered by plugins, next to the Macotron icon.
     private var extraStatusItems: [String: PluginStatusItem] = [:]
+    private var pluginMenuBoxes: [PluginMenu.Action] = []
 
     /// Items registered by JS modules, keyed by ID
     private var dynamicItems: [(id: String, config: MenuItemConfig)] = []
@@ -92,7 +95,8 @@ public final class MenuBarManager: NSObject {
             title: title ?? old.title,
             icon: icon ?? old.icon,
             section: old.section,
-            callback: old.callback
+            callback: old.callback,
+            menu: old.menu
         )
         dynamicItems[idx] = (id: id, config: updated)
         rebuildMenu()
@@ -155,7 +159,8 @@ public final class MenuBarManager: NSObject {
         italic: Bool,
         sfSymbol: String?,
         imagePath: String?,
-        onClick: (() -> Void)?
+        onClick: (() -> Void)?,
+        menu: [MenuBarEntry] = []
     ) {
         let extra = extraStatusItems[id] ?? PluginStatusItem(id: id)
         extraStatusItems[id] = extra
@@ -167,7 +172,8 @@ public final class MenuBarManager: NSObject {
             italic: italic,
             sfSymbol: sfSymbol,
             imagePath: imagePath,
-            onClick: onClick
+            onClick: onClick,
+            menu: menu
         )
     }
 
@@ -216,6 +222,8 @@ public final class MenuBarManager: NSObject {
     private func rebuildMenu() {
         menu.removeAllItems()
 
+        pluginMenuBoxes.removeAll()
+
         addPermissionWarningIfNeeded()
 
         // Group dynamic items by section
@@ -230,20 +238,13 @@ public final class MenuBarManager: NSObject {
                 menu.addItem(header)
             }
             for item in sections[section]! {
-                let menuItem = NSMenuItem(
-                    title: item.config.title,
-                    action: #selector(menuItemClicked(_:)),
-                    keyEquivalent: ""
-                )
-                menuItem.target = self
-                menuItem.representedObject = item.id
-
-                if let icon = item.config.icon {
-                    if icon.count <= 2 {
-                        menuItem.title = "\(icon) \(item.config.title)"
-                    } else {
-                        menuItem.image = NSImage(systemSymbolName: icon, accessibilityDescription: nil)
-                    }
+                let menuItem = PluginMenu.item(title: item.config.title, icon: item.config.icon)
+                if !item.config.menu.isEmpty {
+                    menuItem.submenu = PluginMenu.make(item.config.menu, retaining: &pluginMenuBoxes)
+                } else {
+                    menuItem.action = #selector(menuItemClicked(_:))
+                    menuItem.target = self
+                    menuItem.representedObject = item.id
                 }
                 menu.addItem(menuItem)
             }

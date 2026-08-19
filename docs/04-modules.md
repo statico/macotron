@@ -33,7 +33,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Shell:** `macotron.shell.run(cmd, args)` — first call to an unapproved command prompts Allow Once / Always Allow / Deny.
 
-**MenuBar:** `macotron.menubar.add(id, config)` (dropdown rows), `.status(id, config)` (extra item next to the Macotron icon: `title`, `subtitle`, `color`, `bold`, `italic`, `sfSymbol`, `image` file path, `onClick`), `.update`, `.remove`, `.setIcon`, `.setTitle`
+**MenuBar:** `macotron.menubar.add(id, config)` (rows in the Macotron menu; `menu` is a nested dropdown), `.status(id, config)` (extra item next to the Macotron icon: `title`, `subtitle`, `color`, `bold`, `italic`, `sfSymbol`, `image` file path, `onClick`, `menu`), `.update`, `.remove`, `.setIcon`, `.setTitle`
 
 **Panel:**
 

@@ -8,7 +8,9 @@ function refresh() {
         sfSymbol: on ? "cup.and.saucer.fill" : "cup.and.saucer",
         color: on ? "orange" : null,
         bold: on,
-        onClick: toggle,
+        menu: [
+            { title: on ? "Allow Sleep" : "Keep Awake", onClick: toggle },
+        ],
     });
 }
 

@@ -842,8 +842,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 extension MenuBarManager: MenuBarModuleDelegate {
-    public func menuBarAddItem(id: String, title: String, icon: String?, section: String?, onClick: (() -> Void)?) {
-        addItem(id: id, config: MenuItemConfig(title: title, icon: icon, section: section, callback: onClick))
+    public func menuBarAddItem(id: String, title: String, icon: String?, section: String?, onClick: (() -> Void)?, menu: [MenuBarEntry]) {
+        addItem(id: id, config: MenuItemConfig(title: title, icon: icon, section: section, callback: onClick, menu: menu))
     }
 
     public func menuBarUpdateItem(id: String, title: String?, icon: String?) {
@@ -871,11 +871,12 @@ extension MenuBarManager: MenuBarModuleDelegate {
         italic: Bool,
         sfSymbol: String?,
         imagePath: String?,
-        onClick: (() -> Void)?
+        onClick: (() -> Void)?,
+        menu: [MenuBarEntry]
     ) {
         setStatus(
             id: id, title: title, subtitle: subtitle, color: color,
-            bold: bold, italic: italic, sfSymbol: sfSymbol, imagePath: imagePath, onClick: onClick
+            bold: bold, italic: italic, sfSymbol: sfSymbol, imagePath: imagePath, onClick: onClick, menu: menu
         )
     }
 
