@@ -14,6 +14,20 @@ public struct RegisteredCommand {
     public var callback: JSValue
 }
 
+public struct RegisteredHotkey {
+    public let id: String
+    public let pluginFile: String
+    public let key: String
+    public let defaultCombo: String
+
+    public init(id: String, pluginFile: String, key: String, defaultCombo: String) {
+        self.id = id
+        self.pluginFile = pluginFile
+        self.key = key
+        self.defaultCombo = defaultCombo
+    }
+}
+
 @MainActor
 public final class Engine {
     /// Semver of the plugin-facing JS API (`macotron.version.api`).
@@ -30,6 +44,9 @@ public final class Engine {
 
     /// Registered commands keyed by stable id
     public var commandRegistry: [String: RegisteredCommand] = [:]
+
+    /// Plugin hotkeys from `keyboard.on(id, default, callback)`, keyed by `{plugin}/{id}`.
+    public var hotkeyRegistry: [String: RegisteredHotkey] = [:]
 
     /// Config store (populated by macotron.config() calls)
     public var configStore: [String: Any] = [:]
@@ -541,6 +558,7 @@ public final class Engine {
             JS_FreeValue(context, cmd.callback)
         }
         commandRegistry.removeAll()
+        hotkeyRegistry.removeAll()
 
         // Reset JS context
         JS_FreeContext(context)

@@ -11,5 +11,5 @@ async function ocrScreen() {
     }
 }
 
-macotron.keyboard.on("cmd+shift+o", ocrScreen);
+macotron.keyboard.on("ocr", "cmd+shift+o", ocrScreen);
 macotron.command("OCR Screen", "Capture screen, OCR text, copy to clipboard", ocrScreen);

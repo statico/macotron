@@ -29,7 +29,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Window:** `macotron.window.getAll()`, `.focused()`, `.move(id, frame)`, `.moveToFraction(id, frame)`
 
-**Keyboard:** `macotron.keyboard.on("cmd+shift+left", callback)`
+**Keyboard:** `macotron.keyboard.on("tile-left", "ctrl+opt+left", callback)` — ids are unique per plugin; override the combo in Settings → Plugins.
 
 **Shell:** `macotron.shell.run(cmd, args)` — first call to an unapproved command prompts Allow Once / Always Allow / Deny.
 

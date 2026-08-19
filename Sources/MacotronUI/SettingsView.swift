@@ -65,7 +65,7 @@ public struct ModuleSummary: Identifiable {
     public let description: String
     public let options: [ModuleOption]
     public let events: [String]
-    public let hotkeys: [String]
+    public let hotkeys: [PluginCommandSummary]
     public let hasErrors: Bool
     public let errorMessage: String?
     public let isEnabled: Bool
@@ -73,7 +73,7 @@ public struct ModuleSummary: Identifiable {
 
     public init(filename: String, title: String = "", description: String,
                 options: [ModuleOption] = [], events: [String] = [],
-                hotkeys: [String] = [], hasErrors: Bool = false, errorMessage: String? = nil,
+                hotkeys: [PluginCommandSummary] = [], hasErrors: Bool = false, errorMessage: String? = nil,
                 isEnabled: Bool = true, commands: [PluginCommandSummary] = []) {
         self.id = filename
         self.filename = filename
@@ -123,6 +123,7 @@ public final class SettingsState: ObservableObject {
     public var clearModuleSecret: ((_ filename: String, _ key: String) -> Void)?
     public var setModuleEnabled: ((_ filename: String, _ enabled: Bool) -> Void)?
     public var saveCommandShortcut: ((_ commandId: String, _ combo: String) -> Void)?
+    public var saveKeyboardShortcut: ((_ hotkeyId: String, _ combo: String) -> Void)?
     public var deleteModule: ((_ filename: String) -> Bool)?
     public var changePluginsFolder: (() -> Void)?
     public var openPluginsFolder: (() -> Void)?
@@ -600,7 +601,8 @@ struct PluginDetailView: View {
                 if !summary.isEnabled {
                     disabledHint
                 } else {
-                    if !summary.hotkeys.isEmpty || !summary.events.isEmpty { badges }
+                    if !summary.events.isEmpty { badges }
+                    if !summary.hotkeys.isEmpty { hotkeysSection }
                     if !summary.commands.isEmpty { commandsSection }
                     if !summary.options.isEmpty { settingsSection }
                 }
@@ -690,11 +692,22 @@ struct PluginDetailView: View {
 
     private var badges: some View {
         HStack(spacing: 4) {
-            ForEach(summary.hotkeys, id: \.self) { hotkey in
-                detailBadge(text: hotkey, color: .blue)
-            }
             ForEach(summary.events, id: \.self) { event in
                 detailBadge(text: event, color: .purple)
+            }
+        }
+    }
+
+    private var hotkeysSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Shortcuts")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+            ForEach(summary.hotkeys) { hotkey in
+                CommandShortcutRow(command: hotkey) { id, combo in
+                    state.saveKeyboardShortcut?(id, combo)
+                    state.refreshModules()
+                }
             }
         }
     }
@@ -705,7 +718,10 @@ struct PluginDetailView: View {
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
             ForEach(summary.commands) { command in
-                CommandShortcutRow(command: command, state: state)
+                CommandShortcutRow(command: command) { id, combo in
+                    state.saveCommandShortcut?(id, combo)
+                    state.refreshModules()
+                }
             }
         }
     }
@@ -889,7 +905,7 @@ struct ModuleOptionRow: View {
 
 struct CommandShortcutRow: View {
     let command: PluginCommandSummary
-    @ObservedObject var state: SettingsState
+    var onSave: (String, String) -> Void
     @State private var combo: String = ""
 
     var body: some View {
@@ -899,10 +915,12 @@ struct CommandShortcutRow: View {
                 .lineLimit(1)
             Spacer()
             HotkeyRecorderView(combo: $combo) {
-                state.saveCommandShortcut?(command.id, combo)
-                state.refreshModules()
+                onSave(command.id, combo)
             }
         }
         .onAppear { combo = command.shortcut }
+        .onChange(of: command.shortcut) { _, newValue in
+            combo = newValue
+        }
     }
 }
