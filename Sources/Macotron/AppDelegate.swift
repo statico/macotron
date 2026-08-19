@@ -143,7 +143,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.toggleFavorite(id)
             },
             onHeightChange: { [weak self] height in
-                self?.launcherPanel.resizeToHeight(height)
+                self?.launcherPanel.requestHeight(height)
             }
         )
         let hostingView = PinnedHostingView(rootView: launcherView)
@@ -170,6 +170,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             debugServer?.onToggleLauncher = { [weak self] in
                 self?.launcherPanel.toggle()
+            }
+            debugServer?.onSetQuery = { [weak self] text in
+                self?.launcherSession.query = text
             }
             debugServer?.captureLauncher = { [weak self] in
                 let prefs = self?.launcherPrefs ?? LauncherPrefs()

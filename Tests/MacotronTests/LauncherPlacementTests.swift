@@ -24,14 +24,29 @@ struct LauncherPlacementTests {
         #expect(f.height == 300)
     }
 
-    @Test("open at max height fills the 18 percent band")
+    @Test("open at max height starts at the 18 percent band")
     func openMaxHeight() {
         let maxH = LauncherPlacement.maxHeight(in: visible)
         let f = LauncherPlacement.frame(height: maxH, visible: visible, pinTop: nil)
         let inset = visible.height * LauncherPlacement.topFraction
         #expect(abs(f.height - maxH) < 0.5)
         #expect(abs(f.maxY - (visible.maxY - inset)) < 0.5)
-        #expect(abs(f.minY - (visible.minY + inset)) < 0.5)
+        #expect(f.minY >= visible.minY + inset - 0.5)
+    }
+
+    @Test("max height caps at 500 on a tall display")
+    func maxHeightCap() {
+        #expect(LauncherPlacement.maxHeight(in: visible) == LauncherPlacement.maxPanelHeight)
+        let ultrawide = CGRect(x: 0, y: 0, width: 3440, height: 1410)
+        #expect(LauncherPlacement.maxHeight(in: ultrawide) == LauncherPlacement.maxPanelHeight)
+    }
+
+    @Test("short displays fall back to the 18 percent band")
+    func maxHeightShortDisplay() {
+        let short = CGRect(x: 0, y: 0, width: 1280, height: 600)
+        let band = short.height * (1 - 2 * LauncherPlacement.topFraction)
+        #expect(band < LauncherPlacement.maxPanelHeight)
+        #expect(abs(LauncherPlacement.maxHeight(in: short) - band) < 0.5)
     }
 
     @Test("width is 750 unless the display is narrower")
@@ -43,11 +58,11 @@ struct LauncherPlacementTests {
         #expect(nw == 400 - 2 * LauncherPlacement.margin)
     }
 
-    @Test("tall content stays in the 18 percent band")
+    @Test("tall content clamps to the max height inside the band")
     func clamp() {
         let f = LauncherPlacement.frame(height: 5000, visible: visible, pinTop: nil)
         let inset = visible.height * LauncherPlacement.topFraction
-        #expect(abs(f.height - visible.height * (1 - 2 * LauncherPlacement.topFraction)) < 0.5)
+        #expect(abs(f.height - LauncherPlacement.maxHeight(in: visible)) < 0.5)
         #expect(f.minY >= visible.minY + inset - 0.5)
         #expect(f.maxY <= visible.maxY - inset + 0.5)
     }
@@ -78,12 +93,44 @@ struct LauncherPlacementTests {
             resultCount: 2, queryEmpty: false, argumentCount: nil,
             textScale: 1, visible: visible
         )
-        #expect(two - one == LauncherPlacement.rowHeight(scale: 1))
+        #expect(two - one == LauncherPlacement.rowHeight(scale: 1) + LauncherPlacement.rowSpacing)
 
         let many = LauncherPlacement.panelHeight(
             resultCount: 50, queryEmpty: false, argumentCount: nil,
             textScale: 1, visible: visible
         )
         #expect(abs(many - LauncherPlacement.maxHeight(in: visible)) < 0.5)
+    }
+
+    /// Ground truth measured from the live scroll view's document height at
+    /// textScale 1: 1 row 44pt, 2 rows 81pt, 17 rows 636pt, 20 rows 747pt.
+    @Test("list height matches the real scroll view content")
+    func listHeightMatchesMeasured() {
+        #expect(LauncherPlacement.listHeight(count: 0, scale: 1) == 0)
+        #expect(LauncherPlacement.listHeight(count: 1, scale: 1) == 44)
+        #expect(LauncherPlacement.listHeight(count: 2, scale: 1) == 81)
+        #expect(LauncherPlacement.listHeight(count: 17, scale: 1) == 636)
+        #expect(LauncherPlacement.listHeight(count: 20, scale: 1) == 747)
+    }
+
+    /// Below the cap the window must be the exact sum of the sections, or the
+    /// list scrolls even though everything fits.
+    @Test("panel height leaves the list exactly enough room")
+    func panelHeightIsExact() {
+        for scale in [0.8, 1.0, 1.2] as [CGFloat] {
+            for count in 1...5 {
+                let height = LauncherPlacement.panelHeight(
+                    resultCount: count, queryEmpty: false, argumentCount: nil,
+                    textScale: scale, visible: visible
+                )
+                let sections = LauncherPlacement.searchHeight
+                    + LauncherPlacement.dividerHeight
+                    + LauncherPlacement.listHeight(count: count, scale: scale)
+                    + LauncherPlacement.dividerHeight
+                    + LauncherPlacement.footerHeight(scale: scale)
+                #expect(height < LauncherPlacement.maxHeight(in: visible))
+                #expect(abs(height - sections) < 0.001)
+            }
+        }
     }
 }

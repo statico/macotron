@@ -6,7 +6,19 @@ enum LauncherPlacement {
     /// Inset from the top of the visible frame when the launcher opens.
     static let topFraction: CGFloat = 0.18
     static let maxWidth: CGFloat = 750
+    static let maxPanelHeight: CGFloat = 500
     static let margin: CGFloat = 12
+
+    /// Every section below has an explicit height in `LauncherView`, so the
+    /// window height is exact rather than a guess at SwiftUI's own layout.
+    /// Predicting it from font metrics is what left the list scrolling by a few
+    /// points no matter how the row estimate was tuned.
+    static let searchHeight: CGFloat = 52
+    static let dividerHeight: CGFloat = 1
+    /// `VStack(spacing:)` between result rows.
+    static let rowSpacing: CGFloat = 1
+    /// Vertical padding around the results list, inside the scroll view.
+    static let listPadding: CGFloat = 8
 
     /// Visible frame of the display under the mouse, then main, then first.
     static func currentVisible() -> CGRect {
@@ -16,9 +28,9 @@ enum LauncherPlacement {
             ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
     }
 
-    /// Max height: 18% top inset + 18% bottom inset.
+    /// Max height: `maxPanelHeight`, or the 18% band on a short display.
     static func maxHeight(in visible: CGRect) -> CGFloat {
-        max(minHeight, visible.height * (1 - 2 * topFraction))
+        min(maxPanelHeight, max(minHeight, visible.height * (1 - 2 * topFraction)))
     }
 
     /// 750pt, or the visible width minus side margins if the display is narrower.
@@ -30,7 +42,26 @@ enum LauncherPlacement {
         20 * scale + 16
     }
 
-    /// Window height: search + results + footer, capped at the 18% band.
+    /// Footer holding the shortcut hints. Tall enough for the key glyph boxes at
+    /// every supported text scale.
+    static func footerHeight(scale: CGFloat) -> CGFloat {
+        18 * scale + 16
+    }
+
+    /// The "No results" placeholder.
+    static func emptyStateHeight(scale: CGFloat) -> CGFloat {
+        16 * scale + 48
+    }
+
+    /// Height of the scroll view's content for `count` rows.
+    static func listHeight(count: Int, scale: CGFloat) -> CGFloat {
+        guard count > 0 else { return 0 }
+        return CGFloat(count) * rowHeight(scale: scale)
+            + CGFloat(count - 1) * rowSpacing
+            + listPadding
+    }
+
+    /// Window height: search + results + footer, capped at `maxHeight`.
     /// Extra rows scroll inside the list; they must not grow the SwiftUI host.
     static func panelHeight(
         resultCount: Int,
@@ -46,12 +77,12 @@ enum LauncherPlacement {
         if queryEmpty && resultCount == 0 {
             return minHeight
         }
-        var height: CGFloat = 52 + 1
+        var height = searchHeight + dividerHeight
         if resultCount == 0 {
-            height += 48 + 12 * textScale
+            height += emptyStateHeight(scale: textScale)
         } else {
-            height += CGFloat(resultCount) * rowHeight(scale: textScale) + 8
-            height += 1 + 16 + 14 * textScale
+            height += listHeight(count: resultCount, scale: textScale)
+            height += dividerHeight + footerHeight(scale: textScale)
         }
         return min(maxH, max(minHeight, height))
     }
