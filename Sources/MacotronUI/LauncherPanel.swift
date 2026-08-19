@@ -59,12 +59,15 @@ public final class LauncherPanel: NSPanel {
         let height = lastContentHeight > 0 ? lastContentHeight : Self.minHeight
         let width = LauncherPlacement.width(in: currentVisible)
         let chrome = Self.makeChrome(style, size: NSSize(width: width, height: height))
-        hostingView.frame = chrome.bounds
+        let pin = HostPinView(frame: chrome.bounds)
+        pin.autoresizingMask = [.width, .height]
+        hostingView.frame = pin.bounds
         hostingView.autoresizingMask = [.width, .height]
+        pin.addSubview(hostingView)
         if #available(macOS 26.0, *), let glass = Self.glass(in: chrome) {
-            glass.contentView = hostingView
+            glass.contentView = pin
         } else {
-            chrome.addSubview(hostingView)
+            chrome.addSubview(pin)
         }
         contentView = chrome
         hasShadow = style != .glass
@@ -129,6 +132,7 @@ public final class LauncherPanel: NSPanel {
             || abs(frame.origin.x - newFrame.origin.x) > 1
             || abs(frame.width - newFrame.width) > 1 else { return }
         setFrame(newFrame, display: true)
+        pinHost()
         logger.notice("after \(NSStringFromRect(self.frame), privacy: .public) host=\(NSStringFromRect(self.hostingView.frame), privacy: .public)")
     }
 
@@ -182,9 +186,20 @@ public final class LauncherPanel: NSPanel {
             let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: nil)
             logPlacement("open", height: height, visible: visible, pinTop: nil, frame: newFrame)
             setFrame(newFrame, display: false)
-            logger.notice("after-open \(NSStringFromRect(self.frame), privacy: .public)")
+            pinHost()
+            logger.notice("after-open \(NSStringFromRect(self.frame), privacy: .public) host=\(NSStringFromRect(self.hostingView.frame), privacy: .public)")
             reveal()
         }
+    }
+
+    public override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        super.setFrame(frameRect, display: flag)
+        pinHost()
+    }
+
+    private func pinHost() {
+        guard let parent = hostingView.superview else { return }
+        hostingView.frame = parent.bounds
     }
 
     private var currentVisible: CGRect { LauncherPlacement.currentVisible() }
@@ -241,6 +256,13 @@ extension LauncherPanel: NSWindowDelegate {
         guard isShown, isVisible, !isOrderingOut else { return }
         shouldRestoreApp = false
         orderOut(nil)
+    }
+}
+
+private final class HostPinView: NSView {
+    override func layout() {
+        super.layout()
+        subviews.forEach { $0.frame = bounds }
     }
 }
 
