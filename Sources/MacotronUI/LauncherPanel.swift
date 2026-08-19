@@ -87,16 +87,7 @@ public final class LauncherPanel: NSPanel {
         var newFrame = frame
         newFrame.size.height = clamped
         newFrame.origin.y = topY - clamped
-
-        if isVisible && alphaValue > 0 {
-            NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = 0.15
-                ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
-                animator().setFrame(newFrame, display: true)
-            }
-        } else {
-            setFrame(newFrame, display: true)
-        }
+        setFrame(newFrame, display: true)
     }
 
     private func reveal() {
