@@ -12,10 +12,9 @@ public final class SettingsWindow {
         self.settingsState = state
     }
 
-    /// The window is not resizable, so the content is pinned to this size. The
-    /// root view fills its parent, which would otherwise grow the window to the
-    /// full height of the screen.
-    private static let contentSize = NSSize(width: 760, height: 520)
+    /// Default size. Resizable; the SwiftUI root fills the content view.
+    private static let contentSize = NSSize(width: 760, height: 620)
+    private static let minSize = NSSize(width: 640, height: 480)
 
     public func show() {
         // Switch to regular activation policy so the Edit menu appears (enables Cmd+V paste)
@@ -29,19 +28,19 @@ public final class SettingsWindow {
             return
         }
 
-        let settingsView = SettingsView(state: settingsState)
-            .frame(width: Self.contentSize.width, height: Self.contentSize.height)
-        let hostingView = NSHostingView(rootView: settingsView)
+        let hostingView = NSHostingView(rootView: SettingsView(state: settingsState))
+        hostingView.sizingOptions = []
 
         let w = NSWindow(
             contentRect: NSRect(origin: .zero, size: Self.contentSize),
-            styleMask: [.titled, .closable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         w.title = "Macotron Settings"
         w.contentView = hostingView
         w.setContentSize(Self.contentSize)
+        w.minSize = Self.minSize
         w.center()
         w.isReleasedWhenClosed = false
         bringToFront(w)
