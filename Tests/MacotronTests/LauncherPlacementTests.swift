@@ -24,10 +24,14 @@ struct LauncherPlacementTests {
         #expect(f.height == 300)
     }
 
-    @Test("max height is the visible frame minus 18 percent top and bottom")
-    func maxHeightBand() {
+    @Test("open at max height fills the 18 percent band")
+    func openMaxHeight() {
         let maxH = LauncherPlacement.maxHeight(in: visible)
-        #expect(abs(maxH - visible.height * (1 - 2 * LauncherPlacement.topFraction)) < 0.5)
+        let f = LauncherPlacement.frame(height: maxH, visible: visible, pinTop: nil)
+        let inset = visible.height * LauncherPlacement.topFraction
+        #expect(abs(f.height - maxH) < 0.5)
+        #expect(abs(f.maxY - (visible.maxY - inset)) < 0.5)
+        #expect(abs(f.minY - (visible.minY + inset)) < 0.5)
     }
 
     @Test("width is 750 unless the display is narrower")
