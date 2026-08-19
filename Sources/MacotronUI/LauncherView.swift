@@ -38,6 +38,7 @@ public struct LauncherView: View {
     @State private var selectedIndex = 0
     @State private var argValues: [String: String] = [:]
     @State private var argError: String?
+    @FocusState private var focusedArg: String?
 
     public var onExecuteCommand: ((String, [String: Any]) -> Void)?
     public var onRevealInFinder: ((String) -> Void)?
@@ -62,23 +63,25 @@ public struct LauncherView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.tertiary)
-                    .font(.system(size: 20 * prefs.textScale))
-                    .frame(width: 24, height: 24)
+            if session.pendingArgs == nil {
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 20 * prefs.textScale))
+                        .frame(width: 24, height: 24)
 
-                TextField("Search commands and apps...", text: $query)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 20 * prefs.textScale, weight: .regular))
-                    .frame(height: 24)
-                    .onSubmit { execute() }
+                    TextField("Search commands and apps...", text: $query)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 20 * prefs.textScale, weight: .regular))
+                        .frame(height: 24)
+                        .onSubmit { execute() }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .fixedSize(horizontal: false, vertical: true)
+
+                Divider().opacity(0.5)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .fixedSize(horizontal: false, vertical: true)
-
-            Divider().opacity(0.5)
 
             if session.pendingArgs != nil {
                 argumentForm
@@ -110,13 +113,19 @@ public struct LauncherView: View {
         .onChange(of: session.pendingArgs?.commandId) { _, _ in
             if let pending = session.pendingArgs {
                 prefill(pending.arguments)
+                DispatchQueue.main.async {
+                    focusedArg = pending.arguments.first?.name
+                }
+            } else {
+                focusedArg = nil
             }
         }
         .background(KeyEventHandler(
             onArrowUp: { moveSelection(-1) },
             onArrowDown: { moveSelection(1) },
             onCmdReturn: { executeSelectedWithModifier() },
-            onEscape: { handleEscape() }
+            onEscape: { handleEscape() },
+            interceptListKeys: session.pendingArgs == nil
         ))
         .background(
             GeometryReader { geo in
@@ -269,6 +278,9 @@ public struct LauncherView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
+            .onAppear {
+                focusedArg = pending.arguments.first?.name
+            }
         }
     }
 
@@ -282,9 +294,13 @@ public struct LauncherView: View {
                 }
             }
             .labelsHidden()
+            .pickerStyle(.segmented)
+            .focused($focusedArg, equals: spec.name)
         default:
             TextField(spec.placeholder, text: binding(for: spec.name))
                 .textFieldStyle(.roundedBorder)
+                .focused($focusedArg, equals: spec.name)
+                .onSubmit { execute() }
         }
     }
 
@@ -334,6 +350,7 @@ struct KeyEventHandler: NSViewRepresentable {
     var onArrowDown: () -> Void
     var onCmdReturn: () -> Void
     var onEscape: (() -> Bool)?
+    var interceptListKeys: Bool = true
 
     func makeNSView(context: Context) -> KeyEventNSView {
         let view = KeyEventNSView()
@@ -341,6 +358,7 @@ struct KeyEventHandler: NSViewRepresentable {
         view.onArrowDown = onArrowDown
         view.onCmdReturn = onCmdReturn
         view.onEscape = onEscape
+        view.interceptListKeys = interceptListKeys
         return view
     }
 
@@ -349,6 +367,7 @@ struct KeyEventHandler: NSViewRepresentable {
         nsView.onArrowDown = onArrowDown
         nsView.onCmdReturn = onCmdReturn
         nsView.onEscape = onEscape
+        nsView.interceptListKeys = interceptListKeys
     }
 
     final class KeyEventNSView: NSView {
@@ -356,6 +375,7 @@ struct KeyEventHandler: NSViewRepresentable {
         var onArrowDown: (() -> Void)?
         var onCmdReturn: (() -> Void)?
         var onEscape: (() -> Bool)?
+        var interceptListKeys = true
         private var monitor: Any?
 
         override func viewDidMoveToWindow() {
@@ -373,11 +393,11 @@ struct KeyEventHandler: NSViewRepresentable {
 
         private func consume(_ event: NSEvent) -> Bool {
             let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-            if flags.contains(.command) && event.keyCode == 36 {
+            if interceptListKeys, flags.contains(.command) && event.keyCode == 36 {
                 onCmdReturn?()
                 return true
             }
-            if flags.contains(.control) && !flags.contains(.command) {
+            if interceptListKeys, flags.contains(.control) && !flags.contains(.command) {
                 switch event.charactersIgnoringModifiers {
                 case "p", "P":
                     onArrowUp?()
@@ -390,9 +410,11 @@ struct KeyEventHandler: NSViewRepresentable {
             }
             switch event.keyCode {
             case 126:
+                guard interceptListKeys else { return false }
                 onArrowUp?()
                 return true
             case 125:
+                guard interceptListKeys else { return false }
                 onArrowDown?()
                 return true
             case 53:
