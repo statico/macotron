@@ -16,18 +16,18 @@ function run() {
   const pat = document.getElementById("pat").value;
   const flags = document.getElementById("flags").value;
   const src = document.getElementById("src").value;
-    const out = document.getElementById("out");
-    try {
-      const re = new RegExp(pat, flags);
-      const matches = [...src.matchAll(re)].map((m, i) =>
-        (i + 1) + ": " + JSON.stringify(m[0]) + (m.length > 1 ? "  groups=" + JSON.stringify(m.slice(1)) : "")
-      );
-      out.textContent = matches.length ? matches.join("\\n") : "No matches";
-      out.classList.toggle("muted", !matches.length);
-    } catch (err) {
-      out.textContent = String(err);
-      out.classList.remove("muted");
-    }
+  const out = document.getElementById("out");
+  try {
+    const re = new RegExp(pat, flags);
+    const matches = [...src.matchAll(re)].map((m, i) =>
+      (i + 1) + ": " + JSON.stringify(m[0]) + (m.length > 1 ? "  groups=" + JSON.stringify(m.slice(1)) : "")
+    );
+    out.textContent = matches.length ? matches.join("\\n") : "No matches";
+    out.classList.toggle("muted", !matches.length);
+  } catch (err) {
+    out.textContent = String(err);
+    out.classList.remove("muted");
+  }
 }
 document.getElementById("pat").oninput = run;
 document.getElementById("flags").oninput = run;
