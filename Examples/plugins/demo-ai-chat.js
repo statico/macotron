@@ -45,12 +45,11 @@ macotron.command("AI Chat", "Open a streaming Claude chat panel", () => {
         title: "AI Chat",
         width: 440,
         height: 520,
-        html: `<!DOCTYPE html><html><body style="font:13px system-ui;margin:0;display:flex;flex-direction:column;height:100vh">
-<div id="log" style="flex:1;overflow:auto;padding:12px"></div>
-<div style="display:flex;gap:8px;padding:10px;border-top:1px solid rgba(128,128,128,0.3)">
-  <input id="input" style="flex:1;padding:8px" placeholder="Message…">
+        html: `<div id="log" class="grow scroll"></div>
+<div class="toolbar">
+  <input id="input" placeholder="Message…">
   <button id="send">Send</button>
-  <button id="neu">New</button>
+  <button id="neu" class="secondary">New</button>
 </div>
 <script>
 const log = document.getElementById("log");
@@ -92,7 +91,7 @@ window.__macotronReceive = (data) => {
   }
   if (data.type === "error") { add("error", data.text); streamEl = null; }
 };
-</script></body></html>`,
+</script>`,
     });
 
     function dumpHistory() {
