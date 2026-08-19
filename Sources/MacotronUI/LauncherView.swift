@@ -674,11 +674,12 @@ struct ResultRow: View {
 
             Spacer()
 
-            if result.isFavorite {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 9 * textScale))
-                    .foregroundStyle(.yellow)
-            }
+            Image(systemName: "star.fill")
+                .font(.system(size: 9 * textScale))
+                .foregroundStyle(.primary)
+                .opacity(result.isFavorite ? 1 : 0)
+                .frame(width: 12 * textScale)
+                .accessibilityHidden(!result.isFavorite)
 
             if !result.shortcut.isEmpty {
                 HStack(spacing: 2) {
