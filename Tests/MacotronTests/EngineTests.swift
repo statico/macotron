@@ -37,6 +37,22 @@ struct EngineTests {
         #expect(error != nil)
     }
 
+    @Test("isolated plugins can both declare const opts")
+    func testIsolatedPluginConst() {
+        let engine = Engine()
+        let (_, first) = engine.evaluate("const opts = 1")
+        #expect(first == nil)
+        let (_, clash) = engine.evaluate("const opts = 2")
+        #expect(clash != nil)
+        #expect(clash?.contains("opts") == true)
+
+        let isolated = Engine()
+        let (_, a) = isolated.evaluate(Engine.isolatedPlugin("const opts = 1"))
+        let (_, b) = isolated.evaluate(Engine.isolatedPlugin("const opts = 2"))
+        #expect(a == nil)
+        #expect(b == nil)
+    }
+
     @Test("Reset clears state")
     func testReset() {
         let engine = Engine()

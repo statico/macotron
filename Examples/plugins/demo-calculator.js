@@ -1,5 +1,10 @@
 // APIs: command, panel
 
+macotron.plugin({
+  title: "Calculator",
+  description: "Evaluate an expression as you type.",
+});
+
 macotron.command("Calculator", "Evaluate an expression as you type", () => {
     const id = macotron.panel.open({
         title: "Calculator",

@@ -1,3 +1,8 @@
+macotron.plugin({
+  title: "Lorem Ipsum",
+  description: "Generate placeholder text.",
+});
+
 const WORDS = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua".split(" ");
 
 function generate(count, unit) {
@@ -23,7 +28,7 @@ function generate(count, unit) {
 macotron.command("Generate Lorem Ipsum", "Copy placeholder text to the clipboard", (args) => {
     const text = generate(args.count, args.unit);
     macotron.clipboard.set(text);
-    macotron.notify.show("Lorem ipsum", "Copied " + args.count + " " + args.unit);
+    macotron.notify.toast("Copied", args.count + " " + args.unit, { color: "success" });
 }, {
     id: "lorem-ipsum",
     arguments: [

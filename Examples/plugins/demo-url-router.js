@@ -1,4 +1,9 @@
 // APIs: url.registerHandler, url.on, url.open, command
+macotron.plugin({
+  title: "URL Router",
+  description: "Open matching links in Safari.",
+});
+
 macotron.url.registerHandler("https");
 
 macotron.url.on("https", "youtube.com", (event) => {

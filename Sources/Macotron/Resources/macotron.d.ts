@@ -86,7 +86,16 @@ declare const macotron: {
     };
 
     screen: {
-        capture(opts?: { windowID?: number }): Promise<string>;
+        capture(opts?: { windowID?: number; selection?: boolean }): Promise<string> | string;
+        /** System magnifier eyedropper. Resolves null if cancelled. Coords are Cocoa screen points. */
+        pickColor(): Promise<{
+            hex: string;
+            r: number;
+            g: number;
+            b: number;
+            x: number;
+            y: number;
+        } | null>;
     };
 
     shell: {
@@ -94,7 +103,18 @@ declare const macotron: {
     };
 
     notify: {
-        show(title: string, body: string, opts?: { sound?: boolean }): void;
+        show(title: string, body: string, opts?: { sound?: boolean; subtitle?: string; id?: string }): void;
+        /** One-line HUD centered on the screen under the cursor. Default duration 3000ms. */
+        toast(
+            title: string,
+            body?: string,
+            opts?: {
+                position?: "top" | "bottom";
+                duration?: number;
+                sfSymbol?: string;
+                color?: "success" | "failure" | "warning" | string;
+            }
+        ): void;
     };
 
     url: {
@@ -174,12 +194,14 @@ declare const macotron: {
 
     system: {
         cpuTemp(): Promise<number>;
+        cpu(): { usage: number };
+        locale(): { language: string; region: string; measurement: "metric" | "us" };
         memory(): { total: number; used: number; free: number };
         battery(): { level: number; charging: boolean };
         disk(): { total: number; free: number; used: number };
         network(): { bytesIn: number; bytesOut: number };
         processes(limit?: number): Array<{ name: string; pid: number; cpu: number }>;
-        gpu(): { name: string } | null;
+        gpu(): { name: string; usage: number } | null;
     };
 
     http: {
@@ -195,7 +217,7 @@ declare const macotron: {
         remove(id: string): void;
         setIcon(sfSymbolName: string): void;
         setTitle(text: string): void;
-        /** Extra status item next to the Macotron icon (SwiftBar-style). */
+        /** Extra status item next to the Macotron icon. */
         status(
             id: string,
             opts: {
@@ -208,6 +230,7 @@ declare const macotron: {
                 icon?: string;
                 image?: string;
                 onClick?: () => void;
+                /** Left-click runs `onClick` when set; right/ctrl-click opens this menu. */
                 menu?: MenuBarMenuItem[];
             }
         ): void;
@@ -229,23 +252,24 @@ declare const macotron: {
     };
 
     panel: {
-        /** `html` is body markup in a host document (fonts, padding, light/dark). `rawHtml` is a full document. */
-        open(opts: { title?: string; width?: number; height?: number; html?: string; rawHtml?: string }): string;
+        /** `html` is body markup in a host document (fonts, padding, light/dark). `rawHtml` is a full document. `glass` is Liquid Glass: `true`/`"regular"` (translucent) or `"clear"`. */
+        open(opts: {
+            title?: string;
+            width?: number;
+            height?: number;
+            html?: string;
+            rawHtml?: string;
+            glass?: boolean | "regular" | "clear";
+        }): string;
         close(id: string): void;
         postMessage(id: string, data: any): void;
         onMessage(id: string, callback: (data: any) => void): void;
     };
 
-    /**
-     * Declare the macOS permissions this plugin needs. Macotron shows a red
-     * warning in the menu bar and Settings until the user grants them.
-     */
-    requirePermissions(list: Array<"accessibility" | "inputMonitoring" | "screenRecording">): void;
-
     config(options: Record<string, any>): void;
 
     /**
-     * Declare module metadata and configurable options.
+     * Declare plugin metadata, permissions, and configurable options.
      * Returns resolved options (user overrides from Settings, else defaults).
      *
      * Option types:
@@ -269,9 +293,10 @@ declare const macotron: {
      * secrets into settings.json or plugin source.
      *
      * @example
-     * const opts = macotron.module({
+     * const opts = macotron.plugin({
      *     title: "Chat",
      *     description: "Talk to a model",
+     *     permissions: ["accessibility"],
      *     options: {
      *         model:      { type: "dropdown",   label: "Model", default: "sonnet",
      *                       choices: [
@@ -286,11 +311,21 @@ declare const macotron: {
      * });
      * // opts.apiKey === resolved secret string (or "")
      */
+    plugin(metadata: {
+        title?: string;
+        description?: string;
+        permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording">;
+        options?: Record<string, MacotronModuleOption>;
+    }): Record<string, any>;
+    /** @deprecated Use plugin() */
     module(metadata: {
         title?: string;
         description?: string;
+        permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording">;
         options?: Record<string, MacotronModuleOption>;
     }): Record<string, any>;
+    /** @deprecated Pass `permissions` to plugin() */
+    requirePermissions(list: Array<"accessibility" | "inputMonitoring" | "screenRecording">): void;
 };
 
 type MacotronModuleOption =

@@ -14,7 +14,7 @@ public final class AppModule: NativeModule {
     private weak var engine: Engine?
     private var activationObserver: NSObjectProtocol?
     private var lastOther: [String: Any]?
-    private static let ownBundleID = Bundle.main.bundleIdentifier ?? "com.macotron.app"
+    private static let ownBundleID = Bundle.main.bundleIdentifier ?? "io.statico.macotron"
 
     public init() {}
 

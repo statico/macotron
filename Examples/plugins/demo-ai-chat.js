@@ -1,5 +1,10 @@
 // APIs: panel, ai.claude.stream, localStorage, command
 
+macotron.plugin({
+  title: "AI Chat",
+  description: "Chat with Claude in a panel.",
+});
+
 const STORE_KEY = "macotron.ai-chat.v1";
 const MAX_CHATS = 50;
 

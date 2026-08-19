@@ -1,5 +1,10 @@
 // APIs: spotlight.search, shell.run, command, panel
 
+macotron.plugin({
+  title: "File Search",
+  description: "Spotlight search and copy a path.",
+});
+
 macotron.command("Search Files", "Spotlight search and copy the selected path", () => {
     const id = macotron.panel.open({
         title: "Search Files",
@@ -38,7 +43,7 @@ window.__macotronReceive = (data) => {
                 const hits = await macotron.spotlight.search(String(data.q || ""));
                 macotron.panel.postMessage(id, { hits: (hits || []).slice(0, 20) });
             } catch (err) {
-                macotron.notify.show("Search Files", String(err));
+                macotron.notify.toast("Search Files", String(err), { color: "failure" });
             }
         }
         if (data.type === "open") {

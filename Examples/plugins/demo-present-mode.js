@@ -1,5 +1,10 @@
 // APIs: command, shell.run, notify
 
+macotron.plugin({
+  title: "Present Mode",
+  description: "Hide desktop icons for presenting.",
+});
+
 let presenting = false;
 
 async function hideDesktopIcons(hide) {
@@ -13,8 +18,8 @@ macotron.command("Toggle Present Mode", "Hide desktop icons for screensharing", 
     presenting = !presenting;
     try {
         await hideDesktopIcons(presenting);
-        macotron.notify.show("Present Mode", presenting ? "On — desktop icons hidden" : "Off");
+        macotron.notify.toast("Present Mode", presenting ? "On — desktop icons hidden" : "Off", { color: "success" });
     } catch (err) {
-        macotron.notify.show("Present Mode", String(err));
+        macotron.notify.toast("Present Mode", String(err), { color: "failure" });
     }
 });

@@ -2,9 +2,38 @@
 import AppKit
 import WebKit
 
+enum PanelGlass: Equatable {
+    case none
+    case regular
+    case clear
+
+    var isEnabled: Bool { self != .none }
+
+    static func parse(_ value: Any) -> PanelGlass {
+        switch value {
+        case let flag as Bool:
+            return flag ? .regular : .none
+        case let name as String:
+            switch name.lowercased() {
+            case "clear": return .clear
+            case "regular", "translucent": return .regular
+            case "false", "none", "": return .none
+            default: return .regular
+            }
+        default:
+            return .none
+        }
+    }
+}
+
 @MainActor
 enum PanelShell {
-    static let css = """
+    nonisolated static func css(glass: Bool) -> String {
+        let pageBg = glass ? "transparent" : "light-dark(#f5f5f7, #1c1c1e)"
+        let fieldBg = glass
+            ? "light-dark(rgba(255,255,255,0.55), rgba(44,44,46,0.45))"
+            : "light-dark(#ffffff, #2c2c2e)"
+        return """
     html { color-scheme: light dark; }
     html, body { height: 100%; margin: 0; }
     body {
@@ -18,7 +47,7 @@ enum PanelShell {
       line-height: 1.45;
       -webkit-font-smoothing: antialiased;
       color: light-dark(#1d1d1f, #f5f5f7);
-      background: light-dark(#f5f5f7, #1c1c1e);
+      background: \(pageBg);
     }
     h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; }
     h1 { font-size: 18px; }
@@ -38,7 +67,7 @@ enum PanelShell {
       padding: 8px 10px;
       border: 1px solid light-dark(rgba(0,0,0,0.12), rgba(255,255,255,0.14));
       border-radius: 8px;
-      background: light-dark(#ffffff, #2c2c2e);
+      background: \(fieldBg);
       color: light-dark(#1d1d1f, #f5f5f7);
       outline: none;
     }
@@ -70,21 +99,25 @@ enum PanelShell {
     .toolbar input { width: 0; flex: 1; min-width: 0; }
     .toolbar input.inline { width: 4.5em; flex: none; }
     """
+    }
 
-    static func document(body: String) -> String {
+    static func document(body: String, glass: Bool = false) -> String {
         "<!DOCTYPE html><html lang=\"en\"><head>"
             + "<meta charset=\"utf-8\">"
             + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
             + "<meta name=\"color-scheme\" content=\"light dark\">"
-            + "<style>" + css + "</style>"
+            + "<style>" + css(glass: glass) + "</style>"
             + "</head><body>"
             + body
             + "</body></html>"
     }
 
-    static func userScript() -> WKUserScript {
-        let encoded = String(data: try! JSONSerialization.data(withJSONObject: css), encoding: .utf8)!
-        let source = "(function(){var s=document.createElement('style');s.textContent=\(encoded);"
+    nonisolated static func jsonString(_ value: String) -> String {
+        (try? JSONEncoder().encode(value)).flatMap { String(data: $0, encoding: .utf8) } ?? "\"\""
+    }
+
+    static func userScript(glass: Bool = false) -> WKUserScript {
+        let source = "(function(){var s=document.createElement('style');s.textContent=\(jsonString(css(glass: glass)));"
             + "(document.head||document.documentElement).appendChild(s);})();"
         return WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true)
     }
@@ -118,6 +151,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate {
         height: Int,
         html: String,
         hostChrome: Bool,
+        glass: PanelGlass = .none,
         onMessage: @escaping (String, Any) -> Void,
         onClosed: @escaping () -> Void
     ) {
@@ -129,18 +163,19 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate {
         let controller = WKUserContentController()
         controller.addUserScript(PanelShell.closeScript())
         if hostChrome {
-            controller.addUserScript(PanelShell.userScript())
+            controller.addUserScript(PanelShell.userScript(glass: glass.isEnabled))
         }
         config.userContentController = controller
 
-        let wv = WKWebView(frame: NSRect(x: 0, y: 0, width: width, height: height), configuration: config)
+        let size = NSSize(width: width, height: height)
+        let wv = WKWebView(frame: NSRect(origin: .zero, size: size), configuration: config)
         wv.appearance = NSApp.effectiveAppearance
         wv.setValue(false, forKey: "drawsBackground")
-        wv.underPageBackgroundColor = NSColor.windowBackgroundColor
+        wv.underPageBackgroundColor = glass.isEnabled ? .clear : NSColor.windowBackgroundColor
         self.webView = wv
 
         let p = PluginPanel(
-            contentRect: NSRect(x: 0, y: 0, width: width, height: height),
+            contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.titled, .closable, .resizable, .utilityWindow],
             backing: .buffered,
             defer: false
@@ -151,8 +186,12 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate {
         p.level = .floating
         p.hidesOnDeactivate = false
         p.becomesKeyOnlyIfNeeded = false
-        p.contentView = wv
         p.isReleasedWhenClosed = false
+        if glass.isEnabled {
+            p.isOpaque = false
+            p.backgroundColor = .clear
+        }
+        p.contentView = Self.embed(wv, glass: glass, size: size)
         self.panel = p
 
         super.init()
@@ -169,6 +208,27 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate {
             name: NSWindow.willCloseNotification,
             object: p
         )
+    }
+
+    private static func embed(_ webView: WKWebView, glass: PanelGlass, size: NSSize) -> NSView {
+        guard glass.isEnabled else { return webView }
+        let frame = NSRect(origin: .zero, size: size)
+        webView.frame = frame
+        webView.autoresizingMask = [.width, .height]
+        if #available(macOS 26.0, *) {
+            let view = NSGlassEffectView(frame: frame)
+            view.style = glass == .clear ? .clear : .regular
+            view.contentView = webView
+            view.autoresizingMask = [.width, .height]
+            return view
+        }
+        let view = NSVisualEffectView(frame: frame)
+        view.material = glass == .clear ? .fullScreenUI : .hudWindow
+        view.blendingMode = .behindWindow
+        view.state = .active
+        view.autoresizingMask = [.width, .height]
+        view.addSubview(webView)
+        return view
     }
 
     func show() {
@@ -234,10 +294,8 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate {
            let raw = try? JSONSerialization.data(withJSONObject: data),
            let s = String(data: raw, encoding: .utf8) {
             json = s
-        } else if let s = data as? String,
-                  let raw = try? JSONSerialization.data(withJSONObject: s),
-                  let encoded = String(data: raw, encoding: .utf8) {
-            json = encoded
+        } else if let s = data as? String {
+            json = PanelShell.jsonString(s)
         } else if data is NSNull {
             json = "null"
         } else {

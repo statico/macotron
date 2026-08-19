@@ -1,5 +1,10 @@
 // APIs: command, shell.run, panel, notify
 
+macotron.plugin({
+  title: "Security Checklist",
+  description: "Check FileVault, firewall, and SIP.",
+});
+
 async function run(cmd, args) {
     try {
         return await macotron.shell.run(cmd, args);

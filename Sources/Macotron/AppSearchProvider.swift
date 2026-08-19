@@ -74,18 +74,7 @@ final class AppSearchProvider {
             refresh()
         }
 
-        guard !query.isEmpty else {
-            // Return top apps when no query (recently used would be ideal, but for now return alphabetical)
-            return Array(allApps.prefix(8)).map { app in
-                SearchResult(
-                    id: app.bundleID,
-                    title: app.name,
-                    subtitle: "",
-                    type: .app,
-                    nsImage: app.icon
-                )
-            }
-        }
+        guard !query.isEmpty else { return [] }
 
         var scored: [(entry: AppEntry, score: Int)] = []
         for app in allApps {

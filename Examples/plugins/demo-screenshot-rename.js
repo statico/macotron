@@ -1,5 +1,9 @@
 // APIs: fs.list, ocr.recognize, shell.run, command, notify
-macotron.requirePermissions(["screenRecording"]);
+macotron.plugin({
+  title: "Screenshot Rename",
+  description: "Rename screenshots from OCR text.",
+  permissions: ["screenRecording"],
+});
 
 function slug(text) {
     const cut = text.split(/\n/)[0].replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
@@ -22,7 +26,7 @@ async function homeDir() {
 macotron.command("Rename Last Screenshot", "OCR the newest Desktop screenshot and rename it", async () => {
     const name = newestScreenshot();
     if (!name) {
-        macotron.notify.show("Screenshot rename", "No screenshots on the Desktop");
+        macotron.notify.toast("Screenshot rename", "No screenshots on the Desktop");
         return;
     }
     const src = "~/Desktop/" + name;
@@ -40,8 +44,8 @@ macotron.command("Rename Last Screenshot", "OCR the newest Desktop screenshot an
         if (dest !== src) {
             await macotron.shell.run("/bin/mv", [home + "/Desktop/" + name, home + "/Desktop/" + destName]);
         }
-        macotron.notify.show("Screenshot renamed", destName);
+        macotron.notify.toast("Screenshot renamed", destName, { color: "success" });
     } catch (err) {
-        macotron.notify.show("Screenshot rename failed", String(err));
+        macotron.notify.toast("Screenshot rename failed", String(err), { color: "failure" });
     }
 });

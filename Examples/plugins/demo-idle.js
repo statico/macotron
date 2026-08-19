@@ -1,6 +1,11 @@
 // demo-idle.js
 // APIs: macotron.idle.seconds, macotron.idle.setThreshold, macotron.on("system:idle"), macotron.on("system:active"), macotron.notify, macotron.command
 
+macotron.plugin({
+  title: "Idle",
+  description: "Notify when the Mac goes idle or wakes.",
+});
+
 let lastTransition = "none";
 
 macotron.on("system:idle", () => {
@@ -13,5 +18,5 @@ macotron.on("system:active", () => {
 
 macotron.command("Idle seconds", "Show seconds since last HID input", () => {
     const seconds = Math.floor(macotron.idle.seconds());
-    macotron.notify.show("Idle", `${seconds}s (last transition: ${lastTransition})`);
+    macotron.notify.toast("Idle", `${seconds}s (last transition: ${lastTransition})`);
 });

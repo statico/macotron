@@ -1,5 +1,9 @@
 // APIs: window.getAll, app.list, app.switch, panel, command
-macotron.requirePermissions(["accessibility"]);
+macotron.plugin({
+  title: "Window Hopper",
+  description: "Switch to a window by name.",
+  permissions: ["accessibility"],
+});
 
 function bundleForAppName(name) {
     const apps = macotron.app.list();

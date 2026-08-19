@@ -37,3 +37,27 @@ struct LauncherPrefsTests {
         #expect(LauncherPrefs.snapTextScale(99) == 1.2)
     }
 }
+
+@Suite("LauncherBackground")
+struct LauncherBackgroundTests {
+    @Test("parses known values")
+    func parses() {
+        #expect(LauncherBackground.parse("glass") == .glass)
+        #expect(LauncherBackground.parse("opaque") == .opaque)
+        #expect(LauncherBackground.parse("translucent") == .translucent)
+    }
+
+    @Test("unknown defaults to translucent")
+    func defaults() {
+        #expect(LauncherBackground.parse("crystal") == .translucent)
+        #expect(LauncherBackground.parse(nil) == .translucent)
+    }
+}
+
+@Suite("HotkeyFormat")
+struct HotkeyFormatTests {
+    @Test("glyphs maps combo parts")
+    func glyphs() {
+        #expect(HotkeyFormat.glyphs("cmd+shift+a") == ["\u{2318}", "\u{21E7}", "A"])
+    }
+}

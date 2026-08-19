@@ -1,8 +1,13 @@
 // APIs: command, clipboard.set, notify
 
+macotron.plugin({
+  title: "Dev Utils",
+  description: "Copy UUIDs, hashes, and other developer strings.",
+});
+
 function copy(title, value) {
     macotron.clipboard.set(value);
-    macotron.notify.show(title, value);
+    macotron.notify.toast("Copied", title, { color: "success" });
 }
 
 function uuid() {
@@ -46,7 +51,7 @@ macotron.command("Unix Timestamp", "Copy seconds since epoch", () => copy("Times
 macotron.command("Encode Base64", "Base64-encode the current clipboard", () => {
     const text = macotron.clipboard.text();
     if (!text) {
-        macotron.notify.show("Encode Base64", "Clipboard is empty");
+        macotron.notify.toast("Encode Base64", "Clipboard is empty");
         return;
     }
     copy("Base64", b64(text));
@@ -55,7 +60,7 @@ macotron.command("Decode JWT", "Decode the clipboard JWT payload", () => {
     const token = macotron.clipboard.text().trim();
     const parts = token.split(".");
     if (parts.length < 2) {
-        macotron.notify.show("Decode JWT", "Clipboard is not a JWT");
+        macotron.notify.toast("Decode JWT", "Clipboard is not a JWT");
         return;
     }
     let payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
@@ -64,6 +69,6 @@ macotron.command("Decode JWT", "Decode the clipboard JWT payload", () => {
         const json = JSON.stringify(JSON.parse(b64decode(payload)), null, 2);
         copy("JWT payload", json);
     } catch (err) {
-        macotron.notify.show("Decode JWT", String(err));
+        macotron.notify.toast("Decode JWT", String(err), { color: "failure" });
     }
 });
