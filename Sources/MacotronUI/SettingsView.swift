@@ -223,11 +223,14 @@ public struct SettingsView: View {
 
             Divider()
 
-            switch selectedTab {
-            case 1: pluginsTab
-            case 2: aboutTab
-            default: generalTab
+            Group {
+                switch selectedTab {
+                case 1: pluginsTab
+                case 2: aboutTab
+                default: generalTab
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
@@ -369,8 +372,7 @@ public struct SettingsView: View {
                         }
                     }
                 }
-
-                Spacer()
+                .padding(.bottom, 16)
             }
         }
     }
