@@ -13,9 +13,7 @@ private extension NSView {
 
 @MainActor
 public final class LauncherPanel: NSPanel {
-    private static let panelWidth: CGFloat = LauncherPlacement.width
     private static let minHeight: CGFloat = LauncherPlacement.minHeight
-    private static let maxHeight: CGFloat = LauncherPlacement.maxHeight
     private static let cornerRadius: CGFloat = 12
 
     private let hostingView: NSView
@@ -29,8 +27,10 @@ public final class LauncherPanel: NSPanel {
 
     public init(contentView: NSView) {
         hostingView = contentView
+        let seed = NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let seedWidth = LauncherPlacement.width(in: seed)
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: Self.panelWidth, height: Self.minHeight),
+            contentRect: NSRect(x: 0, y: 0, width: seedWidth, height: Self.minHeight),
             styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -39,8 +39,7 @@ public final class LauncherPanel: NSPanel {
         backgroundColor = .clear
         isOpaque = false
         hasShadow = true
-        minSize = NSSize(width: Self.panelWidth, height: Self.minHeight)
-        maxSize = NSSize(width: Self.panelWidth, height: Self.maxHeight)
+        applySizeLimits(in: seed)
         animationBehavior = .none
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         becomesKeyOnlyIfNeeded = false
@@ -56,7 +55,8 @@ public final class LauncherPanel: NSPanel {
             Self.glass(in: contentView)?.contentView = nil
         }
         let height = lastContentHeight > 0 ? lastContentHeight : Self.minHeight
-        let chrome = Self.makeChrome(style, size: NSSize(width: Self.panelWidth, height: height))
+        let width = LauncherPlacement.width(in: currentVisible)
+        let chrome = Self.makeChrome(style, size: NSSize(width: width, height: height))
         hostingView.frame = chrome.bounds
         hostingView.autoresizingMask = [.width, .height]
         if #available(macOS 26.0, *), let glass = Self.glass(in: chrome) {
@@ -118,12 +118,14 @@ public final class LauncherPanel: NSPanel {
 
     /// Resize the panel to fit the given content height, keeping the top edge pinned.
     public func resizeToHeight(_ height: CGFloat) {
-        let visible = (screen ?? NSScreen.main)?.visibleFrame ?? frame
+        let visible = currentVisible
+        applySizeLimits(in: visible)
         let pin = isVisible || isShown ? frame.maxY : nil
         let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: pin)
         lastContentHeight = newFrame.height
         guard abs(frame.height - newFrame.height) > 1 || abs(frame.origin.y - newFrame.origin.y) > 1
-            || abs(frame.origin.x - newFrame.origin.x) > 1 else { return }
+            || abs(frame.origin.x - newFrame.origin.x) > 1
+            || abs(frame.width - newFrame.width) > 1 else { return }
         setFrame(newFrame, display: true)
     }
 
@@ -172,16 +174,23 @@ public final class LauncherPanel: NSPanel {
         } else {
             captureFrontApp()
             let height = lastContentHeight > 0 ? lastContentHeight : Self.minHeight
-            let visible = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame
-            let newFrame: CGRect
-            if let visible {
-                newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: nil)
-            } else {
-                newFrame = CGRect(x: 0, y: 0, width: Self.panelWidth, height: height)
-            }
+            let visible = currentVisible
+            applySizeLimits(in: visible)
+            let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: nil)
             setFrame(newFrame, display: false)
             reveal()
         }
+    }
+
+    private var currentVisible: CGRect {
+        (screen ?? NSScreen.main ?? NSScreen.screens.first)?.visibleFrame
+            ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
+    }
+
+    private func applySizeLimits(in visible: CGRect) {
+        let width = LauncherPlacement.width(in: visible)
+        minSize = NSSize(width: width, height: Self.minHeight)
+        maxSize = NSSize(width: width, height: LauncherPlacement.maxHeight(in: visible))
     }
 
     private func captureFrontApp() {
