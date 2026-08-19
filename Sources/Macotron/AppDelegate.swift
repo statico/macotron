@@ -207,6 +207,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.refreshPermissions()
             self?.applyUIPrefsFromSettings()
             self?.installCommandShortcuts()
+            self?.rebindPluginHotkeys()
         }
     }
 
@@ -293,19 +294,23 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self.moduleManager.reloadAll()
         }
         settingsState.saveCommandShortcut = { [weak self] commandId, combo in
+            self?.saveShortcut(
+                id: commandId,
+                combo: combo,
+                tableKey: "commandShortcuts",
+                otherKey: "keyboardShortcuts"
+            )
+        }
+        settingsState.saveKeyboardShortcut = { [weak self] hotkeyId, combo in
             guard let self else { return }
-            let launcherCombo = self.resolveHotkey().lowercased()
-            if !combo.isEmpty, combo.lowercased() == launcherCombo {
-                NSLog("[Macotron] Command shortcut collides with the launcher hotkey")
-                return
-            }
-            try? self.workspace.updateSettings { settings in
-                var table = CommandShortcuts.load(from: settings["commandShortcuts"])
-                table.assign(commandId: commandId, combo: combo)
-                settings["commandShortcuts"] = table.jsonObject()
-            }
-            self.engine.configStore = self.workspace.readSettings()
-            self.installCommandShortcuts()
+            let defaultCombo = self.engine.hotkeyRegistry[hotkeyId]?.defaultCombo ?? ""
+            self.saveShortcut(
+                id: hotkeyId,
+                combo: combo,
+                tableKey: "keyboardShortcuts",
+                otherKey: "commandShortcuts",
+                defaultCombo: defaultCombo
+            )
         }
         settingsState.setModuleEnabled = { [weak self] filename, enabled in
             guard let self else { return }
@@ -332,27 +337,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let settings = moduleManager.loadModuleSettings()
         let disabled = moduleManager.disabledPlugins()
         let shortcuts = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
+        let keyboardShortcuts = CommandShortcuts.load(from: workspace.readSettings()["keyboardShortcuts"])
         var summaries: [ModuleSummary] = []
 
-        let hotkeyPattern = try? NSRegularExpression(pattern: #"keyboard\.on\(\s*"([^"]+)""#)
         let eventPattern = try? NSRegularExpression(pattern: #"macotron\.on\(\s*"([^"]+)""#)
 
         for file in moduleManager.listModules(directory: "plugins") {
             let isEnabled = !disabled.contains(file.filename)
-            var hotkeys: [String] = []
             var events: [String] = []
             if isEnabled {
                 let fullPath = moduleManager.configDir.appending(path: "plugins").appending(path: file.filename)
                 let source = (try? String(contentsOf: fullPath, encoding: .utf8)) ?? ""
                 let range = NSRange(source.startIndex..., in: source)
-
-                if let regex = hotkeyPattern {
-                    for match in regex.matches(in: source, range: range) {
-                        if let r = Range(match.range(at: 1), in: source) {
-                            hotkeys.append(String(source[r]))
-                        }
-                    }
-                }
 
                 if let regex = eventPattern {
                     for match in regex.matches(in: source, range: range) {
@@ -413,6 +409,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                         id: $0.id,
                         name: $0.name,
                         shortcut: shortcuts.combo(for: $0.id)
+                    )
+                }
+
+            let hotkeys = engine.hotkeyRegistry.values
+                .filter { $0.pluginFile == file.filename }
+                .sorted { $0.key < $1.key }
+                .map {
+                    PluginCommandSummary(
+                        id: $0.id,
+                        name: $0.key.replacingOccurrences(of: "-", with: " ").capitalized,
+                        shortcut: keyboardShortcuts.bindings[$0.id] ?? $0.defaultCombo
                     )
                 }
 
@@ -730,10 +737,49 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func saveShortcut(
+        id: String,
+        combo: String,
+        tableKey: String,
+        otherKey: String,
+        defaultCombo: String? = nil
+    ) {
+        if !combo.isEmpty, combo.lowercased() == resolveHotkey().lowercased() {
+            NSLog("[Macotron] Shortcut collides with the launcher hotkey")
+            return
+        }
+        var stored = combo
+        if let defaultCombo, combo.isEmpty || combo.lowercased() == defaultCombo.lowercased() {
+            stored = ""
+        }
+        try? workspace.updateSettings { settings in
+            var table = CommandShortcuts.load(from: settings[tableKey])
+            table.assign(commandId: id, combo: stored)
+            settings[tableKey] = table.jsonObject()
+            if !stored.isEmpty {
+                var other = CommandShortcuts.load(from: settings[otherKey])
+                other.removeCombo(stored)
+                settings[otherKey] = other.jsonObject()
+            }
+        }
+        engine.configStore = workspace.readSettings()
+        installCommandShortcuts()
+        rebindPluginHotkeys()
+    }
+
     private func installCommandShortcuts() {
         let table = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
         let live = table.bindings.filter { engine.commandRegistry[$0.key] != nil }
         keyboardModule?.setHostBindings(live.map { (commandId: $0.key, combo: $0.value) })
+    }
+
+    private func rebindPluginHotkeys() {
+        let table = CommandShortcuts.load(from: workspace.readSettings()["keyboardShortcuts"])
+        keyboardModule?.setPluginBindings(
+            engine.hotkeyRegistry.values.map { hotkey in
+                (eventName: "keyboard:\(hotkey.id)", combo: table.bindings[hotkey.id] ?? hotkey.defaultCombo)
+            }
+        )
     }
 
     private func search(_ query: String) -> [SearchResult] {

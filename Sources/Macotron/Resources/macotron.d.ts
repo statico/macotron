@@ -44,7 +44,7 @@ declare const macotron: {
     };
 
     keyboard: {
-        on(combo: string, callback: () => void): void;
+        on(id: string, defaultCombo: string, callback: () => void): void;
     };
 
     screen: {

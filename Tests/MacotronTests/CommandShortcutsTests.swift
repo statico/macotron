@@ -27,4 +27,12 @@ struct CommandShortcutsTests {
         table.assign(commandId: "a", combo: "")
         #expect(table.bindings["a"] == nil)
     }
+
+    @Test("removeCombo drops every id using that combo")
+    func removeCombo() {
+        var table = CommandShortcuts()
+        table.assign(commandId: "a", combo: "cmd+shift+l")
+        table.removeCombo("Cmd+Shift+L")
+        #expect(table.bindings.isEmpty)
+    }
 }
