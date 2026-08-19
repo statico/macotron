@@ -61,4 +61,29 @@ struct LauncherPlacementTests {
         #expect(f.height <= tiny.height)
         #expect(f.width <= tiny.width)
     }
+
+    @Test("panel height grows with rows then caps at max")
+    func panelHeight() {
+        let empty = LauncherPlacement.panelHeight(
+            resultCount: 0, queryEmpty: true, argumentCount: nil,
+            textScale: 1, visible: visible
+        )
+        #expect(empty == LauncherPlacement.minHeight)
+
+        let one = LauncherPlacement.panelHeight(
+            resultCount: 1, queryEmpty: false, argumentCount: nil,
+            textScale: 1, visible: visible
+        )
+        let two = LauncherPlacement.panelHeight(
+            resultCount: 2, queryEmpty: false, argumentCount: nil,
+            textScale: 1, visible: visible
+        )
+        #expect(two - one == LauncherPlacement.rowHeight(scale: 1))
+
+        let many = LauncherPlacement.panelHeight(
+            resultCount: 50, queryEmpty: false, argumentCount: nil,
+            textScale: 1, visible: visible
+        )
+        #expect(abs(many - LauncherPlacement.maxHeight(in: visible)) < 0.5)
+    }
 }

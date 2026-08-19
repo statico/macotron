@@ -6,6 +6,15 @@ import MacotronEngine
 
 private let launcherLog = Logger(subsystem: "io.statico.macotron", category: "launcher")
 
+@MainActor
+public final class LauncherFrame: ObservableObject {
+    @Published public var size: CGSize
+
+    public init(size: CGSize = CGSize(width: 750, height: 56)) {
+        self.size = size
+    }
+}
+
 public struct SearchResult: Identifiable {
     public let id: String
     public let title: String
@@ -46,6 +55,7 @@ public struct SearchResult: Identifiable {
 public struct LauncherView: View {
     @ObservedObject private var prefs: LauncherPrefs
     @ObservedObject private var session: LauncherSession
+    @ObservedObject private var windowFrame: LauncherFrame
     @State private var results: [SearchResult] = []
     @State private var selectedIndex = 0
     @State private var argValues: [String: String] = [:]
@@ -58,23 +68,28 @@ public struct LauncherView: View {
     public var onSearch: ((String) -> [SearchResult])?
     public var onAssignShortcut: ((String, String) -> Void)?
     public var onToggleFavorite: ((String) -> Void)?
+    public var onHeightChange: ((CGFloat) -> Void)?
 
     public init(
         prefs: LauncherPrefs = LauncherPrefs(),
         session: LauncherSession = LauncherSession(),
+        windowFrame: LauncherFrame = LauncherFrame(),
         onExecuteCommand: ((String, [String: Any]) -> Void)? = nil,
         onRevealInFinder: ((String) -> Void)? = nil,
         onSearch: ((String) -> [SearchResult])? = nil,
         onAssignShortcut: ((String, String) -> Void)? = nil,
-        onToggleFavorite: ((String) -> Void)? = nil
+        onToggleFavorite: ((String) -> Void)? = nil,
+        onHeightChange: ((CGFloat) -> Void)? = nil
     ) {
         self._prefs = ObservedObject(wrappedValue: prefs)
         self._session = ObservedObject(wrappedValue: session)
+        self._windowFrame = ObservedObject(wrappedValue: windowFrame)
         self.onExecuteCommand = onExecuteCommand
         self.onRevealInFinder = onRevealInFinder
         self.onSearch = onSearch
         self.onAssignShortcut = onAssignShortcut
         self.onToggleFavorite = onToggleFavorite
+        self.onHeightChange = onHeightChange
     }
 
     public var body: some View {
@@ -91,6 +106,7 @@ public struct LauncherView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
+                .layoutPriority(1)
 
                 if !queryIsEmpty || !results.isEmpty {
                     Divider().opacity(0.5)
@@ -101,7 +117,7 @@ public struct LauncherView: View {
                 argumentForm
             } else if !queryIsEmpty || !results.isEmpty {
                 searchResultsView
-                    .frame(maxHeight: .infinity)
+                    .frame(minHeight: 0, maxHeight: .infinity)
             }
 
             if session.pendingArgs == nil && !results.isEmpty {
@@ -117,6 +133,7 @@ public struct LauncherView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
+                    .layoutPriority(1)
                 } else {
                     HStack(spacing: 16) {
                         shortcutHint(keys: ["return"], label: "Open")
@@ -133,10 +150,11 @@ public struct LauncherView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
+                    .layoutPriority(1)
                 }
             }
         }
-        .frame(width: panelSize.width, height: panelSize.height, alignment: .top)
+        .frame(width: windowFrame.size.width, height: windowFrame.size.height, alignment: .top)
         .clipped()
         .onChange(of: session.query) { _, newValue in
             applySearch(newValue)
@@ -145,10 +163,12 @@ public struct LauncherView: View {
             applySearch(session.query)
             launcherLog.notice("""
                 appear n=\(self.results.count, privacy: .public) \
-                size=\(self.panelSize.width, format: .fixed(precision: 0), privacy: .public)x\
-                \(self.panelSize.height, format: .fixed(precision: 0), privacy: .public) \
+                size=\(self.windowFrame.size.width, format: .fixed(precision: 0), privacy: .public)x\
+                \(self.windowFrame.size.height, format: .fixed(precision: 0), privacy: .public) \
+                wantH=\(self.desiredHeight, format: .fixed(precision: 1), privacy: .public) \
                 queryLen=\(self.session.query.count, privacy: .public)
                 """)
+            onHeightChange?(desiredHeight)
         }
         .onChange(of: session.pendingArgs?.commandId) { _, _ in
             if let pending = session.pendingArgs {
@@ -159,6 +179,7 @@ public struct LauncherView: View {
             } else {
                 focusedArg = nil
             }
+            onHeightChange?(desiredHeight)
         }
         .background {
             KeyEventHandler(
@@ -175,11 +196,14 @@ public struct LauncherView: View {
             )
             .frame(width: 0, height: 0)
         }
-        .onChange(of: results.count) { _, n in
+        .onChange(of: desiredHeight) { _, height in
             launcherLog.notice("""
-                content n=\(n, privacy: .public) \
+                content n=\(self.results.count, privacy: .public) \
+                wantH=\(height, format: .fixed(precision: 1), privacy: .public) \
+                windowH=\(self.windowFrame.size.height, format: .fixed(precision: 1), privacy: .public) \
                 queryLen=\(self.session.query.count, privacy: .public)
                 """)
+            onHeightChange?(height)
         }
     }
 
@@ -205,7 +229,8 @@ public struct LauncherView: View {
                     .padding(.vertical, 4)
                     .padding(.horizontal, 6)
                 }
-                .frame(maxHeight: .infinity)
+                .frame(minHeight: 0, maxHeight: .infinity)
+                .scrollBounceBehavior(.basedOnSize)
                 .onChange(of: selectedIndex) { _, newIndex in
                     if newIndex < results.count {
                         proxy.scrollTo(results[newIndex].id, anchor: .top)
@@ -282,13 +307,14 @@ public struct LauncherView: View {
         session.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    /// Match the panel: SwiftUI must not layout taller than the window, or
-    /// AppKit scrolls the focused search field off-screen.
-    private var panelSize: CGSize {
-        let visible = LauncherPlacement.currentVisible()
-        return CGSize(
-            width: LauncherPlacement.width(in: visible),
-            height: LauncherPlacement.maxHeight(in: visible)
+    /// Host size comes from the panel. Extra rows scroll inside the list.
+    private var desiredHeight: CGFloat {
+        LauncherPlacement.panelHeight(
+            resultCount: results.count,
+            queryEmpty: queryIsEmpty,
+            argumentCount: session.pendingArgs.map(\.arguments.count),
+            textScale: prefs.textScale,
+            visible: LauncherPlacement.currentVisible()
         )
     }
 
@@ -673,6 +699,7 @@ struct ResultRow: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
+        .frame(height: LauncherPlacement.rowHeight(scale: textScale), alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)

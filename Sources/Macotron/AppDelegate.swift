@@ -116,9 +116,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         appSearchProvider = AppSearchProvider()
 
+        let launcherFrame = LauncherFrame()
         let launcherView = LauncherView(
             prefs: launcherPrefs,
             session: launcherSession,
+            windowFrame: launcherFrame,
             onExecuteCommand: { [weak self] id, args in
                 self?.executeCommand(id, args: args)
             },
@@ -139,12 +141,15 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onToggleFavorite: { [weak self] id in
                 self?.toggleFavorite(id)
+            },
+            onHeightChange: { [weak self] height in
+                self?.launcherPanel.resizeToHeight(height)
             }
         )
         let hostingView = PinnedHostingView(rootView: launcherView)
         hostingView.sizingOptions = []
         hostingView.safeAreaRegions = []
-        launcherPanel = LauncherPanel(contentView: hostingView)
+        launcherPanel = LauncherPanel(contentView: hostingView, windowFrame: launcherFrame)
         launcherPanel.onHide = { [weak self] in
             self?.launcherSession.reset()
         }

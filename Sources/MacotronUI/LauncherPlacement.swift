@@ -26,6 +26,36 @@ enum LauncherPlacement {
         min(maxWidth, max(minHeight, visible.width - 2 * margin))
     }
 
+    static func rowHeight(scale: CGFloat) -> CGFloat {
+        20 * scale + 16
+    }
+
+    /// Window height: search + results + footer, capped at the 18% band.
+    /// Extra rows scroll inside the list; they must not grow the SwiftUI host.
+    static func panelHeight(
+        resultCount: Int,
+        queryEmpty: Bool,
+        argumentCount: Int?,
+        textScale: CGFloat,
+        visible: CGRect
+    ) -> CGFloat {
+        let maxH = maxHeight(in: visible)
+        if let n = argumentCount {
+            return min(maxH, max(minHeight, 48 + CGFloat(n) * 36))
+        }
+        if queryEmpty && resultCount == 0 {
+            return minHeight
+        }
+        var height: CGFloat = 52 + 1
+        if resultCount == 0 {
+            height += 48 + 12 * textScale
+        } else {
+            height += CGFloat(resultCount) * rowHeight(scale: textScale) + 8
+            height += 1 + 16 + 14 * textScale
+        }
+        return min(maxH, max(minHeight, height))
+    }
+
     /// Frame for the launcher inside `visible`. Open (`pinTop` nil) sits `topFraction`
     /// below the top. Pass the current maxY when resizing so the search field stays
     /// put and the list grows downward, up to 64% of the visible height.
