@@ -144,8 +144,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.launcherPanel.resizeToHeight(height)
             }
         )
-        let hostingView = NSHostingView(rootView: launcherView)
-        // Default intrinsic-size constraints fight resizeToHeight and vertically center the search field in leftover space.
+        let hostingView = PinnedHostingView(rootView: launcherView)
         hostingView.sizingOptions = []
         hostingView.safeAreaRegions = []
         launcherPanel = LauncherPanel(contentView: hostingView)
