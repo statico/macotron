@@ -77,10 +77,8 @@ final class PluginStatusItem: NSObject {
         )
         host.invalidateIntrinsicContentSize()
         host.layoutSubtreeIfNeeded()
-        // Extra points cover glyph overhang so text/art cannot paint into neighbors.
-        let fitted = iconOnly
-            ? NSStatusItem.squareLength
-            : max(ceil(host.fittingSize.width) + 10, NSStatusItem.squareLength)
+        // 4pt insets on each side plus a little for glyph overhang.
+        let fitted = ceil(host.fittingSize.width) + 10
         item.length = max(fitted, CGFloat(minWidth ?? 0))
         button?.toolTip = subtitle.map { "\(title) — \($0)" } ?? title
     }
@@ -104,8 +102,8 @@ final class PluginStatusItem: NSObject {
         onClick?()
     }
 
-    fileprivate static let iconSize: CGFloat = 16
-    private static let symbolConfig = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
+    fileprivate static let iconSize: CGFloat = 20
+    private static let symbolConfig = NSImage.SymbolConfiguration(pointSize: 18, weight: .medium)
 
     private static func loadImage(sfSymbol: String?, path: String?, color: NSColor?) -> NSImage? {
         if let path, !path.isEmpty {
@@ -123,6 +121,7 @@ final class PluginStatusItem: NSObject {
             config = config.applying(.init(paletteColors: [color]))
         }
         let out = img.withSymbolConfiguration(config) ?? img
+        out.size = NSSize(width: iconSize, height: iconSize)
         out.isTemplate = color == nil
         return out
     }
