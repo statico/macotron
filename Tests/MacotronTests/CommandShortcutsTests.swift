@@ -35,4 +35,11 @@ struct CommandShortcutsTests {
         table.removeCombo("Cmd+Shift+L")
         #expect(table.bindings.isEmpty)
     }
+
+    @Test("app bundle ids store like command ids")
+    func appIds() {
+        var table = CommandShortcuts()
+        table.assign(commandId: "com.apple.Safari", combo: "cmd+shift+s")
+        #expect(table.combo(for: "com.apple.Safari") == "cmd+shift+s")
+    }
 }

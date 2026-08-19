@@ -3,11 +3,74 @@ import CQuickJS
 import Darwin
 import Foundation
 import MacotronEngine
+import IOKit
 import IOKit.ps
 import Metal
 import os
 
 private let logger = Logger(subsystem: "com.macotron", category: "system")
+
+enum CPULoad {
+    static func percent(from prev: host_cpu_load_info, to now: host_cpu_load_info) -> Double {
+        let user = Double(now.cpu_ticks.0) - Double(prev.cpu_ticks.0)
+        let system = Double(now.cpu_ticks.1) - Double(prev.cpu_ticks.1)
+        let idle = Double(now.cpu_ticks.2) - Double(prev.cpu_ticks.2)
+        let nice = Double(now.cpu_ticks.3) - Double(prev.cpu_ticks.3)
+        let total = user + system + idle + nice
+        guard total > 0 else { return 0 }
+        return ((user + system + nice) / total) * 100
+    }
+}
+
+private final class CPUTicks: @unchecked Sendable {
+    let lock = NSLock()
+    var prev: host_cpu_load_info?
+    static let shared = CPUTicks()
+
+    func usage() -> Double {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let now = Self.sample() else { return 0 }
+        let last = prev
+        prev = now
+        guard let last else { return 0 }
+        return CPULoad.percent(from: last, to: now)
+    }
+
+    static func sample() -> host_cpu_load_info? {
+        var info = host_cpu_load_info()
+        var count = mach_msg_type_number_t(MemoryLayout<host_cpu_load_info>.stride / MemoryLayout<integer_t>.stride)
+        let kr = withUnsafeMutablePointer(to: &info) { ptr in
+            ptr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, $0, &count)
+            }
+        }
+        return kr == KERN_SUCCESS ? info : nil
+    }
+}
+
+enum GPUStats {
+    static func utilization() -> Double? {
+        var iterator: io_iterator_t = 0
+        guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &iterator) == KERN_SUCCESS else {
+            return nil
+        }
+        defer { IOObjectRelease(iterator) }
+        while true {
+            let service = IOIteratorNext(iterator)
+            if service == 0 { break }
+            defer { IOObjectRelease(service) }
+            var props: Unmanaged<CFMutableDictionary>?
+            guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
+                  let dict = props?.takeRetainedValue() as? [String: Any],
+                  let stats = dict["PerformanceStatistics"] as? [String: Any] else { continue }
+            for key in ["Device Utilization %", "GPU Activity(%)", "Renderer Utilization %"] {
+                if let n = stats[key] as? NSNumber { return n.doubleValue }
+            }
+        }
+        return nil
+    }
+}
 
 @MainActor
 public final class SystemModule: NativeModule {
@@ -22,14 +85,31 @@ public final class SystemModule: NativeModule {
 
         let systemObj = JS_NewObject(ctx)
 
-        // macotron.system.cpuTemp() -> number
+        _ = CPUTicks.shared.usage()
+
         JS_SetPropertyStr(ctx, systemObj, "cpuTemp",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
-            // SMC reading requires a kernel connection; return 0 as placeholder
-            // A full implementation would use IOServiceOpen to read "TC0P" from AppleSMC
             return JSBridge.newFloat64(ctx, 0.0)
         }, "cpuTemp", 0))
+
+        JS_SetPropertyStr(ctx, systemObj, "cpu",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newObject(ctx, ["usage": CPUTicks.shared.usage()])
+        }, "cpu", 0))
+
+        JS_SetPropertyStr(ctx, systemObj, "locale",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+            let loc = Locale.current
+            let metric = loc.measurementSystem == .metric
+            return JSBridge.newObject(ctx, [
+                "language": loc.language.languageCode?.identifier ?? "",
+                "region": loc.region?.identifier ?? "",
+                "measurement": metric ? "metric" : "us",
+            ])
+        }, "locale", 0))
 
         // macotron.system.memory() -> {total, used, free}
         JS_SetPropertyStr(ctx, systemObj, "memory",
@@ -203,12 +283,14 @@ public final class SystemModule: NativeModule {
             return JSBridge.newArray(ctx, results)
         }, "processes", 1))
 
-        // macotron.system.gpu() -> {name} | null
         JS_SetPropertyStr(ctx, systemObj, "gpu",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             guard let name = MTLCreateSystemDefaultDevice()?.name else { return QJS_Null() }
-            return JSBridge.newObject(ctx, ["name": name])
+            return JSBridge.newObject(ctx, [
+                "name": name,
+                "usage": GPUStats.utilization() ?? 0,
+            ])
         }, "gpu", 0))
 
         JS_SetPropertyStr(ctx, macotron, "system", systemObj)

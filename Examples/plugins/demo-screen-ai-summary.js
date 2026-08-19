@@ -1,6 +1,12 @@
 // demo-screen-ai-summary.js
 // APIs: macotron.keyboard, macotron.screen.capture, macotron.ai.claude, macotron.notify
 
+macotron.plugin({
+  title: "Screen Summary",
+  description: "Summarize the screen with Claude.",
+  permissions: ["screenRecording"],
+});
+
 macotron.keyboard.on("summarize", "cmd+shift+s", async () => {
     const screenshot = await macotron.screen.capture();
     const summary = await macotron.ai.claude().chat(

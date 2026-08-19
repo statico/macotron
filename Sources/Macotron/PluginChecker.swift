@@ -108,7 +108,7 @@ enum PluginChecker {
         engine.currentEvaluatingFile = file.lastPathComponent
         defer { engine.currentEvaluatingFile = nil }
 
-        let (_, error) = engine.evaluate(source, filename: display)
+        let (_, error) = engine.evaluate(Engine.isolatedPlugin(source), filename: display)
         return error
     }
 

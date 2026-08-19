@@ -4,7 +4,7 @@
   <img src="Resources/banner.png" alt="Macotron" width="600">
 </p>
 
-Macotron is a thin macOS host for JavaScript automation plugins. External coding agents edit the plugins. The app does not ship an in-app AI coding agent.
+Macotron is a modern Hammerspoon: a thin native macOS host for JavaScript automation plugins. External coding agents edit the plugins. The app does not ship an in-app AI coding agent.
 
 You pick one plugins directory. Cursor, Claude Code, or another agent writes `.js` files there. Macotron loads those files in a QuickJS engine and bridges them to native macOS APIs.
 

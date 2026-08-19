@@ -57,7 +57,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// AppKit sends this when the user clicks the Dock icon or re-launches an
-    /// already-running Macotron from Raycast, Spotlight or Finder. Ordinary app
+    /// already-running Macotron from Spotlight or Finder. Ordinary app
     /// switches such as Cmd-Tab arrive as activation instead, so opening
     /// Settings here does not fight the user for focus.
     public func applicationShouldHandleReopen(
@@ -126,6 +126,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onSearch: { [weak self] query in
                 self?.search(query) ?? []
+            },
+            onAssignShortcut: { [weak self] id, combo in
+                self?.saveShortcut(
+                    id: id,
+                    combo: combo,
+                    tableKey: "commandShortcuts",
+                    otherKey: "keyboardShortcuts"
+                )
             },
             onHeightChange: { [weak self] height in
                 self?.launcherPanel.resizeToHeight(height)
@@ -272,6 +280,15 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             self.writeUIValue("textScale", value)
             self.launcherPrefs.textScale = CGFloat(value)
+        }
+        settingsState.readLauncherBackground = { [weak self] in
+            LauncherBackground.parse(self?.readUIValue("launcherBackground"))
+        }
+        settingsState.writeLauncherBackground = { [weak self] value in
+            guard let self else { return }
+            self.writeUIValue("launcherBackground", value.rawValue)
+            self.launcherPrefs.background = value
+            self.launcherPanel?.applyBackground(value)
         }
 
         settingsState.loadModuleSummaries = { [weak self] in
@@ -637,6 +654,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         AppearanceSetting.parse(readUIValue("appearance")).apply()
         let rawScale = readUIValue("textScale") as? Double ?? 1.0
         launcherPrefs.textScale = CGFloat(LauncherPrefs.snapTextScale(rawScale))
+        let background = LauncherBackground.parse(readUIValue("launcherBackground"))
+        launcherPrefs.background = background
+        launcherPanel?.applyBackground(background)
     }
 
     private func setupMainMenu() {
@@ -728,7 +748,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleCommandShortcut(_ commandId: String) {
-        guard let cmd = engine.commandRegistry[commandId] else { return }
+        guard let cmd = engine.commandRegistry[commandId] else {
+            executeCommand(commandId)
+            return
+        }
         switch CommandArgumentResolver.resolve(specs: cmd.arguments, raw: [:]) {
         case .success(let values):
             _ = engine.invokeCommand(commandId, args: values)
@@ -776,8 +799,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func installCommandShortcuts() {
         let table = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
-        let live = table.bindings.filter { engine.commandRegistry[$0.key] != nil }
-        keyboardModule?.setHostBindings(live.map { (commandId: $0.key, combo: $0.value) })
+        keyboardModule?.setHostBindings(table.bindings.map { (commandId: $0.key, combo: $0.value) })
     }
 
     private func rebindPluginHotkeys() {
@@ -790,11 +812,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func search(_ query: String) -> [SearchResult] {
-        if query.isEmpty {
-            return appSearchProvider.search("")
+        if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return []
         }
 
         var results: [SearchResult] = []
+        let shortcuts = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
 
         for (_, cmd) in engine.commandRegistry {
             if let score = FuzzyMatch.score(query: query, target: cmd.name), score > 0 {
@@ -803,12 +826,22 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     title: cmd.name,
                     subtitle: cmd.description,
                     type: .command,
-                    commandArguments: cmd.arguments
+                    commandArguments: cmd.arguments,
+                    shortcut: shortcuts.combo(for: cmd.id)
                 ))
             }
         }
 
-        results.append(contentsOf: appSearchProvider.search(query))
+        results.append(contentsOf: appSearchProvider.search(query).map { app in
+            SearchResult(
+                id: app.id,
+                title: app.title,
+                subtitle: app.subtitle,
+                type: app.type,
+                nsImage: app.nsImage,
+                shortcut: shortcuts.combo(for: app.id)
+            )
+        })
 
         results.sort { r1, r2 in
             let s1 = FuzzyMatch.score(query: query, target: r1.title) ?? 0

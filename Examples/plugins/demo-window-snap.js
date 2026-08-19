@@ -1,12 +1,11 @@
 // demo-window-snap.js
-// APIs: macotron.window.snap, macotron.window.isSnapEnabled, macotron.window.setSnapEnabled, macotron.module, macotron.notify, macotron.command
+// APIs: macotron.window.snap, macotron.window.isSnapEnabled, macotron.window.setSnapEnabled, macotron.plugin, macotron.notify, macotron.command
 // Drag a window to a screen edge or corner to tile it. Zones are {x,y,w,h} fractions of the visible frame.
 
-macotron.requirePermissions(["accessibility"]);
-
-const opts = macotron.module({
+const opts = macotron.plugin({
     title: "Window Snap",
-    description: "Rectangle-style edge and quadrant snap. Edit zones in this plugin.",
+    description: "Snap windows to edges and quadrants. Edit zones in this plugin.",
+    permissions: ["accessibility"],
     options: {
         threshold: { type: "number", label: "Edge threshold (px)", default: 20 },
         corner: { type: "number", label: "Corner size (px)", default: 48 },
@@ -34,5 +33,7 @@ macotron.window.snap({
 macotron.command("Toggle Window Snap", "Enable or disable drag-to-edge snapping", () => {
     const next = !macotron.window.isSnapEnabled();
     const changed = macotron.window.setSnapEnabled(next);
-    macotron.notify.show("Window Snap", changed ? (next ? "On" : "Off") : "Could not change snapping");
+    macotron.notify.toast("Window Snap", changed ? (next ? "On" : "Off") : "Could not change snapping", {
+        color: changed ? "success" : "failure",
+    });
 });

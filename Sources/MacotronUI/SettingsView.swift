@@ -97,6 +97,7 @@ public final class SettingsState: ObservableObject {
     @Published public var launchAtLogin: Bool = false
     @Published public var appearance: AppearanceSetting = .system
     @Published public var textScale: Double = 1.0
+    @Published public var launcherBackground: LauncherBackground = .translucent
     @Published public var moduleSummaries: [ModuleSummary] = []
     @Published public var pluginsPath: String = ""
     @Published public var requestedTab: Int?
@@ -117,6 +118,8 @@ public final class SettingsState: ObservableObject {
     public var writeAppearance: ((AppearanceSetting) -> Void)?
     public var readTextScale: (() -> Double)?
     public var writeTextScale: ((Double) -> Void)?
+    public var readLauncherBackground: (() -> LauncherBackground)?
+    public var writeLauncherBackground: ((LauncherBackground) -> Void)?
     public var loadModuleSummaries: (() -> [ModuleSummary])?
     public var saveModuleOption: ((_ filename: String, _ key: String, _ value: Any) -> Void)?
     public var saveModuleSecret: ((_ filename: String, _ key: String, _ secret: String) -> Void)?
@@ -139,6 +142,7 @@ public final class SettingsState: ObservableObject {
         launchAtLogin = readLaunchAtLogin?() ?? false
         appearance = readAppearance?() ?? .system
         textScale = readTextScale?() ?? 1.0
+        launcherBackground = readLauncherBackground?() ?? .translucent
         pluginsPath = configDirURL?.path(percentEncoded: false) ?? ""
         refreshModules()
         refreshPermissions()
@@ -199,6 +203,11 @@ public final class SettingsState: ObservableObject {
     public func selectTextScale(_ value: Double) {
         textScale = value
         writeTextScale?(value)
+    }
+
+    public func selectLauncherBackground(_ value: LauncherBackground) {
+        launcherBackground = value
+        writeLauncherBackground?(value)
     }
 }
 
@@ -298,6 +307,7 @@ public struct SettingsView: View {
                     HotkeyRecorderView(combo: $state.launcherHotkey) {
                         state.saveHotkey()
                     }
+                    .frame(width: PluginForm.recorderWidth)
                 }
                 .zIndex(1)
                 .padding(.top, 8)
@@ -346,6 +356,19 @@ public struct SettingsView: View {
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 280, alignment: .leading)
+                }
+
+                formRow("Quick Search") {
+                    Picker("", selection: Binding(
+                        get: { state.launcherBackground },
+                        set: { state.selectLauncherBackground($0) }
+                    )) {
+                        ForEach(LauncherBackground.allCases) { option in
+                            Text(option.label).tag(option)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 340, alignment: .leading)
                 }
 
                 formDivider
@@ -427,6 +450,7 @@ public struct SettingsView: View {
                         }
                     }
                     .listStyle(.sidebar)
+                    .frame(maxHeight: .infinity)
                 }
 
                 Divider()
@@ -440,7 +464,8 @@ public struct SettingsView: View {
                 }
                 .padding(8)
             }
-            .frame(width: 210)
+            .frame(width: 240)
+            .frame(maxHeight: .infinity)
 
             Divider()
 
@@ -549,30 +574,40 @@ public struct SettingsView: View {
     }
 }
 
+private enum PluginForm {
+    static let labelWidth: CGFloat = 140
+    static let recorderWidth: CGFloat = 240
+    static let fieldMaxWidth: CGFloat = 280
+}
+
 struct PluginListRow: View {
     let summary: ModuleSummary
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(summary.title)
                     .font(.system(size: 12, weight: .medium))
-                    .lineLimit(1)
-                Text(summary.filename)
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                if !summary.description.isEmpty {
+                    Text(summary.description)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
             }
 
-            Spacer()
+            Spacer(minLength: 4)
 
             if summary.hasErrors {
                 Circle().fill(.red).frame(width: 6, height: 6)
+                    .padding(.top, 4)
             } else if summary.options.contains(where: { $0.needsSetup }) {
                 Circle().fill(.orange).frame(width: 6, height: 6)
+                    .padding(.top, 4)
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 3)
         .opacity(summary.isEnabled ? 1 : 0.45)
     }
 }
@@ -588,15 +623,8 @@ struct PluginDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 18) {
                 header
-
-                if !summary.description.isEmpty {
-                    Text(summary.description)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
 
                 if summary.hasErrors { errorBox }
 
@@ -634,26 +662,33 @@ struct PluginDetailView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(summary.title)
-                    .font(.system(size: 15, weight: .semibold))
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(summary.title)
+                        .font(.system(size: 16, weight: .semibold))
+                    if needsSetup && summary.isEnabled {
+                        Text("Needs setup")
+                            .font(.system(size: 9, weight: .medium))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Color.orange.opacity(0.12))
+                            .foregroundStyle(.orange)
+                            .cornerRadius(3)
+                    }
+                }
+                if !summary.description.isEmpty {
+                    Text(summary.description)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Text(summary.filename)
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.tertiary)
             }
 
-            if needsSetup && summary.isEnabled {
-                Text("Needs setup")
-                    .font(.system(size: 9, weight: .medium))
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 2)
-                    .background(Color.orange.opacity(0.12))
-                    .foregroundStyle(.orange)
-                    .cornerRadius(3)
-            }
-
-            Spacer()
+            Spacer(minLength: 8)
 
             Toggle("Enabled", isOn: Binding(
                 get: { summary.isEnabled },
@@ -701,10 +736,7 @@ struct PluginDetailView: View {
     }
 
     private var hotkeysSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Shortcuts")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
+        pluginSection("Shortcuts") {
             ForEach(summary.hotkeys) { hotkey in
                 CommandShortcutRow(command: hotkey) { id, combo in
                     state.saveKeyboardShortcut?(id, combo)
@@ -715,10 +747,7 @@ struct PluginDetailView: View {
     }
 
     private var commandsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Commands")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
+        pluginSection("Commands") {
             ForEach(summary.commands) { command in
                 CommandShortcutRow(command: command) { id, combo in
                     state.saveCommandShortcut?(id, combo)
@@ -729,13 +758,19 @@ struct PluginDetailView: View {
     }
 
     private var settingsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Settings")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
+        pluginSection("Settings") {
             ForEach(summary.options) { option in
                 ModuleOptionRow(option: option, filename: summary.filename, state: state)
             }
+        }
+    }
+
+    private func pluginSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+            content()
         }
     }
 
@@ -762,128 +797,125 @@ struct ModuleOptionRow: View {
     @State private var passwordValue: String = ""
 
     var body: some View {
-        Group {
-            switch option.type {
-            case "boolean":
-                Toggle(option.label, isOn: $boolValue)
-                    .toggleStyle(.checkbox)
-                    .font(.system(size: 12))
-                    .onAppear { boolValue = (option.currentValue as? Bool) ?? false }
-                    .onChange(of: boolValue) {
-                        state.saveModuleOption?(filename, option.key, boolValue)
+        HStack(alignment: .center, spacing: 12) {
+            labelText
+                .frame(width: PluginForm.labelWidth, alignment: .leading)
+            control
+            Spacer(minLength: 0)
+        }
+    }
+
+    @ViewBuilder
+    private var control: some View {
+        switch option.type {
+        case "boolean":
+            Toggle("", isOn: $boolValue)
+                .toggleStyle(.checkbox)
+                .labelsHidden()
+                .onAppear { boolValue = (option.currentValue as? Bool) ?? false }
+                .onChange(of: boolValue) {
+                    state.saveModuleOption?(filename, option.key, boolValue)
+                    state.refreshModules()
+                }
+        case "number":
+            TextField("", text: $numberValue)
+                .font(.system(size: 12, design: .monospaced))
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 80)
+                .onAppear { numberValue = "\(option.currentValue)" }
+                .onSubmit {
+                    if let num = Double(numberValue) {
+                        state.saveModuleOption?(filename, option.key, num)
                         state.refreshModules()
                     }
-            case "number":
-                HStack(spacing: 8) {
-                    labelText
-                    TextField("", text: $numberValue)
-                        .font(.system(size: 12, design: .monospaced))
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 80)
-                        .onAppear { numberValue = "\(option.currentValue)" }
-                        .onSubmit {
-                            if let num = Double(numberValue) {
-                                state.saveModuleOption?(filename, option.key, num)
-                                state.refreshModules()
-                            }
-                        }
                 }
-            case "keybinding":
-                HStack(spacing: 8) {
-                    labelText
-                    HotkeyRecorderView(combo: $hotkeyValue) {
-                        state.saveModuleOption?(filename, option.key, hotkeyValue)
-                        state.refreshModules()
-                    }
-                    .onAppear { hotkeyValue = (option.currentValue as? String) ?? "" }
-                }
-            case "dropdown":
-                HStack(spacing: 8) {
-                    labelText
-                    if option.choices.isEmpty {
-                        // Invalid declaration — the host logs a metadata warning.
-                        Text("No choices defined")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.tertiary)
-                    } else {
-                        Picker("", selection: Binding(
-                            get: { (option.currentValue as? String) ?? "" },
-                            set: { newValue in
-                                guard !newValue.isEmpty else { return }
-                                state.saveModuleOption?(filename, option.key, newValue)
-                                state.refreshModules()
-                            }
-                        )) {
-                            ForEach(option.choices) { choice in
-                                Text(choice.label).tag(choice.value)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .fixedSize()
-                    }
-                }
-            case "password":
-                HStack(spacing: 8) {
-                    labelText
-                    SecureField("Enter value", text: $passwordValue)
-                        .font(.system(size: 12, design: .monospaced))
-                        .textFieldStyle(.roundedBorder)
-                        .frame(maxWidth: 200)
-                    Button("Set") {
-                        state.saveModuleSecret?(filename, option.key, passwordValue)
-                        passwordValue = ""
-                        state.refreshModules()
-                    }
-                    .controlSize(.small)
-                    .disabled(passwordValue.isEmpty)
-                    if option.isSet {
-                        Button("Clear") {
-                            state.clearModuleSecret?(filename, option.key)
-                            state.refreshModules()
-                        }
-                        .controlSize(.small)
-                    }
-                    Text(option.isSet ? "Set" : "Not set")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(option.isSet ? .green : .secondary)
-                }
-            case "file", "directory":
-                HStack(spacing: 8) {
-                    labelText
-                    let path = (option.currentValue as? String) ?? ""
-                    Text(path.isEmpty ? "Not set" : path)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(path.isEmpty ? .tertiary : .secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .frame(maxWidth: 220, alignment: .leading)
-                        .help(path)
-                    Button("Choose…") {
-                        choosePath()
-                    }
-                    .controlSize(.small)
-                }
-            default:
-                HStack(spacing: 8) {
-                    labelText
-                    TextField("", text: $stringValue)
-                        .font(.system(size: 12, design: .monospaced))
-                        .textFieldStyle(.roundedBorder)
-                        .onAppear { stringValue = (option.currentValue as? String) ?? "" }
-                        .onSubmit {
-                            state.saveModuleOption?(filename, option.key, stringValue)
-                            state.refreshModules()
-                        }
-                }
+        case "keybinding":
+            HotkeyRecorderView(combo: $hotkeyValue) {
+                state.saveModuleOption?(filename, option.key, hotkeyValue)
+                state.refreshModules()
             }
+            .frame(width: PluginForm.recorderWidth)
+            .onAppear { hotkeyValue = (option.currentValue as? String) ?? "" }
+        case "dropdown":
+            if option.choices.isEmpty {
+                Text("No choices defined")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+            } else {
+                Picker("", selection: Binding(
+                    get: { (option.currentValue as? String) ?? "" },
+                    set: { newValue in
+                        guard !newValue.isEmpty else { return }
+                        state.saveModuleOption?(filename, option.key, newValue)
+                        state.refreshModules()
+                    }
+                )) {
+                    ForEach(option.choices) { choice in
+                        Text(choice.label).tag(choice.value)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .fixedSize()
+            }
+        case "password":
+            HStack(spacing: 8) {
+                SecureField("Enter value", text: $passwordValue)
+                    .font(.system(size: 12, design: .monospaced))
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 180)
+                Button("Set") {
+                    state.saveModuleSecret?(filename, option.key, passwordValue)
+                    passwordValue = ""
+                    state.refreshModules()
+                }
+                .controlSize(.small)
+                .disabled(passwordValue.isEmpty)
+                if option.isSet {
+                    Button("Clear") {
+                        state.clearModuleSecret?(filename, option.key)
+                        state.refreshModules()
+                    }
+                    .controlSize(.small)
+                }
+                Text(option.isSet ? "Set" : "Not set")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(option.isSet ? .green : .secondary)
+            }
+        case "file", "directory":
+            HStack(spacing: 8) {
+                let path = (option.currentValue as? String) ?? ""
+                Text(path.isEmpty ? "Not set" : path)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(path.isEmpty ? .tertiary : .secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .frame(maxWidth: PluginForm.fieldMaxWidth, alignment: .leading)
+                    .help(path)
+                Button("Choose…") {
+                    choosePath()
+                }
+                .controlSize(.small)
+            }
+        default:
+            TextField("", text: $stringValue)
+                .font(.system(size: 12, design: .monospaced))
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: PluginForm.fieldMaxWidth)
+                .onAppear { stringValue = (option.currentValue as? String) ?? "" }
+                .onSubmit {
+                    state.saveModuleOption?(filename, option.key, stringValue)
+                    state.refreshModules()
+                }
         }
     }
 
     private var labelText: some View {
-        HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: 2) {
             Text(option.label)
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             if option.needsSetup {
                 Text("Required")
                     .font(.system(size: 9, weight: .medium))
@@ -911,14 +943,17 @@ struct CommandShortcutRow: View {
     @State private var combo: String = ""
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .center, spacing: 12) {
             Text(command.name)
                 .font(.system(size: 12))
-                .lineLimit(1)
-            Spacer()
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .frame(width: PluginForm.labelWidth, alignment: .leading)
             HotkeyRecorderView(combo: $combo) {
                 onSave(command.id, combo)
             }
+            .frame(width: PluginForm.recorderWidth)
+            Spacer(minLength: 0)
         }
         .onAppear { combo = command.shortcut }
         .onChange(of: command.shortcut) { _, newValue in

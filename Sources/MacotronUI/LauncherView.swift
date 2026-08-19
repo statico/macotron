@@ -10,6 +10,7 @@ public struct SearchResult: Identifiable {
     public let type: ResultType
     public let nsImage: NSImage?
     public let commandArguments: [CommandArgumentSpec]
+    public let shortcut: String
 
     public enum ResultType {
         case app
@@ -19,7 +20,8 @@ public struct SearchResult: Identifiable {
     public init(
         id: String, title: String, subtitle: String, type: ResultType,
         nsImage: NSImage? = nil,
-        commandArguments: [CommandArgumentSpec] = []
+        commandArguments: [CommandArgumentSpec] = [],
+        shortcut: String = ""
     ) {
         self.id = id
         self.title = title
@@ -27,6 +29,7 @@ public struct SearchResult: Identifiable {
         self.type = type
         self.nsImage = nsImage
         self.commandArguments = commandArguments
+        self.shortcut = shortcut
     }
 }
 
@@ -37,11 +40,13 @@ public struct LauncherView: View {
     @State private var selectedIndex = 0
     @State private var argValues: [String: String] = [:]
     @State private var argError: String?
+    @State private var isRecordingShortcut = false
     @FocusState private var focusedArg: String?
 
     public var onExecuteCommand: ((String, [String: Any]) -> Void)?
     public var onRevealInFinder: ((String) -> Void)?
     public var onSearch: ((String) -> [SearchResult])?
+    public var onAssignShortcut: ((String, String) -> Void)?
     public var onHeightChange: ((CGFloat) -> Void)?
 
     public init(
@@ -50,6 +55,7 @@ public struct LauncherView: View {
         onExecuteCommand: ((String, [String: Any]) -> Void)? = nil,
         onRevealInFinder: ((String) -> Void)? = nil,
         onSearch: ((String) -> [SearchResult])? = nil,
+        onAssignShortcut: ((String, String) -> Void)? = nil,
         onHeightChange: ((CGFloat) -> Void)? = nil
     ) {
         self._prefs = ObservedObject(wrappedValue: prefs)
@@ -57,6 +63,7 @@ public struct LauncherView: View {
         self.onExecuteCommand = onExecuteCommand
         self.onRevealInFinder = onRevealInFinder
         self.onSearch = onSearch
+        self.onAssignShortcut = onAssignShortcut
         self.onHeightChange = onHeightChange
     }
 
@@ -76,35 +83,50 @@ public struct LauncherView: View {
                 .padding(.vertical, 14)
                 .fixedSize(horizontal: false, vertical: true)
 
-                Divider().opacity(0.5)
+                if !queryIsEmpty {
+                    Divider().opacity(0.5)
+                }
             }
 
             if session.pendingArgs != nil {
                 argumentForm
-            } else {
+            } else if !queryIsEmpty {
                 searchResultsView
             }
 
-            if session.pendingArgs == nil && !session.query.isEmpty && !results.isEmpty {
+            if session.pendingArgs == nil && !queryIsEmpty && !results.isEmpty {
                 Divider().opacity(0.5)
-                HStack(spacing: 16) {
-                    shortcutHint(keys: ["return"], label: "Open")
-                    shortcutHint(keys: ["cmd", "return"], label: "Reveal in Finder")
-                    Spacer()
-                    shortcutHint(keys: ["esc"], label: "Close")
+                if isRecordingShortcut, selectedIndex < results.count {
+                    HStack(spacing: 16) {
+                        Text("Press a shortcut for \(results[selectedIndex].title)")
+                            .font(.system(size: 10 * prefs.textScale))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        Spacer()
+                        shortcutHint(keys: ["esc"], label: "Cancel")
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                } else {
+                    HStack(spacing: 16) {
+                        shortcutHint(keys: ["return"], label: "Open")
+                        shortcutHint(keys: ["cmd", "return"], label: "Reveal in Finder")
+                        shortcutHint(keys: ["cmd", "K"], label: "Set shortcut")
+                        Spacer()
+                        shortcutHint(keys: ["esc"], label: "Close")
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
             }
         }
         .fixedSize(horizontal: false, vertical: true)
         .ignoresSafeArea()
         .onChange(of: session.query) { _, newValue in
-            results = onSearch?(newValue) ?? []
-            selectedIndex = 0
+            applySearch(newValue)
         }
         .onAppear {
-            results = onSearch?(session.query) ?? []
+            applySearch(session.query)
         }
         .onChange(of: session.pendingArgs?.commandId) { _, _ in
             if let pending = session.pendingArgs {
@@ -120,8 +142,12 @@ public struct LauncherView: View {
             onArrowUp: { moveSelection(-1) },
             onArrowDown: { moveSelection(1) },
             onCmdReturn: { executeSelectedWithModifier() },
+            onCmdK: { beginShortcutRecording() },
             onEscape: { handleEscape() },
-            interceptListKeys: session.pendingArgs == nil
+            onRecordedCombo: { saveRecordedShortcut($0) },
+            onClearShortcut: { saveRecordedShortcut("") },
+            interceptListKeys: session.pendingArgs == nil && !isRecordingShortcut,
+            isRecording: isRecordingShortcut
         ))
         .background(
             GeometryReader { geo in
@@ -136,7 +162,7 @@ public struct LauncherView: View {
     @ViewBuilder
     private var searchResultsView: some View {
         if results.isEmpty {
-            Text(session.query.isEmpty ? "Type to search" : "No results")
+            Text("No results")
                 .font(.system(size: 12 * prefs.textScale))
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity)
@@ -216,14 +242,51 @@ public struct LauncherView: View {
     }
 
     private func handleEscape() -> Bool {
+        if isRecordingShortcut {
+            isRecordingShortcut = false
+            return true
+        }
         guard session.pendingArgs != nil else { return false }
         session.pendingArgs = nil
         argValues = [:]
         argError = nil
         session.query = ""
-        results = onSearch?("") ?? []
+        results = []
         selectedIndex = 0
         return true
+    }
+
+    private var queryIsEmpty: Bool {
+        session.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func applySearch(_ query: String) {
+        if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            results = []
+        } else {
+            results = onSearch?(query) ?? []
+        }
+        selectedIndex = 0
+        isRecordingShortcut = false
+    }
+
+    private func beginShortcutRecording() {
+        guard session.pendingArgs == nil, selectedIndex < results.count else { return }
+        isRecordingShortcut = true
+    }
+
+    private func saveRecordedShortcut(_ combo: String) {
+        guard selectedIndex < results.count else {
+            isRecordingShortcut = false
+            return
+        }
+        let id = results[selectedIndex].id
+        onAssignShortcut?(id, combo)
+        isRecordingShortcut = false
+        applySearch(session.query)
+        if let idx = results.firstIndex(where: { $0.id == id }) {
+            selectedIndex = idx
+        }
     }
 
     private func prefill(_ specs: [CommandArgumentSpec]) {
@@ -401,33 +464,45 @@ struct KeyEventHandler: NSViewRepresentable {
     var onArrowUp: () -> Void
     var onArrowDown: () -> Void
     var onCmdReturn: () -> Void
+    var onCmdK: () -> Void
     var onEscape: (() -> Bool)?
+    var onRecordedCombo: ((String) -> Void)?
+    var onClearShortcut: (() -> Void)?
     var interceptListKeys: Bool = true
+    var isRecording: Bool = false
 
     func makeNSView(context: Context) -> KeyEventNSView {
         let view = KeyEventNSView()
-        view.onArrowUp = onArrowUp
-        view.onArrowDown = onArrowDown
-        view.onCmdReturn = onCmdReturn
-        view.onEscape = onEscape
-        view.interceptListKeys = interceptListKeys
+        apply(to: view)
         return view
     }
 
     func updateNSView(_ nsView: KeyEventNSView, context: Context) {
-        nsView.onArrowUp = onArrowUp
-        nsView.onArrowDown = onArrowDown
-        nsView.onCmdReturn = onCmdReturn
-        nsView.onEscape = onEscape
-        nsView.interceptListKeys = interceptListKeys
+        apply(to: nsView)
+    }
+
+    private func apply(to view: KeyEventNSView) {
+        view.onArrowUp = onArrowUp
+        view.onArrowDown = onArrowDown
+        view.onCmdReturn = onCmdReturn
+        view.onCmdK = onCmdK
+        view.onEscape = onEscape
+        view.onRecordedCombo = onRecordedCombo
+        view.onClearShortcut = onClearShortcut
+        view.interceptListKeys = interceptListKeys
+        view.isRecording = isRecording
     }
 
     final class KeyEventNSView: NSView {
         var onArrowUp: (() -> Void)?
         var onArrowDown: (() -> Void)?
         var onCmdReturn: (() -> Void)?
+        var onCmdK: (() -> Void)?
         var onEscape: (() -> Bool)?
+        var onRecordedCombo: ((String) -> Void)?
+        var onClearShortcut: (() -> Void)?
         var interceptListKeys = true
+        var isRecording = false
         private var monitor: Any?
 
         override func viewDidMoveToWindow() {
@@ -444,9 +519,29 @@ struct KeyEventHandler: NSViewRepresentable {
         }
 
         private func consume(_ event: NSEvent) -> Bool {
+            if isRecording {
+                if event.keyCode == 53 {
+                    return onEscape?() ?? true
+                }
+                if event.keyCode == 51 || event.keyCode == 117 {
+                    onClearShortcut?()
+                    return true
+                }
+                if let combo = HotkeyFormat.combo(from: event) {
+                    onRecordedCombo?(combo)
+                    return true
+                }
+                return true
+            }
             let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
             if interceptListKeys, flags.contains(.command) && event.keyCode == 36 {
                 onCmdReturn?()
+                return true
+            }
+            if interceptListKeys, flags.contains(.command), !flags.contains(.shift),
+               !flags.contains(.option), !flags.contains(.control),
+               event.charactersIgnoringModifiers?.lowercased() == "k" {
+                onCmdK?()
                 return true
             }
             if interceptListKeys, flags.contains(.control) && !flags.contains(.command) {
@@ -513,9 +608,19 @@ struct ResultRow: View {
 
             Spacer()
 
-            Text(labelForType(result.type))
-                .font(.system(size: 10 * textScale))
+            if !result.shortcut.isEmpty {
+                HStack(spacing: 2) {
+                    ForEach(HotkeyFormat.glyphs(result.shortcut), id: \.self) { part in
+                        Text(part)
+                            .font(.system(size: 10 * textScale, weight: .medium, design: .rounded))
+                    }
+                }
                 .foregroundStyle(.tertiary)
+            } else {
+                Text(labelForType(result.type))
+                    .font(.system(size: 10 * textScale))
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
