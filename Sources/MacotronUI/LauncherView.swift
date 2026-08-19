@@ -1,7 +1,10 @@
 // LauncherView.swift — SwiftUI root view for the launcher (command / app search)
 import SwiftUI
 import AppKit
+import os
 import MacotronEngine
+
+private let launcherLog = Logger(subsystem: "io.statico.macotron", category: "launcher")
 
 public struct SearchResult: Identifiable {
     public let id: String
@@ -143,6 +146,11 @@ public struct LauncherView: View {
         }
         .onAppear {
             applySearch(session.query)
+            launcherLog.notice("""
+                appear n=\(self.results.count, privacy: .public) \
+                panelH=\(self.panelHeight, format: .fixed(precision: 1), privacy: .public) \
+                queryLen=\(self.session.query.count, privacy: .public)
+                """)
             onHeightChange?(panelHeight)
         }
         .onChange(of: session.pendingArgs?.commandId) { _, _ in
@@ -171,6 +179,14 @@ public struct LauncherView: View {
             .frame(width: 0, height: 0)
         }
         .onChange(of: panelHeight) { _, height in
+            launcherLog.notice("""
+                content n=\(self.results.count, privacy: .public) \
+                listH=\(self.listHeight, format: .fixed(precision: 1), privacy: .public) \
+                panelH=\(height, format: .fixed(precision: 1), privacy: .public) \
+                maxListH=\(self.maxListHeight, format: .fixed(precision: 1), privacy: .public) \
+                scale=\(self.prefs.textScale, format: .fixed(precision: 2), privacy: .public) \
+                queryLen=\(self.session.query.count, privacy: .public)
+                """)
             onHeightChange?(height)
         }
     }
@@ -666,6 +682,11 @@ struct ResultRow: View {
                 Text(result.title)
                     .font(.system(size: 13 * textScale, weight: .medium))
                     .lineLimit(1)
+                if result.isFavorite {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 9 * textScale))
+                        .foregroundStyle(.yellow)
+                }
                 if !result.subtitle.isEmpty {
                     Text(result.subtitle)
                         .font(.system(size: 12 * textScale))
@@ -676,30 +697,19 @@ struct ResultRow: View {
 
             Spacer(minLength: 8)
 
-            Image(systemName: "star.fill")
-                .symbolRenderingMode(.monochrome)
-                .font(.system(size: 9 * textScale))
-                .foregroundStyle(.primary)
-                .opacity(result.isFavorite ? 1 : 0)
-                .frame(width: 12 * textScale)
-                .accessibilityHidden(!result.isFavorite)
-
-            Group {
-                if !result.shortcut.isEmpty {
-                    HStack(spacing: 2) {
-                        ForEach(HotkeyFormat.glyphs(result.shortcut), id: \.self) { part in
-                            Text(part)
-                                .font(.system(size: 10 * textScale, weight: .medium, design: .rounded))
-                        }
+            if !result.shortcut.isEmpty {
+                HStack(spacing: 2) {
+                    ForEach(HotkeyFormat.glyphs(result.shortcut), id: \.self) { part in
+                        Text(part)
+                            .font(.system(size: 10 * textScale, weight: .medium, design: .rounded))
                     }
-                } else {
-                    Text(labelForType(result.type))
-                        .font(.system(size: 10 * textScale))
                 }
+                .foregroundStyle(.tertiary)
+            } else {
+                Text(labelForType(result.type))
+                    .font(.system(size: 10 * textScale))
+                    .foregroundStyle(.tertiary)
             }
-            .foregroundStyle(.tertiary)
-            .frame(width: 90 * textScale, alignment: .trailing)
-            .lineLimit(1)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
