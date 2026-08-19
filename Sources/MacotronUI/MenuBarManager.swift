@@ -257,22 +257,34 @@ public final class MenuBarManager: NSObject {
         let openLauncher = NSMenuItem(title: "Open Launcher", action: #selector(openLauncherAction), keyEquivalent: launcherKey)
         openLauncher.keyEquivalentModifierMask = launcherMods
         openLauncher.target = self
+        openLauncher.image = Self.menuSymbol("magnifyingglass")
         menu.addItem(openLauncher)
 
         let reload = NSMenuItem(title: "Reload Modules", action: #selector(reloadAction), keyEquivalent: "r")
         reload.target = self
+        reload.image = Self.menuSymbol("arrow.clockwise")
         menu.addItem(reload)
 
         let openConfig = NSMenuItem(title: "Open Config Folder", action: #selector(openConfigAction), keyEquivalent: ",")
         openConfig.target = self
+        openConfig.image = Self.menuSymbol("folder")
         menu.addItem(openConfig)
 
         let settings = NSMenuItem(title: "Settings...", action: #selector(openSettingsAction), keyEquivalent: "")
         settings.target = self
+        settings.image = Self.menuSymbol("gearshape")
         menu.addItem(settings)
 
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Macotron", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        let quit = NSMenuItem(title: "Quit Macotron", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        quit.image = Self.menuSymbol("xmark.circle")
+        menu.addItem(quit)
+    }
+
+    private static func menuSymbol(_ name: String) -> NSImage? {
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
+        image?.isTemplate = true
+        return image
     }
 
     /// Red row at the top of the menu naming every missing permission.
