@@ -67,11 +67,11 @@ enum CapabilityTier {
 
 ### Safe (read-only)
 
-`window.getAll`, `window.focused`, `clipboard.text`, `system.cpuTemp`, `system.memory`, `system.battery`, `app.list`, `spotlight.search`, `display.list`, `keychain.get`, `keychain.has`
+`window.getAll`, `window.focused`, `clipboard.text`, `system.cpuTemp`, `system.memory`, `system.battery`, `app.list`, `spotlight.search`, `display.list`, `keychain.get`, `keychain.has`, `media.nowPlaying`, `notes.list`
 
 ### Moderate (reversible side effects)
 
-`window.move`, `window.moveToFraction`, `window.snap`, `window.setSnapEnabled`, `notify.show`, `notify.toast`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `panel.open`, `panel.close`, `screen.pickColor`
+`window.move`, `window.moveToFraction`, `window.snap`, `window.setSnapEnabled`, `notify.show`, `notify.toast`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `panel.open`, `panel.close`, `screen.pickColor`, `media.playPause`, `media.next`, `media.previous`, `launcher.set`, `notes.open`
 
 ### Dangerous (system / network / filesystem)
 

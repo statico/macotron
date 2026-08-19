@@ -45,6 +45,10 @@ function paint() {
         title: running ? fmt(remaining) : "",
         sfSymbol: "timer",
         color: phase === "work" ? "green" : phase === "break" ? "orange" : null,
+        // Menu bar fonts are proportional, so "11:11" is narrower than "00:00"
+        // and neighbors would shift every second. minWidth is in points; 72
+        // covers the timer icon plus the widest MM:SS this plugin shows ("25:00").
+        minWidth: running ? 72 : undefined,
         menu: menu(),
     });
 }

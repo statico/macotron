@@ -98,6 +98,7 @@ enum PanelShell {
     .toolbar { display: flex; gap: 8px; align-items: center; }
     .toolbar input { width: 0; flex: 1; min-width: 0; }
     .toolbar input.inline { width: 4.5em; flex: none; }
+    .toolbar select { width: auto; flex: none; min-width: 7em; }
     """
     }
 
@@ -136,7 +137,7 @@ private final class PluginPanel: NSPanel {
 }
 
 @MainActor
-final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate {
+final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate {
     let id: String
     private let panel: NSPanel
     private let webView: WKWebView
@@ -197,6 +198,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate {
         super.init()
         controller.add(self, name: "macotron")
         wv.uiDelegate = self
+        wv.navigationDelegate = self
         wv.loadHTMLString(html, baseURL: URL(string: "about:blank"))
         zoomMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, event.window === self.panel else { return event }
@@ -237,12 +239,20 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate {
         // Launcher/menu-bar dismissal on this pass steals key; claim it again after.
         DispatchQueue.main.async { [weak self] in
             self?.bringToFront()
+            self?.focusDefaultField()
         }
     }
 
     private func bringToFront() {
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
+        webView.becomeFirstResponder()
+    }
+
+    private func focusDefaultField() {
+        webView.evaluateJavaScript(
+            #"(function(){var el=document.querySelector("[autofocus],#input,textarea,input:not([type=hidden])");if(el)el.focus();})();"#
+        )
     }
 
     func close() {
@@ -251,6 +261,10 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate {
 
     func webViewDidClose(_ webView: WKWebView) {
         panel.close()
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        focusDefaultField()
     }
 
     @objc private func windowWillClose(_ notification: Notification) {

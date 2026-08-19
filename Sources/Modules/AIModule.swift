@@ -48,6 +48,9 @@ public final class AIModule: NativeModule {
                 model: model
             )
         }, "claude", 1))
+        let claudeFn = JS_GetPropertyStr(ctx, aiObj, "claude")
+        JS_SetPropertyStr(ctx, aiObj, "anthropic", JS_DupValue(ctx, claudeFn))
+        JS_FreeValue(ctx, claudeFn)
 
         // macotron.ai.openai(opts?) → AI client object
         JS_SetPropertyStr(ctx, aiObj, "openai",

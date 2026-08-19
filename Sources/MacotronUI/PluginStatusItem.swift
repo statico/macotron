@@ -25,7 +25,7 @@ final class PluginStatusItem: NSObject {
         host.setContentHuggingPriority(.required, for: .horizontal)
         button.addSubview(host)
         NSLayoutConstraint.activate([
-            host.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+            host.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 4),
             host.centerYAnchor.constraint(equalTo: button.centerYAnchor),
         ])
     }
@@ -34,8 +34,11 @@ final class PluginStatusItem: NSObject {
         title: String,
         subtitle: String?,
         color: String?,
+        subtitleColor: String?,
         bold: Bool,
         italic: Bool,
+        secondary: Bool,
+        minWidth: Double?,
         sfSymbol: String?,
         imagePath: String?,
         onClick: (() -> Void)?,
@@ -53,8 +56,9 @@ final class PluginStatusItem: NSObject {
         button?.target = self
         button?.action = #selector(clicked)
         let nsColor = Self.parseColor(color)
-        let image = Self.loadImage(sfSymbol: sfSymbol, path: imagePath, color: nsColor)
+        let nsSubtitleColor = Self.parseColor(subtitleColor)
         let iconOnly = title.isEmpty && (subtitle ?? "").isEmpty
+        let image = Self.loadImage(sfSymbol: sfSymbol, path: imagePath, color: iconOnly ? nsColor : nil)
         button?.image = nil
         button?.contentTintColor = nil
         host.isHidden = false
@@ -62,14 +66,17 @@ final class PluginStatusItem: NSObject {
             title: title,
             subtitle: subtitle,
             color: nsColor,
+            subtitleColor: nsSubtitleColor,
             bold: bold,
             italic: italic,
+            secondary: secondary,
             image: image
         )
         host.layoutSubtreeIfNeeded()
-        item.length = iconOnly
+        let fitted = iconOnly
             ? NSStatusItem.squareLength
             : max(ceil(host.fittingSize.width) + 8, NSStatusItem.squareLength)
+        item.length = max(fitted, CGFloat(minWidth ?? 0))
         button?.toolTip = subtitle.map { "\(title) — \($0)" } ?? title
     }
 
@@ -100,7 +107,7 @@ final class PluginStatusItem: NSObject {
             let expanded = (path as NSString).expandingTildeInPath
             if let img = NSImage(contentsOfFile: expanded) {
                 img.size = NSSize(width: iconSize, height: iconSize)
-                img.isTemplate = color == nil
+                img.isTemplate = false
                 return img
             }
         }
@@ -108,7 +115,7 @@ final class PluginStatusItem: NSObject {
               let img = NSImage(systemSymbolName: sfSymbol, accessibilityDescription: nil) else {
             return nil
         }
-        var config = symbolConfig
+        var config = symbolConfig.applying(.preferringMonochrome())
         if let color {
             config = config.applying(.init(paletteColors: [color]))
         }
@@ -149,6 +156,14 @@ final class PluginStatusItem: NSObject {
     }
 }
 
+enum StatusLineStyle {
+    static func fontSize(twoLine: Bool, secondary: Bool, subtitle: Bool) -> CGFloat {
+        if !twoLine { return 13 }
+        if secondary && subtitle { return 9 }
+        return 10
+    }
+}
+
 private final class StatusHostView: NSView {
     private let imageView = NSImageView()
     private let titleField = NSTextField(labelWithString: "")
@@ -159,7 +174,12 @@ private final class StatusHostView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         imageView.imageScaling = .scaleProportionallyUpOrDown
+        imageView.wantsLayer = true
+        imageView.layer?.masksToBounds = true
+        imageView.layer?.cornerCurve = .continuous
         imageView.setContentHuggingPriority(.required, for: .horizontal)
+        imageView.setContentCompressionResistancePriority(.required, for: .horizontal)
+        imageView.setContentCompressionResistancePriority(.required, for: .vertical)
 
         titleField.lineBreakMode = .byTruncatingTail
         titleField.maximumNumberOfLines = 1
@@ -193,20 +213,32 @@ private final class StatusHostView: NSView {
 
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
-    func configure(title: String, subtitle: String?, color: NSColor?, bold: Bool, italic: Bool, image: NSImage?) {
+    func configure(title: String, subtitle: String?, color: NSColor?, subtitleColor: NSColor?, bold: Bool, italic: Bool, secondary: Bool, image: NSImage?) {
         let hasTitle = !title.isEmpty
         let twoLine = !(subtitle ?? "").isEmpty
         titleField.stringValue = title
         titleField.isHidden = !hasTitle
-        titleField.font = Self.font(size: twoLine ? 10 : 13, bold: bold, italic: italic)
+        titleField.font = Self.font(size: StatusLineStyle.fontSize(twoLine: twoLine, secondary: secondary, subtitle: false), bold: bold, italic: italic)
         titleField.textColor = color ?? .labelColor
         subtitleField.stringValue = subtitle ?? ""
         subtitleField.isHidden = !twoLine
-        subtitleField.font = Self.font(size: 9, bold: false, italic: italic)
-        subtitleField.textColor = color?.withAlphaComponent(0.75) ?? .secondaryLabelColor
+        subtitleField.font = Self.font(
+            size: StatusLineStyle.fontSize(twoLine: twoLine, secondary: secondary, subtitle: true),
+            bold: secondary ? false : bold,
+            italic: italic
+        )
+        if let subtitleColor {
+            subtitleField.textColor = subtitleColor
+        } else if secondary {
+            subtitleField.textColor = color?.withAlphaComponent(0.75) ?? .secondaryLabelColor
+        } else {
+            subtitleField.textColor = color ?? .labelColor
+        }
         textStack.isHidden = !hasTitle && !twoLine
         imageView.image = image
         imageView.isHidden = image == nil
+        imageView.contentTintColor = image?.isTemplate == true ? .labelColor : nil
+        imageView.layer?.cornerRadius = image?.isTemplate == false ? 4 : 0
         invalidateIntrinsicContentSize()
     }
 
@@ -258,6 +290,7 @@ enum PluginMenu {
             } else if let onClick = entry.onClick {
                 let box = Action(onClick)
                 boxes.append(box)
+                row.representedObject = box
                 row.target = box
                 row.action = #selector(Action.invoke)
             } else {

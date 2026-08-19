@@ -41,7 +41,7 @@ async function refreshWeather() {
         if (res.status < 200 || res.status >= 300 || !res.body) {
             throw new Error(`HTTP ${res.status}`);
         }
-        const title = res.body.trim().replace(/\s+/g, " ");
+        const title = res.body.trim().replace(/\s+/g, " ").replace(/\+(\d)/g, "$1");
         render(title || "Weather", null);
     } catch (err) {
         render("—", "red");

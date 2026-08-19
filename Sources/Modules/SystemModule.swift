@@ -78,6 +78,10 @@ public final class SystemModule: NativeModule {
 
     public init() {}
 
+    public func cleanup() {
+        FanController.shared.restore()
+    }
+
     public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
@@ -292,6 +296,24 @@ public final class SystemModule: NativeModule {
                 "usage": GPUStats.utilization() ?? 0,
             ])
         }, "gpu", 0))
+
+        JS_SetPropertyStr(ctx, systemObj, "fans",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newObject(ctx, FanController.shared.snapshot().js)
+        }, "fans", 0))
+
+        JS_SetPropertyStr(ctx, systemObj, "setFanFloor",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+            var percent: Int?
+            if let argv, argc >= 1, !JSBridge.isUndefined(argv[0]), !JS_IsNull(argv[0]) {
+                percent = Int(JSBridge.toInt32(ctx, argv[0]))
+            }
+            let opaque = JS_GetContextOpaque(ctx)
+            let dryRun = opaque.map { Unmanaged<Engine>.fromOpaque($0).takeUnretainedValue().dryRun } ?? false
+            return JSBridge.newObject(ctx, FanController.shared.setFloor(percent, dryRun: dryRun).js)
+        }, "setFanFloor", 1))
 
         JS_SetPropertyStr(ctx, macotron, "system", systemObj)
         JS_FreeValue(ctx, macotron)

@@ -43,7 +43,13 @@ let package = Package(
         .target(
             name: "AI",
             dependencies: ["MacotronEngine"],
-            path: "Sources/AI"
+            path: "Sources/AI",
+            linkerSettings: [
+                .unsafeFlags([
+                    "-Xlinker", "-weak_framework",
+                    "-Xlinker", "FoundationModels",
+                ]),
+            ]
         ),
 
         // Main app executable

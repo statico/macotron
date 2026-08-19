@@ -20,6 +20,9 @@ Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew o
 | demo-browser-profiles.js | url.open | Open GitHub in Safari |
 | demo-url-router.js | url.on / open | Open YouTube in Safari |
 | demo-power.js | power.* | Toggle Keep Awake |
+| demo-fan.js | system.fans / setFanFloor | Toggle Fan 100% |
+| demo-now-playing.js | media.nowPlaying, media:changed | Play/Pause, Next Track |
+| demo-notes.js | notes.list, launcher.set | (launcher rows) |
 | demo-wifi.js | network.wifiSSID, wifi:changed | Wi-Fi SSID |
 | demo-brightness.js | display brightness/XDR | Toggle XDR |
 | demo-weather.js | http + menubar.status | Refresh Weather |
@@ -27,12 +30,13 @@ Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew o
 | demo-datetime.js | clipboard.set | Insert ISO Date |
 | demo-lorem.js | command arguments | Generate Lorem Ipsum |
 | demo-screen-ai-summary.js | screen + ai | Summarize Screen |
-| demo-ai-chat.js | panel + ai | AI Chat |
+| demo-ai-chat.js | panel + ai.local/claude/gemini | AI Chat |
 | demo-window-hopper.js | window.getAll + panel | Switch Window |
 | demo-devutils.js | clipboard | UUID, timestamp, Base64, JWT |
 | demo-calculator.js | panel | Calculator |
 | demo-regex.js | panel | Regex Workbench |
 | demo-present-mode.js | defaults + Finder | Toggle Present Mode |
+| demo-appearance.js | osascript System Events | Toggle Dark Mode |
 | demo-security-checklist.js | shell probes | Security Checklist |
 | demo-screenshot-rename.js | ocr + fs | Rename Last Screenshot |
 | demo-batch-rename.js | fs + shell | Prefix Downloads Today |

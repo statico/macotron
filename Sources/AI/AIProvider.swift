@@ -134,7 +134,9 @@ public enum AIProviderFactory {
             return ClaudeProvider(apiKey: config.apiKey, model: config.model)
         case "openai", "gpt":
             return OpenAIProvider(apiKey: config.apiKey, model: config.model, baseURL: config.baseURL)
-        case "local", "apple":
+        case "gemini", "google":
+            return GeminiProvider(apiKey: config.apiKey, model: config.model, baseURL: config.baseURL)
+        case "local", "apple", "small", "gpu":
             return LocalProvider()
         default:
             return PlaceholderProvider(name: name)

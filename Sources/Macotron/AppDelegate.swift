@@ -18,6 +18,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private let launcherPrefs = LauncherPrefs()
     private let launcherSession = LauncherSession()
     private var keyboardModule: KeyboardModule?
+    private var launcherModule: LauncherModule?
     private var wizardWindow: WizardWindow?
     private let wizardState = WizardState()
     private var appSearchProvider: AppSearchProvider!
@@ -122,6 +123,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.executeCommand(id, args: args)
             },
             onRevealInFinder: { [weak self] id in
+                guard !id.hasPrefix("launcher:") else { return }
                 self?.appSearchProvider.revealInFinder(bundleID: id)
             },
             onSearch: { [weak self] query in
@@ -734,6 +736,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.addModule(PowerModule())
         engine.addModule(NetworkModule())
         engine.addModule(IdleModule())
+        engine.addModule(MediaModule())
+        let launcher = LauncherModule()
+        launcherModule = launcher
+        engine.addModule(launcher)
+        engine.addModule(NotesModule())
     }
 
     private func executeCommand(_ id: String, args: [String: Any] = [:]) {
@@ -742,6 +749,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if engine.commandRegistry[id] != nil {
             _ = engine.invokeCommand(id, args: args)
+            return
+        }
+        if launcherModule?.run(id) == true {
             return
         }
         appSearchProvider.launchApp(bundleID: id)
@@ -812,15 +822,27 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func search(_ query: String) -> [SearchResult] {
-        if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return []
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pluginHits = launcherModule?.allHits() ?? []
+
+        if q.isEmpty {
+            return pluginHits.prefix(50).map { hit in
+                SearchResult(
+                    id: hit.id,
+                    title: hit.title,
+                    subtitle: hit.subtitle,
+                    type: .plugin,
+                    nsImage: hit.image,
+                    kind: hit.kind
+                )
+            }
         }
 
         var results: [SearchResult] = []
         let shortcuts = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
 
         for (_, cmd) in engine.commandRegistry {
-            if let score = FuzzyMatch.score(query: query, target: cmd.name), score > 0 {
+            if let score = FuzzyMatch.score(query: q, target: cmd.name), score > 0 {
                 results.append(SearchResult(
                     id: cmd.id,
                     title: cmd.name,
@@ -832,7 +854,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        results.append(contentsOf: appSearchProvider.search(query).map { app in
+        results.append(contentsOf: appSearchProvider.search(q).map { app in
             SearchResult(
                 id: app.id,
                 title: app.title,
@@ -843,11 +865,25 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         })
 
+        for hit in pluginHits {
+            if FuzzyMatch.best(query: q, targets: [hit.title, hit.subtitle]) != nil {
+                results.append(SearchResult(
+                    id: hit.id,
+                    title: hit.title,
+                    subtitle: hit.subtitle,
+                    type: .plugin,
+                    nsImage: hit.image,
+                    kind: hit.kind
+                ))
+            }
+        }
+
         results.sort { r1, r2 in
-            let s1 = FuzzyMatch.score(query: query, target: r1.title) ?? 0
-            let s2 = FuzzyMatch.score(query: query, target: r2.title) ?? 0
+            let s1 = FuzzyMatch.best(query: q, targets: [r1.title, r1.subtitle]) ?? 0
+            let s2 = FuzzyMatch.best(query: q, targets: [r2.title, r2.subtitle]) ?? 0
             if s1 != s2 { return s1 > s2 }
-            if r1.type == .command && r2.type != .command { return true }
+            let action: (SearchResult.ResultType) -> Bool = { $0 == .command || $0 == .plugin }
+            if action(r1.type) && !action(r2.type) { return true }
             return false
         }
 
@@ -907,16 +943,19 @@ extension MenuBarManager: MenuBarModuleDelegate {
         title: String,
         subtitle: String?,
         color: String?,
+        subtitleColor: String?,
         bold: Bool,
         italic: Bool,
+        secondary: Bool,
+        minWidth: Double?,
         sfSymbol: String?,
         imagePath: String?,
         onClick: (() -> Void)?,
         menu: [MenuBarEntry]
     ) {
         setStatus(
-            id: id, title: title, subtitle: subtitle, color: color,
-            bold: bold, italic: italic, sfSymbol: sfSymbol, imagePath: imagePath, onClick: onClick, menu: menu
+            id: id, title: title, subtitle: subtitle, color: color, subtitleColor: subtitleColor,
+            bold: bold, italic: italic, secondary: secondary, minWidth: minWidth, sfSymbol: sfSymbol, imagePath: imagePath, onClick: onClick, menu: menu
         )
     }
 

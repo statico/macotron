@@ -32,6 +32,8 @@
             </array>
         </dict>
     </array>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Macotron plugins can control other apps through Apple events.</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
     <string>Macotron plugins can list upcoming calendar events.</string>
     <key>NSHumanReadableCopyright</key>

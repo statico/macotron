@@ -1,194 +1,138 @@
-# ⚠️ VERY INCOMPLETE — STILL A WORK IN PROGRESS
+# Macotron
 
 <p align="center">
   <img src="Resources/banner.png" alt="Macotron" width="600">
 </p>
 
-Macotron is a modern Hammerspoon: a thin native macOS host for JavaScript automation plugins. External coding agents edit the plugins. The app does not ship an in-app AI coding agent.
+Early, incomplete, and fun to poke at.
 
-You pick one plugins directory. Cursor, Claude Code, or another agent writes `.js` files there. Macotron loads those files in a QuickJS engine and bridges them to native macOS APIs.
+Macotron is a native macOS host for JavaScript plugins — a thin app that lets a `.js` file drive the Mac. You pick a plugins folder. Cursor, Claude Code, or you write the files. Macotron loads them, hot-reloads on save, and bridges them to real macOS APIs.
 
-## How It Works
+No in-app coding agent. The plugins on disk are the source of truth.
 
-1. Pick a plugins directory (workdir) in the first-run wizard.
-2. Open that directory in Cursor or Claude Code.
-3. Ask the agent to add or change plugins under `plugins/`.
-4. Macotron hot-reloads when files change.
+## What it can do
+
+- Quick launcher for apps and commands
+- Fuzzy search as you type
+- Extra launcher rows from plugins (Notes and the like)
+- Per-command keyboard shortcuts
+- Global hotkeys, changeable in Settings
+- Tile windows to halves, corners, and other displays
+- Drag a window to an edge to snap it
+- Switch between open windows
+- Extra menu bar items (icons, two-line text, click menus)
+- System notifications
+- On-screen toasts
+- Small HTML panels, including Liquid Glass
+- Screenshot the display or a dragged selection
+- Magnifier color picker
+- OCR on images and screenshots
+- Spotlight file search from a plugin
+- Clipboard get/set, images, and history
+- Text snippets with abbreviation expansion
+- Now Playing: artwork, play/pause, next/previous
+- Keep the Mac awake
+- Wi-Fi SSID and interface IPs
+- Idle time
+- CPU, GPU, memory, battery, disk, and process stats
+- CPU temperature
+- Fan RPM and a minimum fan floor
+- Display brightness and XDR headroom
+- List, launch, and switch apps
+- React when the frontmost app changes
+- Upcoming Calendar events
+- List and open Apple Notes
+- Custom URL schemes
+- Open a link in a chosen browser or profile
+- HTTP from plugins
+- Read, write, list, and watch files
+- Run Apple-shipped shell tools (`open`, `defaults`, `osascript`, …)
+- Keychain storage for API keys
+- Plugin options in Settings (text, toggles, dropdowns, passwords, files)
+- Chat with on-device Apple Intelligence
+- Chat with Claude, Gemini, or OpenAI
+- Stream model tokens into a panel
+- Hot-reload when a plugin file changes
+- One plugins folder, optionally a git repo
+- Stock Mac only — no Homebrew, npm, or extra apps
+
+Try the demos in [Examples/plugins](Examples/plugins/README.md). Community plugins: [github.com/topics/macotron-plugin](https://github.com/topics/macotron-plugin).
+
+## How it works
+
+1. First launch: pick a plugins directory.
+2. Open that folder in your editor or coding agent.
+3. Add or edit `.js` files under `plugins/`.
+4. Macotron reloads them.
 
 ```
-External agent (Cursor / Claude Code)
-  |
-  v
-plugins/*.js  (git repo workdir)
-  |
-  v
-Macotron.app  (QuickJS + native modules)
-  |
-  v
-macOS (windows, hotkeys, notifications, ...)
+plugins/*.js  →  QuickJS + native modules  →  macOS
 ```
 
-## Architecture
+Plugins call `macotron.window`, `macotron.menubar`, `macotron.ai`, and friends. Details: [docs/04-modules.md](docs/04-modules.md) and [macotron.d.ts](Sources/Macotron/Resources/macotron.d.ts).
 
-```
-+----------------------------------------------------------+
-|                      Macotron.app                         |
-|                                                          |
-|  First-run wizard | Settings | Menu bar | Launcher       |
-|                                                          |
-|  +----------------------------------------------------+  |
-|  |              MacotronEngine                         |  |
-|  |  QuickJS  |  EventBus  |  Plugin loader / watcher   |  |
-|  |                                                     |  |
-|  |  Native modules: window, keyboard, screen, shell,    |  |
-|  |  notify, camera, fs, clipboard, app, system, http,  |  |
-|  |  menubar, display, timer, usb, url, spotlight,      |  |
-|  |  keychain, localStorage, ai, panel                  |  |
-|  +----------------------------------------------------+  |
-+----------------------------------------------------------+
-```
-
-Plugins call `macotron.ai` for Claude, OpenAI, Gemini, or on-device Foundation Models. The host does not run an agent loop of its own.
-
-## Plugins Directory
-
-The workdir is a git repo that the app initializes. Layout:
-
-```
-<user-chosen>/
-  settings.json
-  README.md          # human (seeded once)
-  AGENTS.md          # app-owned — do not edit
-  CLAUDE.md          # app-owned — do not edit
-  plugins/
-    example-hello.js
-  .cache/            # bytecode (gitignored)
-```
-
-See [docs/10-plugins-workdir.md](docs/10-plugins-workdir.md) for the full layout.
-
-## Built-in macOS only
-
-Installing Macotron.app on a new Mac is enough. The host and demo plugins use Apple frameworks and Apple-shipped CLI tools (`/usr/bin/open`, `/usr/bin/defaults`, `/bin/mv`, `/bin/ps`). They do not need Homebrew, npm, Chrome, or other extra installs. Optional: cloud AI API keys, and git if you want the plugins folder as a repo (the app skips `git init` when developer tools are missing).
-
-## Marketplace
-
-Browse community plugins on GitHub:
-
-https://github.com/topics/macotron-plugin
-
-v1 does not ship a custom store backend. Settings link to that topic search.
+The workdir is a git repo the app can initialize (`settings.json`, `plugins/`, agent instruction files). Layout: [docs/10-plugins-workdir.md](docs/10-plugins-workdir.md).
 
 ## Building
 
-Requires **macOS 15 Sequoia** and **Swift 6.0+**. No Xcode GUI needed.
+**macOS 15 Sequoia** and **Swift 6.2+**. No Xcode GUI needed.
 
 ```bash
 make build    # compile
-make run      # compile + bundle + launch
-make dev      # compile + bundle + run with debug server on :7777
-make clean    # clean build artifacts
+make run      # compile, bundle, launch
+make dev      # same, plus debug server on :7777
+make clean    # build artifacts
 ```
 
-## Code Signing and Permissions
+The app lands at `~/Applications/Macotron.app`.
 
-Macotron uses CGEvent taps and Accessibility APIs that need macOS permissions. Permissions attach to the app code signature.
+## Permissions and signing
 
-### Ad-hoc signing (default)
+Hotkeys and window control need Accessibility and Input Monitoring. Screen capture needs Screen Recording. The app asks when a feature needs them.
 
-By default, `make run` signs the app ad-hoc (`codesign --sign -`). Each rebuild gets a new cdhash. macOS can reset permissions after every rebuild.
-
-### Stable signing with a self-signed certificate
-
-Create a local code-signing certificate so permissions persist across rebuilds:
+Permissions stick to the **code signature**. `make run` signs ad-hoc by default, so each rebuild can reset the toggles. For a stable signature, create a local **Macotron-Dev** code-signing certificate in Keychain Access (Certificate Assistant → Code Signing). Then:
 
 ```bash
-openssl req -x509 -newkey rsa:2048 -keyout /tmp/mc.key -out /tmp/mc.crt \
-  -days 3650 -nodes -subj "/CN=Macotron-Dev" \
-  -addext "extendedKeyUsage=codeSigning" && \
-openssl pkcs12 -export -out /tmp/mc.p12 -inkey /tmp/mc.key -in /tmp/mc.crt \
-  -passout pass:temp -legacy && \
-security import /tmp/mc.p12 -k ~/Library/Keychains/login.keychain-db \
-  -P temp -T /usr/bin/codesign && \
-rm /tmp/mc.key /tmp/mc.crt /tmp/mc.p12
+make run   # picks Macotron-Dev if it exists
 ```
 
-Then build with the certificate:
+After the first stable-signed build, add `~/Applications/Macotron.app` under **System Settings → Privacy & Security → Accessibility** (and Input Monitoring / Screen Recording as needed).
 
-```bash
-make run SIGN_IDENTITY=Macotron-Dev
-
-# Or export it once:
-export SIGN_IDENTITY=Macotron-Dev
-make run
-```
-
-### Granting permissions
-
-The app requests Accessibility, Input Monitoring, and Screen Recording only when a feature needs them. After the first build with a stable certificate:
-
-1. Open **System Settings → Privacy & Security → Accessibility**.
-2. Click **+** and add `~/Applications/Macotron.app`.
-3. Enable the toggle.
-
-If hotkeys stop after a rebuild, remove and re-add Macotron in the Accessibility list, or reset Accessibility entries:
-
-```bash
-tccutil reset Accessibility
-```
-
-### Verifying the signature
+If hotkeys die after a rebuild, remove and re-add Macotron in that list, or `tccutil reset Accessibility`.
 
 ```bash
 codesign -d -vvvv ~/Applications/Macotron.app
-# Look for: Authority=Macotron-Dev (not "adhoc" or "unknown certificate")
 ```
+
+Look for `Authority=Macotron-Dev`, not adhoc.
 
 ## Development
 
-### Reset to First-Run State
-
 ```bash
-make cleanprefs   # wipes UserDefaults, triggers wizard on next launch
+make cleanprefs   # wipe prefs, wizard on next launch
 ```
 
-### Debug HTTP Server
+`make dev` starts a debug server on port 7777:
 
-Run with `make dev` to start the debug server on port 7777:
-
-| Endpoint | Method | Description |
+| Endpoint | Method | What |
 |---|---|---|
-| `/screenshot` | GET | PNG of launcher panel |
-| `/snapshot` | GET | Accessibility tree as JSON |
-| `/eval` | POST | Evaluate JS in engine |
-| `/reload` | POST | Trigger plugin reload |
-| `/snippets` | GET | List loaded plugins |
-| `/open` | POST | Toggle launcher panel |
+| `/screenshot` | GET | PNG of the launcher |
+| `/snapshot` | GET | Accessibility tree JSON |
+| `/eval` | POST | Run JS in the engine |
+| `/reload` | POST | Reload plugins |
+| `/snippets` | GET | Loaded plugins |
+| `/open` | POST | Toggle the launcher |
 
-## Tech Stack
+## Docs
 
-| Component | Technology |
-|---|---|
-| Language | Swift 6.0 (strict concurrency) |
-| UI | SwiftUI + NSPanel |
-| JS Runtime | [quickjs-ng](https://github.com/quickjs-ng/quickjs) (embedded, ~400KB) |
-| Plugin AI | `macotron.ai` (Claude, OpenAI, Gemini, Foundation Models) |
-| Package Manager | Swift Package Manager |
-| Distribution | Direct download (Homebrew cask is optional; the app does not need brew) |
-
-## Documentation
-
-See the `docs/` directory:
-
-- [01 - Overview](docs/01-overview.md)
-- [02 - Project Structure](docs/02-project-structure.md)
-- [03 - Engine Design](docs/03-engine.md)
-- [04 - Native Modules](docs/04-modules.md)
-- [05 - AI Integration](docs/05-ai-integration.md)
-- [06 - Security](docs/06-security.md)
-- [07 - Build System](docs/07-build-system.md)
-- [Examples](Examples/plugins/README.md)
-- [09 - Phases](docs/09-phases.md)
-- [10 - Plugins Workdir](docs/10-plugins-workdir.md)
-
-Design source of truth: [docs/superpowers/specs/2026-08-17-host-shell-design.md](docs/superpowers/specs/2026-08-17-host-shell-design.md)
+- [Overview](docs/01-overview.md)
+- [Project structure](docs/02-project-structure.md)
+- [Engine](docs/03-engine.md)
+- [Native modules](docs/04-modules.md)
+- [AI](docs/05-ai-integration.md)
+- [Security](docs/06-security.md)
+- [Build](docs/07-build-system.md)
+- [Demo plugins](Examples/plugins/README.md)
+- [Phases](docs/09-phases.md)
+- [Plugins workdir](docs/10-plugins-workdir.md)
+- [Host design](docs/superpowers/specs/2026-08-17-host-shell-design.md)

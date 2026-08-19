@@ -39,4 +39,11 @@ public enum FuzzyMatch {
 
         return score
     }
+
+    /// Highest score across title/subtitle/etc. Empty query matches everything.
+    public static func best(query: String, targets: [String]) -> Int? {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if q.isEmpty { return 0 }
+        return targets.filter { !$0.isEmpty }.compactMap { score(query: q, target: $0) }.max()
+    }
 }

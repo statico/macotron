@@ -22,7 +22,9 @@ Plugins call `macotron.ai` for cloud or on-device models:
 
 ```javascript
 macotron.ai.claude({ model?, apiKey? })
+macotron.ai.anthropic({ model?, apiKey? })  // same as claude
 macotron.ai.openai({ model?, apiKey? })
+macotron.ai.gemini({ model?, apiKey? })
 macotron.ai.local()
 
 // string or [{ role: "user"|"assistant", content }]
@@ -37,7 +39,7 @@ Store API keys in the Keychain through `macotron.keychain`, not in plugin source
 
 ## Foundation Models
 
-When Apple Foundation Models are available, plugins can call `macotron.ai.local()`. Full polish of on-device models is out of scope for host-shell v1. The host exposes the API when the system supports it.
+When Apple Foundation Models are available, plugins can call `macotron.ai.local()`. That is the on-device small model (Apple Intelligence). It needs macOS 26, Apple Silicon, and Apple Intelligence turned on.
 
 ## What the Host Does Not Do
 

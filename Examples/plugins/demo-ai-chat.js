@@ -1,12 +1,39 @@
-// APIs: panel, ai.claude.stream, localStorage, command
-
-macotron.plugin({
-  title: "AI Chat",
-  description: "Chat with Claude in a panel.",
+const opts = macotron.plugin({
+    title: "AI Chat",
+    description: "Chat with the on-device small model, Claude, or Gemini.",
+    options: {
+        model: {
+            type: "dropdown",
+            label: "Model",
+            default: "small",
+            choices: [
+                { value: "small", label: "Small" },
+                { value: "gpu", label: "GPU" },
+                { value: "sonnet", label: "Sonnet" },
+                { value: "opus", label: "Opus" },
+                { value: "gemini", label: "Gemini" },
+            ],
+        },
+        anthropicKey: {
+            type: "password",
+            label: "Anthropic API key",
+        },
+        geminiKey: {
+            type: "password",
+            label: "Gemini API key",
+        },
+    },
 });
 
 const STORE_KEY = "macotron.ai-chat.v1";
 const MAX_CHATS = 50;
+const MODELS = [
+    { value: "small", label: "Small" },
+    { value: "gpu", label: "GPU" },
+    { value: "sonnet", label: "Sonnet" },
+    { value: "opus", label: "Opus" },
+    { value: "gemini", label: "Gemini" },
+];
 
 function loadState() {
     try {
@@ -37,7 +64,20 @@ function activeChat(state) {
     return state.chats.find((c) => c.id === state.activeId) || state.chats[0];
 }
 
-macotron.command("AI Chat", "Open a streaming Claude chat panel", () => {
+function client(model) {
+    if (model === "opus") {
+        return macotron.ai.anthropic({ apiKey: opts.anthropicKey, model: "claude-opus-4-6" });
+    }
+    if (model === "sonnet") {
+        return macotron.ai.claude({ apiKey: opts.anthropicKey, model: "claude-sonnet-4-6" });
+    }
+    if (model === "gemini") {
+        return macotron.ai.gemini({ apiKey: opts.geminiKey, model: "gemini-2.5-flash" });
+    }
+    return macotron.ai.local();
+}
+
+macotron.command("AI Chat", "Open a streaming chat panel", () => {
     const state = loadState();
     if (!state.chats.length) {
         const chat = newChat();
@@ -46,18 +86,25 @@ macotron.command("AI Chat", "Open a streaming Claude chat panel", () => {
         saveState(state);
     }
 
+    const selected = opts.model || "small";
+    const options = MODELS.map((m) =>
+        "<option value=\"" + m.value + "\"" + (m.value === selected ? " selected" : "") + ">" + m.label + "</option>"
+    ).join("");
+
     const id = macotron.panel.open({
         title: "AI Chat",
         width: 440,
         height: 520,
         html: `<div id="log" class="grow scroll"></div>
 <div class="toolbar">
-  <input id="input" placeholder="Message…">
+  <select id="model">${options}</select>
+  <input id="input" autofocus placeholder="Message…">
   <button id="send">Send</button>
   <button id="neu" class="secondary">New</button>
 </div>
 <script>
 const log = document.getElementById("log");
+const input = document.getElementById("input");
 function add(role, text) {
   const el = document.createElement("div");
   el.dataset.role = role;
@@ -71,12 +118,16 @@ function add(role, text) {
 }
 let streamEl = null;
 document.getElementById("send").onclick = () => {
-  const text = document.getElementById("input").value.trim();
+  const text = input.value.trim();
   if (!text) return;
-  document.getElementById("input").value = "";
-  window.webkit.messageHandlers.macotron.postMessage({ type: "send", text });
+  input.value = "";
+  window.webkit.messageHandlers.macotron.postMessage({
+    type: "send",
+    text: text,
+    model: document.getElementById("model").value,
+  });
 };
-document.getElementById("input").onkeydown = (e) => { if (e.key === "Enter") document.getElementById("send").click(); };
+input.onkeydown = (e) => { if (e.key === "Enter") document.getElementById("send").click(); };
 document.getElementById("neu").onclick = () => window.webkit.messageHandlers.macotron.postMessage({ type: "new" });
 window.__macotronReceive = (data) => {
   if (!data) return;
@@ -96,6 +147,7 @@ window.__macotronReceive = (data) => {
   }
   if (data.type === "error") { add("error", data.text); streamEl = null; }
 };
+input.focus();
 </script>`,
     });
 
@@ -124,7 +176,7 @@ window.__macotronReceive = (data) => {
         chat.updatedAt = Date.now();
         macotron.panel.postMessage(id, { type: "user", text });
         try {
-            const reply = await macotron.ai.claude().stream(chat.messages, {
+            const reply = await client(String(data.model || opts.model || "small")).stream(chat.messages, {
                 onChunk: (chunk) => macotron.panel.postMessage(id, { type: "chunk", chunk }),
             });
             chat.messages.push({ role: "assistant", content: reply });
