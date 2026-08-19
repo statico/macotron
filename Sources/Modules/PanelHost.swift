@@ -100,6 +100,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler {
     private let panel: NSPanel
     private let webView: WKWebView
     private let onMessage: (String, Any) -> Void
+    private var zoomMonitor: Any?
 
     init(id: String, title: String, width: Int, height: Int, html: String, hostChrome: Bool, onMessage: @escaping (String, Any) -> Void) {
         self.id = id
@@ -137,6 +138,10 @@ final class PanelHost: NSObject, WKScriptMessageHandler {
         super.init()
         controller.add(self, name: "macotron")
         wv.loadHTMLString(html, baseURL: URL(string: "about:blank"))
+        zoomMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, event.window === self.panel else { return event }
+            return self.handleZoomKey(event) ? nil : event
+        }
     }
 
     func show() {
@@ -154,8 +159,32 @@ final class PanelHost: NSObject, WKScriptMessageHandler {
     }
 
     func close() {
+        if let zoomMonitor {
+            NSEvent.removeMonitor(zoomMonitor)
+            self.zoomMonitor = nil
+        }
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "macotron")
         panel.close()
+    }
+
+    private func handleZoomKey(_ event: NSEvent) -> Bool {
+        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard mods.contains(.command), !mods.contains(.control), !mods.contains(.option) else {
+            return false
+        }
+        switch event.charactersIgnoringModifiers {
+        case "=", "+":
+            webView.pageZoom = min(webView.pageZoom + 0.1, 2.5)
+            return true
+        case "-":
+            webView.pageZoom = max(webView.pageZoom - 0.1, 0.5)
+            return true
+        case "0":
+            webView.pageZoom = 1
+            return true
+        default:
+            return false
+        }
     }
 
     func evaluateJSON(_ data: Any) {
