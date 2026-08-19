@@ -152,7 +152,7 @@ declare const macotron: {
                 position?: "top" | "bottom";
                 duration?: number;
                 sfSymbol?: string;
-                color?: "success" | "failure" | "warning" | string;
+                color?: "info" | "success" | "error" | "failure" | "warning" | string;
             }
         ): void;
     };

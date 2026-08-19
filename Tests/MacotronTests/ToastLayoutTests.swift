@@ -10,7 +10,7 @@ struct ToastLayoutTests {
         let anchor = NSRect(x: 100, y: 200, width: 800, height: 600)
         let frame = ToastLayout.frame(size: NSSize(width: 200, height: 40), in: anchor, position: .bottom)
         #expect(frame.midX == anchor.midX)
-        #expect(frame.minY == 224)
+        #expect(frame.minY == 248)
         #expect(frame.width == 200)
     }
 
@@ -19,7 +19,7 @@ struct ToastLayoutTests {
         let anchor = NSRect(x: 0, y: 0, width: 1000, height: 800)
         let frame = ToastLayout.frame(size: NSSize(width: 180, height: 36), in: anchor, position: .top)
         #expect(frame.midX == 500)
-        #expect(frame.maxY == 776)
+        #expect(frame.maxY == 752)
     }
 
     @Test("toast stays padded inside a narrow window")
@@ -43,6 +43,19 @@ struct ToastLayoutTests {
     func successColor() {
         #expect(ToastLayout.parseColor("success") == .systemGreen)
         #expect(ToastLayout.parseColor("failure") == .systemRed)
+        #expect(ToastLayout.parseColor("error") == .systemRed)
+        #expect(ToastLayout.parseColor("warning") == .systemOrange)
+        #expect(ToastLayout.parseColor("info") == nil)
+        #expect(ToastLayout.parseColor(nil) == nil)
+    }
+
+    @Test("status kinds pick default icons")
+    func defaultSymbols() {
+        #expect(ToastLayout.kind("success").defaultSymbol == "checkmark.circle.fill")
+        #expect(ToastLayout.kind("error").defaultSymbol == "xmark.circle.fill")
+        #expect(ToastLayout.kind("warning").defaultSymbol == "exclamationmark.triangle.fill")
+        #expect(ToastLayout.kind("info").defaultSymbol == nil)
+        #expect(ToastLayout.kind(nil).defaultSymbol == nil)
     }
 
     @Test("position parse defaults to bottom")

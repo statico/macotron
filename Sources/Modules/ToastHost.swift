@@ -13,32 +13,73 @@ enum ToastPosition: Equatable {
 enum ToastLayout {
     static let maxWidth: CGFloat = 420
     static let minWidth: CGFloat = 120
-    static let minHeight: CGFloat = 36
-    static let margin: CGFloat = 24
+    static let minHeight: CGFloat = 40
+    static let margin: CGFloat = 48
+
+    enum Kind: Equatable {
+        case info
+        case success
+        case error
+        case warning
+        case custom(NSColor)
+
+        var tint: NSColor? {
+            switch self {
+            case .info: return nil
+            case .success: return .systemGreen
+            case .error: return .systemRed
+            case .warning: return .systemOrange
+            case .custom(let color): return color
+            }
+        }
+
+        var defaultSymbol: String? {
+            switch self {
+            case .success: return "checkmark.circle.fill"
+            case .error: return "xmark.circle.fill"
+            case .warning: return "exclamationmark.triangle.fill"
+            case .info, .custom: return nil
+            }
+        }
+    }
 
     static func line(_ title: String, _ body: String?) -> String {
         let extra = body?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return extra.isEmpty ? title : "\(title) \(extra)"
     }
 
-    static func parseColor(_ raw: String?) -> NSColor? {
-        guard let raw else { return nil }
+    static func kind(_ raw: String?) -> Kind {
+        guard let raw else { return .info }
         let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if s.hasPrefix("#") {
-            var hex = String(s.dropFirst())
-            if hex.count == 3 { hex = hex.map { "\($0)\($0)" }.joined() }
-            guard hex.count == 6, let n = UInt32(hex, radix: 16) else { return nil }
-            return NSColor(
-                srgbRed: CGFloat((n >> 16) & 0xff) / 255,
-                green: CGFloat((n >> 8) & 0xff) / 255,
-                blue: CGFloat(n & 0xff) / 255,
-                alpha: 1
-            )
-        }
         switch s.lowercased() {
-        case "success", "green": return .systemGreen
-        case "failure", "error", "red": return .systemRed
-        case "warning", "orange": return .systemOrange
+        case "", "info": return .info
+        case "success", "green": return .success
+        case "failure", "error", "red": return .error
+        case "warning", "orange": return .warning
+        default:
+            return hexColor(s).map { .custom($0) } ?? namedColor(s).map { .custom($0) } ?? .info
+        }
+    }
+
+    static func parseColor(_ raw: String?) -> NSColor? {
+        kind(raw).tint
+    }
+
+    private static func hexColor(_ s: String) -> NSColor? {
+        guard s.hasPrefix("#") else { return nil }
+        var hex = String(s.dropFirst())
+        if hex.count == 3 { hex = hex.map { "\($0)\($0)" }.joined() }
+        guard hex.count == 6, let n = UInt32(hex, radix: 16) else { return nil }
+        return NSColor(
+            srgbRed: CGFloat((n >> 16) & 0xff) / 255,
+            green: CGFloat((n >> 8) & 0xff) / 255,
+            blue: CGFloat(n & 0xff) / 255,
+            alpha: 1
+        )
+    }
+
+    private static func namedColor(_ s: String) -> NSColor? {
+        switch s.lowercased() {
         case "blue": return .systemBlue
         case "yellow": return .systemYellow
         default: return nil
@@ -46,8 +87,8 @@ enum ToastLayout {
     }
 
     static func frame(size: NSSize, in anchor: NSRect, position: ToastPosition, margin: CGFloat = margin) -> NSRect {
-        let maxW = max(minWidth, anchor.width - margin * 2)
-        let width = min(max(size.width, minWidth), min(maxWidth, maxW))
+        let inner = max(0, anchor.width - margin * 2)
+        let width = min(max(size.width, minWidth), min(maxWidth, inner > 0 ? inner : minWidth))
         let height = max(size.height, minHeight)
         var x = anchor.midX - width / 2
         let minX = anchor.minX + margin
@@ -90,11 +131,9 @@ final class ToastHost {
         let panel = self.panel ?? makePanel()
         self.panel = panel
         titleField?.stringValue = ToastLayout.line(title, body)
-        var symbol = sfSymbol
-        if symbol == nil, color?.lowercased() == "success" {
-            symbol = "checkmark.circle.fill"
-        }
-        applyIcon(sfSymbol: symbol, color: color)
+        let kind = ToastLayout.kind(color)
+        titleField?.textColor = kind.tint ?? .labelColor
+        applyIcon(sfSymbol: sfSymbol ?? kind.defaultSymbol, tint: kind.tint)
         layoutAndPlace(panel, position: position)
         panel.alphaValue = 0
         panel.orderFrontRegardless()
@@ -123,7 +162,7 @@ final class ToastHost {
 
     private func makePanel() -> NSPanel {
         let title = NSTextField(labelWithString: "")
-        title.font = .systemFont(ofSize: 13, weight: .medium)
+        title.font = .systemFont(ofSize: 15, weight: .medium)
         title.lineBreakMode = .byTruncatingTail
         title.maximumNumberOfLines = 1
         title.usesSingleLineMode = true
@@ -135,8 +174,8 @@ final class ToastHost {
         icon.setContentHuggingPriority(.required, for: .horizontal)
         icon.isHidden = true
         NSLayoutConstraint.activate([
-            icon.widthAnchor.constraint(equalToConstant: 16),
-            icon.heightAnchor.constraint(equalToConstant: 16),
+            icon.widthAnchor.constraint(equalToConstant: 18),
+            icon.heightAnchor.constraint(equalToConstant: 18),
         ])
         iconView = icon
 
@@ -167,7 +206,7 @@ final class ToastHost {
         return panel
     }
 
-    private func applyIcon(sfSymbol: String?, color: String?) {
+    private func applyIcon(sfSymbol: String?, tint: NSColor?) {
         guard let iconView else { return }
         guard let sfSymbol, let image = NSImage(systemSymbolName: sfSymbol, accessibilityDescription: nil) else {
             iconView.isHidden = true
@@ -175,8 +214,8 @@ final class ToastHost {
             return
         }
         iconView.isHidden = false
-        iconView.contentTintColor = ToastLayout.parseColor(color) ?? .labelColor
-        iconView.symbolConfiguration = .init(pointSize: 15, weight: .semibold)
+        iconView.contentTintColor = tint ?? .labelColor
+        iconView.symbolConfiguration = .init(pointSize: 17, weight: .semibold)
         iconView.image = image
     }
 
@@ -221,7 +260,7 @@ final class ToastHost {
             max(80, anchor.width - ToastLayout.margin * 2 - 48)
         )
         row?.layoutSubtreeIfNeeded()
-        var size = row?.fittingSize ?? NSSize(width: 120, height: 36)
+        var size = row?.fittingSize ?? NSSize(width: 120, height: 40)
         size.width = min(max(size.width, ToastLayout.minWidth), ToastLayout.maxWidth)
         size.height = max(size.height, ToastLayout.minHeight)
         panel.setFrame(ToastLayout.frame(size: size, in: anchor, position: position), display: true)
