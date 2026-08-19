@@ -206,7 +206,7 @@ public final class Engine {
                     let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
                     engine.logHandler?(msg)
                 }
-                logger.info("\(msg)")
+                logger.info("\(msg, privacy: .public)")
                 return QJS_Undefined()
             }, "$$__log", 1))
 
@@ -432,8 +432,14 @@ public final class Engine {
     public func invokeCommand(_ id: String, args: [String: Any] = [:]) -> Bool {
         guard let cmd = commandRegistry[id] else { return false }
         var arg = JSBridge.newObject(context, args)
-        _ = JS_Call(context, cmd.callback, QJS_Undefined(), 1, &arg)
+        let result = JS_Call(context, cmd.callback, QJS_Undefined(), 1, &arg)
         JS_FreeValue(context, arg)
+        if JS_IsException(result) {
+            let errStr = JSBridge.getExceptionString(context)
+            logger.error("Command \(id): \(errStr, privacy: .public)")
+        } else {
+            JS_FreeValue(context, result)
+        }
         drainJobQueue()
         return true
     }
