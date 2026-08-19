@@ -26,8 +26,20 @@ struct StatusLineStyleTests {
         )
         #expect(title.string == "CPU 42%\nGPU 7%")
         #expect(title.attribute(.font, at: 7, effectiveRange: nil) != nil)
-        let paragraph = title.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
-        #expect(paragraph?.lineSpacing == -1)
+        let titleParagraph = title.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
+        let subtitleParagraph = title.attribute(.paragraphStyle, at: 8, effectiveRange: nil) as? NSParagraphStyle
+        #expect(titleParagraph?.maximumLineHeight == 10.5)
+        #expect(subtitleParagraph?.maximumLineHeight == 10)
+    }
+
+    @Test("two capped lines fit inside the menu bar button")
+    func lineHeightsFit() {
+        let standard = StatusLineStyle.maximumLineHeight(secondary: false, subtitle: false)
+            + StatusLineStyle.maximumLineHeight(secondary: false, subtitle: true)
+        let secondary = StatusLineStyle.maximumLineHeight(secondary: true, subtitle: false)
+            + StatusLineStyle.maximumLineHeight(secondary: true, subtitle: true)
+        #expect(standard < 22)
+        #expect(secondary < 22)
     }
 
     @Test("minimum width remains a floor")
