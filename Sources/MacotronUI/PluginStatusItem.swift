@@ -5,7 +5,6 @@ import MacotronEngine
 final class PluginStatusItem: NSObject {
     let id: String
     private let item: NSStatusItem
-    private let host = StatusHostView()
     private var onClick: (() -> Void)?
     private var menuKeep: [PluginMenu.Action] = []
     private var dropdown: NSMenu?
@@ -21,16 +20,6 @@ final class PluginStatusItem: NSObject {
         button.target = self
         button.action = #selector(clicked)
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-        host.translatesAutoresizingMaskIntoConstraints = false
-        host.setContentHuggingPriority(.required, for: .horizontal)
-        button.addSubview(host)
-        NSLayoutConstraint.activate([
-            host.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 4),
-            host.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -4),
-            host.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-            host.topAnchor.constraint(greaterThanOrEqualTo: button.topAnchor),
-            host.bottomAnchor.constraint(lessThanOrEqualTo: button.bottomAnchor),
-        ])
     }
 
     func apply(
@@ -62,10 +51,10 @@ final class PluginStatusItem: NSObject {
         let nsSubtitleColor = Self.parseColor(subtitleColor)
         let iconOnly = title.isEmpty && (subtitle ?? "").isEmpty
         let image = Self.loadImage(sfSymbol: sfSymbol, path: imagePath, color: iconOnly ? nsColor : nil)
-        button?.image = nil
+        button?.image = image
+        button?.imagePosition = iconOnly ? .imageOnly : .imageLeading
         button?.contentTintColor = nil
-        host.isHidden = false
-        host.configure(
+        button?.attributedTitle = StatusLineStyle.attributedTitle(
             title: title,
             subtitle: subtitle,
             color: nsColor,
@@ -73,13 +62,15 @@ final class PluginStatusItem: NSObject {
             bold: bold,
             italic: italic,
             secondary: secondary,
-            image: image
         )
-        host.invalidateIntrinsicContentSize()
-        host.layoutSubtreeIfNeeded()
-        // 4pt insets on each side plus a little for glyph overhang.
-        let fitted = ceil(host.fittingSize.width) + 10
-        item.length = max(fitted, CGFloat(minWidth ?? 0))
+        item.length = NSStatusItem.variableLength
+        if let button,
+           let length = StatusLineStyle.length(
+               naturalWidth: ceil(button.fittingSize.width),
+               minWidth: minWidth
+           ) {
+            item.length = length
+        }
         button?.toolTip = subtitle.map { "\(title) — \($0)" } ?? title
     }
 
@@ -130,6 +121,7 @@ final class PluginStatusItem: NSObject {
         let size = NSSize(width: length, height: length)
         let out = NSImage(size: size, flipped: false) { rect in
             NSGraphicsContext.current?.imageInterpolation = .high
+            NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4).addClip()
             source.draw(in: rect, from: .zero, operation: .copy, fraction: 1)
             return true
         }
@@ -175,103 +167,55 @@ enum StatusLineStyle {
         if secondary && subtitle { return 9 }
         return 10
     }
-}
 
-private final class StatusHostView: NSView {
-    private let imageView = NSImageView()
-    private let titleField = NSTextField(labelWithString: "")
-    private let subtitleField = NSTextField(labelWithString: "")
-    private let textStack = NSStackView()
-    private let root = NSStackView()
-
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        clipsToBounds = true
-        wantsLayer = true
-        layer?.masksToBounds = true
-        imageView.imageScaling = .scaleProportionallyUpOrDown
-        imageView.wantsLayer = true
-        imageView.clipsToBounds = true
-        imageView.layer?.masksToBounds = true
-        imageView.layer?.cornerCurve = .continuous
-        imageView.setContentHuggingPriority(.required, for: .horizontal)
-        imageView.setContentCompressionResistancePriority(.required, for: .horizontal)
-        imageView.setContentCompressionResistancePriority(.required, for: .vertical)
-
-        titleField.lineBreakMode = .byTruncatingTail
-        titleField.maximumNumberOfLines = 1
-        titleField.usesSingleLineMode = true
-        titleField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        subtitleField.lineBreakMode = .byTruncatingTail
-        subtitleField.maximumNumberOfLines = 1
-        subtitleField.usesSingleLineMode = true
-        subtitleField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-
-        textStack.orientation = .vertical
-        textStack.alignment = .leading
-        textStack.spacing = -1
-        textStack.addArrangedSubview(titleField)
-        textStack.addArrangedSubview(subtitleField)
-
-        root.orientation = .horizontal
-        root.alignment = .centerY
-        root.spacing = 4
-        root.addArrangedSubview(imageView)
-        root.addArrangedSubview(textStack)
-        root.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(root)
-        NSLayoutConstraint.activate([
-            root.leadingAnchor.constraint(equalTo: leadingAnchor),
-            root.trailingAnchor.constraint(equalTo: trailingAnchor),
-            root.topAnchor.constraint(equalTo: topAnchor),
-            root.bottomAnchor.constraint(equalTo: bottomAnchor),
-            imageView.widthAnchor.constraint(equalToConstant: PluginStatusItem.iconSize),
-            imageView.heightAnchor.constraint(equalToConstant: PluginStatusItem.iconSize),
-        ])
+    static func length(naturalWidth: CGFloat, minWidth: Double?) -> CGFloat? {
+        minWidth.map { max(naturalWidth, CGFloat($0)) }
     }
 
-    required init?(coder: NSCoder) { nil }
-
-    override func layout() {
-        super.layout()
-        clipsToBounds = true
-        layer?.masksToBounds = true
-        imageView.layer?.masksToBounds = true
-    }
-
-    override func hitTest(_ point: NSPoint) -> NSView? { nil }
-
-    func configure(title: String, subtitle: String?, color: NSColor?, subtitleColor: NSColor?, bold: Bool, italic: Bool, secondary: Bool, image: NSImage?) {
-        let hasTitle = !title.isEmpty
-        let twoLine = !(subtitle ?? "").isEmpty
-        titleField.stringValue = title
-        titleField.isHidden = !hasTitle
-        titleField.font = Self.font(size: StatusLineStyle.fontSize(twoLine: twoLine, secondary: secondary, subtitle: false), bold: bold, italic: italic)
-        titleField.textColor = color ?? .labelColor
-        subtitleField.stringValue = subtitle ?? ""
-        subtitleField.isHidden = !twoLine
-        subtitleField.font = Self.font(
-            size: StatusLineStyle.fontSize(twoLine: twoLine, secondary: secondary, subtitle: true),
-            bold: secondary ? false : bold,
-            italic: italic
-        )
-        if let subtitleColor {
-            subtitleField.textColor = subtitleColor
-        } else if secondary {
-            subtitleField.textColor = color?.withAlphaComponent(0.75) ?? .secondaryLabelColor
-        } else {
-            subtitleField.textColor = color ?? .labelColor
+    static func attributedTitle(
+        title: String,
+        subtitle: String?,
+        color: NSColor?,
+        subtitleColor: NSColor?,
+        bold: Bool,
+        italic: Bool,
+        secondary: Bool
+    ) -> NSAttributedString {
+        let subtitle = subtitle ?? ""
+        let twoLine = !subtitle.isEmpty
+        let result = NSMutableAttributedString()
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineSpacing = -1
+        if !title.isEmpty {
+            result.append(NSAttributedString(
+                string: title,
+                attributes: [
+                    .font: font(
+                        size: fontSize(twoLine: twoLine, secondary: secondary, subtitle: false),
+                        bold: bold,
+                        italic: italic
+                    ),
+                    .foregroundColor: color ?? NSColor.labelColor,
+                    .paragraphStyle: paragraph,
+                ]
+            ))
         }
-        textStack.isHidden = !hasTitle && !twoLine
-        imageView.image = image
-        imageView.isHidden = image == nil
-        imageView.contentTintColor = image?.isTemplate == true ? .labelColor : nil
-        imageView.layer?.cornerRadius = image?.isTemplate == false ? 4 : 0
-        invalidateIntrinsicContentSize()
-    }
-
-    override var intrinsicContentSize: NSSize {
-        root.fittingSize
+        if twoLine {
+            result.append(NSAttributedString(
+                string: title.isEmpty ? subtitle : "\n\(subtitle)",
+                attributes: [
+                    .font: font(
+                        size: fontSize(twoLine: true, secondary: secondary, subtitle: true),
+                        bold: secondary ? false : bold,
+                        italic: italic
+                    ),
+                    .foregroundColor: subtitleColor
+                        ?? (secondary ? color?.withAlphaComponent(0.75) ?? .secondaryLabelColor : color ?? .labelColor),
+                    .paragraphStyle: paragraph,
+                ]
+            ))
+        }
+        return result
     }
 
     private static func font(size: CGFloat, bold: Bool, italic: Bool) -> NSFont {
