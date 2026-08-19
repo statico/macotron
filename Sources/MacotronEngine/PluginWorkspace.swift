@@ -320,8 +320,8 @@ public final class PluginWorkspace {
         ```
 
         `html` is inserted into a host document (system font, padding, light/dark).
-        `rawHtml` is a full document. The page may call
-        `webkit.messageHandlers.macotron.postMessage(data)`.
+        `rawHtml` is a full document. In the page, `close()` closes the panel.
+        The page may also call `webkit.messageHandlers.macotron.postMessage(data)`.
 
         ## Plugin settings
 

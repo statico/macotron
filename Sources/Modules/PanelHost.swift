@@ -88,6 +88,14 @@ enum PanelShell {
             + "(document.head||document.documentElement).appendChild(s);})();"
         return WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true)
     }
+
+    static func closeScript() -> WKUserScript {
+        WKUserScript(
+            source: #"(function(){function c(){webkit.messageHandlers.macotron.postMessage({type:"__close"})}try{window.close=c}catch(e){}window.macotronClose=c})();"#,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        )
+    }
 }
 
 private final class PluginPanel: NSPanel {
@@ -95,19 +103,31 @@ private final class PluginPanel: NSPanel {
 }
 
 @MainActor
-final class PanelHost: NSObject, WKScriptMessageHandler {
+final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate {
     let id: String
     private let panel: NSPanel
     private let webView: WKWebView
     private let onMessage: (String, Any) -> Void
+    private let onClosed: () -> Void
     private var zoomMonitor: Any?
 
-    init(id: String, title: String, width: Int, height: Int, html: String, hostChrome: Bool, onMessage: @escaping (String, Any) -> Void) {
+    init(
+        id: String,
+        title: String,
+        width: Int,
+        height: Int,
+        html: String,
+        hostChrome: Bool,
+        onMessage: @escaping (String, Any) -> Void,
+        onClosed: @escaping () -> Void
+    ) {
         self.id = id
         self.onMessage = onMessage
+        self.onClosed = onClosed
 
         let config = WKWebViewConfiguration()
         let controller = WKUserContentController()
+        controller.addUserScript(PanelShell.closeScript())
         if hostChrome {
             controller.addUserScript(PanelShell.userScript())
         }
@@ -137,11 +157,18 @@ final class PanelHost: NSObject, WKScriptMessageHandler {
 
         super.init()
         controller.add(self, name: "macotron")
+        wv.uiDelegate = self
         wv.loadHTMLString(html, baseURL: URL(string: "about:blank"))
         zoomMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, event.window === self.panel else { return event }
             return self.handleZoomKey(event) ? nil : event
         }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(windowWillClose),
+            name: NSWindow.willCloseNotification,
+            object: p
+        )
     }
 
     func show() {
@@ -159,12 +186,26 @@ final class PanelHost: NSObject, WKScriptMessageHandler {
     }
 
     func close() {
+        panel.close()
+    }
+
+    func webViewDidClose(_ webView: WKWebView) {
+        panel.close()
+    }
+
+    @objc private func windowWillClose(_ notification: Notification) {
+        tearDown()
+        onClosed()
+    }
+
+    private func tearDown() {
         if let zoomMonitor {
             NSEvent.removeMonitor(zoomMonitor)
             self.zoomMonitor = nil
         }
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "macotron")
-        panel.close()
+        webView.uiDelegate = nil
+        NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: panel)
     }
 
     private func handleZoomKey(_ event: NSEvent) -> Bool {
@@ -213,7 +254,17 @@ final class PanelHost: NSObject, WKScriptMessageHandler {
         didReceive message: WKScriptMessage
     ) {
         Task { @MainActor in
+            if Self.isCloseMessage(message.body) {
+                self.close()
+                return
+            }
             self.onMessage(self.id, message.body)
         }
+    }
+
+    private static func isCloseMessage(_ body: Any) -> Bool {
+        if let dict = body as? [String: Any] { return dict["type"] as? String == "__close" }
+        if let dict = body as? NSDictionary { return dict["type"] as? String == "__close" }
+        return false
     }
 }

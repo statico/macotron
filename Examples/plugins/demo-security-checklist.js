@@ -30,6 +30,7 @@ macotron.command("Security Checklist", "Probe FileVault, firewall, and SIP", asy
         title: "Security Checklist",
         width: 420,
         height: 320,
-        html: rows,
+        html: `<div class="grow scroll">${rows}</div>
+<button onclick="close()">Close</button>`,
     });
 });
