@@ -168,6 +168,14 @@ enum StatusLineStyle {
         return 10
     }
 
+    // Two capped lines must total less than the menu bar button height
+    // (~22pt), or the bottom line clips. 10.5 + 10.5 (or 10.5 + 10 when
+    // secondary) leaves a point of slack for the button's vertical centering.
+    static func maximumLineHeight(secondary: Bool, subtitle: Bool) -> CGFloat {
+        if secondary && subtitle { return 10 }
+        return 10.5
+    }
+
     static func length(naturalWidth: CGFloat, minWidth: Double?) -> CGFloat? {
         minWidth.map { max(naturalWidth, CGFloat($0)) }
     }
@@ -184,8 +192,10 @@ enum StatusLineStyle {
         let subtitle = subtitle ?? ""
         let twoLine = !subtitle.isEmpty
         let result = NSMutableAttributedString()
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.lineSpacing = -1
+        let titleParagraph = NSMutableParagraphStyle()
+        if twoLine {
+            titleParagraph.maximumLineHeight = maximumLineHeight(secondary: secondary, subtitle: false)
+        }
         if !title.isEmpty {
             result.append(NSAttributedString(
                 string: title,
@@ -196,11 +206,13 @@ enum StatusLineStyle {
                         italic: italic
                     ),
                     .foregroundColor: color ?? NSColor.labelColor,
-                    .paragraphStyle: paragraph,
+                    .paragraphStyle: titleParagraph,
                 ]
             ))
         }
         if twoLine {
+            let subtitleParagraph = NSMutableParagraphStyle()
+            subtitleParagraph.maximumLineHeight = maximumLineHeight(secondary: secondary, subtitle: true)
             result.append(NSAttributedString(
                 string: title.isEmpty ? subtitle : "\n\(subtitle)",
                 attributes: [
@@ -211,7 +223,7 @@ enum StatusLineStyle {
                     ),
                     .foregroundColor: subtitleColor
                         ?? (secondary ? color?.withAlphaComponent(0.75) ?? .secondaryLabelColor : color ?? .labelColor),
-                    .paragraphStyle: paragraph,
+                    .paragraphStyle: subtitleParagraph,
                 ]
             ))
         }
