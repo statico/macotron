@@ -95,9 +95,11 @@ const rowsVal = document.getElementById("rowsVal");
 let cols = ${startCols};
 let rows = ${startRows};
 let drag = null;
+let hover = null;
 function send(payload) {
   window.webkit.messageHandlers.macotron.postMessage(payload);
 }
+function dbg(msg) { send({ type: "log", msg: msg }); }
 function clamp(n) { return Math.max(1, Math.min(20, n)); }
 function rebuild() {
   colsVal.textContent = String(cols);
@@ -110,6 +112,7 @@ function rebuild() {
   }
   grid.innerHTML = html;
   drag = null;
+  hover = null;
   send({ type: "preview", clear: true });
 }
 function cellFromPoint(x, y) {
@@ -120,15 +123,20 @@ function cellFromPoint(x, y) {
   return { c, r };
 }
 function paint(sel) {
-  const c0 = Math.min(sel.c0, sel.c1);
-  const c1 = Math.max(sel.c0, sel.c1);
-  const r0 = Math.min(sel.r0, sel.r1);
-  const r1 = Math.max(sel.r0, sel.r1);
+  const c0 = sel ? Math.min(sel.c0, sel.c1) : -1;
+  const c1 = sel ? Math.max(sel.c0, sel.c1) : -1;
+  const r0 = sel ? Math.min(sel.r0, sel.r1) : -1;
+  const r1 = sel ? Math.max(sel.r0, sel.r1) : -1;
   grid.querySelectorAll(".cell").forEach((cell) => {
     const c = Number(cell.dataset.c);
     const r = Number(cell.dataset.r);
-    cell.classList.toggle("on", c >= c0 && c <= c1 && r >= r0 && r <= r1);
+    cell.classList.toggle("on", !!sel && c >= c0 && c <= c1 && r >= r0 && r <= r1);
   });
+}
+function applySel(sel, reason) {
+  paint(sel);
+  send(Object.assign({ type: "preview", cols, rows }, sel));
+  dbg(reason + " " + sel.c0 + "," + sel.r0 + ".." + sel.c1 + "," + sel.r1);
 }
 function bump(which, delta) {
   if (which === "cols") cols = clamp(cols + delta);
@@ -144,22 +152,34 @@ grid.addEventListener("mousedown", (e) => {
   e.preventDefault();
   const hit = cellFromPoint(e.clientX, e.clientY);
   if (!hit) return;
+  hover = null;
   drag = { c0: hit.c, r0: hit.r, c1: hit.c, r1: hit.r };
-  paint(drag);
-  send(Object.assign({ type: "preview", cols, rows }, drag));
+  applySel(drag, "down");
 });
 window.addEventListener("mousemove", (e) => {
-  if (!drag) return;
   const hit = cellFromPoint(e.clientX, e.clientY);
-  if (!hit || (hit.c === drag.c1 && hit.r === drag.r1)) return;
-  drag.c1 = hit.c;
-  drag.r1 = hit.r;
-  paint(drag);
-  send(Object.assign({ type: "preview", cols, rows }, drag));
+  if (drag) {
+    if (!hit || (hit.c === drag.c1 && hit.r === drag.r1)) return;
+    drag.c1 = hit.c;
+    drag.r1 = hit.r;
+    applySel(drag, "drag");
+    return;
+  }
+  if (!hit) {
+    if (!hover) return;
+    hover = null;
+    paint(null);
+    send({ type: "preview", clear: true });
+    return;
+  }
+  if (hover && hover.c0 === hit.c && hover.r0 === hit.r) return;
+  hover = { c0: hit.c, r0: hit.r, c1: hit.c, r1: hit.r };
+  applySel(hover, "hover");
 });
 window.addEventListener("mouseup", (e) => {
   if (!drag || e.button !== 0) return;
   const sel = Object.assign({ cols, rows }, drag);
+  dbg("place " + sel.c0 + "," + sel.r0 + ".." + sel.c1 + "," + sel.r1);
   drag = null;
   send(Object.assign({ type: "place" }, sel));
 });
@@ -177,12 +197,17 @@ rebuild();
 
     macotron.panel.onMessage(id, (data) => {
         if (!data) return;
+        if (data.type === "log") {
+            macotron.log("grid " + data.msg);
+            return;
+        }
         if (data.type === "preview") {
             if (data.clear) macotron.window.previewFraction(null);
             else macotron.window.previewFraction(apply(data));
             return;
         }
         if (data.type !== "place") return;
+        macotron.log("grid place");
         macotron.window.previewFraction(null);
         macotron.window.moveToFraction(win.id, apply(data));
         macotron.panel.close(id);

@@ -1,6 +1,9 @@
 // PanelHost.swift — WKWebView floating NSPanel (kept separate to avoid JSValue clash with QuickJS)
 import AppKit
 import WebKit
+import os
+
+private let logger = Logger(subsystem: "io.statico.macotron", category: "panel")
 
 enum PanelGlass: Equatable {
     case none
@@ -218,6 +221,9 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     private var blurArmed = false
     private var zoomMonitor: Any?
     private var dragMonitor: Any?
+    private var dragJSBusy = false
+    private var queuedMouseJS: String?
+    private var loggedMouseJS = false
 
     init(
         id: String,
@@ -251,6 +257,12 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         wv.appearance = NSApp.effectiveAppearance
         wv.setValue(false, forKey: "drawsBackground")
         wv.underPageBackgroundColor = (glass.isEnabled || frameless) ? .clear : NSColor.windowBackgroundColor
+        wv.addTrackingArea(NSTrackingArea(
+            rect: .zero,
+            options: [.mouseMoved, .activeAlways, .inVisibleRect],
+            owner: wv,
+            userInfo: nil
+        ))
         self.webView = wv
 
         let p = PluginPanel(
@@ -285,8 +297,8 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
             guard let self, event.window === self.panel else { return event }
             return self.handleKey(event) ? nil : event
         }
-        dragMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDragged) { [weak self] event in
-            self?.forwardMouseDrag(event)
+        dragMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDragged, .mouseMoved]) { [weak self] event in
+            self?.forwardMouseMove(event)
             return event
         }
         NotificationCenter.default.addObserver(
@@ -369,13 +381,31 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
 
     /// WKWebView on a nonactivating panel often swallows button-down mousemove.
     /// AppKit still gets leftMouseDragged; replay it as a DOM mousemove.
-    private func forwardMouseDrag(_ event: NSEvent) {
+    /// Coalesce: one evaluateJavaScript in flight or the page lags by seconds.
+    private func forwardMouseMove(_ event: NSEvent) {
         guard event.window === panel else { return }
         var p = webView.convert(event.locationInWindow, from: nil)
         if !webView.isFlipped { p.y = webView.bounds.height - p.y }
-        webView.evaluateJavaScript(
-            "window.dispatchEvent(new MouseEvent('mousemove',{clientX:\(p.x),clientY:\(p.y),buttons:1,bubbles:true}))"
-        )
+        let buttons = event.type == .leftMouseDragged ? 1 : 0
+        queuedMouseJS =
+            "window.dispatchEvent(new MouseEvent('mousemove',{clientX:\(p.x),clientY:\(p.y),buttons:\(buttons),bubbles:true}))"
+        flushMouseJS()
+    }
+
+    private func flushMouseJS() {
+        guard !dragJSBusy, let js = queuedMouseJS else { return }
+        queuedMouseJS = nil
+        dragJSBusy = true
+        if !loggedMouseJS {
+            loggedMouseJS = true
+            logger.notice("panel \(self.id, privacy: .public) forwarding mouse to page")
+        }
+        webView.evaluateJavaScript(js) { [weak self] _, _ in
+            Task { @MainActor in
+                self?.dragJSBusy = false
+                self?.flushMouseJS()
+            }
+        }
     }
 
     private func focusDefaultField() {
