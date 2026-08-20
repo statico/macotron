@@ -314,6 +314,8 @@ public final class PluginWorkspace {
         `macotron.hid.list/open/sendFeature/sendOutput/readFeature/readInput/listen`
         talks to HID devices (report id is the first send byte). `hid:input` is
         `{ id, reportId, data }`.
+        `macotron.qr.detect({ image|path })`, `qr.scan({ camera|screenshot })`,
+        `qr.image(text)`, and `qr.show(text)` read and display QR codes.
 
         Control Center-style toggles live on the host: `macotron.audio.volume` /
         `setVolume` / `setMuted`, `network.wifi` / `setWifi`, `network.bluetooth` /
@@ -379,9 +381,10 @@ public final class PluginWorkspace {
         ```
 
         Valid permission names: `accessibility`, `inputMonitoring`, `screenRecording`,
-        `fanControl`. Window control needs `accessibility`. Screen capture needs
-        `screenRecording`. Holding a fan-speed floor needs `fanControl`, which the
-        user installs as the background helper from this plugin's Settings page.
+        `camera`, `fanControl`. Window control needs `accessibility`. Screen capture needs
+        `screenRecording`. QR camera scan needs `camera`. Holding a fan-speed floor needs
+        `fanControl`, which the user installs as the background helper from this plugin's
+        Settings page.
 
         Add `options` on the same call to expose configurable settings. The user
         edits values in Settings → Plugins; the plugin reads the resolved values

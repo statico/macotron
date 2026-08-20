@@ -13,6 +13,7 @@ Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew o
 | demo-focus-idle.js | app:activated, frontmost | Frontmost App |
 | demo-idle.js | idle.*, system:idle/active | Idle Seconds |
 | demo-ocr.js | ocr.recognize, screen.capture | OCR Selection |
+| demo-qr.js | qr.scan / qr.show | Scan QR (Screen/Camera), Show QR |
 | demo-color-picker.js | screen.pickColor | Pick Color |
 | demo-system-metrics.js | system.cpu/gpu | System Metrics |
 | demo-battery.js | system.battery | Battery |

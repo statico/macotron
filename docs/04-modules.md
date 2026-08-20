@@ -10,6 +10,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | EventModule | `macotron.event` / `macotron.mouse` | HID click/key/scroll post, event taps, cursor |
 | KeyboardModule | `macotron.keyboard` | Carbon `RegisterEventHotKey` global shortcuts |
 | ScreenModule | `macotron.screen` | ScreenCaptureKit screenshots + color picker |
+| QRModule | `macotron.qr` | QR detect, camera/screenshot scan, generate and show |
 | ShellModule | `macotron.shell` | Process/command execution (with allowlist) |
 | NotifyModule | `macotron.notify` | UserNotifications + one-line HUD toasts |
 | DialogModule | `alert` / `confirm` / `prompt` | Blocking NSAlert sheets (also on `macotron`) |
@@ -92,6 +93,8 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 **Settings:** `macotron.settings.open()` opens Settings → Plugins on the calling plugin.
 
 **Screen:** `macotron.screen.capture()` is a full-display PNG (base64). `capture({ selection: true })` lets the user drag a rectangle. `pickColor()` opens the system magnifier eyedropper and returns `{ hex, r, g, b, x, y }` or `null` if cancelled.
+
+**QR:** `qr.detect({ image }` / `{ path })` is the first QR payload, or `null`. `qr.scan({ camera: true })` opens a camera preview until a code is found or cancelled. `qr.scan({ screenshot: true })` (default) uses a screen selection; `selection: false` is the full display. `qr.image(text)` is a PNG (base64). `qr.show(text)` floats that image in a window.
 
 **Panel:**
 

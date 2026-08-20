@@ -27,6 +27,7 @@ No in-app coding agent. The plugins on disk are the source of truth.
 - Screenshot the display or a dragged selection
 - Magnifier color picker
 - OCR on images and screenshots
+- QR codes: scan from the camera or a screenshot, generate, and show
 - Spotlight file search from a plugin
 - Clipboard get/set, images, and history
 - Text snippets with abbreviation expansion
