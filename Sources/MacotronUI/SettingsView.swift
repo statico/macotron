@@ -786,30 +786,20 @@ struct PluginListRow: View {
     let summary: ModuleSummary
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(summary.title)
-                    .font(.system(size: 12, weight: .medium))
-                    .lineLimit(2)
-                if !summary.description.isEmpty {
-                    Text(summary.description)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-            }
+        HStack(spacing: 8) {
+            Text(summary.title)
+                .font(.system(size: 12, weight: .medium))
+                .lineLimit(1)
 
             Spacer(minLength: 4)
 
             if summary.hasErrors {
                 Circle().fill(.red).frame(width: 6, height: 6)
-                    .padding(.top, 4)
             } else if summary.needsSetup || summary.hasFailedChecks {
                 Circle().fill(.orange).frame(width: 6, height: 6)
-                    .padding(.top, 4)
             }
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 2)
         .opacity(summary.isEnabled ? 1 : 0.45)
     }
 }
