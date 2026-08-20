@@ -9,6 +9,27 @@ import os
 
 private let logger = Logger(subsystem: "io.statico.macotron", category: "window")
 
+enum WindowMutation {
+    static func perform(
+        enhancedUI: Bool?,
+        setEnhancedUI: (Bool) -> Void,
+        mutate: () -> Bool
+    ) -> Bool {
+        if enhancedUI == true { setEnhancedUI(false) }
+        defer {
+            if enhancedUI == true { setEnhancedUI(true) }
+        }
+        return mutate()
+    }
+
+    static func applyFrame(setSize: () -> Bool, setPosition: () -> Bool) -> Bool {
+        let firstSize = setSize()
+        let position = setPosition()
+        let finalSize = setSize()
+        return firstSize || position || finalSize
+    }
+}
+
 private struct SnapZone {
     var x: CGFloat
     var y: CGFloat
@@ -675,9 +696,36 @@ public final class WindowModule: NativeModule {
         if let y { origin.y = vis.origin.y + y * vis.height + g }
         if let w { size.width = max(1, w * vis.width - 2 * g) }
         if let h { size.height = max(1, h * vis.height - 2 * g) }
-        let posOk = setWindowPosition(win, point: origin)
-        let sizeOk = setWindowSize(win, size: size)
-        return posOk || sizeOk
+
+        var pid: pid_t = 0
+        let app = AXUIElementGetPid(win, &pid) == .success ? AXUIElementCreateApplication(pid) : nil
+        var enhancedUIValue: CFTypeRef?
+        let enhancedUI = app.flatMap {
+            AXUIElementCopyAttributeValue($0, "AXEnhancedUserInterface" as CFString, &enhancedUIValue) == .success
+                ? enhancedUIValue as? Bool
+                : nil
+        }
+
+        return WindowMutation.perform(
+            enhancedUI: enhancedUI,
+            setEnhancedUI: {
+                guard let app else { return }
+                let error = AXUIElementSetAttributeValue(
+                    app,
+                    "AXEnhancedUserInterface" as CFString,
+                    $0 ? kCFBooleanTrue : kCFBooleanFalse
+                )
+                if error != .success {
+                    logger.error("Failed to set AXEnhancedUserInterface: \(error.rawValue)")
+                }
+            },
+            mutate: {
+                WindowMutation.applyFrame(
+                    setSize: { setWindowSize(win, size: size) },
+                    setPosition: { setWindowPosition(win, point: origin) }
+                )
+            }
+        )
     }
 
     /// Screen whose Cocoa origin is (0,0) — AX/Quartz y is measured down from this screen's top.
