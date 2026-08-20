@@ -100,6 +100,35 @@ struct BatteryStatusTests {
         #expect(snap["charged"] as? Bool == false)
         #expect(snap["timeRemaining"] as? Int == -1)
         #expect(snap["timeToFull"] as? Int == 45)
+        #expect(snap["source"] as? String == "ac")
+    }
+
+    @Test("smart battery extras include health, cycles, and adapter watts")
+    func smartExtras() {
+        let extras = BatteryStatus.smartExtras([
+            "CycleCount": 69,
+            "AppleRawMaxCapacity": 6004,
+            "DesignCapacity": 6249,
+            "AdapterDetails": ["Watts": 87],
+        ])
+        #expect(extras["cycles"] as? Int == 69)
+        #expect(extras["health"] as? Int == 96)
+        #expect(extras["watts"] as? Int == 87)
+    }
+
+    @Test("low power mode script uses pmset with admin privileges")
+    func lowPowerModeScript() {
+        #expect(LowPowerMode.script(true).contains("lowpowermode 1"))
+        #expect(LowPowerMode.script(false).contains("lowpowermode 0"))
+        #expect(LowPowerMode.script(true).contains("administrator privileges"))
+    }
+
+    @Test("low power mode dry run skips pmset")
+    func lowPowerModeDryRun() {
+        let result = LowPowerMode.set(true, dryRun: true)
+        #expect(result["ok"] as? Bool == true)
+        #expect(result["lowPowerMode"] as? Bool == true)
+        #expect(result["error"] == nil)
     }
 }
 
