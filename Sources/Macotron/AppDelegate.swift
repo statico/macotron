@@ -104,7 +104,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBarManager.onOpenPermissions = { [weak self] in
             guard let self else { return }
             self.launcherPanel.orderOut(nil)
-            self.settingsState.requestedTab = 0
+            self.settingsState.requestedTab = SettingsTab.permissions.rawValue
             self.settingsState.refreshPermissions()
             self.settingsWindow.show()
         }
@@ -316,21 +316,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         }
-        settingsState.searchInstalledApps = { [weak self] query in
-            guard let self else { return [] }
-            let taken = Set(
-                CommandShortcuts.load(from: self.workspace.readSettings()["commandShortcuts"]).bindings.keys
-            )
-            return self.appSearchProvider.matching(query).compactMap { app in
-                guard !taken.contains(app.bundleID) else { return nil }
-                return AppShortcutSummary(id: app.bundleID, name: app.name, icon: app.icon)
-            }
-        }
         engine.onPluginChecksChanged = { [weak self] in
             self?.settingsState.refreshModules()
         }
         engine.onOpenPluginSettings = { [weak self] file in
-            self?.settingsState.requestedTab = 1
+            self?.settingsState.requestedTab = SettingsTab.plugins.rawValue
             self?.settingsState.requestedPlugin = file
             self?.settingsWindow.show()
         }
@@ -346,6 +336,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             let url = self.moduleManager.configDir.appending(path: "plugins").appending(path: filename)
             NSWorkspace.shared.open(url)
+        }
+        settingsState.revealModuleFile = { [weak self] filename in
+            guard let self else { return }
+            let url = self.moduleManager.configDir.appending(path: "plugins").appending(path: filename)
+            NSWorkspace.shared.activateFileViewerSelecting([url])
         }
         settingsState.saveModuleOption = { [weak self] filename, key, value in
             guard let self else { return }
@@ -397,39 +392,36 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow = SettingsWindow(state: settingsState)
     }
 
+    private func nonEmptyString(_ value: Any?) -> String? {
+        guard let s = value as? String, !s.isEmpty else { return nil }
+        return s
+    }
+
     private func buildPluginSummaries() -> [ModuleSummary] {
         let errorMap = Dictionary(
             moduleManager.lastReloadErrors.map { ($0.filename, $0.error) },
             uniquingKeysWith: { first, _ in first }
         )
         let metadata = engine.moduleMetadata
-        let settings = moduleManager.loadModuleSettings()
-        let disabled = moduleManager.disabledPlugins()
-        let shortcuts = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
-        let keyboardShortcuts = CommandShortcuts.load(from: workspace.readSettings()["keyboardShortcuts"])
+        let settingsJSON = workspace.readSettings()
+        let settings = settingsJSON["pluginSettings"] as? [String: [String: Any]] ?? [:]
+        let disabled = Set(settingsJSON["disabledPlugins"] as? [String] ?? [])
+        let shortcuts = CommandShortcuts.load(from: settingsJSON["commandShortcuts"])
+        let keyboardShortcuts = CommandShortcuts.load(from: settingsJSON["keyboardShortcuts"])
         var summaries: [ModuleSummary] = []
-
-        let eventPattern = try? NSRegularExpression(pattern: #"macotron\.on\(\s*"([^"]+)""#)
 
         for file in moduleManager.listModules(directory: "plugins") {
             let isEnabled = !disabled.contains(file.filename)
-            var events: [String] = []
-            if isEnabled {
-                let fullPath = moduleManager.configDir.appending(path: "plugins").appending(path: file.filename)
-                let source = (try? String(contentsOf: fullPath, encoding: .utf8)) ?? ""
-                let range = NSRange(source.startIndex..., in: source)
-
-                if let regex = eventPattern {
-                    for match in regex.matches(in: source, range: range) {
-                        if let r = Range(match.range(at: 1), in: source) {
-                            events.append(String(source[r]))
-                        }
-                    }
-                }
-            }
+            let events = isEnabled ? (engine.pluginEvents[file.filename] ?? []) : []
 
             let meta = metadata[file.filename] ?? [:]
-            let title = meta["title"] as? String ?? ""
+            let metaTitle = nonEmptyString(meta["title"])
+            let metaDescription = nonEmptyString(meta["description"])
+            let header = (metaTitle == nil || metaDescription == nil)
+                ? PluginHeader.parse(file: workspace.pluginsDir.appending(path: file.filename))
+                : PluginHeader.Info()
+            let title = metaTitle ?? header.title ?? file.filename
+            let description = metaDescription ?? header.description ?? file.description
             let fileSettings = settings[file.filename] ?? [:]
             var options: [ModuleOption] = []
 
@@ -453,9 +445,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     let isSet: Bool
                     switch type {
                     case "password":
-                        let ref = fileSettings[key] as? String ?? ""
-                        let secret = ref.isEmpty ? nil : KeychainStore.read(account: ref)
-                        isSet = !(secret?.isEmpty ?? true)
+                        isSet = !(fileSettings[key] as? String ?? "").isEmpty
                     case "boolean", "number":
                         isSet = (fileSettings[key] ?? def["default"]) != nil
                     default:
@@ -496,7 +486,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             summaries.append(ModuleSummary(
                 filename: file.filename,
                 title: title,
-                description: meta["description"] as? String ?? file.description,
+                description: description,
                 help: meta["help"] as? String ?? "",
                 checks: engine.pluginChecks[file.filename] ?? [],
                 options: options,
@@ -597,9 +587,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         launcherHotkey?.cleanup()
         let hotkey = GlobalHotkey(combo: combo) { [weak self] in
             self?.launcherPanel.toggle()
-        }
-        hotkey.onPermissionNeeded = { [weak self] in
-            self?.refreshPermissions()
         }
         launcherHotkey = hotkey
         menuBarManager.updateLauncherShortcut(combo)
@@ -754,9 +741,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.addModule(SnippetsModule())
 
         let keyboard = KeyboardModule()
-        keyboard.onTrustFailure = { [weak self] in
-            self?.refreshPermissions()
-        }
         keyboard.onHostCommand = { [weak self] commandId in
             self?.handleCommandShortcut(commandId)
         }
@@ -1041,6 +1025,10 @@ extension MenuBarManager: MenuBarModuleDelegate {
         setIcon(sfSymbolName)
     }
 
+    public func menuBarSetIconColor(color: String?) {
+        setIconColor(color)
+    }
+
     public func menuBarSetTitle(text: String) {
         setTitle(text)
     }
@@ -1072,5 +1060,13 @@ extension MenuBarManager: MenuBarModuleDelegate {
 
     public func menuBarRemoveAllStatus() {
         removeAllStatus()
+    }
+
+    public func menuBarBeginStatusReload() {
+        beginStatusReload()
+    }
+
+    public func menuBarFinishStatusReload() {
+        finishStatusReload()
     }
 }

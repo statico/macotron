@@ -12,6 +12,7 @@ public protocol MenuBarModuleDelegate: AnyObject {
     func menuBarUpdateItem(id: String, title: String?, icon: String?)
     func menuBarRemoveItem(id: String)
     func menuBarSetIcon(sfSymbolName: String)
+    func menuBarSetIconColor(color: String?)
     func menuBarSetTitle(text: String)
     func menuBarSetStatus(
         id: String,
@@ -30,6 +31,8 @@ public protocol MenuBarModuleDelegate: AnyObject {
     )
     func menuBarRemoveStatus(id: String)
     func menuBarRemoveAllStatus()
+    func menuBarBeginStatusReload()
+    func menuBarFinishStatusReload()
 }
 
 @MainActor
@@ -156,6 +159,24 @@ public final class MenuBarModule: NativeModule {
 
             return QJS_Undefined()
         }, "setIcon", 1))
+
+        JS_SetPropertyStr(ctx, menubarObj, "setIconColor", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx, let argv else { return QJS_Undefined() }
+            let opaque = JS_GetContextOpaque(ctx)
+            guard let opaque else { return QJS_Undefined() }
+            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            var color: String?
+            if argc >= 1 {
+                let raw = argv[0]
+                if !JSBridge.isUndefined(raw), !JSBridge.isNull(raw) {
+                    color = JSBridge.toString(ctx, raw)
+                }
+            }
+            if let mod = engine.configStore["__menuBarModule"] as? MenuBarModule {
+                mod.delegate?.menuBarSetIconColor(color: color)
+            }
+            return QJS_Undefined()
+        }, "setIconColor", 1))
 
         // --- setTitle(text) ---
         JS_SetPropertyStr(ctx, menubarObj, "setTitle", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
@@ -337,6 +358,11 @@ public final class MenuBarModule: NativeModule {
         }
         callbacks.removeAll()
         engine?.configStore.removeValue(forKey: "__menuBarModule")
-        delegate?.menuBarRemoveAllStatus()
+        // Keep extra status items on screen; plugins re-apply in place after reload.
+        delegate?.menuBarBeginStatusReload()
+    }
+
+    public func didReload() {
+        delegate?.menuBarFinishStatusReload()
     }
 }

@@ -6,17 +6,18 @@ enum MenuBarIcon {
     private static let designSize: CGFloat = 16
     private static let pointSize: CGFloat = 18
 
-    static func makeImage() -> NSImage {
+    static func makeImage(tint: NSColor? = nil) -> NSImage {
         let size = NSSize(width: pointSize, height: pointSize)
+        let fill = tint ?? .black
         let image = NSImage(size: size, flipped: true) { _ in
             let path = glyphPath()
             path.transform(using: AffineTransform(scale: pointSize / designSize))
             path.windingRule = .evenOdd
-            NSColor.black.setFill()
+            fill.setFill()
             path.fill()
             return true
         }
-        image.isTemplate = true
+        image.isTemplate = tint == nil
         image.accessibilityDescription = "Macotron"
         return image
     }

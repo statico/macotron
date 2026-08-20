@@ -170,7 +170,7 @@ public final class DebugServer {
                 "GET  /modules        - List loaded modules",
                 "GET  /commands       - List registered commands",
                 "GET  /backups        - List config backups",
-                "POST /open-settings  - Open settings (body: {\"tab\": 0})",
+                "POST /open-settings  - Open settings (body: {\"tab\": 0-3})",
                 "POST /open           - Toggle the launcher panel",
                 "POST /query          - Set the launcher query (body: {\"q\": \"...\"})",
                 "GET  /screenshot     - Screenshot frontmost Macotron window",
