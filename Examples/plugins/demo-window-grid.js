@@ -136,7 +136,7 @@ function paint(sel) {
 function applySel(sel, reason) {
   paint(sel);
   send(Object.assign({ type: "preview", cols, rows }, sel));
-  dbg(reason + " " + sel.c0 + "," + sel.r0 + ".." + sel.c1 + "," + sel.r1);
+  if (reason !== "hover") dbg(reason + " " + sel.c0 + "," + sel.r0 + ".." + sel.c1 + "," + sel.r1);
 }
 function bump(which, delta) {
   if (which === "cols") cols = clamp(cols + delta);
@@ -147,22 +147,27 @@ document.getElementById("colsMinus").onclick = () => bump("cols", -1);
 document.getElementById("colsPlus").onclick = () => bump("cols", 1);
 document.getElementById("rowsMinus").onclick = () => bump("rows", -1);
 document.getElementById("rowsPlus").onclick = () => bump("rows", 1);
-grid.addEventListener("mousedown", (e) => {
-  if (e.button !== 0) return;
-  e.preventDefault();
-  const hit = cellFromPoint(e.clientX, e.clientY);
-  if (!hit) return;
-  hover = null;
-  drag = { c0: hit.c, r0: hit.r, c1: hit.c, r1: hit.r };
-  applySel(drag, "down");
-});
-window.addEventListener("mousemove", (e) => {
-  const hit = cellFromPoint(e.clientX, e.clientY);
-  if (drag) {
+function onPointer(x, y, buttons) {
+  const hit = cellFromPoint(x, y);
+  if (buttons & 1) {
+    if (!drag) {
+      if (!hit) return;
+      hover = null;
+      drag = { c0: hit.c, r0: hit.r, c1: hit.c, r1: hit.r };
+      applySel(drag, "down");
+      return;
+    }
     if (!hit || (hit.c === drag.c1 && hit.r === drag.r1)) return;
     drag.c1 = hit.c;
     drag.r1 = hit.r;
     applySel(drag, "drag");
+    return;
+  }
+  if (drag) {
+    const sel = Object.assign({ cols, rows }, drag);
+    dbg("place " + sel.c0 + "," + sel.r0 + ".." + sel.c1 + "," + sel.r1);
+    drag = null;
+    send(Object.assign({ type: "place" }, sel));
     return;
   }
   if (!hit) {
@@ -175,13 +180,16 @@ window.addEventListener("mousemove", (e) => {
   if (hover && hover.c0 === hit.c && hover.r0 === hit.r) return;
   hover = { c0: hit.c, r0: hit.r, c1: hit.c, r1: hit.r };
   applySel(hover, "hover");
+}
+window.addEventListener("mousedown", (e) => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  onPointer(e.clientX, e.clientY, 1);
 });
+window.addEventListener("mousemove", (e) => onPointer(e.clientX, e.clientY, e.buttons));
 window.addEventListener("mouseup", (e) => {
-  if (!drag || e.button !== 0) return;
-  const sel = Object.assign({ cols, rows }, drag);
-  dbg("place " + sel.c0 + "," + sel.r0 + ".." + sel.c1 + "," + sel.r1);
-  drag = null;
-  send(Object.assign({ type: "place" }, sel));
+  if (e.button !== 0) return;
+  onPointer(e.clientX, e.clientY, 0);
 });
 rebuild();
 </script>`,
