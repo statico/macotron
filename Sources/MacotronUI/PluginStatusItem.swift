@@ -87,11 +87,13 @@ final class PluginStatusItem: NSObject {
     ) {
         reapplyWork?.cancel()
         self.onClick = onClick
-        menuKeep.removeAll()
         if menu.isEmpty {
+            menuKeep.removeAll()
             dropdown = nil
         } else {
-            dropdown = PluginMenu.make(menu, retaining: &menuKeep)
+            let bar = dropdown ?? NSMenu()
+            dropdown = bar
+            PluginMenu.sync(bar, to: menu, retaining: &menuKeep)
         }
         item.menu = nil
         let button = item.button
@@ -442,18 +444,66 @@ enum PluginMenu {
 
     static func item(title: String, icon: String?) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        if let icon {
-            if icon.count <= 2 {
-                item.title = "\(icon) \(title)"
-            } else {
-                item.image = NSImage(systemSymbolName: icon, accessibilityDescription: nil)
-            }
-        }
+        apply(title: title, icon: icon, to: item)
         return item
     }
 
     static func make(_ entries: [MenuBarEntry], retaining boxes: inout [Action]) -> NSMenu {
         let menu = NSMenu()
+        append(entries, to: menu, retaining: &boxes)
+        return menu
+    }
+
+    static func sync(_ menu: NSMenu, to entries: [MenuBarEntry], retaining boxes: inout [Action]) {
+        boxes.removeAll()
+        if sameShape(menu, entries) {
+            write(entries, onto: menu, retaining: &boxes)
+        } else {
+            menu.removeAllItems()
+            append(entries, to: menu, retaining: &boxes)
+        }
+    }
+
+    static func apply(title: String, icon: String?, to item: NSMenuItem) {
+        item.image = nil
+        if let icon {
+            if icon.count <= 2 {
+                item.title = "\(icon) \(title)"
+            } else {
+                item.title = title
+                item.image = NSImage(systemSymbolName: icon, accessibilityDescription: nil)
+            }
+        } else {
+            item.title = title
+        }
+    }
+
+    private static func sameShape(_ menu: NSMenu, _ entries: [MenuBarEntry]) -> Bool {
+        guard menu.items.count == entries.count else { return false }
+        return zip(menu.items, entries).allSatisfy { item, entry in
+            if entry.isSeparator { return item.isSeparatorItem }
+            if item.isSeparatorItem { return false }
+            if entry.children.isEmpty {
+                return item.submenu == nil
+            }
+            guard let submenu = item.submenu else { return false }
+            return sameShape(submenu, entry.children)
+        }
+    }
+
+    private static func write(_ entries: [MenuBarEntry], onto menu: NSMenu, retaining boxes: inout [Action]) {
+        for (item, entry) in zip(menu.items, entries) {
+            if entry.isSeparator { continue }
+            apply(title: entry.title, icon: entry.icon, to: item)
+            if !entry.children.isEmpty, let submenu = item.submenu {
+                write(entry.children, onto: submenu, retaining: &boxes)
+            } else {
+                bind(entry, to: item, retaining: &boxes)
+            }
+        }
+    }
+
+    private static func append(_ entries: [MenuBarEntry], to menu: NSMenu, retaining boxes: inout [Action]) {
         for entry in entries {
             if entry.isSeparator {
                 menu.addItem(.separator())
@@ -463,14 +513,17 @@ enum PluginMenu {
             if !entry.children.isEmpty {
                 row.submenu = make(entry.children, retaining: &boxes)
             } else {
-                let box = Action(entry.onClick ?? {})
-                boxes.append(box)
-                row.representedObject = box
-                row.target = box
-                row.action = #selector(Action.invoke)
+                bind(entry, to: row, retaining: &boxes)
             }
             menu.addItem(row)
         }
-        return menu
+    }
+
+    private static func bind(_ entry: MenuBarEntry, to item: NSMenuItem, retaining boxes: inout [Action]) {
+        let box = Action(entry.onClick ?? {})
+        boxes.append(box)
+        item.representedObject = box
+        item.target = box
+        item.action = #selector(Action.invoke)
     }
 }

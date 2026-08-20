@@ -86,7 +86,17 @@ public final class MenuBarManager: NSObject {
     // MARK: - Public API (called from JS)
 
     public func addItem(id: String, config: MenuItemConfig) {
-        dynamicItems.removeAll { $0.id == id }
+        if let idx = dynamicItems.firstIndex(where: { $0.id == id }) {
+            let old = dynamicItems[idx].config
+            dynamicItems[idx] = (id: id, config: config)
+            if old.section == config.section, old.menu.isEmpty, config.menu.isEmpty,
+               let item = menuItem(id: id) {
+                PluginMenu.apply(title: config.title, icon: config.icon, to: item)
+                return
+            }
+            rebuildMenu()
+            return
+        }
         dynamicItems.append((id: id, config: config))
         rebuildMenu()
     }
@@ -102,6 +112,10 @@ public final class MenuBarManager: NSObject {
             menu: old.menu
         )
         dynamicItems[idx] = (id: id, config: updated)
+        if let item = menuItem(id: id) {
+            PluginMenu.apply(title: updated.title, icon: updated.icon, to: item)
+            return
+        }
         rebuildMenu()
     }
 
@@ -237,6 +251,10 @@ public final class MenuBarManager: NSObject {
     }
 
     // MARK: - Menu Building
+
+    private func menuItem(id: String) -> NSMenuItem? {
+        menu.items.first { $0.representedObject as? String == id }
+    }
 
     private func parseHotkey(_ combo: String) -> (key: String, modifiers: NSEvent.ModifierFlags) {
         KeyCombo.parse(combo)?.menuEquivalent ?? ("", [])
