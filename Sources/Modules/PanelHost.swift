@@ -217,6 +217,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     private let closeOnBlur: Bool
     private var blurArmed = false
     private var zoomMonitor: Any?
+    private var dragMonitor: Any?
 
     init(
         id: String,
@@ -272,9 +273,6 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
             p.backgroundColor = .clear
             p.hasShadow = true
         }
-        if frameless {
-            p.isMovableByWindowBackground = true
-        }
         p.contentView = Self.embed(wv, glass: glass, size: size, frameless: frameless)
         self.panel = p
 
@@ -286,6 +284,10 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         zoomMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, event.window === self.panel else { return event }
             return self.handleKey(event) ? nil : event
+        }
+        dragMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDragged) { [weak self] event in
+            self?.forwardMouseDrag(event)
+            return event
         }
         NotificationCenter.default.addObserver(
             self,
@@ -365,6 +367,17 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         webView.becomeFirstResponder()
     }
 
+    /// WKWebView on a nonactivating panel often swallows button-down mousemove.
+    /// AppKit still gets leftMouseDragged; replay it as a DOM mousemove.
+    private func forwardMouseDrag(_ event: NSEvent) {
+        guard event.window === panel else { return }
+        var p = webView.convert(event.locationInWindow, from: nil)
+        if !webView.isFlipped { p.y = webView.bounds.height - p.y }
+        webView.evaluateJavaScript(
+            "window.dispatchEvent(new MouseEvent('mousemove',{clientX:\(p.x),clientY:\(p.y),buttons:1,bubbles:true}))"
+        )
+    }
+
     private func focusDefaultField() {
         webView.evaluateJavaScript(
             #"(function(){var el=document.querySelector("[autofocus],#input,textarea,input:not([type=hidden])");if(el)el.focus();})();"#
@@ -401,6 +414,10 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         if let zoomMonitor {
             NSEvent.removeMonitor(zoomMonitor)
             self.zoomMonitor = nil
+        }
+        if let dragMonitor {
+            NSEvent.removeMonitor(dragMonitor)
+            self.dragMonitor = nil
         }
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "macotron")
         webView.uiDelegate = nil
