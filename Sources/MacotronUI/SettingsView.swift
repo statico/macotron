@@ -460,6 +460,7 @@ public struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .labelsHidden()
                     .frame(width: 280, alignment: .leading)
                 }
 
@@ -473,6 +474,7 @@ public struct SettingsView: View {
                         Text("120%").tag(1.2)
                     }
                     .pickerStyle(.segmented)
+                    .labelsHidden()
                     .frame(width: 280, alignment: .leading)
                 }
 
@@ -486,6 +488,7 @@ public struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .labelsHidden()
                     .frame(width: 340, alignment: .leading)
                 }
                 .padding(.bottom, 16)
@@ -665,7 +668,7 @@ public struct SettingsView: View {
         _ label: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: PluginForm.rowSpacing) {
             Text(label)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.trailing)
@@ -680,7 +683,7 @@ public struct SettingsView: View {
 
     private var formDivider: some View {
         Divider()
-            .frame(width: PluginForm.labelWidth + 12 + PluginForm.controlWidth)
+            .frame(width: PluginForm.labelWidth + PluginForm.rowSpacing + PluginForm.controlWidth)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 4)
     }
@@ -689,6 +692,7 @@ public struct SettingsView: View {
 private enum PluginForm {
     static let labelWidth: CGFloat = 140
     static let controlWidth: CGFloat = 340
+    static let rowSpacing: CGFloat = 20
     static let recorderWidth: CGFloat = 240
     static let fieldMaxWidth: CGFloat = 280
 }
