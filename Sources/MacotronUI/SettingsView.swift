@@ -498,8 +498,8 @@ public struct SettingsView: View {
     private var permissionsTab: some View {
         let missing = state.missingPermissions
 
-        return VStack(alignment: .leading, spacing: 0) {
-            ScrollView {
+        return ScrollView {
+            VStack {
                 VStack(alignment: .leading, spacing: 16) {
                     Text(permissionsSummary(missing: missing))
                         .font(.system(size: 11))
@@ -512,19 +512,15 @@ public struct SettingsView: View {
                             onChange: { state.refreshPermissions() }
                         )
                     }
-                }
-                .padding(24)
-            }
 
-            HStack {
-                Spacer()
-                Button("Re-check") {
-                    state.refreshPermissions()
+                    Button("Re-check") {
+                        state.refreshPermissions()
+                    }
+                    .controlSize(.small)
                 }
-                .controlSize(.small)
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
         }
         .background(missing.isEmpty ? Color.clear : Color.orange.opacity(0.08))
     }

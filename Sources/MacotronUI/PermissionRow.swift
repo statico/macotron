@@ -2,8 +2,8 @@
 import MacotronEngine
 import SwiftUI
 
-/// One permission with its status and a single action. The fixed status and
-/// action widths keep every row aligned in a column.
+/// One permission with its status and a single action. A fixed text column
+/// keeps every row the same width so the action lines up without a spacer.
 struct PermissionRow: View {
     let permission: Permission
     let granted: Bool
@@ -12,7 +12,7 @@ struct PermissionRow: View {
     /// instead of waiting for the next poll.
     var onChange: (() -> Void)?
 
-    /// Shared so every trailing control lines up on the same right edge.
+    static let textWidth: CGFloat = 240
     static let actionWidth: CGFloat = 104
 
     var body: some View {
@@ -32,8 +32,7 @@ struct PermissionRow: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-
-            Spacer(minLength: 12)
+            .frame(width: Self.textWidth, alignment: .leading)
 
             if granted, permission.canRevoke {
                 Button("Remove") {
@@ -41,19 +40,19 @@ struct PermissionRow: View {
                     onChange?()
                 }
                 .controlSize(.small)
-                .frame(width: Self.actionWidth, alignment: .trailing)
+                .frame(width: Self.actionWidth, alignment: .leading)
             } else if granted {
                 Text("Granted")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                    .frame(width: Self.actionWidth, alignment: .trailing)
+                    .frame(width: Self.actionWidth, alignment: .leading)
             } else {
                 Button(permission.actionTitle) {
                     if permission.request() { permission.openSystemSettings() }
                     onChange?()
                 }
                 .controlSize(.small)
-                .frame(width: Self.actionWidth, alignment: .trailing)
+                .frame(width: Self.actionWidth, alignment: .leading)
             }
         }
     }
