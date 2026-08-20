@@ -16,6 +16,7 @@ declare const macotron: {
     version: {
         app: string;
         api: string;
+        /** Host API versions keyed by native namespace (`window`, `panel`, …), not user plugins. */
         modules: Record<string, number>;
     };
 
@@ -606,7 +607,7 @@ declare const macotron: {
         help?: string;
         /** `fanControl` lists the background helper on this plugin's Settings page. */
         permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "fanControl">;
-        options?: Record<string, MacotronModuleOption>;
+        options?: Record<string, MacotronPluginOption>;
     }): Record<string, any>;
     /** @deprecated Use plugin() */
     module(metadata: {
@@ -614,13 +615,13 @@ declare const macotron: {
         description?: string;
         help?: string;
         permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording">;
-        options?: Record<string, MacotronModuleOption>;
+        options?: Record<string, MacotronPluginOption>;
     }): Record<string, any>;
     /** @deprecated Pass `permissions` to plugin() */
     requirePermissions(list: Array<"accessibility" | "inputMonitoring" | "screenRecording">): void;
 };
 
-type MacotronModuleOption =
+type MacotronPluginOption =
     | { type: "string"; label: string; default?: string; required?: boolean }
     | { type: "boolean"; label: string; default?: boolean; required?: boolean }
     | { type: "number"; label: string; default?: number; required?: boolean }

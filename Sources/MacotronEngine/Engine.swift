@@ -71,7 +71,7 @@ public final class Engine {
     /// Open Settings → Plugins on the calling plugin.
     public var onOpenPluginSettings: ((String) -> Void)?
 
-    /// User overrides for module options, loaded from module-settings.json.
+    /// User overrides for plugin options, loaded from settings.json pluginSettings.
     /// Keyed by filename → option key → value.
     public var moduleSettings: [String: [String: Any]] = [:]
 
