@@ -16,7 +16,7 @@ Plugins are JavaScript files that register hotkeys, hooks, and UI at load time. 
 ├─────────────────────────────────┤
 │  Plugins directory (git repo)   │  plugins/*.js + settings.json
 ├─────────────────────────────────┤
-│  JS Engine (QuickJS)            │  macotron.keyboard.on("tile-left", "ctrl+opt+left", ...)
+│  JS Engine (QuickJS)            │  macotron.keyboard.on("Tile Left", "ctrl+opt+left", ...)
 ├─────────────────────────────────┤
 │  Native Bridge (Swift)          │  AXUIElement, CGEventTap, ScreenCaptureKit, ...
 ├─────────────────────────────────┤

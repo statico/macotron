@@ -97,6 +97,7 @@ declare const macotron: {
     };
 
     keyboard: {
+        /** `id` is the Settings label, unique per plugin. */
         on(id: string, defaultCombo: string, callback: () => void): void;
         /** Current modifier state from the HID system. */
         flags(): { cmd: boolean; shift: boolean; ctrl: boolean; opt: boolean; caps: boolean; fn: boolean };

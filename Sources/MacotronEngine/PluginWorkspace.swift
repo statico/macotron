@@ -298,12 +298,12 @@ public final class PluginWorkspace {
         Register hotkeys at load time:
 
         ```js
-        macotron.keyboard.on("hello", "cmd+shift+h", () => {
+        macotron.keyboard.on("Hello", "cmd+shift+h", () => {
           macotron.notify.toast("Hello", "From a Macotron plugin");
         });
         ```
 
-        Ids are unique per plugin. Users override the combo in Settings → Plugins.
+        The id is the Settings label. Ids are unique per plugin. Users override the combo in Settings → Plugins.
 
         `macotron.notify.toast(title, body?, { position, duration, sfSymbol, color })` is a
         one-line HUD on the screen under the cursor (3s default). `color` is `info`,

@@ -58,7 +58,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Power:** `preventSleep` / `allowSleep` / `isPreventing`, plus `lock()` and `sleep()`. Events: `system:sleep`, `system:wake`, `system:lock`, `system:unlock`.
 
-**Keyboard:** `macotron.keyboard.on("tile-left", "ctrl+opt+left", callback)` — ids are unique per plugin; override the combo in Settings → Plugins. `keyboard.flags()` is `{ cmd, shift, ctrl, opt, caps, fn }`.
+**Keyboard:** `macotron.keyboard.on("Tile Left", "ctrl+opt+left", callback)` — the id is the Settings label and is unique per plugin; override the combo in Settings → Plugins. `keyboard.flags()` is `{ cmd, shift, ctrl, opt, caps, fn }`.
 
 **Event:** `macotron.event.post({ type: "click"|"key"|"unicode"|"scroll", ... })` posts HID. `event.tap(["flagsChanged","scroll"], cb)` listens; return `false` to swallow. Coords are Cocoa (same as `window.frame`). `macotron.mouse.location()`, `.warp(x, y)`, `.buttons()`.
 
