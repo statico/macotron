@@ -1,4 +1,5 @@
 // PanelShellTests.swift — JSON-encode CSS for the panel user script
+import AppKit
 import Testing
 @testable import Modules
 
@@ -16,6 +17,7 @@ struct PanelShellTests {
     @Test("glass stylesheet uses a transparent page background")
     func glassCSSIsTransparent() {
         let glass = PanelShell.css(glass: true)
+        #expect(glass.contains("html { color-scheme: light dark; background: transparent"))
         #expect(glass.contains("background: transparent"))
         #expect(!glass.contains("background: light-dark(#f5f5f7"))
         let opaque = PanelShell.css(glass: false)
@@ -41,6 +43,14 @@ struct PanelShellTests {
         #expect(PanelGlass.parse("translucent") == .regular)
         #expect(PanelGlass.parse("clear") == .clear)
         #expect(PanelGlass.parse("none") == .none)
+    }
+
+    @Test("frameless panels drop the title bar")
+    func framelessStyleMask() {
+        #expect(PanelChrome.styleMask(frameless: true).contains(.fullSizeContentView))
+        #expect(!PanelChrome.styleMask(frameless: true).contains(.titled))
+        #expect(PanelChrome.styleMask(frameless: false).contains(.titled))
+        #expect(!PanelChrome.styleMask(frameless: false).contains(.fullSizeContentView))
     }
 
     @Test("jsonString quotes and escapes a Swift string")

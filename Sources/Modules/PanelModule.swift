@@ -70,6 +70,11 @@ public final class PanelModule: NativeModule {
             }
             JS_FreeValue(ctx, glassVal)
 
+            let framelessVal = JSBridge.getProperty(ctx, opts, "frameless")
+            let frameless = JSBridge.isUndefined(framelessVal) || JSBridge.isNull(framelessVal)
+                ? false : JSBridge.toBool(ctx, framelessVal)
+            JS_FreeValue(ctx, framelessVal)
+
             let useShell = rawHtml == nil || rawHtml?.isEmpty == true
             let document = useShell ? PanelShell.document(body: html ?? "", glass: glass.isEnabled) : rawHtml!
 
@@ -79,7 +84,8 @@ public final class PanelModule: NativeModule {
                 height: height > 0 ? height : 520,
                 html: document,
                 hostChrome: useShell,
-                glass: glass
+                glass: glass,
+                frameless: frameless
             )
             return JSBridge.newString(ctx, id)
         }, "open", 1))
@@ -125,12 +131,12 @@ public final class PanelModule: NativeModule {
         PanelModuleState.shared.module = nil
     }
 
-    private func openPanel(title: String, width: Int, height: Int, html: String, hostChrome: Bool, glass: PanelGlass) -> String {
+    private func openPanel(title: String, width: Int, height: Int, html: String, hostChrome: Bool, glass: PanelGlass, frameless: Bool) -> String {
         let id = UUID().uuidString
         if engine?.dryRun == true {
             return id
         }
-        let host = PanelHost(id: id, title: title, width: width, height: height, html: html, hostChrome: hostChrome, glass: glass, onMessage: { [weak self] panelId, body in
+        let host = PanelHost(id: id, title: title, width: width, height: height, html: html, hostChrome: hostChrome, glass: glass, frameless: frameless, onMessage: { [weak self] panelId, body in
             self?.dispatchMessage(panelId: panelId, body: body)
         }, onClosed: { [weak self] in
             self?.forgetPanel(id)
