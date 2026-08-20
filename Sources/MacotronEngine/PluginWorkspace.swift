@@ -252,7 +252,7 @@ public final class PluginWorkspace {
         ## Layout
 
         - `plugins/*.js` — plugin scripts. Macotron loads every `.js` file in alphabetical order.
-        - `settings.json` — launcher hotkey, UI prefs, module options. Do not put secrets here.
+        - `settings.json` — launcher hotkey, UI prefs, plugin options. Do not put secrets here.
         - `.cache/` — bytecode cache and typecheck config. Gitignored. Do not edit.
         - `AGENTS.md` / `CLAUDE.md` — owned by Macotron. Overwritten on every launch.
 

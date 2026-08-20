@@ -46,7 +46,7 @@ Plugins load from `plugins/` in alphabetical order on app launch. Each file runs
 ```
 App Launch
   |
-  +-- Read settings.json          (hotkey, UI prefs, module options)
+  +-- Read settings.json          (hotkey, UI prefs, plugin options)
   +-- Load plugins/001-....js     (registers listeners)
   +-- Load plugins/002-....js
   +-- Ready.

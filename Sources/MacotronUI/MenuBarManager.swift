@@ -36,13 +36,13 @@ public final class MenuBarManager: NSObject {
     private var statusRegistered: Set<String>?
     private var pluginMenuBoxes: [PluginMenu.Action] = []
 
-    /// Items registered by JS modules, keyed by ID
+    /// Items registered by JS plugins, keyed by ID
     private var dynamicItems: [(id: String, config: MenuItemConfig)] = []
 
     /// Current launcher shortcut combo string (e.g. "cmd+space"), used for menu display
     private var launcherShortcut: String = "cmd+space"
 
-    /// SF Symbol set by a JS module, or nil to use the Macotron glyph.
+    /// SF Symbol set by a JS plugin, or nil to use the Macotron glyph.
     /// Redrawn when the permission warning changes.
     private var symbolName: String?
     private var iconColor: NSColor?
@@ -301,7 +301,7 @@ public final class MenuBarManager: NSObject {
         openLauncher.image = Self.menuSymbol("magnifyingglass")
         menu.addItem(openLauncher)
 
-        let reload = NSMenuItem(title: "Reload Modules", action: #selector(reloadAction), keyEquivalent: "r")
+        let reload = NSMenuItem(title: "Reload Plugins", action: #selector(reloadAction), keyEquivalent: "r")
         reload.target = self
         reload.image = Self.menuSymbol("arrow.clockwise")
         menu.addItem(reload)

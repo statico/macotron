@@ -93,9 +93,9 @@ public final class DebugServer {
             moduleManager.reloadAll()
             return ("reloaded".data(using: .utf8)!, "text/plain")
 
-        case (_, "/modules"):
-            let modules = moduleManager.listModules()
-            let list = modules.map { ["filename": $0.filename, "description": $0.description] }
+        case (_, "/modules"), (_, "/plugins"):
+            let plugins = moduleManager.listModules()
+            let list = plugins.map { ["filename": $0.filename, "description": $0.description] }
             let data = try! JSONSerialization.data(withJSONObject: list)
             return (data, "application/json")
 
@@ -119,7 +119,7 @@ public final class DebugServer {
         case (_, "/health"):
             let info: [String: Any] = [
                 "status": "ok",
-                "modules": moduleManager.listModules().count,
+                "plugins": moduleManager.listModules().count,
                 "commands": engine.commandRegistry.count,
             ]
             let data = try! JSONSerialization.data(withJSONObject: info)
@@ -166,8 +166,8 @@ public final class DebugServer {
             let routes = [
                 "GET  /health         - Server status",
                 "POST /eval           - Evaluate JS (body: {\"js\": \"...\"})",
-                "POST /reload         - Reload all modules",
-                "GET  /modules        - List loaded modules",
+                "POST /reload         - Reload all plugins",
+                "GET  /plugins        - List loaded plugins",
                 "GET  /commands       - List registered commands",
                 "GET  /backups        - List config backups",
                 "POST /open-settings  - Open settings (body: {\"tab\": 0-3})",

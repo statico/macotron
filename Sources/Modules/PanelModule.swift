@@ -34,7 +34,7 @@ public final class PanelModule: NativeModule {
                 return QJS_ThrowTypeError(ctx, "panel.open requires an options object")
             }
             guard let module = PanelModuleState.shared.module else {
-                return QJS_ThrowTypeError(ctx, "panel module not available")
+                return QJS_ThrowTypeError(ctx, "panel not available")
             }
 
             let opts = argv[0]

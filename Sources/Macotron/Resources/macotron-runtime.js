@@ -1,6 +1,6 @@
 // macotron-runtime.js
 // Loaded into JSContext before any user snippets.
-// The native macotron object already exists with module APIs.
+// The native macotron object already exists with host APIs.
 // This file adds convenience helpers on top.
 
 // --- Config ---

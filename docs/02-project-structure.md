@@ -92,7 +92,7 @@ The user picks one directory. That directory is the plugins workdir and a git re
 <user-chosen>/
 ├── .git/
 ├── .gitignore               # ignores AGENTS.md, CLAUDE.md, .cache/
-├── settings.json            # launcher hotkey, UI prefs, module options
+├── settings.json            # launcher hotkey, UI prefs, plugin options
 ├── README.md                # human (seeded once if missing)
 ├── AGENTS.md                # app-owned — do not edit
 ├── CLAUDE.md                # app-owned — do not edit
