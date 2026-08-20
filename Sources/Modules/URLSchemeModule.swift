@@ -122,8 +122,9 @@ public final class URLSchemeModule: NativeModule {
                 if engine.dryRun { return JSBridge.newBool(ctx, false) }
             }
 
-            guard let current = LSCopyDefaultHandlerForURLScheme(scheme as CFString)?
-                .takeRetainedValue() as String?
+            guard let probe = URL(string: "\(scheme):"),
+                  let app = NSWorkspace.shared.urlForApplication(toOpen: probe),
+                  let current = Bundle(url: app)?.bundleIdentifier
             else {
                 return JSBridge.newBool(ctx, false)
             }
