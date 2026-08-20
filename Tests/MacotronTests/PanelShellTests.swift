@@ -47,6 +47,8 @@ struct PanelShellTests {
 
     @Test("frameless panels drop the title bar")
     func framelessStyleMask() {
+        #expect(PanelChrome.styleMask(frameless: true).contains(.nonactivatingPanel))
+        #expect(PanelChrome.styleMask(frameless: false).contains(.nonactivatingPanel))
         #expect(PanelChrome.styleMask(frameless: true).contains(.fullSizeContentView))
         #expect(!PanelChrome.styleMask(frameless: true).contains(.titled))
         #expect(PanelChrome.styleMask(frameless: false).contains(.titled))

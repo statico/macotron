@@ -34,8 +34,8 @@ enum PanelChrome {
 
     static func styleMask(frameless: Bool) -> NSWindow.StyleMask {
         frameless
-            ? [.borderless, .fullSizeContentView]
-            : [.titled, .closable, .resizable, .utilityWindow]
+            ? [.borderless, .fullSizeContentView, .nonactivatingPanel]
+            : [.titled, .closable, .resizable, .utilityWindow, .nonactivatingPanel]
     }
 }
 
@@ -200,6 +200,12 @@ private final class PluginPanel: NSPanel {
     override var canBecomeKey: Bool { true }
 }
 
+private final class PluginWebView: WKWebView {
+    override var mouseDownCanMoveWindow: Bool { false }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
 @MainActor
 final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate {
     let id: String
@@ -240,7 +246,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         config.userContentController = controller
 
         let size = NSSize(width: width, height: height)
-        let wv = WKWebView(frame: NSRect(origin: .zero, size: size), configuration: config)
+        let wv = PluginWebView(frame: NSRect(origin: .zero, size: size), configuration: config)
         wv.appearance = NSApp.effectiveAppearance
         wv.setValue(false, forKey: "drawsBackground")
         wv.underPageBackgroundColor = (glass.isEnabled || frameless) ? .clear : NSColor.windowBackgroundColor
@@ -258,6 +264,8 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         p.level = .floating
         p.hidesOnDeactivate = false
         p.becomesKeyOnlyIfNeeded = false
+        p.worksWhenModal = true
+        p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         p.isReleasedWhenClosed = false
         if glass.isEnabled || frameless {
             p.isOpaque = false
@@ -352,8 +360,8 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     }
 
     private func bringToFront() {
-        NSApp.activate(ignoringOtherApps: true)
-        panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
+        panel.makeKey()
         webView.becomeFirstResponder()
     }
 

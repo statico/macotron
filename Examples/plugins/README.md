@@ -18,7 +18,7 @@ Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew o
 | demo-battery.js | system.battery | Battery |
 | demo-meetings.js | calendar.upcoming | Next Meeting |
 | demo-windows.js | window.moveToFraction / snap / focus | Tile Left/Right/Full, Switch Window |
-| demo-divvy.js | window.previewFraction / panel grid | Divvy |
+| demo-window-grid.js | window.previewFraction / panel grid | Place Window |
 | demo-disk-usage.js | shell.run df/du + panel | Disk Usage |
 | demo-browser-profiles.js | url.open | Open GitHub in Safari |
 | demo-url-router.js | url.on / open | Open YouTube in Safari |
