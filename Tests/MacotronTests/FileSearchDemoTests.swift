@@ -61,11 +61,20 @@ struct FileSearchDemoTests {
         #expect(html.contains(":hover") || html.contains("onmouseover"))
     }
 
-    @Test("opens frameless glass and uses the system font for paths")
-    func framelessSystemFont() throws {
-        let result = try eval(#"JSON.stringify({ frameless: opened.frameless, glass: opened.glass, mono: html.indexOf("mono") !== -1 })"#)
-        #expect(result.contains("\"frameless\":true"))
-        #expect(result.contains("\"glass\":\"clear\""))
-        #expect(result.contains("\"mono\":false"))
+    @Test("opens frameless translucent and closes when unfocused")
+    func framelessTranslucent() throws {
+        let result = try eval(#"JSON.stringify({ frameless: opened.frameless, glass: opened.glass, closeOnBlur: opened.closeOnBlur, mono: html.indexOf("mono") !== -1 })"#)
+        #expect(result.contains(#""frameless":true"#))
+        #expect(result.contains(#""glass":"translucent""#))
+        #expect(result.contains(#""closeOnBlur":true"#))
+        #expect(result.contains(#""mono":false"#))
+    }
+
+    @Test("shows a spinner while searching")
+    func spinner() throws {
+        let html = try eval("html")
+        #expect(html.contains("spinner"))
+        #expect(html.contains("@keyframes"))
+        #expect(html.contains("Searching"))
     }
 }

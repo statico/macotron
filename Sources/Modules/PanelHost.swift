@@ -6,8 +6,10 @@ enum PanelGlass: Equatable {
     case none
     case regular
     case clear
+    case translucent
 
     var isEnabled: Bool { self != .none }
+    var usesLiquidGlass: Bool { self == .regular || self == .clear }
 
     static func parse(_ value: Any) -> PanelGlass {
         switch value {
@@ -16,7 +18,8 @@ enum PanelGlass: Equatable {
         case let name as String:
             switch name.lowercased() {
             case "clear": return .clear
-            case "regular", "translucent": return .regular
+            case "regular": return .regular
+            case "translucent": return .translucent
             case "false", "none", "": return .none
             default: return .regular
             }
@@ -205,6 +208,8 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     private let onMessage: (String, Any) -> Void
     private let onClosed: () -> Void
     private let frameless: Bool
+    private let closeOnBlur: Bool
+    private var blurArmed = false
     private var zoomMonitor: Any?
 
     init(
@@ -216,6 +221,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         hostChrome: Bool,
         glass: PanelGlass = .none,
         frameless: Bool = false,
+        closeOnBlur: Bool = false,
         onMessage: @escaping (String, Any) -> Void,
         onClosed: @escaping () -> Void
     ) {
@@ -223,6 +229,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         self.onMessage = onMessage
         self.onClosed = onClosed
         self.frameless = frameless
+        self.closeOnBlur = closeOnBlur
 
         let config = WKWebViewConfiguration()
         let controller = WKUserContentController()
@@ -284,6 +291,12 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
             name: NSWindow.didBecomeKeyNotification,
             object: p
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(windowDidResignKey),
+            name: NSWindow.didResignKeyNotification,
+            object: p
+        )
     }
 
     private static func embed(_ webView: WKWebView, glass: PanelGlass, size: NSSize, frameless: Bool) -> NSView {
@@ -291,7 +304,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         webView.frame = frame
         webView.autoresizingMask = [.width, .height]
         let radius = frameless ? PanelChrome.cornerRadius : 0
-        if glass.isEnabled {
+        if glass.usesLiquidGlass {
             if #available(macOS 26.0, *) {
                 let view = NSGlassEffectView(frame: frame)
                 view.style = glass == .clear ? .clear : .regular
@@ -305,7 +318,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
             }
             return Self.roundedVisual(frame: frame, webView: webView, clear: glass == .clear, radius: radius)
         }
-        if frameless {
+        if glass == .translucent || frameless {
             return Self.roundedVisual(frame: frame, webView: webView, clear: false, radius: radius)
         }
         return webView
@@ -327,12 +340,14 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     }
 
     func show() {
+        blurArmed = false
         panel.center()
         bringToFront()
         // Launcher/menu-bar dismissal on this pass steals key; claim it again after.
         DispatchQueue.main.async { [weak self] in
             self?.bringToFront()
             self?.focusDefaultField()
+            DispatchQueue.main.async { self?.blurArmed = true }
         }
     }
 
@@ -364,6 +379,11 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         focusDefaultField()
     }
 
+    @objc private func windowDidResignKey(_ notification: Notification) {
+        guard closeOnBlur, blurArmed else { return }
+        close()
+    }
+
     @objc private func windowWillClose(_ notification: Notification) {
         tearDown()
         onClosed()
@@ -378,6 +398,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         webView.uiDelegate = nil
         NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: panel)
         NotificationCenter.default.removeObserver(self, name: NSWindow.didBecomeKeyNotification, object: panel)
+        NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: panel)
     }
 
     private func handleKey(_ event: NSEvent) -> Bool {

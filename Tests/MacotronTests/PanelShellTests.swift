@@ -35,12 +35,12 @@ struct PanelShellTests {
         #expect(css.contains("min-height: 52px"))
     }
 
-    @Test("glass parses true, regular/translucent, and clear")
+    @Test("glass parses true, regular, translucent, and clear")
     func glassParse() {
         #expect(PanelGlass.parse(true) == .regular)
         #expect(PanelGlass.parse(false) == .none)
         #expect(PanelGlass.parse("regular") == .regular)
-        #expect(PanelGlass.parse("translucent") == .regular)
+        #expect(PanelGlass.parse("translucent") == .translucent)
         #expect(PanelGlass.parse("clear") == .clear)
         #expect(PanelGlass.parse("none") == .none)
     }
