@@ -12,3 +12,4 @@ DerivedData/
 .claude/
 tmp/
 .superpowers/
+.worktrees/
