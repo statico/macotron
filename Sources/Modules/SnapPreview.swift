@@ -1,8 +1,5 @@
 // SnapPreview.swift — translucent rounded box over the destination frame
 import AppKit
-import os
-
-private let logger = Logger(subsystem: "io.statico.macotron", category: "window")
 
 private final class SnapPreviewPanel: NSPanel {
     override var canBecomeKey: Bool { false }
@@ -21,7 +18,6 @@ final class SnapPreview {
         if let panel, panel.isVisible, panel.alphaValue >= 0.05, panel.frame.equalTo(rect) {
             return
         }
-        logger.notice("preview show \(NSStringFromRect(rect), privacy: .public)")
         generation += 1
         let panel = self.panel ?? makePanel()
         self.panel = panel
@@ -41,7 +37,6 @@ final class SnapPreview {
 
     func hide() {
         guard let panel, panel.isVisible else { return }
-        logger.notice("preview hide")
         generation += 1
         let token = generation
         NSAnimationContext.runAnimationGroup { ctx in

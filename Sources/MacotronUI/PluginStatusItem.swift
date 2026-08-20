@@ -50,11 +50,6 @@ import MacotronEngine
 //   its cap-band on the leading icon's optical center — matching how the
 //   system pairs icon and text.
 //
-// If rendering regresses, re-verify with window snapshots, not the screen:
-// launch with MACOTRON_DUMP_STATUS=1 (see dumpForDebugging) to write each
-// status window to /tmp as PNG, then measure ink extents against the window
-// center. Screen recording permission is not needed.
-
 @MainActor
 final class PluginStatusItem: NSObject {
     let id: String
@@ -146,24 +141,6 @@ final class PluginStatusItem: NSObject {
             item.length = NSStatusItem.variableLength
         }
         button?.toolTip = subtitle.map { "\(title) — \($0)" } ?? title
-        dumpForDebugging()
-    }
-
-    // Diagnostics (see rendering notes above): MACOTRON_DUMP_STATUS=1
-    // snapshots each status window to /tmp for inspection.
-    private func dumpForDebugging() {
-        guard ProcessInfo.processInfo.environment["MACOTRON_DUMP_STATUS"] != nil else { return }
-        let id = self.id
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
-            guard let button = self?.item.button, let window = button.window,
-                  let content = window.contentView else { return }
-            let info = "window=\(window.frame.size) buttonFrameInWindow=\(button.convert(button.bounds, to: nil)) image=\(button.image?.size ?? .zero) length=\(self?.item.length ?? -99) fitting=\(button.fittingSize)\n"
-            try? info.write(toFile: "/tmp/macotron-status-\(id).txt", atomically: true, encoding: .utf8)
-            guard let rep = content.bitmapImageRepForCachingDisplay(in: content.bounds) else { return }
-            content.cacheDisplay(in: content.bounds, to: rep)
-            try? rep.representation(using: .png, properties: [:])?
-                .write(to: URL(fileURLWithPath: "/tmp/macotron-status-\(id).png"))
-        }
     }
 
     private var reapplyWork: DispatchWorkItem?

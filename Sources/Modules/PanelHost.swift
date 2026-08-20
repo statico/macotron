@@ -1,9 +1,6 @@
 // PanelHost.swift — WKWebView floating NSPanel (kept separate to avoid JSValue clash with QuickJS)
 import AppKit
 import WebKit
-import os
-
-private let logger = Logger(subsystem: "io.statico.macotron", category: "panel")
 
 enum PanelGlass: Equatable {
     case none
@@ -223,7 +220,6 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     private var dragMonitor: Any?
     private var dragJSBusy = false
     private var queuedMouseJS: String?
-    private var loggedMouseJS = false
     private var trackingGrid = false
 
     init(
@@ -424,10 +420,6 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         guard !dragJSBusy, let js = queuedMouseJS else { return }
         queuedMouseJS = nil
         dragJSBusy = true
-        if !loggedMouseJS {
-            loggedMouseJS = true
-            logger.notice("panel \(self.id, privacy: .public) forwarding mouse to page")
-        }
         webView.evaluateJavaScript(js) { [weak self] _, _ in
             Task { @MainActor in
                 self?.dragJSBusy = false

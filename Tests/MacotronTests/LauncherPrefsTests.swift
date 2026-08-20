@@ -1,5 +1,6 @@
 // LauncherPrefsTests.swift — snapTextScale clamps to supported stops
 import Testing
+@testable import MacotronEngine
 @testable import MacotronUI
 
 @MainActor
@@ -54,10 +55,10 @@ struct LauncherBackgroundTests {
     }
 }
 
-@Suite("HotkeyFormat")
-struct HotkeyFormatTests {
+@Suite("KeyCombo")
+struct KeyComboTests {
     @Test("glyphs maps combo parts")
     func glyphs() {
-        #expect(HotkeyFormat.glyphs("cmd+shift+a") == ["\u{2318}", "\u{21E7}", "A"])
+        #expect(KeyCombo.glyphs("cmd+shift+a") == ["\u{2318}", "\u{21E7}", "A"])
     }
 }

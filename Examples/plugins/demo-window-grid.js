@@ -104,7 +104,6 @@ let hover = null;
 function send(payload) {
   window.webkit.messageHandlers.macotron.postMessage(payload);
 }
-function dbg(msg) { send({ type: "log", msg: msg }); }
 function clamp(n) { return Math.max(1, Math.min(20, n)); }
 function rebuild() {
   colsVal.textContent = String(cols);
@@ -141,7 +140,6 @@ function paint(sel) {
 function applySel(sel, reason) {
   paint(sel);
   send(Object.assign({ type: "preview", cols, rows }, sel));
-  if (reason !== "hover") dbg(reason + " " + sel.c0 + "," + sel.r0 + ".." + sel.c1 + "," + sel.r1);
 }
 function bump(which, delta) {
   if (which === "cols") cols = clamp(cols + delta);
@@ -170,7 +168,6 @@ function onPointer(x, y, buttons) {
   }
   if (drag) {
     const sel = Object.assign({ cols, rows }, drag);
-    dbg("place " + sel.c0 + "," + sel.r0 + ".." + sel.c1 + "," + sel.r1);
     drag = null;
     send(Object.assign({ type: "place" }, sel));
     return;
@@ -210,17 +207,12 @@ rebuild();
 
     macotron.panel.onMessage(id, (data) => {
         if (!data) return;
-        if (data.type === "log") {
-            macotron.log("grid " + data.msg);
-            return;
-        }
         if (data.type === "preview") {
             if (data.clear) macotron.window.previewFraction(null);
             else macotron.window.previewFraction(apply(data));
             return;
         }
         if (data.type !== "place") return;
-        macotron.log("grid place");
         macotron.window.previewFraction(null);
         macotron.window.moveToFraction(win.id, apply(data));
         macotron.panel.close(id);
