@@ -482,7 +482,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 .map {
                     PluginCommandSummary(
                         id: $0.id,
-                        name: $0.key.replacingOccurrences(of: "-", with: " ").capitalized,
+                        name: $0.key,
                         shortcut: keyboardShortcuts.bindings[$0.id] ?? $0.defaultCombo
                     )
                 }

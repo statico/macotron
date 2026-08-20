@@ -15,5 +15,5 @@ async function pickColor() {
     });
 }
 
-macotron.keyboard.on("pick-color", "cmd+shift+k", pickColor);
+macotron.keyboard.on("Pick Color", "cmd+shift+k", pickColor);
 macotron.command("Pick Color", "Eyedropper: copy hex and show coordinates", pickColor);

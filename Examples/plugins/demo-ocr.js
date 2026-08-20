@@ -22,5 +22,5 @@ async function ocrSelection() {
     }
 }
 
-macotron.keyboard.on("ocr", "cmd+shift+o", ocrSelection);
+macotron.keyboard.on("OCR", "cmd+shift+o", ocrSelection);
 macotron.command("OCR Selection", "Drag a box, OCR the text, copy to clipboard", ocrSelection);

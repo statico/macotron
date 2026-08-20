@@ -10,10 +10,10 @@ const tile = (frame) => {
   if (window) macotron.window.moveToFraction(window.id, frame);
 };
 
-macotron.keyboard.on("tile-left", "ctrl+opt+left", () => tile({ x: 0, y: 0, w: 0.5, h: 1 }));
-macotron.keyboard.on("tile-right", "ctrl+opt+right", () => tile({ x: 0.5, y: 0, w: 0.5, h: 1 }));
-macotron.keyboard.on("tile-up", "ctrl+opt+up", () => tile({ x: 0, y: 0, w: 1, h: 0.5 }));
-macotron.keyboard.on("tile-down", "ctrl+opt+down", () => tile({ x: 0, y: 0.5, w: 1, h: 0.5 }));
+macotron.keyboard.on("Tile Left", "ctrl+opt+left", () => tile({ x: 0, y: 0, w: 0.5, h: 1 }));
+macotron.keyboard.on("Tile Right", "ctrl+opt+right", () => tile({ x: 0.5, y: 0, w: 0.5, h: 1 }));
+macotron.keyboard.on("Tile Up", "ctrl+opt+up", () => tile({ x: 0, y: 0, w: 1, h: 0.5 }));
+macotron.keyboard.on("Tile Down", "ctrl+opt+down", () => tile({ x: 0, y: 0.5, w: 1, h: 0.5 }));
 
 function neighborDisplay(current, delta) {
     const displays = macotron.display.list();
@@ -22,11 +22,11 @@ function neighborDisplay(current, delta) {
     return displays[(Math.max(i, 0) + delta + displays.length) % displays.length].id;
 }
 
-macotron.keyboard.on("tile-next-display", "ctrl+opt+cmd+right", () => {
+macotron.keyboard.on("Next Display", "ctrl+opt+cmd+right", () => {
     const window = macotron.window.focused();
     if (window) macotron.window.moveToFraction(window.id, { x: 0, y: 0, w: 1, h: 1, display: neighborDisplay(window.display, 1) });
 });
-macotron.keyboard.on("tile-prev-display", "ctrl+opt+cmd+left", () => {
+macotron.keyboard.on("Previous Display", "ctrl+opt+cmd+left", () => {
     const window = macotron.window.focused();
     if (window) macotron.window.moveToFraction(window.id, { x: 0, y: 0, w: 1, h: 1, display: neighborDisplay(window.display, -1) });
 });
