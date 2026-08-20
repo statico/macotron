@@ -72,7 +72,7 @@ public final class WindowModule: NativeModule {
     private var runLoopSource: CFRunLoopSource?
     private var snapEnabled = false
     private var snapThreshold: CGFloat = 20
-    private var snapCorner: CGFloat = 48
+    private var snapCorner: CGFloat = 80
     private var snapGap: CGFloat = 0
     private var snapZones: [String: SnapZone] = SnapGeometry.defaultZones
     private var snapModifierSets: [(flags: CGEventFlags, zones: [String: SnapZone])] = []
@@ -187,7 +187,7 @@ public final class WindowModule: NativeModule {
         snapZones = SnapGeometry.defaultZones
         snapModifierSets = []
         snapThreshold = 20
-        snapCorner = 48
+        snapCorner = 80
         snapGap = 0
         WindowSnapState.shared.module = nil
         WindowSnapState.shared.eventTap = nil
@@ -584,7 +584,7 @@ public final class WindowModule: NativeModule {
         guard let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) else { return nil }
         guard let slot = SnapGeometry.slot(
             at: point,
-            screen: screen.frame,
+            screen: screen.visibleFrame,
             corner: snapCorner,
             threshold: snapThreshold
         ) else { return nil }
