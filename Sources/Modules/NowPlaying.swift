@@ -35,7 +35,14 @@ struct NowPlayingPayload: Equatable {
               let end = text.lastIndex(of: "}"),
               let obj = try? JSONSerialization.jsonObject(with: Data(text[start...end].utf8)) as? [String: Any]
         else { return .empty }
-        return NowPlayingPayload(
+        if let rows = obj["candidates"] as? [[String: Any]], !rows.isEmpty {
+            return pick(rows.map(from))
+        }
+        return from(obj)
+    }
+
+    static func from(_ obj: [String: Any]) -> NowPlayingPayload {
+        NowPlayingPayload(
             playing: boolish(obj["playing"]),
             title: stringish(obj["title"]),
             artist: stringish(obj["artist"]),
@@ -43,6 +50,29 @@ struct NowPlayingPayload: Equatable {
             app: stringish(obj["app"]),
             bundle: stringish(obj["bundle"])
         )
+    }
+
+    static func pick(_ candidates: [NowPlayingPayload]) -> NowPlayingPayload {
+        if let hit = candidates.first(where: { $0.playing && !isTransient($0.bundle) }) { return hit }
+        if let hit = candidates.first(where: { $0.playing }) { return hit }
+        if let hit = candidates.first(where: { $0.hasTrack && !isTransient($0.bundle) }) { return hit }
+        return candidates.first ?? .empty
+    }
+
+    static func isTransient(_ bundle: String) -> Bool {
+        let skip = [
+            "com.apple.Safari",
+            "com.apple.WebKit",
+            "com.google.Chrome",
+            "com.microsoft.edgemac",
+            "org.mozilla.firefox",
+            "net.whatsapp",
+            "com.apple.MobileSMS",
+            "com.tinyspeck.slackmacgap",
+            "com.hnc.Discord",
+            "com.apple.mail",
+        ]
+        return skip.contains { bundle == $0 || bundle.hasPrefix($0 + ".") }
     }
 }
 
@@ -165,27 +195,37 @@ final class NowPlaying: @unchecked Sendable {
           return "";
         }
       }
-      try {
-        const MediaRemote = $.NSBundle.bundleWithPath("/System/Library/PrivateFrameworks/MediaRemote.framework/");
-        MediaRemote.load;
-        const Req = $.NSClassFromString("MRNowPlayingRequest");
-        const info = Req.localNowPlayingItem.nowPlayingInfo;
-        if (!info) return JSON.stringify({ playing: false });
+      function payload(info, client) {
+        if (!info) return null;
         const rate = Number(str(info.valueForKey("kMRMediaRemoteNowPlayingInfoPlaybackRate"))) || 0;
         let app = "", bundle = "";
         try {
-          const client = Req.localNowPlayingPlayerPath.client;
           app = str(client.displayName);
           bundle = str(client.bundleIdentifier);
         } catch (e) {}
-        return JSON.stringify({
+        return {
           playing: rate > 0,
           title: str(info.valueForKey("kMRMediaRemoteNowPlayingInfoTitle")),
           artist: str(info.valueForKey("kMRMediaRemoteNowPlayingInfoArtist")),
           album: str(info.valueForKey("kMRMediaRemoteNowPlayingInfoAlbum")),
           app: app,
           bundle: bundle
-        });
+        };
+      }
+      try {
+        const MediaRemote = $.NSBundle.bundleWithPath("/System/Library/PrivateFrameworks/MediaRemote.framework/");
+        MediaRemote.load;
+        const Req = $.NSClassFromString("MRNowPlayingRequest");
+        const candidates = [];
+        try {
+          const row = payload(Req.originNowPlayingItem.nowPlayingInfo, Req.originNowPlayingPlayerPath.client);
+          if (row) candidates.push(row);
+        } catch (e) {}
+        try {
+          const row = payload(Req.localNowPlayingItem.nowPlayingInfo, Req.localNowPlayingPlayerPath.client);
+          if (row) candidates.push(row);
+        } catch (e) {}
+        return JSON.stringify(candidates.length ? { candidates: candidates } : { playing: false });
       } catch (e) {
         return JSON.stringify({ playing: false });
       }
