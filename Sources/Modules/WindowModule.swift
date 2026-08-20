@@ -146,6 +146,7 @@ public final class WindowModule: NativeModule {
         JS_SetPropertyStr(ctx, windowObj, "previewFraction", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_NewBool(ctx!, 0) }
             if argc < 1 || argv == nil || JSBridge.isUndefined(argv![0]) || JSBridge.isNull(argv![0]) {
+                logger.notice("previewFraction hide")
                 SnapPreview.shared.hide()
                 return QJS_NewBool(ctx, 1)
             }
@@ -592,8 +593,20 @@ public final class WindowModule: NativeModule {
         return (screen, zone)
     }
 
+    /// SnapPreview is shared with plugin grid previews. Do not hide it unless
+    /// this is an actual window-edge drag; a click in a Macotron panel would
+    /// otherwise steal the overlay.
+    private static func hitsOwnWindow(_ point: CGPoint) -> Bool {
+        NSApp.windows.contains { win in
+            guard win.isVisible, !win.ignoresMouseEvents else { return false }
+            return win.frame.contains(point)
+        }
+    }
+
     private func updateSnapPreview(at point: CGPoint) {
-        guard snapEnabled, WindowSnapState.shared.drag.dragging, let hit = zone(at: point) else {
+        if Self.hitsOwnWindow(point) { return }
+        guard snapEnabled, WindowSnapState.shared.drag.dragging else { return }
+        guard let hit = zone(at: point) else {
             SnapPreview.shared.hide()
             return
         }
@@ -601,6 +614,10 @@ public final class WindowModule: NativeModule {
     }
 
     private func finishSnap(at point: CGPoint, dragging: Bool) {
+        if Self.hitsOwnWindow(point) {
+            logger.notice("snap up over Macotron window, leaving preview")
+            return
+        }
         SnapPreview.shared.hide()
         guard dragging else { return }
         snapFocusedWindow(at: point)
