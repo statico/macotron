@@ -26,43 +26,31 @@ final class AppSearchProvider {
         var entries: [AppEntry] = []
 
         let fm = FileManager.default
-        let searchDirs = [
-            "/Applications",
-            "/System/Applications",
-            "/System/Applications/Utilities",
-            "/Applications/Utilities",
-            fm.homeDirectoryForCurrentUser.appending(path: "Applications").path,
-        ]
-
         let workspace = NSWorkspace.shared
 
-        for dir in searchDirs {
+        func add(_ url: URL) {
+            guard url.pathExtension == "app" else { return }
+            guard let bundle = Bundle(url: url),
+                  let bundleID = bundle.bundleIdentifier else { return }
+            guard !seen.contains(bundleID) else { return }
+            seen.insert(bundleID)
+
+            let name = fm.displayName(atPath: url.path)
+                .replacingOccurrences(of: ".app", with: "")
+            let icon = workspace.icon(forFile: url.path)
+            icon.size = NSSize(width: 32, height: 32)
+            entries.append(AppEntry(name: name, bundleID: bundleID, url: url, icon: icon))
+        }
+
+        for dir in AppCatalog.searchDirectories() {
             guard let contents = try? fm.contentsOfDirectory(
-                at: URL(fileURLWithPath: dir),
+                at: dir,
                 includingPropertiesForKeys: nil,
                 options: [.skipsHiddenFiles]
             ) else { continue }
-
-            for url in contents {
-                guard url.pathExtension == "app" else { continue }
-                guard let bundle = Bundle(url: url),
-                      let bundleID = bundle.bundleIdentifier else { continue }
-                guard !seen.contains(bundleID) else { continue }
-                seen.insert(bundleID)
-
-                let name = fm.displayName(atPath: url.path)
-                    .replacingOccurrences(of: ".app", with: "")
-                let icon = workspace.icon(forFile: url.path)
-                icon.size = NSSize(width: 32, height: 32)
-
-                entries.append(AppEntry(
-                    name: name,
-                    bundleID: bundleID,
-                    url: url,
-                    icon: icon
-                ))
-            }
+            contents.forEach(add)
         }
+        AppCatalog.extraApps.forEach(add)
 
         allApps = entries.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         lastRefresh = Date()

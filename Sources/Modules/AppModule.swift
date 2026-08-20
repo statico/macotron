@@ -200,6 +200,27 @@ public final class AppModule: NativeModule {
     }
 }
 
+/// Directories and extra bundles the launcher scans. Finder lives in CoreServices,
+/// Keychain Access in CoreServices/Applications — neither is under /Applications.
+public enum AppCatalog {
+    public static func searchDirectories(
+        home: URL = FileManager.default.homeDirectoryForCurrentUser
+    ) -> [URL] {
+        [
+            URL(fileURLWithPath: "/Applications"),
+            URL(fileURLWithPath: "/System/Applications"),
+            URL(fileURLWithPath: "/System/Applications/Utilities"),
+            URL(fileURLWithPath: "/Applications/Utilities"),
+            home.appending(path: "Applications"),
+            URL(fileURLWithPath: "/System/Library/CoreServices/Applications"),
+        ]
+    }
+
+    public static let extraApps = [
+        URL(fileURLWithPath: "/System/Library/CoreServices/Finder.app"),
+    ]
+}
+
 /// Launch or activate via Launch Services. `NSRunningApplication.activate()` from a
 /// background/menubar host does not steal focus.
 public enum AppLaunch {
