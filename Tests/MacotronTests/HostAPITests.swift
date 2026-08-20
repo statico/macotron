@@ -1,4 +1,6 @@
+import AppKit
 import Foundation
+import IOKit.ps
 import Testing
 @testable import Modules
 
@@ -78,5 +80,36 @@ struct AppControlTests {
     @Test("empty bundle id uses the frontmost app helper")
     func running() {
         #expect(AppControl.running("io.statico.macotron.missing-app") == nil)
+    }
+}
+
+@Suite("BatteryStatus")
+struct BatteryStatusTests {
+    @Test("maps IOPS fields including time remaining")
+    func snapshot() {
+        let snap = BatteryStatus.snapshot([[
+            kIOPSCurrentCapacityKey as String: 80,
+            kIOPSMaxCapacityKey as String: 100,
+            kIOPSPowerSourceStateKey as String: kIOPSACPowerValue as String,
+            kIOPSIsChargedKey as String: false,
+            kIOPSTimeToEmptyKey as String: -1,
+            kIOPSTimeToFullChargeKey as String: 45,
+        ]])
+        #expect(snap["level"] as? Double == 80)
+        #expect(snap["charging"] as? Bool == true)
+        #expect(snap["charged"] as? Bool == false)
+        #expect(snap["timeRemaining"] as? Int == -1)
+        #expect(snap["timeToFull"] as? Int == 45)
+    }
+}
+
+@Suite("ClipboardPasteboard")
+struct ClipboardPasteboardTests {
+    @Test("types are UTI strings")
+    func typeNames() {
+        #expect(ClipboardPasteboard.names([.string, .png]) == [
+            NSPasteboard.PasteboardType.string.rawValue,
+            NSPasteboard.PasteboardType.png.rawValue,
+        ])
     }
 }

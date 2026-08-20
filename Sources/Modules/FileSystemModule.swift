@@ -177,6 +177,22 @@ public final class FileSystemModule: NativeModule {
             }
         }, "read", 1))
 
+        JS_SetPropertyStr(ctx, fsObj, "readBytes", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx, let argv, argc >= 1 else {
+                return QJS_ThrowTypeError(ctx, "fs.readBytes requires a path argument")
+            }
+            guard let path = JSBridge.toString(ctx, argv[0]) else {
+                return QJS_ThrowTypeError(ctx, "fs.readBytes: path must be a string")
+            }
+            let expandedPath = NSString(string: path).expandingTildeInPath
+            do {
+                let data = try Data(contentsOf: URL(fileURLWithPath: expandedPath))
+                return JSBridge.newString(ctx, data.base64EncodedString())
+            } catch {
+                return QJS_ThrowInternalError(ctx, "fs.readBytes failed: \(error.localizedDescription)")
+            }
+        }, "readBytes", 1))
+
         // -----------------------------------------------------------------
         // macotron.fs.write(path, content) -> void
         // -----------------------------------------------------------------

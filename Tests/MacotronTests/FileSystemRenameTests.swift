@@ -48,6 +48,29 @@ struct FileSystemRenameTests {
     }
 }
 
+@MainActor
+@Suite("fs.readBytes")
+struct FileSystemReadBytesTests {
+    @Test("returns base64 of the file")
+    func readsBytes() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("macotron-bytes-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let path = dir.appendingPathComponent("a.bin").path
+        let data = Data([0, 1, 2, 255])
+        try data.write(to: URL(fileURLWithPath: path))
+
+        let engine = Engine()
+        engine.addModule(FileSystemModule())
+        engine.registerAllModules()
+        let (result, error) = engine.evaluate("macotron.fs.readBytes(\(jsString(path)))")
+        #expect(error == nil)
+        #expect(result == data.base64EncodedString())
+    }
+}
+
 private func jsString(_ path: String) -> String {
     "\"" + path.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
 }

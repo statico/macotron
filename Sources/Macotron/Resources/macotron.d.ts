@@ -179,6 +179,8 @@ declare const macotron: {
 
     fs: {
         read(path: string): string;
+        /** File contents as a base64 string. */
+        readBytes(path: string): string;
         write(path: string, content: string): void;
         exists(path: string): boolean;
         /** Fails if `to` already exists. Both paths expand `~`. */
@@ -195,6 +197,10 @@ declare const macotron: {
         paste(id: string): boolean;
         remove(id: string): boolean;
         clearHistory(): void;
+        clear(): void;
+        types(): string[];
+        /** Pasteboard bytes for a UTI, base64, or null. */
+        data(uti: string): string | null;
     };
 
     snippets: {
@@ -320,7 +326,15 @@ declare const macotron: {
     };
 
     calendar: {
-        upcoming(opts?: { hours?: number }): Array<{ id: string; title: string; start: number; end: number }>;
+        upcoming(opts?: { hours?: number }): Array<{
+            id: string;
+            title: string;
+            start: number;
+            end: number;
+            allDay: boolean;
+            location: string;
+            calendar: string;
+        }>;
     };
 
     ocr: {
@@ -332,7 +346,15 @@ declare const macotron: {
         cpu(): { usage: number };
         locale(): { language: string; region: string; measurement: "metric" | "us" };
         memory(): { total: number; used: number; free: number };
-        battery(): { level: number; charging: boolean };
+        battery(): {
+            level: number;
+            charging: boolean;
+            charged: boolean;
+            /** Minutes until empty, or -1 if unknown. */
+            timeRemaining: number;
+            /** Minutes until full, or -1 if unknown. */
+            timeToFull: number;
+        };
         disk(): { total: number; free: number; used: number };
         network(): { bytesIn: number; bytesOut: number };
         processes(limit?: number): Array<{ name: string; pid: number; cpu: number }>;
