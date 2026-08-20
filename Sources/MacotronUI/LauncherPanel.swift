@@ -23,10 +23,9 @@ public final class LauncherPanel: NSPanel {
     private let windowFrame: LauncherFrame
     private var lastHeight: CGFloat = LauncherPlacement.minHeight
     public var onHide: (() -> Void)?
-    /// App that was frontmost before we activated, so Escape can give typing back.
-    private var appToRestore: NSRunningApplication?
-    private var shouldRestoreApp = false
     private var isOrderingOut = false
+    /// Nonactivating panels can resign key on the same turn they become key.
+    private var dismissOnResign = false
 
     public init(contentView: NSView, windowFrame: LauncherFrame) {
         hostingView = contentView
@@ -47,8 +46,10 @@ public final class LauncherPanel: NSPanel {
         applySizeLimits(in: seed, height: Self.minHeight)
         animationBehavior = .none
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        isFloatingPanel = true
         becomesKeyOnlyIfNeeded = false
         hidesOnDeactivate = false
+        worksWhenModal = true
         applyBackground(.translucent)
         self.delegate = self
     }
@@ -171,12 +172,20 @@ public final class LauncherPanel: NSPanel {
 
     private func reveal() {
         alphaValue = 1
-        NSApp.activate(ignoringOtherApps: true)
-        makeKeyAndOrderFront(nil)
+        dismissOnResign = false
+        orderFrontRegardless()
+        makeKey()
         if let textField = contentView?.firstEditableTextField() {
             makeFirstResponder(textField)
         }
         isShown = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.dismissOnResign = true
+            if self.isShown && self.isVisible && !self.isKeyWindow {
+                self.orderOut(nil)
+            }
+        }
     }
 
     public override func orderOut(_ sender: Any?) {
@@ -186,9 +195,9 @@ public final class LauncherPanel: NSPanel {
         super.orderOut(sender)
         isOrderingOut = false
         isShown = false
+        dismissOnResign = false
         if wasVisible {
             onHide?()
-            restoreFrontAppIfNeeded()
         }
     }
 
@@ -201,18 +210,15 @@ public final class LauncherPanel: NSPanel {
     /// transient key changes that happen while it is still being revealed.
     private var isShown = false
 
-    /// Hide the launcher. Escape restores the previous app; choosing a result does not.
-    public func dismiss(restoreFrontApp: Bool = false) {
-        shouldRestoreApp = restoreFrontApp
+    public func dismiss() {
         guard isVisible || isShown else { return }
         orderOut(nil)
     }
 
     public func toggle() {
         if isVisible {
-            dismiss(restoreFrontApp: true)
+            dismiss()
         } else {
-            captureFrontApp()
             pendingHeight = nil
             resizeToHeight(lastHeight)
             reveal()
@@ -266,24 +272,6 @@ public final class LauncherPanel: NSPanel {
             """)
     }
 
-    private func captureFrontApp() {
-        let front = NSWorkspace.shared.frontmostApplication
-        if let front, front.processIdentifier != NSRunningApplication.current.processIdentifier {
-            appToRestore = front
-        } else {
-            appToRestore = nil
-        }
-    }
-
-    private func restoreFrontAppIfNeeded() {
-        defer {
-            shouldRestoreApp = false
-            appToRestore = nil
-        }
-        guard shouldRestoreApp, let app = appToRestore, !app.isTerminated else { return }
-        NSApp.yieldActivation(to: app)
-        _ = app.activate()
-    }
 }
 
 extension LauncherPanel: NSWindowDelegate {
@@ -291,8 +279,7 @@ extension LauncherPanel: NSWindowDelegate {
     /// window, or switching away. This replaces the activation-based auto-hide
     /// that was racing with the global hotkey.
     public func windowDidResignKey(_ notification: Notification) {
-        guard isShown, isVisible, !isOrderingOut else { return }
-        shouldRestoreApp = false
+        guard isShown, isVisible, !isOrderingOut, dismissOnResign else { return }
         orderOut(nil)
     }
 }

@@ -2,7 +2,7 @@ import AppKit
 import CoreGraphics
 
 enum LauncherPlacement {
-    static let minHeight: CGFloat = 56
+    static let minHeight: CGFloat = 48
     /// Inset from the top of the visible frame when the launcher opens.
     static let topFraction: CGFloat = 0.18
     static let maxWidth: CGFloat = 750
@@ -19,6 +19,12 @@ enum LauncherPlacement {
     static let rowSpacing: CGFloat = 1
     /// Vertical padding around the results list, inside the scroll view.
     static let listPadding: CGFloat = 8
+
+    /// Search row: idle bar is `minHeight`; with a list it stays `searchHeight`
+    /// so the results formula does not change.
+    static func searchBarHeight(showingList: Bool) -> CGFloat {
+        showingList ? searchHeight : minHeight
+    }
 
     /// Visible frame of the display under the mouse, then main, then first.
     static func currentVisible() -> CGRect {
