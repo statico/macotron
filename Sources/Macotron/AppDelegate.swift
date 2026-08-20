@@ -512,6 +512,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             ))
         }
 
+        summaries.sort { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
         return summaries
     }
 
