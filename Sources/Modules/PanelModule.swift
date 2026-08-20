@@ -161,6 +161,10 @@ public final class PanelModule: NativeModule {
     private func forgetPanel(_ id: String) {
         panels.removeValue(forKey: id)
         forgetCallbacks(id)
+        guard let engine, let ctx = engine.context else { return }
+        let data = JSBridge.newObject(ctx, ["id": id])
+        engine.eventBus.emit("panel:closed", engine: engine, data: data)
+        JS_FreeValue(ctx, data)
     }
 
     private func forgetCallbacks(_ id: String) {

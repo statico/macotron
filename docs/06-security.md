@@ -71,7 +71,7 @@ enum CapabilityTier {
 
 ### Moderate (reversible side effects)
 
-`window.move`, `window.moveToFraction`, `window.focus`, `window.minimize`, `window.close`, `window.setFullscreen`, `window.snap`, `window.setSnapEnabled`, `notify.show`, `notify.toast`, `alert`, `confirm`, `prompt`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `app.hide`, `app.quit`, `app.menu`, `audio.setInput`, `audio.setOutput`, `audio.setVolume`, `audio.setMuted`, `network.setWifi`, `network.setBluetooth`, `network.setAirDrop`, `spaces.go`, `spaces.moveWindow`, `shortcuts.run`, `panel.open`, `panel.close`, `screen.pickColor`, `media.playPause`, `media.next`, `media.previous`, `launcher.set`, `notes.open`, `display.setGamma`, `display.restoreGamma`, `event.post`, `event.tap`, `mouse.warp`, `system.setLowPowerMode`, `system.setDarkMode`
+`window.move`, `window.moveToFraction`, `window.previewFraction`, `window.focus`, `window.minimize`, `window.close`, `window.setFullscreen`, `window.snap`, `window.setSnapEnabled`, `notify.show`, `notify.toast`, `alert`, `confirm`, `prompt`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `app.hide`, `app.quit`, `app.menu`, `audio.setInput`, `audio.setOutput`, `audio.setVolume`, `audio.setMuted`, `network.setWifi`, `network.setBluetooth`, `network.setAirDrop`, `spaces.go`, `spaces.moveWindow`, `shortcuts.run`, `panel.open`, `panel.close`, `screen.pickColor`, `media.playPause`, `media.next`, `media.previous`, `launcher.set`, `notes.open`, `display.setGamma`, `display.restoreGamma`, `event.post`, `event.tap`, `mouse.warp`, `system.setLowPowerMode`, `system.setDarkMode`
 
 ### Dangerous (system / network / filesystem)
 
