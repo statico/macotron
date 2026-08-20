@@ -79,10 +79,22 @@ struct ScheduleModuleTests {
         engine.currentEvaluatingFile = "weather.js"
         engine.evaluate("""
             macotron.every("1h", function() {});
+            macotron.every(1000, function() {});
             macotron.at("13:00", function() {});
             """)
         #expect(engine.pluginEvents["weather.js"]?.contains("schedule:every 1h") == true)
         #expect(engine.pluginEvents["weather.js"]?.contains("schedule:at 13:00") == true)
+        #expect(engine.pluginEvents["weather.js"]?.contains(where: { $0.hasPrefix("schedule:every 1000") }) != true)
+    }
+
+    @Test("invalid weekdays throws TypeError")
+    func invalidWeekdaysThrows() {
+        let engine = engineWithSchedule()
+        let (_, error) = engine.evaluate("""
+            macotron.at("09:00", { weekdays: [7] }, function() {})
+            """)
+        #expect(error != nil)
+        #expect(error?.lowercased().contains("typeerror") == true)
     }
 
     @Test("runtime.js does not overwrite native every")

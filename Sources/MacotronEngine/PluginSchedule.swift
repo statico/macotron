@@ -35,6 +35,12 @@ public enum PluginSchedule: Equatable, Sendable {
     }
 
     public static func parseAt(_ time: String, weekdays: [Int]?) throws -> PluginSchedule {
+        if let weekdays {
+            guard !weekdays.isEmpty else { throw ParseError.invalid(time) }
+            for day in weekdays where !(0...6).contains(day) {
+                throw ParseError.invalid(time)
+            }
+        }
         let parsed = try parseTimeOfDay(time)
         let weekdaySet = weekdays.map { Set($0) }
         return .at(hour: parsed.hour, minute: parsed.minute, second: parsed.second, weekdays: weekdaySet)
@@ -92,9 +98,13 @@ public enum PluginSchedule: Equatable, Sendable {
               let minute = parts[1], (0..<60).contains(minute) else {
             throw ParseError.invalid(raw)
         }
-        let second = parts.count == 3 ? parts[2]! : 0
-        guard (0..<60).contains(second) else { throw ParseError.invalid(raw) }
-        return (hour, minute, second)
+        if parts.count == 3 {
+            guard let second = parts[2], (0..<60).contains(second) else {
+                throw ParseError.invalid(raw)
+            }
+            return (hour, minute, second)
+        }
+        return (hour, minute, 0)
     }
 
     private static func nextAlignedMinute(after date: Date, every n: Int, calendar: Calendar) -> Date {
@@ -121,6 +131,10 @@ public enum PluginSchedule: Equatable, Sendable {
         if dayOffset > 0 {
             result = calendar.date(byAdding: .day, value: dayOffset, to: result)!
         }
+        while result <= date {
+            result = calendar.date(byAdding: .minute, value: n, to: result)
+                ?? result.addingTimeInterval(TimeInterval(n * 60))
+        }
         return result
     }
 
@@ -136,11 +150,21 @@ public enum PluginSchedule: Equatable, Sendable {
         comps.nanosecond = 0
         if targetHour < 24 {
             comps.hour = targetHour
-            return calendar.date(from: comps)!
+            var result = calendar.date(from: comps)!
+            while result <= date {
+                result = calendar.date(byAdding: .hour, value: n, to: result)
+                    ?? result.addingTimeInterval(TimeInterval(n * 3600))
+            }
+            return result
         }
         comps.hour = targetHour % 24
         let base = calendar.date(from: comps)!
-        return calendar.date(byAdding: .day, value: targetHour / 24, to: base)!
+        var result = calendar.date(byAdding: .day, value: targetHour / 24, to: base)!
+        while result <= date {
+            result = calendar.date(byAdding: .hour, value: n, to: result)
+                ?? result.addingTimeInterval(TimeInterval(n * 3600))
+        }
+        return result
     }
 
     private static func nextEveryDays(after date: Date, every n: Int, calendar: Calendar) -> Date {
