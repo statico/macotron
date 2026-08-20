@@ -311,6 +311,9 @@ public final class PluginWorkspace {
         `macotron.notify.show` is a system banner.
         `macotron.screen.pickColor()` opens the system magnifier and returns
         `{ hex, r, g, b, x, y }` or `null`.
+        `macotron.hid.list/open/sendFeature/sendOutput/readFeature/readInput/listen`
+        talks to HID devices (report id is the first send byte). `hid:input` is
+        `{ id, reportId, data }`.
 
         Control Center-style toggles live on the host: `macotron.audio.volume` /
         `setVolume` / `setMuted`, `network.wifi` / `setWifi`, `network.bluetooth` /

@@ -45,6 +45,7 @@ No in-app coding agent. The plugins on disk are the source of truth.
 - Switch default audio input and output; volume and mute
 - List Mission Control spaces and switch desktops
 - USB attach and detach
+- Talk to HID devices (list, feature/output/input reports)
 - Run Shortcuts.app shortcuts
 - Lock, sleep, display sleep, screensaver, log out, restart, and shut down; hear sleep, wake, and lock
 - Minimize, close, or fullscreen a window
