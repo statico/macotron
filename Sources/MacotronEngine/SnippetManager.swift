@@ -132,6 +132,7 @@ public final class ModuleManager {
             executeFile(file)
         }
 
+        engine.notifyModulesDidReload()
         logger.info("Loaded \(pluginFiles.count) plugins. Ready.")
         onDidReload?()
     }
@@ -214,21 +215,9 @@ public final class ModuleManager {
     }
 
     public func listModules(directory: String = "plugins") -> [(filename: String, description: String)] {
-        let files = listJSFiles(in: configDir.appending(path: directory))
-            .sorted { $0.lastPathComponent < $1.lastPathComponent }
-
-        return files.map { file in
-            let desc: String
-            if let source = try? String(contentsOf: file, encoding: .utf8) {
-                let lines = source.components(separatedBy: .newlines)
-                let commentLine = lines.first { $0.hasPrefix("//") }
-                desc = commentLine?.trimmingCharacters(in: .whitespaces)
-                    .dropFirst(2).trimmingCharacters(in: .whitespaces) ?? ""
-            } else {
-                desc = ""
-            }
-            return (filename: file.lastPathComponent, description: String(desc))
-        }
+        listJSFiles(in: configDir.appending(path: directory))
+            .map { (filename: $0.lastPathComponent, description: "") }
+            .sorted { $0.filename < $1.filename }
     }
 
     // MARK: - File Watching

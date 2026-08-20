@@ -18,10 +18,12 @@ public protocol NativeModule: AnyObject {
 
     /// Called when the engine is about to reset (cleanup resources)
     func cleanup()
+    func didReload()
 }
 
 extension NativeModule {
     public var moduleVersion: Int { 1 }
     public var defaultOptions: [String: Any] { [:] }
     public func cleanup() {}
+    public func didReload() {}
 }
