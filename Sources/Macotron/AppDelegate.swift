@@ -22,7 +22,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var wizardWindow: WizardWindow?
     private let wizardState = WizardState()
     private var appSearchProvider: AppSearchProvider!
-    private var debugServer: DebugServer?
     private var didRegisterPermissions = false
     private var permissionTimer: Timer?
     private var didFinishLaunching = false
@@ -161,44 +160,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         installLauncherHotkey()
         moduleManager.startWatching()
         refreshPermissions()
-
-        if CommandLine.arguments.contains("--debug-server") {
-            debugServer = DebugServer(engine: engine, moduleManager: moduleManager)
-            debugServer?.onOpenSettingsTab = { [weak self] tab in
-                self?.settingsState.requestedTab = tab
-                self?.settingsWindow.show()
-            }
-            debugServer?.onToggleLauncher = { [weak self] in
-                self?.launcherPanel.toggle()
-            }
-            debugServer?.onSetQuery = { [weak self] text in
-                self?.launcherSession.query = text
-            }
-            debugServer?.captureLauncher = { [weak self] in
-                let prefs = self?.launcherPrefs ?? LauncherPrefs()
-                let view = LauncherView(prefs: prefs).frame(width: 680, height: 480)
-                return Self.renderViewToPNG(view, size: NSSize(width: 680, height: 480))
-            }
-            debugServer?.captureWizard = { [weak self] step in
-                guard let self else { return nil }
-                let preview = WizardState()
-                preview.steps = WizardStep.allCases
-                preview.stepIndex = WizardStep.allCases.firstIndex {
-                    String(describing: $0) == step
-                } ?? 0
-                preview.pluginsPath = self.workspace?.root.path(percentEncoded: false) ?? ""
-                let view = WizardView(state: preview, permissions: self.settingsState)
-                    .frame(width: 560, height: 520)
-                return Self.renderViewToPNG(view, size: NSSize(width: 560, height: 520))
-            }
-            debugServer?.captureWindow = { [weak self] tab in
-                guard let self else { return nil }
-                let view = SettingsView(state: self.settingsState, initialTab: tab ?? 0)
-                    .frame(width: 760, height: 520)
-                return Self.renderViewToPNG(view, size: NSSize(width: 760, height: 520))
-            }
-            debugServer?.start()
-        }
     }
 
     private func rebootstrap(workspaceRoot: URL) {
@@ -1007,32 +968,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let raw = (object as? [String]) ?? (object as? [Any])?.compactMap { $0 as? String } ?? []
         var seen = Set<String>()
         return raw.filter { !$0.isEmpty && seen.insert($0).inserted }
-    }
-
-    /// Render offscreen for screenshots. The view is hosted in a real window so
-    /// materials and the system appearance resolve, and it gets an opaque
-    /// backdrop so label colors stay readable.
-    private static func renderViewToPNG<V: View>(_ view: V, size: NSSize) -> Data? {
-        let root = view
-            .frame(width: size.width, height: size.height)
-            .background(Color(nsColor: .windowBackgroundColor))
-
-        let hostingView = NSHostingView(rootView: root)
-        hostingView.frame = NSRect(origin: .zero, size: size)
-
-        let window = NSWindow(
-            contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        window.appearance = NSApp.effectiveAppearance
-        window.contentView = hostingView
-        hostingView.layoutSubtreeIfNeeded()
-
-        guard let bitmap = hostingView.bitmapImageRepForCachingDisplay(in: hostingView.bounds) else { return nil }
-        hostingView.cacheDisplay(in: hostingView.bounds, to: bitmap)
-        return bitmap.representation(using: .png, properties: [:])
     }
 }
 

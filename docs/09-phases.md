@@ -13,7 +13,6 @@ These phases describe the earlier in-app agent product. They are complete for th
 - [x] Ordered script loading and FSEvents reload
 - [x] Menubar with NSStatusItem + dynamic NSMenu
 - [x] localStorage, Keychain module
-- [x] Debug HTTP server
 - [x] Basic modules: shell, notify, fs, timer, menubar
 
 ### Phase 2 — Launcher + Key Modules (historical) ✅

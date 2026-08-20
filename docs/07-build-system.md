@@ -20,7 +20,6 @@ See `Package.swift` and `Makefile` in the repo for full build settings.
 
 - `make build` — `swift build`
 - `make run` — Build, bundle into `.app`, open
-- `make dev` — Build, bundle, run with `--debug-server`
 - `make bundle` — Build + codesign + copy resources into `.build/Macotron.app`
 - `make clean` — `swift package clean` + remove `.app` bundle
 - `make cleanprefs` — Reset UserDefaults (triggers first-run wizard)
@@ -28,17 +27,3 @@ See `Package.swift` and `Makefile` in the repo for full build settings.
 ## Workdir Path
 
 UserDefaults stores only `pluginsDirectory`. Plugin files and `settings.json` live in that directory. They do not live under `~/Library/Application Support/Macotron/`.
-
-## Debug HTTP Server
-
-Embedded HTTP server (debug builds only) on port 7777:
-
-| Endpoint | Method | Description |
-|---|---|---|
-| `/screenshot` | GET | PNG of launcher panel |
-| `/snapshot` | GET | Accessibility tree as JSON |
-| `/eval` | POST | Evaluate JS in engine |
-| `/menubar` | GET | Current menubar items |
-| `/reload` | POST | Trigger plugin reload |
-| `/snippets` | GET | List loaded plugins |
-| `/open` | POST | Toggle launcher panel |
