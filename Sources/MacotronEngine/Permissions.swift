@@ -1,6 +1,8 @@
 // Permissions.swift — Check, request, and explain macOS privacy permissions
 @preconcurrency import ApplicationServices
 import AppKit
+import SMCKit
+import ServiceManagement
 import os
 
 private let logger = Logger(subsystem: "io.statico.macotron", category: "permissions")
@@ -9,6 +11,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     case inputMonitoring
     case accessibility
     case screenRecording
+    case fanControl
 
     public var id: String { rawValue }
 
@@ -17,6 +20,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .inputMonitoring: return "Input Monitoring"
         case .accessibility: return "Accessibility"
         case .screenRecording: return "Screen Recording"
+        case .fanControl: return "Fan Control"
         }
     }
 
@@ -26,6 +30,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .inputMonitoring: return "Global hotkeys for the launcher and plugins."
         case .accessibility: return "Move and focus windows from plugins."
         case .screenRecording: return "Capture the screen for plugins that read it."
+        case .fanControl: return "Set fan speeds from plugins. Installs a helper you approve as an admin."
         }
     }
 
@@ -38,23 +43,72 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             return Permissions.isInputMonitoringGranted
         case .screenRecording:
             return CGPreflightScreenCaptureAccess()
+        case .fanControl:
+            return Permissions.fanHelper.status == .enabled
+        }
+    }
+
+    /// Title of the row action. Fan control installs a helper daemon instead of
+    /// asking macOS for access, so it does not read as granting anything.
+    public var actionTitle: String {
+        switch self {
+        case .inputMonitoring, .accessibility, .screenRecording: return "Grant…"
+        case .fanControl: return "Install…"
+        }
+    }
+
+    /// A TCC permission request is a no-op once macOS has shown its dialog, so
+    /// it is safe to fire on launch. Registering a root daemon is not: it asks
+    /// for admin approval, so it needs an explicit user gesture behind it.
+    public var isAutoRequestable: Bool {
+        switch self {
+        case .inputMonitoring, .accessibility, .screenRecording: return true
+        case .fanControl: return false
+        }
+    }
+
+    /// TCC permissions can only be turned off in System Settings; the fan
+    /// helper is ours to unregister.
+    public var canRevoke: Bool {
+        switch self {
+        case .inputMonitoring, .accessibility, .screenRecording: return false
+        case .fanControl: return true
         }
     }
 
     /// Ask macOS for the permission. This also registers Macotron in the
     /// matching System Settings list, so the user can find the toggle.
+    /// Returns whether to open System Settings after the request.
     @MainActor
-    public func request() {
+    @discardableResult
+    public func request() -> Bool {
+        let openSettings: Bool
         switch self {
         case .accessibility:
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
             AXIsProcessTrustedWithOptions(options)
+            openSettings = true
         case .inputMonitoring:
             Permissions.requestInputMonitoring()
+            openSettings = true
         case .screenRecording:
             CGRequestScreenCaptureAccess()
+            openSettings = true
+        case .fanControl:
+            openSettings = Permissions.registerFanHelper()
         }
         logger.info("Requested \(self.rawValue) permission")
+        return openSettings
+    }
+
+    @MainActor
+    public func revoke() {
+        switch self {
+        case .inputMonitoring, .accessibility, .screenRecording:
+            break
+        case .fanControl:
+            Permissions.unregisterFanHelper()
+        }
     }
 
     @MainActor
@@ -67,6 +121,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             urlString = "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_ListenEvent"
         case .screenRecording:
             urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+        case .fanControl:
+            urlString = "x-apple.systempreferences:com.apple.LoginItems-Settings.extension"
         }
         guard let url = URL(string: urlString) else { return }
         NSWorkspace.shared.open(url)
@@ -87,6 +143,8 @@ public enum Permissions {
             return .accessibility
         case "screenrecording", "screen-recording", "screen", "screencapture":
             return .screenRecording
+        case "fancontrol", "fan-control", "fan":
+            return .fanControl
         default:
             return nil
         }
@@ -104,10 +162,52 @@ public enum Permissions {
 
     /// Ask for every required permission that is still missing. macOS only shows
     /// its own dialog once per permission, but the request always registers the
-    /// app in the System Settings list.
+    /// app in the System Settings list. Capabilities that install something are
+    /// skipped here — those wait for the user to select the button.
     public static func registerWithSystem(_ required: [Permission]) {
-        for permission in missing(from: required) {
+        for permission in missing(from: required) where permission.isAutoRequestable {
             permission.request()
+        }
+    }
+
+    // MARK: - Fan helper daemon
+
+    static var fanHelper: SMAppService {
+        SMAppService.daemon(plistName: FanHelperService.plistName)
+    }
+
+    /// Release a held floor before launchd tears the daemon down.
+    public static var beforeFanHelperUnregister: (() -> Void)?
+
+    /// The daemon lands in Login Items & Extensions switched off, so
+    /// `.requiresApproval` is the expected outcome of the first registration.
+    /// Returns true when Settings should open so the user can approve it.
+    static func registerFanHelper() -> Bool {
+        let service = fanHelper
+        if service.status == .enabled { return false }
+        do {
+            try service.register()
+        } catch {
+            if service.status != .requiresApproval {
+                logger.error("Fan helper registration failed: \(error.localizedDescription)")
+                let alert = NSAlert()
+                alert.messageText = "Could not install the fan helper"
+                alert.informativeText = error.localizedDescription
+                    + "\n\nSign Macotron with a Developer ID, then try Install again."
+                alert.runModal()
+                return false
+            }
+        }
+        return service.status != .enabled
+    }
+
+    static func unregisterFanHelper() {
+        beforeFanHelperUnregister?()
+        do {
+            try fanHelper.unregister()
+            logger.info("Removed the fan helper")
+        } catch {
+            logger.error("Fan helper removal failed: \(error.localizedDescription)")
         }
     }
 

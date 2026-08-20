@@ -17,10 +17,15 @@ let package = Package(
             ]
         ),
 
+        .target(
+            name: "SMCKit",
+            path: "Sources/SMCKit"
+        ),
+
         // Core engine (QuickJS + EventBus + ModuleManager)
         .target(
             name: "MacotronEngine",
-            dependencies: ["CQuickJS"],
+            dependencies: ["CQuickJS", "SMCKit"],
             path: "Sources/MacotronEngine"
         ),
 
@@ -34,7 +39,7 @@ let package = Package(
         // Native modules (window, keyboard, screen, etc.)
         .target(
             name: "Modules",
-            dependencies: ["MacotronEngine", "AI"],
+            dependencies: ["MacotronEngine", "AI", "SMCKit"],
             path: "Sources/Modules"
         ),
 
@@ -51,6 +56,12 @@ let package = Package(
             ]
         ),
 
+        .executableTarget(
+            name: "MacotronFanHelper",
+            dependencies: ["SMCKit"],
+            path: "Sources/MacotronFanHelper"
+        ),
+
         // Main app executable
         .executableTarget(
             name: "Macotron",
@@ -65,7 +76,7 @@ let package = Package(
         // Tests
         .testTarget(
             name: "MacotronTests",
-            dependencies: ["MacotronEngine", "MacotronUI", "AI", "Modules"]
+            dependencies: ["MacotronEngine", "MacotronUI", "AI", "Modules", "SMCKit"]
         ),
     ]
 )

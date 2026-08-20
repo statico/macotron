@@ -213,14 +213,15 @@ public struct WizardView: View {
                 title: missing.isEmpty ? "Permissions Granted" : "Grant Permissions",
                 subtitle: missing.isEmpty
                     ? "Macotron has everything it needs. You can change this later in System Settings."
-                    : "macOS keeps these behind a switch. Select Grant, then turn Macotron on in System Settings."
+                    : "Select the button on each row. Some open System Settings."
             )
 
             VStack(alignment: .leading, spacing: 14) {
                 ForEach(permissions.requiredPermissions) { permission in
                     PermissionRow(
                         permission: permission,
-                        granted: permissions.grantedPermissions.contains(permission)
+                        granted: permissions.grantedPermissions.contains(permission),
+                        onChange: { permissions.refreshPermissions() }
                     )
                 }
             }
@@ -232,7 +233,7 @@ public struct WizardView: View {
             )
 
             if !missing.isEmpty {
-                Text("This list updates on its own once you flip the switch.")
+                Text("This list updates on its own after you approve each item.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

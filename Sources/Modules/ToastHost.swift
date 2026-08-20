@@ -1,4 +1,4 @@
-// ToastHost.swift — one-line HUD
+// ToastHost.swift — HUD toast. Text wraps; the panel grows with the copy.
 import AppKit
 
 enum ToastPosition: Equatable {
@@ -163,9 +163,11 @@ final class ToastHost {
     private func makePanel() -> NSPanel {
         let title = NSTextField(labelWithString: "")
         title.font = .systemFont(ofSize: 15, weight: .medium)
-        title.lineBreakMode = .byTruncatingTail
-        title.maximumNumberOfLines = 1
-        title.usesSingleLineMode = true
+        title.lineBreakMode = .byWordWrapping
+        title.maximumNumberOfLines = 0
+        title.usesSingleLineMode = false
+        title.cell?.wraps = true
+        title.cell?.isScrollable = false
         title.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         titleField = title
 

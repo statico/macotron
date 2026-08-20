@@ -72,6 +72,7 @@ public struct ModuleSummary: Identifiable {
     public let errorMessage: String?
     public let isEnabled: Bool
     public let commands: [PluginCommandSummary]
+    public let permissions: [Permission]
 
     public var needsSetup: Bool { options.contains { $0.needsSetup } }
     public var hasFailedChecks: Bool { checks.contains { !$0.ok } }
@@ -80,7 +81,8 @@ public struct ModuleSummary: Identifiable {
                 help: String = "", checks: [PluginCheck] = [],
                 options: [ModuleOption] = [], events: [String] = [],
                 hotkeys: [PluginCommandSummary] = [], hasErrors: Bool = false, errorMessage: String? = nil,
-                isEnabled: Bool = true, commands: [PluginCommandSummary] = []) {
+                isEnabled: Bool = true, commands: [PluginCommandSummary] = [],
+                permissions: [Permission] = []) {
         self.id = filename
         self.filename = filename
         self.title = title.isEmpty ? String(filename.dropLast(3)) : title
@@ -94,6 +96,7 @@ public struct ModuleSummary: Identifiable {
         self.errorMessage = errorMessage
         self.isEnabled = isEnabled
         self.commands = commands
+        self.permissions = permissions
     }
 }
 
@@ -109,6 +112,7 @@ public final class SettingsState: ObservableObject {
     @Published public var moduleSummaries: [ModuleSummary] = []
     @Published public var pluginsPath: String = ""
     @Published public var requestedTab: Int?
+    @Published public var requestedPlugin: String?
 
     /// Baseline permissions plus whatever the loaded plugins declared.
     @Published public var requiredPermissions: [Permission] = Permissions.baseline
@@ -252,17 +256,10 @@ public struct SettingsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             state.load()
-            if let tab = state.requestedTab {
-                selectedTab = tab
-                state.requestedTab = nil
-            }
+            applySettingsRequest()
         }
-        .onChange(of: state.requestedTab) {
-            if let tab = state.requestedTab {
-                selectedTab = tab
-                state.requestedTab = nil
-            }
-        }
+        .onChange(of: state.requestedTab) { applySettingsRequest() }
+        .onChange(of: state.requestedPlugin) { applySettingsRequest() }
     }
 
     private var tabBar: some View {
@@ -272,6 +269,17 @@ public struct SettingsView: View {
             tabButton(icon: "puzzlepiece.extension", label: "Plugins", tag: 1)
             tabButton(icon: "info.circle", label: "About", tag: 2)
             Spacer()
+        }
+    }
+
+    private func applySettingsRequest() {
+        if let tab = state.requestedTab {
+            selectedTab = tab
+            state.requestedTab = nil
+        }
+        if let file = state.requestedPlugin {
+            selectedPlugin = file
+            state.requestedPlugin = nil
         }
     }
 
@@ -417,9 +425,7 @@ public struct SettingsView: View {
             formRow("Permissions") {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        Text(missing.isEmpty
-                             ? "Macotron has everything it needs."
-                             : "Macotron needs \(missing.count == 1 ? "1 permission" : "\(missing.count) permissions") to work.")
+                        Text(permissionsSummary(missing: missing))
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
 
@@ -435,7 +441,8 @@ public struct SettingsView: View {
                     ForEach(state.requiredPermissions) { permission in
                         PermissionRow(
                             permission: permission,
-                            granted: state.grantedPermissions.contains(permission)
+                            granted: state.grantedPermissions.contains(permission),
+                            onChange: { state.refreshPermissions() }
                         )
                     }
                 }
@@ -443,6 +450,16 @@ public struct SettingsView: View {
         }
         .background(missing.isEmpty ? Color.clear : Color.orange.opacity(0.08))
         .overlay(alignment: .bottom) { Divider() }
+    }
+
+    /// Not everything in this list is needed for Macotron to run — a plugin can
+    /// ask for the fan helper — so the copy talks about approval, not working.
+    private func permissionsSummary(missing: [Permission]) -> String {
+        switch missing.count {
+        case 0: return "Macotron has everything it needs."
+        case 1: return "1 permission still needs your approval."
+        default: return "\(missing.count) permissions still need your approval."
+        }
     }
 
     private var pluginsTab: some View {
@@ -632,6 +649,7 @@ struct PluginDetailView: View {
 
                 if summary.hasErrors { errorBox }
                 if !summary.help.isEmpty { helpBox }
+                if !summary.permissions.isEmpty { permissionsSection }
                 if !summary.checks.isEmpty { checksSection }
 
                 if !summary.isEnabled {
@@ -730,6 +748,18 @@ struct PluginDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.primary.opacity(0.05))
         .cornerRadius(6)
+    }
+
+    private var permissionsSection: some View {
+        pluginSection("Permissions") {
+            ForEach(summary.permissions) { permission in
+                PermissionRow(
+                    permission: permission,
+                    granted: state.grantedPermissions.contains(permission),
+                    onChange: { state.refreshPermissions() }
+                )
+            }
+        }
     }
 
     private var checksSection: some View {

@@ -368,9 +368,10 @@ public final class PluginWorkspace {
         });
         ```
 
-        Valid permission names: `accessibility`, `inputMonitoring`, `screenRecording`.
-        Macotron shows a red warning in the menu bar until the user grants them.
-        Window control needs `accessibility`. Screen capture needs `screenRecording`.
+        Valid permission names: `accessibility`, `inputMonitoring`, `screenRecording`,
+        `fanControl`. Window control needs `accessibility`. Screen capture needs
+        `screenRecording`. Holding a fan-speed floor needs `fanControl`, which the
+        user installs from this plugin's Settings page.
 
         Add `options` on the same call to expose configurable settings. The user
         edits values in Settings → Plugins; the plugin reads the resolved values
@@ -414,6 +415,7 @@ public final class PluginWorkspace {
         Report host problems with `macotron.checks([{ title, ok, message }])`.
         Replace the list each call; `[]` clears it. A failed check (`ok: false`)
         shows an orange warning on the plugin in Settings → Plugins.
+        `macotron.settings.open()` opens that plugin's page.
 
         ```js
         macotron.checks([

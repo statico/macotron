@@ -46,6 +46,10 @@ declare const macotron: {
      * Pass `[]` to clear. Call again whenever the status changes.
      */
     checks(rows: Array<{ title: string; ok: boolean; message?: string }>): void;
+    settings: {
+        /** Open Settings → Plugins on this plugin. */
+        open(): void;
+    };
 
     window: {
         getAll(): Array<{
@@ -333,19 +337,24 @@ declare const macotron: {
         processes(limit?: number): Array<{ name: string; pid: number; cpu: number }>;
         gpu(): { name: string; usage: number } | null;
         /**
-         * Fan floor. `floor` is 50 or 100 while Macotron is holding a minimum;
+         * Fan floor. `available` means this Mac has fans, so RPM can be read;
+         * `controllable` means a floor can be set right now, which needs the fan
+         * helper (install it from this plugin's Settings page with the `fanControl`
+         * permission). `floor` is 50 or 100 while Macotron is holding a minimum;
          * omitted means system default. Actual RPM is never forced below what
          * macOS already wants.
          */
         fans(): {
             available: boolean;
+            controllable: boolean;
             floor?: number;
             error?: string;
             fans: Array<{ index: number; rpm: number; min: number; max: number }>;
         };
-        /** `null` restores system default. Left-click demo uses 100. */
+        /** `null` restores system default. Left-click demo uses 100. Returns `error` when not `controllable`. */
         setFanFloor(percent: number | null): {
             available: boolean;
+            controllable: boolean;
             floor?: number;
             error?: string;
             fans: Array<{ index: number; rpm: number; min: number; max: number }>;
@@ -496,7 +505,8 @@ declare const macotron: {
         description?: string;
         /** Extra explanation shown in Settings → Plugins. */
         help?: string;
-        permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording">;
+        /** `fanControl` lists the fan helper on this plugin's Settings page. */
+        permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "fanControl">;
         options?: Record<string, MacotronModuleOption>;
     }): Record<string, any>;
     /** @deprecated Use plugin() */

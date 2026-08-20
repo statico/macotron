@@ -1,4 +1,5 @@
 import Testing
+import SMCKit
 @testable import Modules
 
 @Suite("FanFloor")
@@ -17,5 +18,13 @@ struct FanFloorTests {
     func clamp() {
         #expect(FanFloor.rpm(percent: -10, min: 1000, max: 5000) == 1000)
         #expect(FanFloor.rpm(percent: 200, min: 1000, max: 5000) == 5000)
+    }
+
+    @Test("XPC helper errors stay short")
+    func xpcCopy() {
+        let long = "Couldn’t communicate with a helper application."
+        #expect(FanController.helperUnreachable(long))
+        #expect(FanController.displayError(long) == "Fan helper is not installed")
+        #expect(FanController.displayError("macOS thermal manager held the fans") == "macOS thermal manager held the fans")
     }
 }

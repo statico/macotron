@@ -79,10 +79,11 @@ public final class SystemModule: NativeModule {
     public init() {}
 
     public func cleanup() {
-        FanController.shared.restore()
+        FanController.shared.restoreIfNeeded()
     }
 
     public func register(in engine: Engine, options: [String: Any]) {
+        Permissions.beforeFanHelperUnregister = { FanController.shared.restoreIfNeeded() }
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
