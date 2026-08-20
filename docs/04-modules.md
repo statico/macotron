@@ -8,7 +8,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 |---|---|---|
 | WindowModule | `macotron.window` | AXUIElement window management |
 | EventModule | `macotron.event` / `macotron.mouse` | HID click/key/scroll post, event taps, cursor |
-| KeyboardModule | `macotron.keyboard` | CGEventTap global shortcuts |
+| KeyboardModule | `macotron.keyboard` | Carbon `RegisterEventHotKey` global shortcuts |
 | ScreenModule | `macotron.screen` | ScreenCaptureKit screenshots + color picker |
 | ShellModule | `macotron.shell` | Process/command execution (with allowlist) |
 | NotifyModule | `macotron.notify` | UserNotifications + one-line HUD toasts |
@@ -39,7 +39,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Window:** `macotron.window.getAll()`, `.focused()`, `.focus(id)` (raise, unminimize, activate the app), `.minimize(id, on?)`, `.close(id)`, `.setFullscreen(id, on)`, `.move(id, frame)`, `.moveToFraction(id, {x,y,w,h,display?})` (fractions of the window's current display, or `display` from `macotron.display.list()`), `.snap({ enabled, threshold, corner, gap, zones })` — drag the focused window to a screen edge or corner (clicks do not snap). Zones are `{x,y,w,h}` fractions of the visible frame (same as `moveToFraction`). Omit a slot to disable it. `.setSnapEnabled` / `.isSnapEnabled` toggle without changing the map. `window:created` and `window:focused` fire with `{ id, title, app }`.
 
-**System:** `macotron.system.cpu()` is `{ usage }` 0–100 since the last call. `gpu()` is `{ name, usage }` or `null`. `locale()` is `{ language, region, measurement: "metric"|"us" }`. `battery()` is `{ level, charging, charged, timeRemaining, timeToFull }` (`timeRemaining` / `timeToFull` are minutes, or `-1` if unknown). `fans()` is current RPM plus `available` (this Mac has fans), `controllable` (a floor can be set right now), and an optional `floor` (50 or 100). Reads need no privileges; writes do, so `controllable` is false until the user installs the fan helper from the plugin's Settings page (`macotron.settings.open()`). It is listed there only for plugins declaring the `fanControl` permission. `setFanFloor(100 | 50 | null)` holds a minimum; `null` is system default. The host never commands below firmware min, and yields to macOS when it already wants a higher speed.
+**System:** `macotron.system.cpu()` is `{ usage }` 0–100 since the last call. `gpu()` is `{ name, usage }` or `null`. `locale()` is `{ language, region, measurement: "metric"|"us" }`. `battery()` is `{ level, charging, charged, timeRemaining, timeToFull, source, lowPowerMode }` plus optional `health` (max capacity % of design), `cycles`, and `watts` (adapter). `timeRemaining` / `timeToFull` are minutes, or `-1` if unknown. `source` is `"ac"` or `"battery"`. `setLowPowerMode(true|false)` runs `pmset` (admin password) and returns `{ ok, lowPowerMode, error? }`. `fans()` is current RPM plus `available` (this Mac has fans), `controllable` (a floor can be set right now), and an optional `floor` (50 or 100). Reads need no privileges; writes do, so `controllable` is false until the user installs the background helper from the plugin's Settings page (`macotron.settings.open()`). It is listed there only for plugins declaring the `fanControl` permission. `setFanFloor(100 | 50 | null)` holds a minimum; `null` is system default. The host never commands below firmware min, and yields to macOS when it already wants a higher speed.
 
 **Media:** `macotron.media.nowPlaying()` is `{ playing, title, artist, album, app, bundle, artwork? }`. `artwork` is a JPEG path when iTunes Search finds a cover. `playPause()` / `next()` / `previous()` talk to the system Now Playing target (Spotify, Music, SomaFM, Safari, …). `media:changed` fires when the snapshot changes.
 
@@ -75,7 +75,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Calendar:** `upcoming({ hours })` is `{ id, title, start, end, allDay, location, calendar }[]`. Times are epoch ms.
 
-**MenuBar:** `macotron.menubar.add(id, config)` (rows in the Macotron menu; `menu` is a nested dropdown), `.status(id, config)` (extra item next to the Macotron icon: `title`, `subtitle`, `color`, `subtitleColor`, `bold`, `italic`, `secondary`, `minWidth` in points, `sfSymbol`, `image` file path, `onClick`, `menu`), `.update`, `.remove`, `.setIcon`, `.setTitle`. Two-line extras use the same size and color for both lines unless `secondary` is set (smaller, dimmer subtitle).
+**MenuBar:** `macotron.menubar.add(id, config)` (rows in the Macotron menu; `menu` is a nested dropdown), `.status(id, config)` (extra item next to the Macotron icon: `title`, `subtitle`, `color`, `subtitleColor`, `bold`, `italic`, `secondary`, `minWidth` in points, `sfSymbol`, `image` file path, `onClick`, `menu`), `.update`, `.remove`, `.setIcon`, `.setIconColor(color)` (named or `#RRGGBB`; `null` restores the system tint), `.setTitle`. Two-line extras use the same size and color for both lines unless `secondary` is set (smaller, dimmer subtitle).
 
 **Notify:** `macotron.notify.show(title, body, { sound, subtitle, id })` is a system banner. `macotron.notify.toast(title, body?, { position: "top"|"bottom", duration, sfSymbol, color })` is a one-line HUD centered at the bottom (or top) of the screen under the cursor, inset 48pt from the edges. Default duration is 3000ms. `color` is `info` (label color, no icon), `success` (green check), `error` / `failure` (red x), `warning` (orange triangle), a name (`green`), or `#RRGGBB`. Pass `sfSymbol` to override the default icon.
 
@@ -94,7 +94,7 @@ macotron.panel.postMessage(id, data);
 macotron.panel.onMessage(id, (data) => { /* ... */ });
 ```
 
-`html` is inserted into a host document (system font, padding, light/dark). `rawHtml` is a full document, the old `html` behavior. `glass: true` or `"regular"` is translucent Liquid Glass; `"clear"` is the clearer style. Host `html` pages get a transparent background so the glass shows through. In the page, `close()` closes the panel.
+`html` is inserted into a host document (system font, padding, light/dark). `rawHtml` is a full document, the old `html` behavior. `glass: true` or `"regular"` is translucent Liquid Glass; `"clear"` is the clearer style. `frameless: true` hides the title bar (Escape closes). Host `html` pages get a transparent background so the glass shows through. In the page, `close()` closes the panel.
 
 Host CSS defines system colors as variables: `--macotron-accent`, `--macotron-accent-text`, `--macotron-label`, `--macotron-secondary-label`, `--macotron-fill`, `--macotron-control`, `--macotron-control-text`, `--macotron-control-border`, `--macotron-field`, `--macotron-field-text`, `--macotron-selected`, `--macotron-selected-text`, `--macotron-link`. They follow the system appearance. `button.primary` uses the accent color.
 
