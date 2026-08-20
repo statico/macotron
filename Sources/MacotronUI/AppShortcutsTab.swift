@@ -36,7 +36,10 @@ struct AppShortcutsTab: View {
                     }
                 }
                 TableColumn("Shortcut") { app in
-                    ShortcutField(shortcut: app.shortcut) { combo in
+                    ShortcutField(
+                        shortcut: app.shortcut,
+                        conflict: state.shortcutWarning(id: "app:\(app.id)", combo: app.shortcut)
+                    ) { combo in
                         state.saveCommandShortcut?(app.id, combo)
                         state.refreshAppShortcuts()
                     }
@@ -207,6 +210,7 @@ private struct AddAppShortcutSheet: View {
                 Text("Keyboard Shortcut")
                     .foregroundStyle(.secondary)
                 HotkeyRecorderView(combo: $combo, onSave: {})
+                ShortcutConflictNote(message: state.shortcutWarning(id: "app-draft", combo: combo))
             }
 
             HStack {
