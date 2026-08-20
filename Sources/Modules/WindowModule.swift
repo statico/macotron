@@ -30,34 +30,6 @@ enum WindowMutation {
     }
 }
 
-private struct SnapZone {
-    var x: CGFloat
-    var y: CGFloat
-    var w: CGFloat
-    var h: CGFloat
-}
-
-private let defaultSnapZones: [String: SnapZone] = [
-    "left": SnapZone(x: 0, y: 0, w: 0.5, h: 1),
-    "right": SnapZone(x: 0.5, y: 0, w: 0.5, h: 1),
-    "top": SnapZone(x: 0, y: 0, w: 1, h: 1),
-    "bottom": SnapZone(x: 0, y: 0.5, w: 1, h: 0.5),
-    "tl": SnapZone(x: 0, y: 0, w: 0.5, h: 0.5),
-    "tr": SnapZone(x: 0.5, y: 0, w: 0.5, h: 0.5),
-    "bl": SnapZone(x: 0, y: 0.5, w: 0.5, h: 0.5),
-    "br": SnapZone(x: 0.5, y: 0.5, w: 0.5, h: 0.5),
-]
-
-private let snapSlotAliases: [String: String] = [
-    "left": "left", "right": "right", "top": "top", "bottom": "bottom",
-    "tl": "tl", "tr": "tr", "bl": "bl", "br": "br",
-    "top-left": "tl", "topleft": "tl", "nw": "tl",
-    "top-right": "tr", "topright": "tr", "ne": "tr",
-    "bottom-left": "bl", "bottomleft": "bl", "sw": "bl",
-    "bottom-right": "br", "bottomright": "br", "se": "br",
-    "maximize": "top", "full": "top",
-]
-
 struct SnapDrag {
     var start: CGPoint?
     var dragging = false
@@ -86,13 +58,14 @@ private final class WindowSnapState: @unchecked Sendable {
     weak var module: WindowModule?
     var eventTap: CFMachPort?
     var drag = SnapDrag()
+    var flags: CGEventFlags = []
     static let shared = WindowSnapState()
 }
 
 @MainActor
 public final class WindowModule: NativeModule {
     public let name = "window"
-    public let moduleVersion = 3
+    public let moduleVersion = 4
 
     private weak var engine: Engine?
     private var eventTap: CFMachPort?
@@ -101,7 +74,8 @@ public final class WindowModule: NativeModule {
     private var snapThreshold: CGFloat = 20
     private var snapCorner: CGFloat = 48
     private var snapGap: CGFloat = 0
-    private var snapZones: [String: SnapZone] = defaultSnapZones
+    private var snapZones: [String: SnapZone] = SnapGeometry.defaultZones
+    private var snapModifierSets: [(flags: CGEventFlags, zones: [String: SnapZone])] = []
 
     public init() {}
 
@@ -169,6 +143,16 @@ public final class WindowModule: NativeModule {
             return QJS_NewBool(ctx, ok ? 1 : 0)
         }, "snap", 1))
 
+        JS_SetPropertyStr(ctx, windowObj, "previewFraction", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_NewBool(ctx!, 0) }
+            if argc < 1 || argv == nil || JSBridge.isUndefined(argv![0]) || JSBridge.isNull(argv![0]) {
+                SnapPreview.shared.hide()
+                return QJS_NewBool(ctx, 1)
+            }
+            let ok = WindowSnapState.shared.module?.previewFraction(ctx, argv![0]) ?? false
+            return QJS_NewBool(ctx, ok ? 1 : 0)
+        }, "previewFraction", 1))
+
         JS_SetPropertyStr(ctx, windowObj, "minimize", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
             let on = argc < 2 || JSBridge.toBool(ctx, argv[1])
@@ -200,12 +184,14 @@ public final class WindowModule: NativeModule {
         WindowWatch.stop()
         teardownSnapTap()
         snapEnabled = false
-        snapZones = defaultSnapZones
+        snapZones = SnapGeometry.defaultZones
+        snapModifierSets = []
         snapThreshold = 20
         snapCorner = 48
         snapGap = 0
         WindowSnapState.shared.module = nil
         WindowSnapState.shared.eventTap = nil
+        WindowSnapState.shared.flags = []
     }
 
     // MARK: - AX Helpers
@@ -513,6 +499,7 @@ public final class WindowModule: NativeModule {
             (1 << CGEventType.leftMouseDown.rawValue)
             | (1 << CGEventType.leftMouseDragged.rawValue)
             | (1 << CGEventType.leftMouseUp.rawValue)
+            | (1 << CGEventType.flagsChanged.rawValue)
         let callback: CGEventTapCallBack = { _, type, event, _ -> Unmanaged<CGEvent>? in
             if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
                 if let tap = WindowSnapState.shared.eventTap {
@@ -520,17 +507,24 @@ public final class WindowModule: NativeModule {
                 }
                 return Unmanaged.passRetained(event)
             }
+            WindowSnapState.shared.flags = event.flags
             let point = NSEvent.mouseLocation
             switch type {
             case .leftMouseDown:
                 WindowSnapState.shared.drag.down(point)
             case .leftMouseDragged:
                 WindowSnapState.shared.drag.moved(point)
+                DispatchQueue.main.async {
+                    WindowSnapState.shared.module?.updateSnapPreview(at: NSEvent.mouseLocation)
+                }
+            case .flagsChanged:
+                DispatchQueue.main.async {
+                    WindowSnapState.shared.module?.updateSnapPreview(at: NSEvent.mouseLocation)
+                }
             case .leftMouseUp:
-                if WindowSnapState.shared.drag.up() {
-                    DispatchQueue.main.async {
-                        WindowSnapState.shared.module?.snapFocusedWindow(at: NSEvent.mouseLocation)
-                    }
+                let dragging = WindowSnapState.shared.drag.up()
+                DispatchQueue.main.async {
+                    WindowSnapState.shared.module?.finishSnap(at: NSEvent.mouseLocation, dragging: dragging)
                 }
             default:
                 break
@@ -574,33 +568,82 @@ public final class WindowModule: NativeModule {
         runLoopSource = nil
         WindowSnapState.shared.eventTap = nil
         WindowSnapState.shared.drag = SnapDrag()
+        WindowSnapState.shared.flags = []
+        SnapPreview.shared.hide()
+    }
+
+    private func currentZones() -> [String: SnapZone] {
+        SnapGeometry.activeZones(
+            default: snapZones,
+            modifiers: snapModifierSets,
+            held: WindowSnapState.shared.flags
+        )
+    }
+
+    private func zone(at point: CGPoint) -> (NSScreen, SnapZone)? {
+        guard let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) else { return nil }
+        guard let slot = SnapGeometry.slot(
+            at: point,
+            screen: screen.frame,
+            corner: snapCorner,
+            threshold: snapThreshold
+        ) else { return nil }
+        guard let zone = currentZones()[slot] else { return nil }
+        return (screen, zone)
+    }
+
+    private func updateSnapPreview(at point: CGPoint) {
+        guard snapEnabled, WindowSnapState.shared.drag.dragging, let hit = zone(at: point) else {
+            SnapPreview.shared.hide()
+            return
+        }
+        SnapPreview.shared.show(SnapGeometry.cocoaRect(zone: hit.1, visible: hit.0.visibleFrame, gap: snapGap))
+    }
+
+    private func finishSnap(at point: CGPoint, dragging: Bool) {
+        SnapPreview.shared.hide()
+        guard dragging else { return }
+        snapFocusedWindow(at: point)
     }
 
     private func snapFocusedWindow(at point: CGPoint) {
         guard snapEnabled else { return }
-        guard let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) else { return }
-        guard let slot = snapSlot(at: point, screen: screen), let zone = snapZones[slot] else { return }
+        guard let (screen, zone) = zone(at: point) else { return }
         guard let win = Self.focusedAXWindow() else { return }
         _ = Self.applyFraction(win, x: zone.x, y: zone.y, w: zone.w, h: zone.h, screen: screen, gap: snapGap)
     }
 
-    private func snapSlot(at point: CGPoint, screen: NSScreen) -> String? {
-        let f = screen.frame
-        let c = snapCorner
-        let t = snapThreshold
-        let leftC = point.x <= f.minX + c
-        let rightC = point.x >= f.maxX - c
-        let bottomC = point.y <= f.minY + c
-        let topC = point.y >= f.maxY - c
-        if leftC && topC { return "tl" }
-        if rightC && topC { return "tr" }
-        if leftC && bottomC { return "bl" }
-        if rightC && bottomC { return "br" }
-        if point.x <= f.minX + t { return "left" }
-        if point.x >= f.maxX - t { return "right" }
-        if point.y >= f.maxY - t { return "top" }
-        if point.y <= f.minY + t { return "bottom" }
-        return nil
+    func previewFraction(_ ctx: OpaquePointer, _ opts: JSValue) -> Bool {
+        if engine?.dryRun == true { return true }
+        var screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })
+            ?? NSScreen.main
+            ?? NSScreen.screens.first
+        if let win = Self.focusedAXWindow() {
+            screen = Self.screen(forAXFrame: Self.windowFrame(win)) ?? screen
+        }
+        let displayVal = JSBridge.getProperty(ctx, opts, "display")
+        if !JSBridge.isUndefined(displayVal), !JSBridge.isNull(displayVal) {
+            let id = CGDirectDisplayID(bitPattern: JSBridge.toInt32(ctx, displayVal))
+            if let match = Self.screen(displayID: id) {
+                screen = match
+            }
+        }
+        JS_FreeValue(ctx, displayVal)
+        guard let screen else { return false }
+
+        func num(_ key: String, fallback: CGFloat) -> CGFloat {
+            let val = JSBridge.getProperty(ctx, opts, key)
+            defer { JS_FreeValue(ctx, val) }
+            if JSBridge.isUndefined(val) || JSBridge.isNull(val) { return fallback }
+            return CGFloat(JSBridge.toDouble(ctx, val))
+        }
+        let zone = SnapZone(x: num("x", fallback: 0), y: num("y", fallback: 0), w: num("w", fallback: 1), h: num("h", fallback: 1))
+        let gapVal = JSBridge.getProperty(ctx, opts, "gap")
+        let gap = JSBridge.isUndefined(gapVal) || JSBridge.isNull(gapVal)
+            ? snapGap : max(0, CGFloat(JSBridge.toDouble(ctx, gapVal)))
+        JS_FreeValue(ctx, gapVal)
+        SnapPreview.shared.show(SnapGeometry.cocoaRect(zone: zone, visible: screen.visibleFrame, gap: gap))
+        return true
     }
 
     func configureSnap(_ ctx: OpaquePointer, _ opts: JSValue) -> Bool {
@@ -632,28 +675,23 @@ public final class WindowModule: NativeModule {
 
         let zonesVal = JSBridge.getProperty(ctx, opts, "zones")
         if JS_IsObject(zonesVal), !JSBridge.isUndefined(zonesVal), !JSBridge.isNull(zonesVal), !JS_IsArray(zonesVal) {
-            snapZones = Self.parseSnapZones(ctx, zonesVal)
+            if let dict = JSBridge.jsToSwift(ctx, zonesVal) as? [String: Any] {
+                snapZones = SnapGeometry.parseZones(dict)
+            }
         }
         JS_FreeValue(ctx, zonesVal)
 
-        return setSnapEnabled(enabled)
-    }
-
-    private static func parseSnapZones(_ ctx: OpaquePointer, _ val: JSValue) -> [String: SnapZone] {
-        guard let dict = JSBridge.jsToSwift(ctx, val) as? [String: Any] else { return [:] }
-        var out: [String: SnapZone] = [:]
-        for (rawKey, raw) in dict {
-            let key = snapSlotAliases[rawKey.lowercased()] ?? rawKey.lowercased()
-            guard let frame = raw as? [String: Any] else { continue }
-            func num(_ k: String) -> CGFloat? {
-                if let d = frame[k] as? Double { return CGFloat(d) }
-                if let i = frame[k] as? Int { return CGFloat(i) }
-                return nil
+        let modsVal = JSBridge.getProperty(ctx, opts, "modifiers")
+        if JS_IsObject(modsVal), !JSBridge.isUndefined(modsVal), !JSBridge.isNull(modsVal), !JS_IsArray(modsVal) {
+            if let dict = JSBridge.jsToSwift(ctx, modsVal) as? [String: Any] {
+                snapModifierSets = SnapGeometry.parseModifierSets(dict)
             }
-            guard let x = num("x"), let y = num("y"), let w = num("w"), let h = num("h") else { continue }
-            out[key] = SnapZone(x: x, y: y, w: w, h: h)
+        } else if !JSBridge.isUndefined(modsVal), !JSBridge.isNull(modsVal) {
+            snapModifierSets = []
         }
-        return out
+        JS_FreeValue(ctx, modsVal)
+
+        return setSnapEnabled(enabled)
     }
 
     private static func focusedAXWindow() -> AXUIElement? {

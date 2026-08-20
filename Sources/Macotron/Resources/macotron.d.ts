@@ -85,9 +85,11 @@ declare const macotron: {
         move(id: number, frame: { x?: number; y?: number; width?: number; height?: number }): boolean;
         /** Fractions of the window's current display. Pass `display` from `macotron.display.list()` to send it to another screen. */
         moveToFraction(id: number, frac: { x?: number; y?: number; w?: number; h?: number; display?: number }): boolean;
+        /** Show or hide the snap destination overlay. Pass `null` to hide. */
+        previewFraction(frac: { x?: number; y?: number; w?: number; h?: number; display?: number; gap?: number } | null): boolean;
         setSnapEnabled(enabled: boolean): boolean;
         isSnapEnabled(): boolean;
-        /** Drag-to-edge tiling. Zones are fractions of the visible frame (same as moveToFraction). Omit a slot to disable it. */
+        /** Drag-to-edge tiling. Zones are fractions of the visible frame (same as moveToFraction). Omit a slot to disable it. `modifiers` swaps the map while those keys are held (`shift`, `cmd+shift`). */
         snap(opts: boolean | {
             enabled?: boolean;
             threshold?: number;
@@ -104,6 +106,17 @@ declare const macotron: {
                 br?: { x: number; y: number; w: number; h: number };
                 [slot: string]: { x: number; y: number; w: number; h: number } | undefined;
             };
+            modifiers?: Record<string, {
+                left?: { x: number; y: number; w: number; h: number };
+                right?: { x: number; y: number; w: number; h: number };
+                top?: { x: number; y: number; w: number; h: number };
+                bottom?: { x: number; y: number; w: number; h: number };
+                tl?: { x: number; y: number; w: number; h: number };
+                tr?: { x: number; y: number; w: number; h: number };
+                bl?: { x: number; y: number; w: number; h: number };
+                br?: { x: number; y: number; w: number; h: number };
+                [slot: string]: { x: number; y: number; w: number; h: number } | undefined;
+            }>;
         }): boolean;
     };
 
