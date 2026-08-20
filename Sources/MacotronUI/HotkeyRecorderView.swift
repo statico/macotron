@@ -244,6 +244,7 @@ public struct HotkeyRecorderView: View {
     private func startRecording() {
         isRecording = true
         heldModifiers = []
+        ShortcutRecording.begin()
 
         // Monitor modifier key changes to show held modifiers live
         flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { event in
@@ -263,8 +264,11 @@ public struct HotkeyRecorderView: View {
         if let m = flagsMonitor { NSEvent.removeMonitor(m) }
         eventMonitor = nil
         flagsMonitor = nil
-        isRecording = false
         heldModifiers = []
+        if isRecording {
+            isRecording = false
+            ShortcutRecording.end()
+        }
     }
 
     private func handleKeyEvent(_ event: NSEvent) {
