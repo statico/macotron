@@ -224,6 +224,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     private var dragJSBusy = false
     private var queuedMouseJS: String?
     private var loggedMouseJS = false
+    private var trackingGrid = false
 
     init(
         id: String,
@@ -297,8 +298,8 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
             guard let self, event.window === self.panel else { return event }
             return self.handleKey(event) ? nil : event
         }
-        dragMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDragged, .mouseMoved]) { [weak self] event in
-            self?.forwardMouseMove(event)
+        dragMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
+            self?.forwardMouseButton(event)
             return event
         }
         NotificationCenter.default.addObserver(
@@ -379,17 +380,44 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         webView.becomeFirstResponder()
     }
 
-    /// WKWebView on a nonactivating panel often swallows button-down mousemove.
-    /// AppKit still gets leftMouseDragged; replay it as a DOM mousemove.
-    /// Coalesce: one evaluateJavaScript in flight or the page lags by seconds.
-    private func forwardMouseMove(_ event: NSEvent) {
-        guard event.window === panel else { return }
-        var p = webView.convert(event.locationInWindow, from: nil)
-        if !webView.isFlipped { p.y = webView.bounds.height - p.y }
-        let buttons = event.type == .leftMouseDragged ? 1 : 0
+    /// WKWebView on a nonactivating panel often swallows button-down events.
+    /// Replay down/drag/up; hover uses native mousemove.
+    private func forwardMouseButton(_ event: NSEvent) {
+        switch event.type {
+        case .leftMouseDown:
+            guard pointInPanel(event) else { return }
+            trackingGrid = true
+            enqueuePointer(event, type: "mousedown", buttons: 1)
+        case .leftMouseDragged:
+            guard trackingGrid else { return }
+            enqueuePointer(event, type: "mousemove", buttons: 1)
+        case .leftMouseUp:
+            guard trackingGrid else { return }
+            trackingGrid = false
+            enqueuePointer(event, type: "mouseup", buttons: 0)
+        default:
+            return
+        }
+    }
+
+    private func pointInPanel(_ event: NSEvent) -> Bool {
+        event.window === panel || panel.frame.contains(NSEvent.mouseLocation)
+    }
+
+    private func enqueuePointer(_ event: NSEvent, type: String, buttons: Int) {
+        let p = webPoint(from: event)
         queuedMouseJS =
-            "window.dispatchEvent(new MouseEvent('mousemove',{clientX:\(p.x),clientY:\(p.y),buttons:\(buttons),bubbles:true}))"
+            "window.dispatchEvent(new MouseEvent('\(type)',{clientX:\(p.x),clientY:\(p.y),button:0,buttons:\(buttons),bubbles:true}))"
         flushMouseJS()
+    }
+
+    private func webPoint(from event: NSEvent) -> CGPoint {
+        let winPoint = event.window === panel
+            ? event.locationInWindow
+            : panel.convertPoint(fromScreen: NSEvent.mouseLocation)
+        var p = webView.convert(winPoint, from: nil)
+        if !webView.isFlipped { p.y = webView.bounds.height - p.y }
+        return p
     }
 
     private func flushMouseJS() {
@@ -449,6 +477,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
             NSEvent.removeMonitor(dragMonitor)
             self.dragMonitor = nil
         }
+        trackingGrid = false
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "macotron")
         webView.uiDelegate = nil
         NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: panel)
