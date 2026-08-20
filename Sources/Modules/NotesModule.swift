@@ -20,7 +20,7 @@ public final class NotesModule: NativeModule {
                Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun {
                 return JSBridge.newArray(ctx, [])
             }
-            return JSBridge.newArray(ctx, NotesStore.list().map { note in
+            return JSBridge.newArray(ctx, NotesList.visible(NotesStore.list()).map { note in
                 [
                     "id": note.id,
                     "title": note.title,

@@ -32,4 +32,14 @@ struct NotesListTests {
     func escape() {
         #expect(NotesList.escape("a\"b\\c") == "a\\\"b\\\\c")
     }
+
+    @Test("hides Recently Deleted")
+    func hidesDeleted() {
+        let rows = NotesList.parse("id-1\tKeep\tNotes\nid-2\tGone\tRecently Deleted\n")
+        #expect(NotesList.visible(rows) == [
+            NoteRecord(id: "id-1", title: "Keep", folder: "Notes"),
+        ])
+        #expect(NotesList.isDeleted("Recently Deleted"))
+        #expect(!NotesList.isDeleted("Notes"))
+    }
 }

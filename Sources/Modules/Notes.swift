@@ -19,6 +19,14 @@ enum NotesList {
         }
     }
 
+    static func visible(_ notes: [NoteRecord]) -> [NoteRecord] {
+        notes.filter { !isDeleted($0.folder) }
+    }
+
+    static func isDeleted(_ folder: String) -> Bool {
+        folder.localizedCaseInsensitiveContains("Recently Deleted")
+    }
+
     static func escape(_ value: String) -> String {
         value
             .replacingOccurrences(of: "\\", with: "\\\\")
