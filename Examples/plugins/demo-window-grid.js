@@ -28,9 +28,13 @@ function cellsToFraction(sel, cols, rows) {
 }
 
 let panelId = null;
+let targetWin = null;
 
 macotron.on("panel:closed", (event) => {
-    if (event && event.id === panelId) macotron.window.previewFraction(null);
+    if (!event || event.id !== panelId) return;
+    macotron.window.previewFraction(null);
+    if (targetWin) macotron.window.focus(targetWin.id);
+    panelId = null;
 });
 
 function openGrid() {
@@ -39,6 +43,7 @@ function openGrid() {
         macotron.notify.toast("Window Grid", "No focused window", { color: "warning" });
         return;
     }
+    targetWin = win;
 
     const startCols = clampGrid(opts.columns, 6);
     const startRows = clampGrid(opts.rows, 6);
