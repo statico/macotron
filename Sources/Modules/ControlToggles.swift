@@ -272,6 +272,7 @@ enum DarkMode {
 
 enum FocusStatus {
     static func snapshot() -> [String: Any] {
-        ["focused": INFocusStatusCenter.default.focusStatus.isFocused]
+        // isFocused is nil until the user grants Focus status sharing.
+        ["focused": INFocusStatusCenter.default.focusStatus.isFocused ?? false]
     }
 }

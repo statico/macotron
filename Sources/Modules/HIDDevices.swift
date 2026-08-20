@@ -246,8 +246,9 @@ enum HIDDevices {
         let service = IOHIDDeviceGetService(device)
         if service != 0 {
             var buf = [CChar](repeating: 0, count: 512)
-            if IORegistryEntryGetPath(service, kIOServicePlane, &buf) == KERN_SUCCESS {
-                return String(cString: buf)
+            if IORegistryEntryGetPath(service, kIOServicePlane, &buf) == KERN_SUCCESS,
+               let path = String(validating: buf.prefix { $0 != 0 }, as: UTF8.self) {
+                return path
             }
         }
         let location = int(device, kIOHIDLocationIDKey) ?? 0
