@@ -432,14 +432,12 @@ enum PluginMenu {
             let row = item(title: entry.title, icon: entry.icon)
             if !entry.children.isEmpty {
                 row.submenu = make(entry.children, retaining: &boxes)
-            } else if let onClick = entry.onClick {
-                let box = Action(onClick)
+            } else {
+                let box = Action(entry.onClick ?? {})
                 boxes.append(box)
                 row.representedObject = box
                 row.target = box
                 row.action = #selector(Action.invoke)
-            } else {
-                row.isEnabled = false
             }
             menu.addItem(row)
         }

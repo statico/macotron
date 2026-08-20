@@ -22,4 +22,16 @@ struct PluginMenuTests {
         _ = target.perform(action, with: item)
         #expect(ran)
     }
+
+    @Test("items without onClick stay enabled")
+    func labelItemsEnabled() {
+        var boxes: [PluginMenu.Action] = []
+        let menu = PluginMenu.make(
+            [MenuBarEntry(title: "Feels like 62°")],
+            retaining: &boxes
+        )
+        let item = menu.items[0]
+        #expect(item.isEnabled)
+        #expect(item.action != nil)
+    }
 }
