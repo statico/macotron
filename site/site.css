@@ -22,7 +22,9 @@
   --line: var(--nord4);
   --card: #ffffff;
   --accent: var(--nord10);
-  --accent-2: var(--nord10);
+  --accent-2: #4a6b91; /* nord10 darkened to clear 4.5:1 on --bg */
+  --btn: #4a6b91;
+  --btn-ink: #ffffff;
   --finder: var(--nord6);
   --finder-bar: var(--nord5);
   --finder-side: var(--nord5);
@@ -59,6 +61,8 @@
     --card: var(--nord1);
     --accent: var(--nord8);
     --accent-2: var(--nord8);
+    --btn: var(--nord8);
+    --btn-ink: var(--nord0);
     --finder: var(--nord1);
     --finder-bar: var(--nord2);
     --finder-side: var(--nord0);
@@ -82,6 +86,8 @@
   --card: var(--nord1);
   --accent: var(--nord8);
   --accent-2: var(--nord8);
+  --btn: var(--nord8);
+  --btn-ink: var(--nord0);
   --finder: var(--nord1);
   --finder-bar: var(--nord2);
   --finder-side: var(--nord0);
@@ -240,8 +246,8 @@ main > section {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent);
-  color: var(--bg);
+  background: var(--btn);
+  color: var(--btn-ink);
   text-decoration: none;
   font-weight: 600;
   font-size: 0.95rem;
