@@ -45,4 +45,5 @@ Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew o
 | demo-security-checklist.js | shell probes | Security Checklist |
 | demo-screenshot-rename.js | ocr + fs | Rename Last Screenshot |
 | demo-batch-rename.js | fs.rename | Prefix Downloads Today |
+| demo-heic-to-jpeg.js | sips + fs | Convert Downloads HEIC |
 | demo-file-search.js | spotlight + panel | Search Files |
