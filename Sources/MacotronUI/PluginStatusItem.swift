@@ -50,19 +50,30 @@ final class PluginStatusItem: NSObject {
         let nsColor = Self.parseColor(color)
         let nsSubtitleColor = Self.parseColor(subtitleColor)
         let iconOnly = title.isEmpty && (subtitle ?? "").isEmpty
+        let twoLine = !(subtitle ?? "").isEmpty
         let image = Self.loadImage(sfSymbol: sfSymbol, path: imagePath, color: iconOnly ? nsColor : nil)
-        button?.image = image
-        button?.imagePosition = iconOnly ? .imageOnly : .imageLeading
         button?.contentTintColor = nil
-        button?.attributedTitle = StatusLineStyle.attributedTitle(
+        let lines = StatusLineStyle.lines(
             title: title,
             subtitle: subtitle,
             color: nsColor,
             subtitleColor: nsSubtitleColor,
             bold: bold,
             italic: italic,
-            secondary: secondary,
+            secondary: secondary
         )
+        if twoLine {
+            // NSButtonCell does not vertically center multi-line titles, so
+            // compose icon and text into one image; buttons center images.
+            let height = button?.window?.frame.height ?? NSStatusBar.system.thickness
+            button?.image = StatusLineStyle.image(icon: image, lines: lines, height: height)
+            button?.imagePosition = .imageOnly
+            button?.attributedTitle = NSAttributedString()
+        } else {
+            button?.image = image
+            button?.imagePosition = iconOnly ? .imageOnly : .imageLeading
+            button?.attributedTitle = lines.first ?? NSAttributedString()
+        }
         item.length = NSStatusItem.variableLength
         if let button,
            let length = StatusLineStyle.length(
@@ -168,19 +179,11 @@ enum StatusLineStyle {
         return 10
     }
 
-    // Two capped lines must total less than the menu bar button height
-    // (~22pt), or the bottom line clips. 10.5 + 10.5 (or 10.5 + 10 when
-    // secondary) leaves a point of slack for the button's vertical centering.
-    static func maximumLineHeight(secondary: Bool, subtitle: Bool) -> CGFloat {
-        if secondary && subtitle { return 10 }
-        return 10.5
-    }
-
     static func length(naturalWidth: CGFloat, minWidth: Double?) -> CGFloat? {
         minWidth.map { max(naturalWidth, CGFloat($0)) }
     }
 
-    static func attributedTitle(
+    static func lines(
         title: String,
         subtitle: String?,
         color: NSColor?,
@@ -188,14 +191,10 @@ enum StatusLineStyle {
         bold: Bool,
         italic: Bool,
         secondary: Bool
-    ) -> NSAttributedString {
+    ) -> [NSAttributedString] {
         let subtitle = subtitle ?? ""
         let twoLine = !subtitle.isEmpty
-        let result = NSMutableAttributedString()
-        let titleParagraph = NSMutableParagraphStyle()
-        if twoLine {
-            titleParagraph.maximumLineHeight = maximumLineHeight(secondary: secondary, subtitle: false)
-        }
+        var result: [NSAttributedString] = []
         if !title.isEmpty {
             result.append(NSAttributedString(
                 string: title,
@@ -206,15 +205,12 @@ enum StatusLineStyle {
                         italic: italic
                     ),
                     .foregroundColor: color ?? NSColor.labelColor,
-                    .paragraphStyle: titleParagraph,
                 ]
             ))
         }
         if twoLine {
-            let subtitleParagraph = NSMutableParagraphStyle()
-            subtitleParagraph.maximumLineHeight = maximumLineHeight(secondary: secondary, subtitle: true)
             result.append(NSAttributedString(
-                string: title.isEmpty ? subtitle : "\n\(subtitle)",
+                string: subtitle,
                 attributes: [
                     .font: font(
                         size: fontSize(twoLine: true, secondary: secondary, subtitle: true),
@@ -223,11 +219,56 @@ enum StatusLineStyle {
                     ),
                     .foregroundColor: subtitleColor
                         ?? (secondary ? color?.withAlphaComponent(0.75) ?? .secondaryLabelColor : color ?? .labelColor),
-                    .paragraphStyle: subtitleParagraph,
                 ]
             ))
         }
         return result
+    }
+
+    // Bottom-based y origin for each line, top line first. Lines stack from
+    // the vertical center; when the stack is taller than the bar, the
+    // inter-line gap goes negative, letting descender and ascender boxes
+    // overlap (their ink rarely collides) instead of clipping at the edges.
+    static func lineOrigins(barHeight: CGFloat, heights: [CGFloat]) -> [CGFloat] {
+        let sum = heights.reduce(0, +)
+        let gap = heights.count > 1 ? min(0, barHeight - 1 - sum) : 0
+        let total = sum + gap * CGFloat(heights.count - 1)
+        var y = barHeight - (barHeight - total) / 2
+        return heights.map { h in
+            y -= h
+            defer { y -= gap }
+            return y
+        }
+    }
+
+    static let iconTextSpacing: CGFloat = 4
+
+    @MainActor
+    static func image(icon: NSImage?, lines: [NSAttributedString], height: CGFloat) -> NSImage {
+        let textWidth = ceil(lines.map { $0.size().width }.max() ?? 0)
+        let textX = icon.map { $0.size.width + iconTextSpacing } ?? 0
+        let size = NSSize(width: textX + textWidth, height: height)
+        let heights = lines.map { $0.size().height }
+        let origins = lineOrigins(barHeight: height, heights: heights)
+        return NSImage(size: size, flipped: false) { _ in
+            if let icon {
+                let iconRect = NSRect(
+                    x: 0,
+                    y: (height - icon.size.height) / 2,
+                    width: icon.size.width,
+                    height: icon.size.height
+                )
+                icon.draw(in: iconRect, from: .zero, operation: .sourceOver, fraction: 1)
+                if icon.isTemplate {
+                    NSColor.labelColor.set()
+                    iconRect.fill(using: .sourceAtop)
+                }
+            }
+            for (line, y) in zip(lines, origins) {
+                line.draw(at: NSPoint(x: textX, y: y))
+            }
+            return true
+        }
     }
 
     private static func font(size: CGFloat, bold: Bool, italic: Bool) -> NSFont {
