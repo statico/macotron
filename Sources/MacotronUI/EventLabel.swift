@@ -4,6 +4,7 @@ enum EventLabel {
         "media:changed": "Now Playing changed",
         "space:changed": "Desktop changed",
         "usb:changed": "USB device changed",
+        "hid:input": "HID input report",
         "clipboard:changed": "Clipboard changed",
         "display:changed": "Display changed",
         "wifi:changed": "Wi-Fi changed",

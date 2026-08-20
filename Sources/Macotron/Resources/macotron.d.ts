@@ -8,6 +8,31 @@ interface MenuBarMenuItem {
     menu?: MenuBarMenuItem[];
 }
 
+interface HIDFilter {
+    vendorID?: number;
+    productID?: number;
+    usagePage?: number;
+    usage?: number;
+    serial?: string;
+    path?: string;
+    /** Hex vid/pid like hidapitester: `"27b8/1ed"`. */
+    vidpid?: string;
+}
+
+interface HIDDeviceInfo {
+    name: string;
+    vendor: string;
+    vendorID: number;
+    productID: number;
+    usagePage: number;
+    usage: number;
+    serial: string;
+    path: string;
+    maxInput: number;
+    maxOutput: number;
+    maxFeature: number;
+}
+
 declare function alert(message?: any): void;
 declare function confirm(message?: any): boolean;
 declare function prompt(message?: any, defaultValue?: string): string | null;
@@ -383,6 +408,19 @@ declare const macotron: {
 
     usb: {
         list(): Array<{ name: string; vendor: string; vendorID: number; productID: number }>;
+    };
+
+    hid: {
+        list(filter?: HIDFilter | string): HIDDeviceInfo[];
+        open(filter?: HIDFilter | string): (HIDDeviceInfo & { id: string }) | null;
+        close(id: string): void;
+        sendOutput(id: string, data: number[] | string, opts?: { length?: number }): { ok: boolean; written?: number; error?: string };
+        sendFeature(id: string, data: number[] | string, opts?: { length?: number }): { ok: boolean; written?: number; error?: string };
+        readInput(id: string, opts?: { reportId?: number; length?: number }): number[] | null;
+        readFeature(id: string, reportId: number, opts?: { length?: number }): number[] | null;
+        listen(id: string): { ok: boolean; error?: string };
+        unlisten(id: string): void;
+        reportDescriptor(id: string): number[] | null;
     };
 
     shortcuts: {

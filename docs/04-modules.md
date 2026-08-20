@@ -23,6 +23,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | AudioModule | `macotron.audio` | Default input/output, volume, mute |
 | SpacesModule | `macotron.spaces` | Mission Control spaces |
 | USBModule | `macotron.usb` | USB devices + attach/detach |
+| HIDModule | `macotron.hid` | HID list, open, feature/output/input reports |
 | ShortcutsModule | `macotron.shortcuts` | List and run Shortcuts.app |
 | SystemModule | `macotron.system` | CPU usage, GPU usage, locale, memory, battery, temp |
 | HTTPModule | `macotron.http` | URLSession |
@@ -59,6 +60,8 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 **Spaces:** `list()` is `{ id, index, desktop, display, current, type }[]`. `current()`, `go(2)` (Mission Control desktop number) or `go({ id })` / `go({ index, display })`. `moveWindow(windowId, spec)` tries SkyLight and returns false when SIP blocks it. `space:changed` fires on a desktop switch.
 
 **USB:** `usb.list()` is `{ name, vendor, vendorID, productID }[]`. `usb:changed` is the same plus `action: "add"|"remove"`.
+
+**HID:** `hid.list(filter?)` is HID devices (`name`, `vendor`, `vendorID`, `productID`, `usagePage`, `usage`, `serial`, `path`, max report sizes). `hid.open(filter)` returns the same plus `id`, or `null`. Filter is `{ vendorID, productID, usagePage, usage, serial, path, vidpid }` or a hidapitester vid/pid string (`"27b8/1ed"`). First byte of send data is the report id (`0` if unused). `sendOutput` / `sendFeature` take a byte array or `"1,99,0,255"` and optional `{ length }` (zero-pads). `readFeature(id, reportId, { length })` and `readInput(id, { reportId, length })` return bytes or `null`. `listen(id)` emits `hid:input` as `{ id, reportId, data }`. `close(id)` / `unlisten(id)` / `reportDescriptor(id)`.
 
 **Shortcuts:** `shortcuts.list()` and `shortcuts.run(name)` call `/usr/bin/shortcuts`.
 

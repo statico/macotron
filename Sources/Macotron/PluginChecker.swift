@@ -151,6 +151,7 @@ enum PluginChecker {
         engine.addModule(AudioModule())
         engine.addModule(SpacesModule())
         engine.addModule(USBModule())
+        engine.addModule(HIDModule())
         engine.addModule(ShortcutsModule())
     }
 }
