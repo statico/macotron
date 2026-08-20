@@ -9,6 +9,7 @@ The first-run wizard does not demand permissions up front. The required set is t
 | **Input Monitoring** | Baseline | Snippet expansion, window snap, and event taps |
 | **Accessibility** | Baseline | Move and focus windows |
 | **Screen Recording** | Declared by a plugin | Capture the screen |
+| **Camera** | Declared by a plugin | Scan a QR code |
 
 A plugin declares what it needs in `macotron.plugin()`:
 
@@ -67,11 +68,11 @@ enum CapabilityTier {
 
 ### Safe (read-only)
 
-`window.getAll`, `window.focused`, `clipboard.text`, `system.cpuTemp`, `system.memory`, `system.battery`, `system.darkMode`, `system.focus`, `app.list`, `spotlight.search`, `display.list`, `keychain.get`, `keychain.has`, `media.nowPlaying`, `notes.list`, `keyboard.flags`, `mouse.location`, `mouse.buttons`, `audio.devices`, `audio.input`, `audio.output`, `audio.volume`, `audio.isMuted`, `network.wifi`, `network.wifiSSID`, `network.bluetooth`, `network.airDrop`, `network.interfaces`, `spaces.list`, `spaces.current`, `usb.list`, `hid.list`, `shortcuts.list`
+`window.getAll`, `window.focused`, `clipboard.text`, `system.cpuTemp`, `system.memory`, `system.battery`, `system.darkMode`, `system.focus`, `app.list`, `spotlight.search`, `display.list`, `keychain.get`, `keychain.has`, `media.nowPlaying`, `notes.list`, `keyboard.flags`, `mouse.location`, `mouse.buttons`, `audio.devices`, `audio.input`, `audio.output`, `audio.volume`, `audio.isMuted`, `network.wifi`, `network.wifiSSID`, `network.bluetooth`, `network.airDrop`, `network.interfaces`, `spaces.list`, `spaces.current`, `usb.list`, `hid.list`, `shortcuts.list`, `qr.detect`, `qr.image`
 
 ### Moderate (reversible side effects)
 
-`window.move`, `window.moveToFraction`, `window.previewFraction`, `window.focus`, `window.minimize`, `window.close`, `window.setFullscreen`, `window.snap`, `window.setSnapEnabled`, `notify.show`, `notify.toast`, `alert`, `confirm`, `prompt`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `app.hide`, `app.quit`, `app.menu`, `audio.setInput`, `audio.setOutput`, `audio.setVolume`, `audio.setMuted`, `network.setWifi`, `network.setBluetooth`, `network.setAirDrop`, `spaces.go`, `spaces.moveWindow`, `shortcuts.run`, `panel.open`, `panel.close`, `screen.pickColor`, `media.playPause`, `media.next`, `media.previous`, `launcher.set`, `notes.open`, `display.setGamma`, `display.restoreGamma`, `event.post`, `event.tap`, `mouse.warp`, `system.setLowPowerMode`, `system.setDarkMode`, `hid.open`, `hid.close`, `hid.sendOutput`, `hid.sendFeature`, `hid.readInput`, `hid.readFeature`, `hid.listen`, `hid.unlisten`, `hid.reportDescriptor`
+`window.move`, `window.moveToFraction`, `window.previewFraction`, `window.focus`, `window.minimize`, `window.close`, `window.setFullscreen`, `window.snap`, `window.setSnapEnabled`, `notify.show`, `notify.toast`, `alert`, `confirm`, `prompt`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `app.hide`, `app.quit`, `app.menu`, `audio.setInput`, `audio.setOutput`, `audio.setVolume`, `audio.setMuted`, `network.setWifi`, `network.setBluetooth`, `network.setAirDrop`, `spaces.go`, `spaces.moveWindow`, `shortcuts.run`, `panel.open`, `panel.close`, `screen.pickColor`, `media.playPause`, `media.next`, `media.previous`, `launcher.set`, `notes.open`, `display.setGamma`, `display.restoreGamma`, `event.post`, `event.tap`, `mouse.warp`, `system.setLowPowerMode`, `system.setDarkMode`, `hid.open`, `hid.close`, `hid.sendOutput`, `hid.sendFeature`, `hid.readInput`, `hid.readFeature`, `hid.listen`, `hid.unlisten`, `hid.reportDescriptor`, `qr.scan`, `qr.show`
 
 ### Dangerous (system / network / filesystem)
 

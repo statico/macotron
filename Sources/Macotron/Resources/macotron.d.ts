@@ -444,6 +444,17 @@ declare const macotron: {
         recognize(opts: { path?: string; image?: string }): Promise<string>;
     };
 
+    qr: {
+        /** First QR payload in an image, or `null`. */
+        detect(opts: { path?: string; image?: string }): Promise<string | null>;
+        /** Interactive scan. Camera preview, or a screenshot (selection by default). */
+        scan(opts?: { camera?: boolean; screenshot?: boolean; selection?: boolean }): Promise<string | null>;
+        /** PNG (base64) of a QR code. */
+        image(text: string, opts?: { size?: number }): string | null;
+        /** Show a QR code in a floating window. */
+        show(text: string, opts?: { size?: number }): void;
+    };
+
     system: {
         cpuTemp(): Promise<number>;
         cpu(): { usage: number };

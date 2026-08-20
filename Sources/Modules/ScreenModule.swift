@@ -175,7 +175,7 @@ public final class ScreenModule: NativeModule {
     }
 }
 
-private func captureDisplayPNG(displayID: CGDirectDisplayID? = nil) async throws -> String {
+func captureDisplayPNG(displayID: CGDirectDisplayID? = nil) async throws -> String {
     let image = try await captureDisplay(displayID: displayID)
     guard let png = pngBase64(image) else {
         throw NSError(domain: "macotron.screen", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode PNG"])
@@ -201,7 +201,7 @@ private func captureDisplay(displayID: CGDirectDisplayID? = nil) async throws ->
     return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
 }
 
-private func captureRegion(_ cocoa: CGRect) async throws -> String {
+func captureRegion(_ cocoa: CGRect) async throws -> String {
     let screen = NSScreen.screens.first { $0.frame.intersects(cocoa) }
         ?? NSScreen.main
         ?? NSScreen.screens[0]

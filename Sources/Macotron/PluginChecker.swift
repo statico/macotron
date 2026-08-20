@@ -152,6 +152,7 @@ enum PluginChecker {
         engine.addModule(SpacesModule())
         engine.addModule(USBModule())
         engine.addModule(HIDModule())
+        engine.addModule(QRModule())
         engine.addModule(ShortcutsModule())
     }
 }

@@ -783,6 +783,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.addModule(CalendarModule())
         engine.addModule(ContactsModule())
         engine.addModule(OCRModule())
+        engine.addModule(QRModule())
         engine.addModule(PowerModule())
         engine.addModule(NetworkModule())
         engine.addModule(IdleModule())
