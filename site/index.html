@@ -20,7 +20,7 @@
   <header class="top">
     <a class="mark" href="/">Macotron</a>
     <nav>
-      <a href="#can">Examples</a>
+      <a href="#can">Capabilities</a>
       <a href="#source">Plugins</a>
       <a href="#api">API</a>
       <a href="https://github.com/statico/macotron">GitHub</a>
@@ -40,23 +40,38 @@
 
   <main>
     <section class="hero">
-      <img class="hero-icon" src="icon.png" width="160" height="160" alt="Macotron">
-      <h1>It does everything.</h1>
-      <p class="byline">
-        Tile windows, bind hotkeys, drive the menu bar, read battery and fans, capture the screen, talk to AI models, and hook the rest of macOS. All from tiny, hot-reloading JavaScript plugins. Built with Swift & QuickJS for maximum speed.
-      </p>
-      <div class="cta">
-        <a class="btn" href="https://github.com/statico/macotron/releases/latest">Download</a>
-        <a class="ghost" href="https://github.com/statico/macotron">Source on GitHub</a>
+      <div class="hero-copy">
+        <img class="hero-icon" src="icon.png" width="112" height="112" alt="">
+        <h1>It does everything.</h1>
+        <p class="byline">
+          A scriptable macOS host. Tile windows, bind hotkeys, drive the menu bar,
+          read sensors, capture the screen, talk to models — from small JavaScript
+          files that reload when you save them.
+        </p>
+        <div class="cta">
+          <a class="btn" href="https://github.com/statico/macotron/releases/latest">Download for macOS</a>
+          <a class="ghost" href="https://github.com/statico/macotron">Source on GitHub</a>
+        </div>
+        <p class="fineprint">Swift and QuickJS. macOS 26 Tahoe. No npm, no Homebrew, no runtime to install.</p>
       </div>
+      <figure class="hero-code">
+        <pre><code><span class="tok-cmt">// ~/Macotron/plugins/tile.js</span>
+<span class="tok-fn">macotron</span>.<span class="tok-fn">keyboard</span>.on(<span class="tok-str">"Tile Left"</span>, <span class="tok-str">"ctrl+opt+left"</span>, () =&gt; {
+  <span class="tok-kw">const</span> win = <span class="tok-fn">macotron</span>.window.focused();
+  <span class="tok-fn">macotron</span>.window.moveToFraction(win.id, {
+    x: <span class="tok-num">0</span>, y: <span class="tok-num">0</span>, w: <span class="tok-num">0.5</span>, h: <span class="tok-num">1</span>,
+  });
+});</code></pre>
+        <figcaption>Save the file. The hotkey is live.</figcaption>
+      </figure>
     </section>
 
     <section class="can" id="can">
       <div class="can-head">
-        <h2>Examples</h2>
+        <h2>Capabilities</h2>
         <label class="search">
-          <span class="visually-hidden">Filter examples</span>
-          <input type="search" id="q" placeholder="Search" autocomplete="off">
+          <span class="visually-hidden">Filter capabilities</span>
+          <input type="search" id="q" placeholder="Filter" autocomplete="off">
         </label>
       </div>
       <div class="cards" id="cards"></div>
@@ -64,10 +79,11 @@
 
     <section class="source" id="source">
       <div class="source-copy">
-        <h2>Plugins directory</h2>
+        <h2>Plugins</h2>
         <p>
-          First launch asks for a directory. Macotron writes <code>AGENTS.md</code> so a coding agent has the API.
-          Put scripts in <code>plugins/</code>. Save to reload.
+          First launch asks for a directory. Scripts go in <code>plugins/</code>, and
+          Macotron writes an <code>AGENTS.md</code> next to them so a coding agent
+          already knows the API.
         </p>
       </div>
       <div class="finder" id="finder" role="region" aria-label="Demo plugins folder">
@@ -85,8 +101,10 @@
     </section>
 
     <section class="api" id="api">
-      <h2>Host APIs</h2>
-      <p class="lede">Call <code>macotron.*</code> from a plugin. No npm. Apple-shipped tools only.</p>
+      <div class="api-head">
+        <h2>Host API</h2>
+        <p class="lede">Everything hangs off <code>macotron.*</code>. Apple-shipped tools only.</p>
+      </div>
       <div class="api-grid" id="apis"></div>
     </section>
   </main>
