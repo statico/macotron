@@ -136,3 +136,23 @@ make cleanprefs   # wipe prefs, wizard on next launch
 - [Phases](docs/09-phases.md)
 - [Plugins workdir](docs/10-plugins-workdir.md)
 - [Host design](docs/superpowers/specs/2026-08-17-host-shell-design.md)
+
+## License
+
+Macotron is MIT licensed. See [LICENSE](LICENSE).
+
+### Third-party code
+
+| Component | Location | License |
+|---|---|---|
+| [QuickJS-ng](https://github.com/quickjs-ng/quickjs) — the JavaScript engine | `Vendor/quickjs-ng/` | MIT |
+
+QuickJS-ng is the only vendored dependency. It ships here as an amalgamated
+`quickjs-amalgam.c` plus headers, with the upstream copyright notices intact in
+the source — Fabrice Bellard, Charlie Gordon, Ben Noordhuis, Saúl Ibarra
+Corretgé, and Marcin Kolny. The vendored version is whatever `QJS_VERSION_*` in
+`Vendor/quickjs-ng/include/quickjs.h` says. `quickjs-swift-helpers.c` is
+Macotron's own shim, not upstream code.
+
+Everything else is first-party Swift or an Apple-shipped framework. There are no
+Swift package dependencies, no npm, and no Homebrew.

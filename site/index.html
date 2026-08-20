@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Macotron</title>
+  <meta name="description" content="Native macOS host for JavaScript plugins. Plugins are .js files in a folder. Macotron loads them.">
+  <link rel="canonical" href="https://macotron.statico.io/">
+  <link rel="icon" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <script>
+    (function () {
+      var m = localStorage.getItem("theme") || "system";
+      if (m === "light" || m === "dark") document.documentElement.dataset.theme = m;
+    })();
+  </script>
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="#can">Capabilities</a>
+      <a href="#source">Plugins</a>
+      <a href="#api">API</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <img class="hero-icon" src="icon.png" width="112" height="112" alt="">
+        <h1>It does everything.</h1>
+        <p class="byline">
+          A scriptable macOS host. Tile windows, bind hotkeys, drive the menu bar,
+          read sensors, capture the screen, talk to models — from small JavaScript
+          files that reload when you save them.
+        </p>
+        <div class="cta">
+          <a class="btn" href="https://github.com/statico/macotron/releases/latest">Download for macOS</a>
+          <a class="ghost" href="https://github.com/statico/macotron">Source on GitHub</a>
+        </div>
+        <p class="fineprint">Free and open source. Built with Swift and QuickJS.</p>
+      </div>
+      <figure class="hero-code">
+        <pre><code><span class="tok-cmt">// ~/Macotron/plugins/tile.js</span>
+<span class="tok-fn">macotron</span>.<span class="tok-fn">keyboard</span>.on(<span class="tok-str">"Tile Left"</span>, <span class="tok-str">"ctrl+opt+left"</span>, () =&gt; {
+  <span class="tok-kw">const</span> win = <span class="tok-fn">macotron</span>.window.focused();
+  <span class="tok-fn">macotron</span>.window.moveToFraction(win.id, {
+    x: <span class="tok-num">0</span>, y: <span class="tok-num">0</span>, w: <span class="tok-num">0.5</span>, h: <span class="tok-num">1</span>,
+  });
+});</code></pre>
+        <figcaption>Save the file. The hotkey is live.</figcaption>
+      </figure>
+    </section>
+
+    <section class="can" id="can">
+      <div class="can-head">
+        <h2>Capabilities</h2>
+        <label class="search">
+          <span class="visually-hidden">Filter capabilities</span>
+          <input type="search" id="q" placeholder="Filter" autocomplete="off">
+        </label>
+      </div>
+      <div class="cards" id="cards"></div>
+    </section>
+
+    <section class="source" id="source">
+      <div class="source-copy">
+        <h2>Plugins</h2>
+        <p>
+          First launch asks for a directory. Scripts go in <code>plugins/</code>, and
+          Macotron writes an <code>AGENTS.md</code> next to them so a coding agent
+          already knows the API.
+        </p>
+      </div>
+      <div class="finder" id="finder" role="region" aria-label="Demo plugins folder">
+        <div class="finder-chrome">
+          <span class="traffic" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="finder-title" id="finder-title">plugins</span>
+        </div>
+        <div class="finder-body">
+          <nav class="sidebar" id="sidebar"></nav>
+          <div class="pane">
+            <pre class="code" id="code"><code></code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="api" id="api">
+      <div class="api-head">
+        <h2>Host API</h2>
+        <p class="lede">Everything hangs off <code>macotron.*</code>. Apple-shipped tools only.</p>
+      </div>
+      <div class="api-grid" id="apis"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p>macotron.statico.io</p>
+  </footer>
+  <script src="site.js"></script>
+</body>
+</html>
