@@ -13,12 +13,6 @@ enum SharePath {
     }
 }
 
-enum ShareServices {
-    static func names(_ items: [Any] = [" "]) -> [String] {
-        NSSharingService.sharingServices(forItems: items).map(\.title)
-    }
-}
-
 @MainActor
 private final class SharePickerHost: NSObject, @preconcurrency NSSharingServicePickerDelegate {
     var window: NSWindow?
@@ -72,11 +66,6 @@ public final class ShareModule: NativeModule {
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let share = JS_NewObject(ctx)
-
-        JS_SetPropertyStr(ctx, share, "services", JS_NewCFunction(ctx, { ctx, _, _, _ in
-            guard let ctx else { return QJS_Undefined() }
-            return JSBridge.newArray(ctx, ShareServices.names())
-        }, "services", 0))
 
         JS_SetPropertyStr(ctx, share, "open", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
