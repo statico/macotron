@@ -23,7 +23,3 @@ macotron.command("AirDrop File", "AirDrop a file path from a prompt", () => {
   if (!path) return;
   macotron.share.airDrop([path]);
 });
-
-macotron.command("Share Services", "List sharing service names", () => {
-  macotron.notify.toast("Share", macotron.share.services().join(", ") || "None");
-});

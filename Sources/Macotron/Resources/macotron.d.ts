@@ -486,7 +486,6 @@ declare const macotron: {
     };
 
     share: {
-        services(): string[];
         open(opts: { files?: string[]; text?: string; url?: string }): boolean;
         airDrop(paths: string[]): boolean;
     };
