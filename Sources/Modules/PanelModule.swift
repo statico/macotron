@@ -80,8 +80,24 @@ public final class PanelModule: NativeModule {
                 ? false : JSBridge.toBool(ctx, blurVal)
             JS_FreeValue(ctx, blurVal)
 
+            let idVal = JSBridge.getProperty(ctx, opts, "id")
+            let requestedId: String? = JSBridge.isUndefined(idVal) || JSBridge.isNull(idVal)
+                ? nil : JSBridge.toString(ctx, idVal)
+            JS_FreeValue(ctx, idVal)
+
+            let fullscreenVal = JSBridge.getProperty(ctx, opts, "fullscreen")
+            let fullscreen = JSBridge.isUndefined(fullscreenVal) || JSBridge.isNull(fullscreenVal)
+                ? false : JSBridge.toBool(ctx, fullscreenVal)
+            JS_FreeValue(ctx, fullscreenVal)
+
+            let qrVal = JSBridge.getProperty(ctx, opts, "qr")
+            let qr: String? = JSBridge.isUndefined(qrVal) || JSBridge.isNull(qrVal)
+                ? nil : JSBridge.toString(ctx, qrVal)
+            JS_FreeValue(ctx, qrVal)
+
             let useShell = rawHtml == nil || rawHtml?.isEmpty == true
-            let document = useShell ? PanelShell.document(body: html ?? "", glass: glass.isEnabled) : rawHtml!
+            let body = PanelQR.append(to: html ?? "", qr: qr)
+            let document = useShell ? PanelShell.document(body: body, glass: glass.isEnabled) : PanelQR.append(to: rawHtml!, qr: qr)
 
             let id = module.openPanel(
                 title: title,
@@ -91,7 +107,9 @@ public final class PanelModule: NativeModule {
                 hostChrome: useShell,
                 glass: glass,
                 frameless: frameless,
-                closeOnBlur: closeOnBlur
+                fullscreen: fullscreen,
+                closeOnBlur: closeOnBlur,
+                id: requestedId
             )
             return JSBridge.newString(ctx, id)
         }, "open", 1))
@@ -137,18 +155,24 @@ public final class PanelModule: NativeModule {
         PanelModuleState.shared.module = nil
     }
 
-    private func openPanel(title: String, width: Int, height: Int, html: String, hostChrome: Bool, glass: PanelGlass, frameless: Bool, closeOnBlur: Bool) -> String {
-        let id = UUID().uuidString
+    private func openPanel(title: String, width: Int, height: Int, html: String, hostChrome: Bool, glass: PanelGlass, frameless: Bool, fullscreen: Bool, closeOnBlur: Bool, id requestedId: String?) -> String {
+        let id: String
+        if let requestedId, !requestedId.isEmpty {
+            closePanel(requestedId)
+            id = requestedId
+        } else {
+            id = UUID().uuidString
+        }
         if engine?.dryRun == true {
             return id
         }
-        let host = PanelHost(id: id, title: title, width: width, height: height, html: html, hostChrome: hostChrome, glass: glass, frameless: frameless, closeOnBlur: closeOnBlur, onMessage: { [weak self] panelId, body in
+        let host = PanelHost(id: id, title: title, width: width, height: height, html: html, hostChrome: hostChrome, glass: glass, frameless: frameless, fullscreen: fullscreen, closeOnBlur: closeOnBlur, onMessage: { [weak self] panelId, body in
             self?.dispatchMessage(panelId: panelId, body: body)
         }, onClosed: { [weak self] in
             self?.forgetPanel(id)
         })
         panels[id] = host
-        host.show()
+        host.show(fullscreen: fullscreen)
         return id
     }
 

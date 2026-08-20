@@ -39,6 +39,13 @@ enum PanelChrome {
     }
 }
 
+enum PanelQR {
+    static func append(to html: String, qr: String?) -> String {
+        guard let qr, !qr.isEmpty, let png = QRCodes.png(text: qr) else { return html }
+        return html + #"<img src="data:image/png;base64,\#(png.base64EncodedString())" alt="QR">"#
+    }
+}
+
 @MainActor
 enum PanelShell {
     nonisolated static func css(glass: Bool) -> String {
@@ -214,6 +221,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     private let onMessage: (String, Any) -> Void
     private let onClosed: () -> Void
     private let frameless: Bool
+    private let fullscreen: Bool
     private let closeOnBlur: Bool
     private var blurArmed = false
     private var zoomMonitor: Any?
@@ -231,6 +239,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         hostChrome: Bool,
         glass: PanelGlass = .none,
         frameless: Bool = false,
+        fullscreen: Bool = false,
         closeOnBlur: Bool = false,
         onMessage: @escaping (String, Any) -> Void,
         onClosed: @escaping () -> Void
@@ -239,6 +248,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         self.onMessage = onMessage
         self.onClosed = onClosed
         self.frameless = frameless
+        self.fullscreen = fullscreen
         self.closeOnBlur = closeOnBlur
 
         let config = WKWebViewConfiguration()
@@ -264,7 +274,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
 
         let p = PluginPanel(
             contentRect: NSRect(origin: .zero, size: size),
-            styleMask: PanelChrome.styleMask(frameless: frameless),
+            styleMask: PanelChrome.styleMask(frameless: frameless || fullscreen),
             backing: .buffered,
             defer: false
         )
@@ -282,7 +292,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
             p.backgroundColor = .clear
             p.hasShadow = true
         }
-        p.contentView = Self.embed(wv, glass: glass, size: size, frameless: frameless)
+        p.contentView = Self.embed(wv, glass: glass, size: size, frameless: frameless, fullscreen: fullscreen)
         self.panel = p
 
         super.init()
@@ -318,11 +328,11 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         )
     }
 
-    private static func embed(_ webView: WKWebView, glass: PanelGlass, size: NSSize, frameless: Bool) -> NSView {
+    private static func embed(_ webView: WKWebView, glass: PanelGlass, size: NSSize, frameless: Bool, fullscreen: Bool = false) -> NSView {
         let frame = NSRect(origin: .zero, size: size)
         webView.frame = frame
         webView.autoresizingMask = [.width, .height]
-        let radius = frameless ? PanelChrome.cornerRadius : 0
+        let radius = frameless && !fullscreen ? PanelChrome.cornerRadius : 0
         if glass.usesLiquidGlass {
             if #available(macOS 26.0, *) {
                 let view = NSGlassEffectView(frame: frame)
@@ -358,9 +368,20 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         return view
     }
 
-    func show() {
+    func show(fullscreen: Bool = false) {
         blurArmed = false
-        panel.center()
+        if fullscreen {
+            panel.styleMask = PanelChrome.styleMask(frameless: true)
+            panel.level = .statusBar
+            panel.hasShadow = false
+            let point = NSEvent.mouseLocation
+            let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main
+            if let screen {
+                panel.setFrame(screen.frame, display: true)
+            }
+        } else {
+            panel.center()
+        }
         bringToFront()
         // Launcher/menu-bar dismissal on this pass steals key; claim it again after.
         DispatchQueue.main.async { [weak self] in
@@ -478,7 +499,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     }
 
     private func handleKey(_ event: NSEvent) -> Bool {
-        if frameless, event.keyCode == 53 {
+        if frameless || fullscreen, event.keyCode == 53 {
             close()
             return true
         }

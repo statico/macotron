@@ -223,10 +223,11 @@ final class PluginStatusItem: NSObject {
     }
 
     private static func thumbnail(_ source: NSImage, length: CGFloat) -> NSImage {
-        let size = NSSize(width: length, height: length)
+        let src = source.size
+        let aspect = src.height > 0 ? src.width / src.height : 1
+        let size = NSSize(width: max(length * aspect, length), height: length)
         let out = NSImage(size: size, flipped: false) { rect in
             NSGraphicsContext.current?.imageInterpolation = .high
-            NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4).addClip()
             source.draw(in: rect, from: .zero, operation: .copy, fraction: 1)
             return true
         }

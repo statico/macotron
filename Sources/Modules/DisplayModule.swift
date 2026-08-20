@@ -72,7 +72,7 @@ enum DisplayChange {
 @MainActor
 public final class DisplayModule: NativeModule {
     public let name = "display"
-    public let moduleVersion = 3
+    public let moduleVersion = 4
 
     private var xdrWindow: NSWindow?
 
@@ -167,6 +167,69 @@ public final class DisplayModule: NativeModule {
             CGDisplayRestoreColorSyncSettings()
             return JSBridge.newBool(ctx, true)
         }, "restoreGamma", 0))
+
+        JS_SetPropertyStr(ctx, displayObj, "nightShift",
+                          JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newObject(ctx, DisplayAppearance.nightShift())
+        }, "nightShift", 0))
+
+        JS_SetPropertyStr(ctx, displayObj, "setNightShift",
+                          JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc > 0 else {
+                return JSBridge.newObject(ctx!, DisplayAppearance.setFail("missing argument"))
+            }
+            let raw: Any = JS_IsObject(argv[0]) && !JS_IsBool(argv[0])
+                ? JSBridge.jsToSwift(ctx, argv[0])
+                : JSBridge.toBool(ctx, argv[0])
+            guard let req = DisplayAppearance.parseNightShift(raw) else {
+                return JSBridge.newObject(ctx, DisplayAppearance.setFail("invalid argument"))
+            }
+            if DisplayModule.isDryRun(ctx) {
+                var result: [String: Any] = ["ok": true, "on": req.on, "available": false]
+                if let strength = req.strength { result["strength"] = strength }
+                return JSBridge.newObject(ctx, result)
+            }
+            return JSBridge.newObject(ctx, DisplayAppearance.setNightShift(req))
+        }, "setNightShift", 1))
+
+        JS_SetPropertyStr(ctx, displayObj, "trueTone",
+                          JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newObject(ctx, DisplayAppearance.trueTone())
+        }, "trueTone", 0))
+
+        JS_SetPropertyStr(ctx, displayObj, "setTrueTone",
+                          JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc > 0 else {
+                return JSBridge.newObject(ctx!, DisplayAppearance.setFail("missing argument"))
+            }
+            if DisplayModule.isDryRun(ctx) {
+                return JSBridge.newObject(ctx, [
+                    "ok": true, "on": JSBridge.toBool(ctx, argv[0]), "available": false,
+                ])
+            }
+            return JSBridge.newObject(ctx, DisplayAppearance.setTrueTone(JSBridge.toBool(ctx, argv[0])))
+        }, "setTrueTone", 1))
+
+        JS_SetPropertyStr(ctx, displayObj, "grayscale",
+                          JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newObject(ctx, DisplayAppearance.grayscale())
+        }, "grayscale", 0))
+
+        JS_SetPropertyStr(ctx, displayObj, "setGrayscale",
+                          JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc > 0 else {
+                return JSBridge.newObject(ctx!, DisplayAppearance.setFail("missing argument"))
+            }
+            if DisplayModule.isDryRun(ctx) {
+                return JSBridge.newObject(ctx, [
+                    "ok": true, "on": JSBridge.toBool(ctx, argv[0]), "available": false,
+                ])
+            }
+            return JSBridge.newObject(ctx, DisplayAppearance.setGrayscale(JSBridge.toBool(ctx, argv[0])))
+        }, "setGrayscale", 1))
 
         JS_SetPropertyStr(ctx, macotronObj, "display", displayObj)
         JS_FreeValue(ctx, macotronObj)

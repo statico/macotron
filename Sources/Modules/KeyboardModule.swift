@@ -16,6 +16,7 @@ public final class KeyboardModule: NativeModule {
     private weak var engine: Engine?
     private var hostHotKeyIDs: [UInt32] = []
     private var pluginHotKeyIDs: [UInt32] = []
+    private let hyper = HyperKey()
 
     public init() {}
 
@@ -68,6 +69,7 @@ public final class KeyboardModule: NativeModule {
 
     public func register(in engine: Engine, options: [String: Any]) {
         self.engine = engine
+        engine.configStore["__keyboardModule"] = self
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
@@ -122,6 +124,24 @@ public final class KeyboardModule: NativeModule {
             ])
         }, "flags", 0))
 
+        JS_SetPropertyStr(ctx, keyboardObj, "setHyperKey", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let module = keyboardModule(ctx) else { return JSBridge.newBool(ctx!, false) }
+            let raw: String?
+            if let argv, argc >= 1, !JS_IsNull(argv[0]), !JS_IsUndefined(argv[0]) {
+                raw = JSBridge.toString(ctx, argv[0])
+            } else {
+                raw = nil
+            }
+            return JSBridge.newBool(ctx, module.hyper.set(raw, dryRun: engineDryRun(ctx)))
+        }, "setHyperKey", 1))
+
+        JS_SetPropertyStr(ctx, keyboardObj, "hyperKey", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx, let module = keyboardModule(ctx), let key = module.hyper.current else {
+                return QJS_Null()
+            }
+            return JSBridge.newString(ctx, key)
+        }, "hyperKey", 0))
+
         JS_SetPropertyStr(ctx, macotron, "keyboard", keyboardObj)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
@@ -130,5 +150,19 @@ public final class KeyboardModule: NativeModule {
     public func cleanup() {
         CarbonHotKeys.shared.unregister(pluginHotKeyIDs)
         pluginHotKeyIDs.removeAll()
+        hyper.cleanup()
     }
+}
+
+@MainActor
+private func keyboardModule(_ ctx: OpaquePointer) -> KeyboardModule? {
+    guard let opaque = JS_GetContextOpaque(ctx) else { return nil }
+    let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+    return engine.configStore["__keyboardModule"] as? KeyboardModule
+}
+
+@MainActor
+private func engineDryRun(_ ctx: OpaquePointer) -> Bool {
+    guard let opaque = JS_GetContextOpaque(ctx) else { return false }
+    return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
 }

@@ -251,9 +251,17 @@ public final class MenuBarModule: NativeModule {
             }
 
             let imageVal = JSBridge.getProperty(ctx, opts, "image")
-            let imagePath: String? = JSBridge.isUndefined(imageVal) || JSBridge.isNull(imageVal)
+            var imagePath: String? = JSBridge.isUndefined(imageVal) || JSBridge.isNull(imageVal)
                 ? nil : JSBridge.toString(ctx, imageVal)
             JS_FreeValue(ctx, imageVal)
+
+            if let png = SparklineImage.png(fromJS: ctx, opts: opts) {
+                let safe = id.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-")
+                let path = (NSTemporaryDirectory() as NSString).appendingPathComponent("macotron-status-\(safe).png")
+                if (try? png.write(to: URL(fileURLWithPath: path))) != nil {
+                    imagePath = path
+                }
+            }
 
             let onClickVal = JSBridge.getProperty(ctx, opts, "onClick")
 
