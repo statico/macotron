@@ -354,7 +354,8 @@ public final class PluginWorkspace {
 
         `html` is inserted into a host document (system font, padding, light/dark).
         `rawHtml` is a full document. `glass: true` (or `"regular"`) uses Liquid Glass
-        with a transparent page background; `glass: "clear"` is the clearer variant.
+        with a transparent page background; `glass: "clear"` is the clearer variant;
+        `glass: "translucent"` is a HUD blur. `closeOnBlur: true` closes on unfocus.
         `frameless: true` hides the title bar; Escape closes.
         Host CSS exposes `--macotron-accent` (and related `--macotron-*` system colors);
         `button.primary` uses the accent color. In the page, `close()` closes the panel.

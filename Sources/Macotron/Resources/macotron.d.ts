@@ -537,16 +537,17 @@ declare const macotron: {
     };
 
     panel: {
-        /** `html` is body markup in a host document (fonts, padding, light/dark). `rawHtml` is a full document. `glass` is Liquid Glass: `true`/`"regular"` (translucent) or `"clear"`. `frameless` hides the title bar. */
+        /** `html` is body markup in a host document (fonts, padding, light/dark). `rawHtml` is a full document. `glass` is Liquid Glass (`true`/`"regular"` or `"clear"`) or `"translucent"` for a HUD blur. `frameless` hides the title bar. `closeOnBlur` closes when the panel loses key focus. */
         open(opts: {
             title?: string;
             width?: number;
             height?: number;
             html?: string;
             rawHtml?: string;
-            glass?: boolean | "regular" | "clear";
+            glass?: boolean | "regular" | "clear" | "translucent";
             /** No title bar. Escape closes. */
             frameless?: boolean;
+            closeOnBlur?: boolean;
         }): string;
         close(id: string): void;
         postMessage(id: string, data: any): void;

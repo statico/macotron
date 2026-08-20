@@ -99,7 +99,7 @@ macotron.panel.postMessage(id, data);
 macotron.panel.onMessage(id, (data) => { /* ... */ });
 ```
 
-`html` is inserted into a host document (system font, padding, light/dark). `rawHtml` is a full document, the old `html` behavior. `glass: true` or `"regular"` is translucent Liquid Glass; `"clear"` is the clearer style. `frameless: true` hides the title bar (Escape closes). Host `html` pages get a transparent background so the glass shows through. In the page, `close()` closes the panel.
+`html` is inserted into a host document (system font, padding, light/dark). `rawHtml` is a full document, the old `html` behavior. `glass: true` or `"regular"` is Liquid Glass; `"clear"` is the clearer Liquid Glass; `"translucent"` is a HUD blur (not glass). `frameless: true` hides the title bar (Escape closes). `closeOnBlur: true` closes when the panel loses key focus. Host `html` pages get a transparent background so the chrome shows through. In the page, `close()` closes the panel.
 
 Host CSS defines system colors as variables: `--macotron-accent`, `--macotron-accent-text`, `--macotron-label`, `--macotron-secondary-label`, `--macotron-fill`, `--macotron-control`, `--macotron-control-text`, `--macotron-control-border`, `--macotron-field`, `--macotron-field-text`, `--macotron-selected`, `--macotron-selected-text`, `--macotron-link`. They follow the system appearance. `button.primary` uses the accent color.
 
