@@ -3,7 +3,7 @@ import MacotronEngine
 
 // HARD-WON RENDERING NOTES — read before changing how status items draw.
 //
-// NSStatusBarButton silently mangles two things we hand it, and both were
+// NSStatusBarButton silently mangles several things we hand it, all
 // diagnosed by snapshotting the live buttons (`cacheDisplay`) rather than
 // trusting the APIs:
 //
@@ -11,9 +11,12 @@ import MacotronEngine
 //    measurements showed a two-line title block sitting ~4pt above the bar's
 //    true center, so one edge always clipped. Paragraph-style tricks
 //    (negative lineSpacing, maximumLineHeight caps, baselineOffset) only
-//    move the clipping around. Buttons DO center images reliably, so
-//    two-line items are drawn into a single bar-height image
-//    (StatusLineStyle.image) with explicit line layout.
+//    move the clipping around. Single-line attributed titles have a related
+//    flaw: the cell places the text cap-band ~1pt above the leading icon's
+//    optical center, so icon+text items read as "text too high". Buttons DO
+//    center images reliably, so ALL text (one or two lines) is drawn into a
+//    single bar-height image (StatusLineStyle.image) with explicit line
+//    layout; only icon-only items hand the button a bare image.
 //
 // 2. Symbol-backed NSImages (from NSImage(systemSymbolName:)) are re-laid
 //    out with the button's own symbol configuration, vertically squashing
@@ -25,14 +28,32 @@ import MacotronEngine
 //    still work as templates and redraw per-appearance, since the drawing
 //    handler runs at display time — MenuBarIcon uses the same technique.
 //
-// Sizing: menu bar icons live in an 18pt slot (MenuBarIcon); SF symbols at
-// pointSize 15/.medium match the visual scale of system status icons.
-// Larger images (the old 20pt/18pt combo) clip against the button's
-// vertical insets.
+// 3. The composed image should be as tall as the actual bar, which on
+//    notched Macs (30pt) is TALLER than NSStatusBar.system.thickness (22pt).
+//    But `button.window.frame` is still zero during the FIRST apply — using
+//    it directly baked zero-size images, collapsing rarely-repainting items
+//    (audio, weather) to empty 16pt stubs while frequently-repainting ones
+//    self-healed. apply() therefore falls back to thickness when the window
+//    has no frame yet and schedules a short re-apply (scheduleReapply) until
+//    layout has happened, so every item eventually composes at full height.
 //
-// If rendering regresses, re-verify with a button snapshot, not the screen:
-// temporarily dump `button.cacheDisplay(in:to:)` PNGs after apply() and
-// measure the ink extents. Screen recording permission is not needed.
+// Sizing and spacing decisions (tuned by eye against system items):
+// - Menu bar icons live in an 18pt slot (MenuBarIcon); SF symbols at
+//   pointSize 15/.medium match the visual scale of system status icons.
+//   Larger images (the old 20pt/18pt combo) clip against the button's
+//   vertical insets.
+// - Two-line stacks use a fixed -1.5pt inter-line overlap (twoLineGap):
+//   adjacent line boxes (gap 0) read too airy because each box carries
+//   ascent/descent padding, while the -3pt squeeze from a 22pt compose
+//   height was visibly cramped. Shorter bars squeeze further as needed.
+// - Single-line text is geometrically centered as a line box, which lands
+//   its cap-band on the leading icon's optical center — matching how the
+//   system pairs icon and text.
+//
+// If rendering regresses, re-verify with window snapshots, not the screen:
+// launch with MACOTRON_DUMP_STATUS=1 (see dumpForDebugging) to write each
+// status window to /tmp as PNG, then measure ink extents against the window
+// center. Screen recording permission is not needed.
 
 @MainActor
 final class PluginStatusItem: NSObject {
@@ -69,6 +90,7 @@ final class PluginStatusItem: NSObject {
         onClick: (() -> Void)?,
         menu: [MenuBarEntry] = []
     ) {
+        reapplyWork?.cancel()
         self.onClick = onClick
         menuKeep.removeAll()
         if menu.isEmpty {
@@ -83,7 +105,6 @@ final class PluginStatusItem: NSObject {
         let nsColor = Self.parseColor(color)
         let nsSubtitleColor = Self.parseColor(subtitleColor)
         let iconOnly = title.isEmpty && (subtitle ?? "").isEmpty
-        let twoLine = !(subtitle ?? "").isEmpty
         let image = Self.loadImage(sfSymbol: sfSymbol, path: imagePath, color: iconOnly ? nsColor : nil)
         button?.contentTintColor = nil
         let lines = StatusLineStyle.lines(
@@ -95,18 +116,29 @@ final class PluginStatusItem: NSObject {
             italic: italic,
             secondary: secondary
         )
-        if twoLine {
-            // NSButtonCell does not vertically center multi-line titles, so
-            // compose icon and text into one image; buttons center images.
-            let height = button?.window?.frame.height ?? NSStatusBar.system.thickness
+        if iconOnly {
+            button?.image = image
+            button?.imagePosition = .imageOnly
+        } else {
+            // All text goes through the composed image (see rendering notes).
+            // The bar can be taller than NSStatusBar.thickness (30pt vs 22pt
+            // on notched Macs), but the window frame is still zero on the
+            // first apply. Fall back to thickness then, and re-apply shortly
+            // after so rarely-repainting items get the full-height layout.
+            let windowHeight = button?.window?.frame.height ?? 0
+            let height = windowHeight > 0 ? windowHeight : NSStatusBar.system.thickness
+            if windowHeight <= 0 {
+                scheduleReapply(
+                    title: title, subtitle: subtitle, color: color,
+                    subtitleColor: subtitleColor, bold: bold, italic: italic,
+                    secondary: secondary, minWidth: minWidth, sfSymbol: sfSymbol,
+                    imagePath: imagePath, onClick: onClick, menu: menu
+                )
+            }
             button?.image = StatusLineStyle.image(icon: image, lines: lines, height: height)
             button?.imagePosition = .imageOnly
-            button?.attributedTitle = NSAttributedString()
-        } else {
-            button?.image = image
-            button?.imagePosition = iconOnly ? .imageOnly : .imageLeading
-            button?.attributedTitle = lines.first ?? NSAttributedString()
         }
+        button?.attributedTitle = NSAttributedString()
         item.length = NSStatusItem.variableLength
         if let button,
            let length = StatusLineStyle.length(
@@ -116,9 +148,52 @@ final class PluginStatusItem: NSObject {
             item.length = length
         }
         button?.toolTip = subtitle.map { "\(title) — \($0)" } ?? title
+        dumpForDebugging()
+    }
+
+    // Diagnostics (see rendering notes above): MACOTRON_DUMP_STATUS=1
+    // snapshots each status window to /tmp for inspection.
+    private func dumpForDebugging() {
+        guard ProcessInfo.processInfo.environment["MACOTRON_DUMP_STATUS"] != nil else { return }
+        let id = self.id
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            guard let button = self?.item.button, let window = button.window,
+                  let content = window.contentView else { return }
+            let info = "window=\(window.frame.size) buttonFrameInWindow=\(button.convert(button.bounds, to: nil)) image=\(button.image?.size ?? .zero) length=\(self?.item.length ?? -99) fitting=\(button.fittingSize)\n"
+            try? info.write(toFile: "/tmp/macotron-status-\(id).txt", atomically: true, encoding: .utf8)
+            guard let rep = content.bitmapImageRepForCachingDisplay(in: content.bounds) else { return }
+            content.cacheDisplay(in: content.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?
+                .write(to: URL(fileURLWithPath: "/tmp/macotron-status-\(id).png"))
+        }
+    }
+
+    private var reapplyWork: DispatchWorkItem?
+    private var reapplyAttempts = 0
+
+    private func scheduleReapply(
+        title: String, subtitle: String?, color: String?, subtitleColor: String?,
+        bold: Bool, italic: Bool, secondary: Bool, minWidth: Double?,
+        sfSymbol: String?, imagePath: String?, onClick: (() -> Void)?,
+        menu: [MenuBarEntry]
+    ) {
+        guard reapplyAttempts < 20 else { return }
+        reapplyAttempts += 1
+        reapplyWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.apply(
+                title: title, subtitle: subtitle, color: color,
+                subtitleColor: subtitleColor, bold: bold, italic: italic,
+                secondary: secondary, minWidth: minWidth, sfSymbol: sfSymbol,
+                imagePath: imagePath, onClick: onClick, menu: menu
+            )
+        }
+        reapplyWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)
     }
 
     func remove() {
+        reapplyWork?.cancel()
         NSStatusBar.system.removeStatusItem(item)
     }
 
@@ -268,12 +343,15 @@ enum StatusLineStyle {
     }
 
     // Bottom-based y origin for each line, top line first. Lines stack from
-    // the vertical center; when the stack is taller than the bar, the
-    // inter-line gap goes negative, letting descender and ascender boxes
-    // overlap (their ink rarely collides) instead of clipping at the edges.
+    // the vertical center with a slight overlap (line boxes include ascent
+    // and descent padding, so adjacent boxes read too airy); when the stack
+    // is taller than the bar, the gap goes further negative, letting
+    // descender and ascender boxes overlap instead of clipping at the edges.
+    static let twoLineGap: CGFloat = -1.5
+
     static func lineOrigins(barHeight: CGFloat, heights: [CGFloat]) -> [CGFloat] {
         let sum = heights.reduce(0, +)
-        let gap = heights.count > 1 ? min(0, barHeight - 1 - sum) : 0
+        let gap = heights.count > 1 ? min(twoLineGap, barHeight - 1 - sum) : 0
         let total = sum + gap * CGFloat(heights.count - 1)
         var y = barHeight - (barHeight - total) / 2
         return heights.map { h in
