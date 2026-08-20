@@ -399,7 +399,7 @@ public final class Engine {
         DispatchQueue.main.async { open?(file) }
     }
 
-    func recordPluginEvent(_ event: String) {
+    public func recordPluginEvent(_ event: String) {
         guard let file = currentEvaluatingFile, !file.isEmpty, !event.isEmpty else { return }
         var events = pluginEvents[file] ?? []
         if !events.contains(event) {
