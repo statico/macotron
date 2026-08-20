@@ -83,7 +83,11 @@ struct LauncherPlacementTests {
             resultCount: 0, queryEmpty: true, argumentCount: nil,
             textScale: 1, visible: visible
         )
+        #expect(empty == 48)
         #expect(empty == LauncherPlacement.minHeight)
+        #expect(LauncherPlacement.searchBarHeight(showingList: false) == empty)
+        #expect(LauncherPlacement.searchBarHeight(showingList: true) == 52)
+        #expect(LauncherPlacement.searchHeight == 52)
 
         let one = LauncherPlacement.panelHeight(
             resultCount: 1, queryEmpty: false, argumentCount: nil,

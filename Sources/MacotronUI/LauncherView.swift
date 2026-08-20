@@ -10,7 +10,7 @@ private let launcherLog = Logger(subsystem: "io.statico.macotron", category: "la
 public final class LauncherFrame: ObservableObject {
     @Published public var size: CGSize
 
-    public init(size: CGSize = CGSize(width: 750, height: 56)) {
+    public init(size: CGSize = CGSize(width: 750, height: 48)) {
         self.size = size
     }
 }
@@ -105,7 +105,7 @@ public struct LauncherView: View {
                         .frame(height: 24)
                 }
                 .padding(.horizontal, 16)
-                .frame(height: LauncherPlacement.searchHeight)
+                .frame(height: LauncherPlacement.searchBarHeight(showingList: !queryIsEmpty || !results.isEmpty))
                 .layoutPriority(1)
 
                 if !queryIsEmpty || !results.isEmpty {
