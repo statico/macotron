@@ -492,13 +492,28 @@ public struct SettingsView: View {
                 if state.moduleSummaries.isEmpty {
                     emptyPluginsPlaceholder
                 } else {
-                    List(selection: $selectedPlugin) {
-                        ForEach(state.moduleSummaries) { summary in
-                            PluginListRow(summary: summary)
-                                .tag(summary.filename)
+                    ScrollView {
+                        VStack(spacing: 1) {
+                            ForEach(state.moduleSummaries) { summary in
+                                let selected = selectedPlugin == summary.filename
+                                Button {
+                                    selectedPlugin = summary.filename
+                                } label: {
+                                    PluginListRow(summary: summary)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 5)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 5)
+                                                .fill(selected ? Color.accentColor.opacity(0.18) : Color.clear)
+                                        )
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
+                        .padding(6)
                     }
-                    .listStyle(.sidebar)
                     .frame(maxHeight: .infinity)
                 }
 
