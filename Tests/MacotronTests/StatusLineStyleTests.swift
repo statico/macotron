@@ -75,7 +75,33 @@ struct StatusLineStyleTests {
     func minimumWidth() {
         #expect(StatusLineStyle.length(naturalWidth: 120, minWidth: 96) == 120)
         #expect(StatusLineStyle.length(naturalWidth: 80, minWidth: 96) == 96)
-        #expect(StatusLineStyle.length(naturalWidth: 80, minWidth: nil) == nil)
+        #expect(StatusLineStyle.length(naturalWidth: 80, minWidth: nil) == 80)
+    }
+
+    @Test("icon uses ink bounds instead of the SF Symbol canvas")
+    @MainActor
+    func iconUsesInkBounds() {
+        let lines = StatusLineStyle.lines(
+            title: "CPU 100%",
+            subtitle: "GPU 100%",
+            color: nil,
+            subtitleColor: nil,
+            bold: false,
+            italic: false,
+            secondary: true
+        )
+        let icon = NSImage(systemSymbolName: "cpu", accessibilityDescription: nil)?
+            .withSymbolConfiguration(.init(pointSize: 15, weight: .medium))
+        guard let icon else {
+            Issue.record("missing cpu symbol")
+            return
+        }
+        let textWidth = lines.map { $0.size().width }.max() ?? 0
+        let image = StatusLineStyle.image(icon: icon, lines: lines, height: 30)
+        let canvasLayout = icon.size.width + 4 + textWidth
+        #expect(image.size.width < canvasLayout)
+        let ink = StatusLineStyle.inkFrame(icon)
+        #expect(abs(image.size.width - (ink.width + StatusLineStyle.iconTextSpacing + textWidth)) < 1)
     }
 
     @Test("single line with icon composes a usable image")

@@ -139,13 +139,11 @@ final class PluginStatusItem: NSObject {
             button?.imagePosition = .imageOnly
         }
         button?.attributedTitle = NSAttributedString()
-        item.length = NSStatusItem.variableLength
-        if let button,
-           let length = StatusLineStyle.length(
-               naturalWidth: ceil(button.fittingSize.width),
-               minWidth: minWidth
-           ) {
-            item.length = length
+        let natural = ceil(button?.image?.size.width ?? 0)
+        if natural > 0 || minWidth != nil {
+            item.length = StatusLineStyle.length(naturalWidth: natural, minWidth: minWidth)
+        } else {
+            item.length = NSStatusItem.variableLength
         }
         button?.toolTip = subtitle.map { "\(title) — \($0)" } ?? title
         dumpForDebugging()
@@ -296,8 +294,8 @@ enum StatusLineStyle {
         return 10
     }
 
-    static func length(naturalWidth: CGFloat, minWidth: Double?) -> CGFloat? {
-        minWidth.map { max(naturalWidth, CGFloat($0)) }
+    static func length(naturalWidth: CGFloat, minWidth: Double?) -> CGFloat {
+        max(naturalWidth, CGFloat(minWidth ?? 0))
     }
 
     static func lines(
@@ -361,20 +359,75 @@ enum StatusLineStyle {
         }
     }
 
-    static let iconTextSpacing: CGFloat = 4
+    static let iconTextSpacing: CGFloat = 5
+
+    // SF Symbols ship on a padded canvas; layout from opaque ink so the
+    // glyph sits closer to the pill edge and the title.
+    static func inkFrame(_ image: NSImage) -> NSRect {
+        let size = image.size
+        guard size.width > 0, size.height > 0 else {
+            return NSRect(origin: .zero, size: size)
+        }
+        let scale: CGFloat = 2
+        let pixels = NSSize(width: ceil(size.width * scale), height: ceil(size.height * scale))
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: Int(pixels.width),
+            pixelsHigh: Int(pixels.height),
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ) else {
+            return NSRect(origin: .zero, size: size)
+        }
+        rep.size = size
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        image.draw(in: NSRect(origin: .zero, size: size), from: .zero, operation: .sourceOver, fraction: 1)
+        NSGraphicsContext.restoreGraphicsState()
+        guard let data = rep.bitmapData else { return NSRect(origin: .zero, size: size) }
+        let spp = rep.samplesPerPixel
+        let rowBytes = rep.bytesPerRow
+        let alphaSlot = spp - 1
+        var minX = Int(pixels.width), minY = Int(pixels.height), maxX = 0, maxY = 0
+        var found = false
+        for y in 0..<Int(pixels.height) {
+            let row = data + y * rowBytes
+            for x in 0..<Int(pixels.width) {
+                guard row[x * spp + alphaSlot] > 20 else { continue }
+                found = true
+                minX = min(minX, x)
+                maxX = max(maxX, x)
+                minY = min(minY, y)
+                maxY = max(maxY, y)
+            }
+        }
+        guard found else { return NSRect(origin: .zero, size: size) }
+        return NSRect(
+            x: CGFloat(minX) / scale,
+            y: CGFloat(minY) / scale,
+            width: CGFloat(maxX - minX + 1) / scale,
+            height: CGFloat(maxY - minY + 1) / scale
+        )
+    }
 
     @MainActor
     static func image(icon: NSImage?, lines: [NSAttributedString], height: CGFloat) -> NSImage {
         let textWidth = ceil(lines.map { $0.size().width }.max() ?? 0)
-        let textX = icon.map { $0.size.width + iconTextSpacing } ?? 0
+        let ink = icon.map(inkFrame)
+        let textX = ink.map { $0.width + iconTextSpacing } ?? 0
         let size = NSSize(width: textX + textWidth, height: height)
         let heights = lines.map { $0.size().height }
         let origins = lineOrigins(barHeight: height, heights: heights)
         return NSImage(size: size, flipped: false) { _ in
-            if let icon {
+            if let icon, let ink {
                 let iconRect = NSRect(
-                    x: 0,
-                    y: (height - icon.size.height) / 2,
+                    x: -ink.origin.x,
+                    y: (height - ink.height) / 2 - ink.origin.y,
                     width: icon.size.width,
                     height: icon.size.height
                 )
