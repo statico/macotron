@@ -4,11 +4,11 @@ BUNDLE = $(HOME)/Applications/$(APP_NAME).app
 BINARY = $(BUILD_DIR)/debug/$(APP_NAME)
 BUNDLE_ID = io.statico.macotron
 
-# Root helper for fan-speed writes. SMAppService loads it from inside the bundle,
-# so the plist must use BundleProgram and the helper must be signed before the
-# outer bundle is sealed.
-HELPER_NAME = MacotronFanHelper
-HELPER_LABEL = $(BUNDLE_ID).fanhelper
+# Root helper for privileged work such as fan-speed writes. SMAppService loads it
+# from inside the bundle, so the plist must use BundleProgram and the helper must
+# be signed before the outer bundle is sealed.
+HELPER_NAME = MacotronHelper
+HELPER_LABEL = $(BUNDLE_ID).helper
 HELPER_BINARY = $(BUILD_DIR)/debug/$(HELPER_NAME)
 
 # Stable signing keeps a fixed CDHash, so macOS permissions persist across builds.
@@ -16,7 +16,7 @@ HELPER_BINARY = $(BUILD_DIR)/debug/$(HELPER_NAME)
 # it refuses to register a daemon unless the app and helper share a real Team ID.
 # Otherwise fall back to a self-signed Code Signing certificate named Macotron-Dev
 # (Keychain Access → Certificate Assistant → Create a Certificate), which keeps
-# permissions but cannot install the fan helper. Last resort is ad-hoc signing,
+# permissions but cannot install the helper. Last resort is ad-hoc signing,
 # which resets permissions on every build.
 #
 # A self-signed certificate is untrusted, so it is missing from `find-identity -v`
@@ -76,7 +76,7 @@ bundle: build ## Create ~/Applications/Macotron.app
 		printf '\033[33mCreate a Code Signing certificate in Keychain Access to keep them.\033[0m\n'; \
 	fi
 	@if codesign -dv "$(BUNDLE)" 2>&1 | grep -q '^TeamIdentifier=not set'; then \
-		printf '\033[33mNote: no Team ID, so the fan helper cannot be installed.\033[0m\n'; \
+		printf '\033[33mNote: no Team ID, so the helper cannot be installed.\033[0m\n'; \
 		printf '\033[33mSign with a Developer ID to enable fan control.\033[0m\n'; \
 	fi
 	@echo "Built $(BUNDLE)"

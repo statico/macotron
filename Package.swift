@@ -57,9 +57,9 @@ let package = Package(
         ),
 
         .executableTarget(
-            name: "MacotronFanHelper",
+            name: "MacotronHelper",
             dependencies: ["SMCKit"],
-            path: "Sources/MacotronFanHelper"
+            path: "Sources/MacotronHelper"
         ),
 
         // Main app executable

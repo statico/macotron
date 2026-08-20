@@ -2,14 +2,14 @@ import Darwin
 @preconcurrency import Foundation
 import IOKit
 
-public enum FanHelperService {
-    public static let plistName = "io.statico.macotron.fanhelper.plist"
-    public static let machServiceName = "io.statico.macotron.fanhelper"
+public enum MacotronHelperService {
+    public static let plistName = "io.statico.macotron.helper.plist"
+    public static let machServiceName = "io.statico.macotron.helper"
 }
 
-@objc public protocol FanHelperProtocol {
-    func setFloor(_ percent: Int, reply: @escaping (String?) -> Void)
-    func restore(reply: @escaping (String?) -> Void)
+@objc public protocol MacotronHelperProtocol {
+    func setFanFloor(_ percent: Int, reply: @escaping (String?) -> Void)
+    func restoreFans(reply: @escaping (String?) -> Void)
 }
 
 public enum FanFloor {

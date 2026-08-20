@@ -546,9 +546,9 @@ declare const macotron: {
         gpu(): { name: string; usage: number } | null;
         /**
          * Fan floor. `available` means this Mac has fans, so RPM can be read;
-         * `controllable` means a floor can be set right now, which needs the fan
-         * helper (install it from this plugin's Settings page with the `fanControl`
-         * permission). `floor` is 50 or 100 while Macotron is holding a minimum;
+         * `controllable` means a floor can be set right now, which needs the
+         * background helper (install it from this plugin's Settings page with the
+         * `helper` permission). `floor` is 50 or 100 while Macotron is holding a minimum;
          * omitted means system default. Actual RPM is never forced below what
          * macOS already wants.
          */
@@ -732,8 +732,8 @@ declare const macotron: {
         description?: string;
         /** Extra explanation shown in Settings → Plugins. */
         help?: string;
-        /** `fanControl` lists the background helper on this plugin's Settings page. */
-        permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "fanControl" | "camera" | "microphone">;
+        /** `helper` lists the background helper on this plugin's Settings page. */
+        permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "camera" | "microphone" | "helper">;
         options?: Record<string, MacotronPluginOption>;
     }): Record<string, any>;
     /** @deprecated Use plugin() */

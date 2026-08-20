@@ -1,7 +1,7 @@
 macotron.plugin({
   title: "Fan",
   description: "Hold a fan-speed floor from the menu bar.",
-  permissions: ["fanControl"],
+  permissions: ["helper"],
   help: "Click the fan icon in the menu bar to hold a 50% or 100% floor, or restore the system default.\n\nReading fan speed always works. Holding a floor needs the Macotron background helper — use Install on this page.",
 });
 

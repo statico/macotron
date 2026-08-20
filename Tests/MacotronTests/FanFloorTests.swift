@@ -24,7 +24,7 @@ struct FanFloorTests {
     func xpcCopy() {
         let long = "Couldn’t communicate with a helper application."
         #expect(FanController.helperUnreachable(long))
-        #expect(FanController.displayError(long) == "Fan helper is not installed")
+        #expect(FanController.displayError(long) == "Macotron helper is not installed")
         #expect(FanController.displayError("macOS thermal manager held the fans") == "macOS thermal manager held the fans")
     }
 }

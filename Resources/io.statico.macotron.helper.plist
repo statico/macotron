@@ -3,12 +3,12 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>io.statico.macotron.fanhelper</string>
+    <string>io.statico.macotron.helper</string>
     <key>BundleProgram</key>
-    <string>Contents/MacOS/MacotronFanHelper</string>
+    <string>Contents/MacOS/MacotronHelper</string>
     <key>MachServices</key>
     <dict>
-        <key>io.statico.macotron.fanhelper</key>
+        <key>io.statico.macotron.helper</key>
         <true/>
     </dict>
     <key>AssociatedBundleIdentifiers</key>
