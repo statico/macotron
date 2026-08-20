@@ -14,6 +14,10 @@ enum PluginListNav {
     }
 }
 
+enum MacotronRepo {
+    static let url = URL(string: "https://github.com/statico/macotron")!
+}
+
 /// One choice in a `dropdown` plugin option
 public struct ModuleOptionChoice: Identifiable, Equatable {
     public let value: String
@@ -361,11 +365,19 @@ public struct SettingsView: View {
                 VStack(spacing: 8) {
                     if let bannerURL = Bundle.main.url(forResource: "banner", withExtension: "png"),
                        let nsImage = NSImage(contentsOf: bannerURL) {
-                        Image(nsImage: nsImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(maxWidth: 280)
+                        Button {
+                            NSWorkspace.shared.open(MacotronRepo.url)
+                        } label: {
+                            Image(nsImage: nsImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxWidth: 280)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Open Macotron on GitHub")
                     }
+                    Link("github.com/statico/macotron", destination: MacotronRepo.url)
+                        .font(.caption)
                     Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0")")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
