@@ -41,6 +41,24 @@ struct PluginScheduleTests {
         #expect(next == date(2026, 8, 20, 12, 15, calendar: calendar))
     }
 
+    @Test("every 30m from 12:30 UTC aligns to 13:00")
+    func every30MinutesFrom1230CrossesHour() throws {
+        let calendar = utcCalendar()
+        let schedule = try PluginSchedule.parseEvery("30m")
+        let after = date(2026, 8, 20, 12, 30, calendar: calendar)
+        let next = schedule.nextDate(after: after, calendar: calendar)
+        #expect(next == date(2026, 8, 20, 13, 0, calendar: calendar))
+    }
+
+    @Test("every 15m from 12:50 UTC aligns to 13:00")
+    func every15MinutesFrom1250CrossesHour() throws {
+        let calendar = utcCalendar()
+        let schedule = try PluginSchedule.parseEvery("15m")
+        let after = date(2026, 8, 20, 12, 50, calendar: calendar)
+        let next = schedule.nextDate(after: after, calendar: calendar)
+        #expect(next == date(2026, 8, 20, 13, 0, calendar: calendar))
+    }
+
     @Test("at 13:00 after 13:05 UTC fires next day")
     func atDailyAfter1305() throws {
         let calendar = utcCalendar()

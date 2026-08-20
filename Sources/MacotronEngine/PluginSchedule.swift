@@ -107,7 +107,11 @@ public enum PluginSchedule: Equatable, Sendable {
         var dayOffset = 0
         if targetMinute >= 60 {
             targetMinute -= 60
-            dayOffset = 1
+            hour += 1
+        }
+        if hour >= 24 {
+            dayOffset = hour / 24
+            hour = hour % 24
         }
         comps.hour = hour
         comps.minute = targetMinute
