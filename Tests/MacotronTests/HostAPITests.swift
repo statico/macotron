@@ -113,3 +113,15 @@ struct ClipboardPasteboardTests {
         ])
     }
 }
+
+@Suite("ContactsList")
+struct ContactsListTests {
+    @Test("search matches name email phone org")
+    func matches() {
+        #expect(ContactsList.matches("ada", name: "Ada Lovelace", emails: ["ada@x.com"], phones: [], organization: ""))
+        #expect(ContactsList.matches("555", name: "Ada", emails: [], phones: ["555-0100"], organization: ""))
+        #expect(ContactsList.matches("acme", name: "Ada", emails: [], phones: [], organization: "Acme"))
+        #expect(!ContactsList.matches("bob", name: "Ada Lovelace", emails: [], phones: [], organization: ""))
+        #expect(ContactsList.matches("", name: "Ada", emails: [], phones: [], organization: ""))
+    }
+}

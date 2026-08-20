@@ -143,6 +143,7 @@ enum PluginChecker {
         engine.addModule(PanelModule())
         engine.addModule(LauncherModule())
         engine.addModule(NotesModule())
+        engine.addModule(ContactsModule())
         engine.addModule(MediaModule())
         engine.addModule(PowerModule())
         engine.addModule(AudioModule())
