@@ -13,9 +13,9 @@ struct StatusLineStyleTests {
         #expect(StatusLineStyle.fontSize(twoLine: false, secondary: false, subtitle: false) == 13)
     }
 
-    @Test("status title uses one native attributed string")
-    func attributedTitle() {
-        let title = StatusLineStyle.attributedTitle(
+    @Test("two-line status renders one line per string")
+    func twoLines() {
+        let lines = StatusLineStyle.lines(
             title: "CPU 42%",
             subtitle: "GPU 7%",
             color: nil,
@@ -24,22 +24,51 @@ struct StatusLineStyleTests {
             italic: false,
             secondary: true
         )
-        #expect(title.string == "CPU 42%\nGPU 7%")
-        #expect(title.attribute(.font, at: 7, effectiveRange: nil) != nil)
-        let titleParagraph = title.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
-        let subtitleParagraph = title.attribute(.paragraphStyle, at: 8, effectiveRange: nil) as? NSParagraphStyle
-        #expect(titleParagraph?.maximumLineHeight == 10.5)
-        #expect(subtitleParagraph?.maximumLineHeight == 10)
+        #expect(lines.map(\.string) == ["CPU 42%", "GPU 7%"])
+        let titleFont = lines[0].attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+        let subtitleFont = lines[1].attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+        #expect(titleFont?.pointSize == 10)
+        #expect(subtitleFont?.pointSize == 9)
     }
 
-    @Test("two capped lines fit inside the menu bar button")
-    func lineHeightsFit() {
-        let standard = StatusLineStyle.maximumLineHeight(secondary: false, subtitle: false)
-            + StatusLineStyle.maximumLineHeight(secondary: false, subtitle: true)
-        let secondary = StatusLineStyle.maximumLineHeight(secondary: true, subtitle: false)
-            + StatusLineStyle.maximumLineHeight(secondary: true, subtitle: true)
-        #expect(standard < 22)
-        #expect(secondary < 22)
+    @Test("single line keeps the large menu bar font")
+    func singleLine() {
+        let lines = StatusLineStyle.lines(
+            title: "42%",
+            subtitle: nil,
+            color: nil,
+            subtitleColor: nil,
+            bold: false,
+            italic: false,
+            secondary: false
+        )
+        #expect(lines.map(\.string) == ["42%"])
+        let font = lines[0].attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+        #expect(font?.pointSize == 13)
+    }
+
+    @Test("line stack is vertically centered in the bar")
+    func centeredOrigins() {
+        let origins = StatusLineStyle.lineOrigins(barHeight: 30, heights: [12, 12])
+        // Symmetric margins: top gap == bottom gap.
+        let topGap = 30 - (origins[0] + 12)
+        let bottomGap = origins[1]
+        #expect(abs(topGap - bottomGap) < 0.001)
+        #expect(origins[0] > origins[1])
+
+        let single = StatusLineStyle.lineOrigins(barHeight: 22, heights: [12])
+        #expect(single == [5])
+    }
+
+    @Test("oversized stack squeezes the gap instead of clipping")
+    func squeezedOrigins() {
+        let barHeight: CGFloat = 22
+        let heights: [CGFloat] = [11.9, 11.9]
+        let origins = StatusLineStyle.lineOrigins(barHeight: barHeight, heights: heights)
+        // Top line's box stays inside the bar and the bottom line's box
+        // starts at or above the bottom edge.
+        #expect(origins[0] + heights[0] <= barHeight + 0.001)
+        #expect(origins[1] >= -0.001)
     }
 
     @Test("minimum width remains a floor")
@@ -47,5 +76,22 @@ struct StatusLineStyleTests {
         #expect(StatusLineStyle.length(naturalWidth: 120, minWidth: 96) == 120)
         #expect(StatusLineStyle.length(naturalWidth: 80, minWidth: 96) == 96)
         #expect(StatusLineStyle.length(naturalWidth: 80, minWidth: nil) == nil)
+    }
+
+    @Test("composed image spans the bar height")
+    @MainActor
+    func composedImage() {
+        let lines = StatusLineStyle.lines(
+            title: "CPU 42%",
+            subtitle: "GPU 7%",
+            color: nil,
+            subtitleColor: nil,
+            bold: false,
+            italic: false,
+            secondary: false
+        )
+        let image = StatusLineStyle.image(icon: nil, lines: lines, height: 24)
+        #expect(image.size.height == 24)
+        #expect(image.size.width > 0)
     }
 }
