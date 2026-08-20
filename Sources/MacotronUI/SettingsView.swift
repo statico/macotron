@@ -850,7 +850,7 @@ struct PluginDetailView: View {
             }
 
             HStack {
-                Button(command.isHeld ? "Reveal in Finder" : "Open") {
+                Button(command.isHeld ? "Reveal in Finder" : "Open Source File") {
                     if CommandHold.commandDown(NSEvent.modifierFlags) {
                         state.revealModuleFile?(summary.filename)
                     } else {
