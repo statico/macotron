@@ -457,10 +457,10 @@ h2 {
 .side-btn[data-kind="js"]::before { content: "{}"; font-size: 0.58rem; }
 .side-btn:hover { background: var(--line); }
 .side-btn[aria-current="true"] {
-  background: var(--accent);
-  color: var(--bg);
+  background: var(--btn);
+  color: var(--btn-ink);
 }
-.side-btn[aria-current="true"]::before { color: var(--bg); }
+.side-btn[aria-current="true"]::before { color: var(--btn-ink); }
 .pane { overflow: auto; background: var(--finder-pane); }
 .sidebar, .pane {
   scrollbar-width: thin;
