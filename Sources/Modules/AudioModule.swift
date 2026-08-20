@@ -1,4 +1,5 @@
 // AudioModule.swift — macotron.audio: devices, defaults, volume, audio:changed
+import AVFoundation
 import CQuickJS
 import CoreAudio
 import Foundation
@@ -8,6 +9,9 @@ import MacotronEngine
 public final class AudioModule: NativeModule {
     public let name = "audio"
     public let moduleVersion = 1
+
+    private var recorder: AVAudioRecorder?
+    private var recordURL: URL?
 
     public init() {}
 
@@ -78,6 +82,29 @@ public final class AudioModule: NativeModule {
             return JSBridge.newBool(ctx, AudioDevices.setMuted(id: id, on))
         }, "setMuted", 2))
 
+        JS_SetPropertyStr(ctx, audio, "record", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx else { return JSBridge.newBool(ctx!, false) }
+            if AudioModule.dryRun(ctx) { return JSBridge.newBool(ctx, false) }
+            guard let argv, argc >= 1 else { return JSBridge.newBool(ctx, false) }
+            let pathVal = JSBridge.getProperty(ctx, argv[0], "path")
+            let path = JSBridge.toString(ctx, pathVal)
+            JS_FreeValue(ctx, pathVal)
+            guard let path, !path.isEmpty else { return JSBridge.newBool(ctx, false) }
+            return JSBridge.newBool(ctx, AudioModule.module(ctx)?.record(path) ?? false)
+        }, "record", 1))
+
+        JS_SetPropertyStr(ctx, audio, "stopRecord", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return QJS_Undefined() }
+            if AudioModule.dryRun(ctx) { return QJS_Null() }
+            guard let result = AudioModule.module(ctx)?.stopRecord() else { return QJS_Null() }
+            return JSBridge.newObject(ctx, result)
+        }, "stopRecord", 0))
+
+        JS_SetPropertyStr(ctx, audio, "isRecording", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return JSBridge.newBool(ctx!, false) }
+            return JSBridge.newBool(ctx, AudioModule.module(ctx)?.recorder?.isRecording ?? false)
+        }, "isRecording", 0))
+
         JS_SetPropertyStr(ctx, macotron, "audio", audio)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
@@ -87,7 +114,48 @@ public final class AudioModule: NativeModule {
     }
 
     public func cleanup() {
+        recorder?.stop()
+        recorder = nil
+        recordURL = nil
         AudioWatch.stop()
+    }
+
+    fileprivate func record(_ path: String) -> Bool {
+        _ = stopRecord()
+        let url = URL(fileURLWithPath: SharePath.expand(path))
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let settings: [String: Any] = [
+            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+            AVSampleRateKey: 44_100,
+            AVNumberOfChannelsKey: 1,
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
+        ]
+        guard let recorder = try? AVAudioRecorder(url: url, settings: settings) else { return false }
+        recorder.prepareToRecord()
+        guard recorder.record() else { return false }
+        self.recorder = recorder
+        recordURL = url
+        return true
+    }
+
+    fileprivate func stopRecord() -> [String: Any]? {
+        guard let recorder, let recordURL else { return nil }
+        let seconds = recorder.currentTime
+        recorder.stop()
+        self.recorder = nil
+        self.recordURL = nil
+        return ["path": recordURL.path, "seconds": seconds]
+    }
+
+    fileprivate static func module(_ ctx: OpaquePointer) -> AudioModule? {
+        guard let opaque = JS_GetContextOpaque(ctx) else { return nil }
+        let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+        return engine.configStore["__audioModule"] as? AudioModule
+    }
+
+    fileprivate static func dryRun(_ ctx: OpaquePointer) -> Bool {
+        guard let opaque = JS_GetContextOpaque(ctx) else { return false }
+        return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
     }
 
     fileprivate static func setDefault(_ ctx: OpaquePointer, _ spec: JSValue, input: Bool) -> Bool {

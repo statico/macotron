@@ -29,6 +29,9 @@
             <key>CFBundleURLSchemes</key>
             <array>
                 <string>macotron</string>
+                <string>http</string>
+                <string>https</string>
+                <string>mailto</string>
             </array>
         </dict>
     </array>
@@ -42,6 +45,8 @@
     <string>Macotron plugins can search and list contacts.</string>
     <key>NSCameraUsageDescription</key>
     <string>Macotron plugins can scan QR codes with the camera.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Macotron plugins can record audio.</string>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright 2026. All rights reserved.</string>
 </dict>

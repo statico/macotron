@@ -110,6 +110,7 @@ public final class EventModule: NativeModule {
     public func register(in engine: Engine, options: [String: Any]) {
         EventTapState.shared.engine = engine
         EventTapState.shared.module = self
+        GestureMonitor.shared.engine = engine
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
@@ -129,6 +130,7 @@ public final class EventModule: NativeModule {
             }
             if EventModule.isDryRun(ctx) { return QJS_Undefined() }
             var mask: CGEventMask = 0
+            var gestureMask = NSEvent.EventTypeMask()
             let typesVal = JSBridge.jsToSwift(ctx, argv[0])
             let names: [String]
             if let arr = typesVal as? [Any] {
@@ -139,16 +141,24 @@ public final class EventModule: NativeModule {
                 names = []
             }
             for name in names {
-                guard let bit = EventPost.tapMask(for: name) else { continue }
-                mask |= bit
+                if let bit = EventPost.tapMask(for: name) {
+                    mask |= bit
+                } else if let bit = GestureEvent.mask(for: name) {
+                    gestureMask.insert(bit)
+                }
             }
-            guard mask != 0 else { return QJS_Undefined() }
-            let listener = EventTapListener(mask: mask, callback: JS_DupValue(ctx, argv[1]), ctx: ctx)
-            let state = EventTapState.shared
-            state.lock.lock()
-            state.listeners.append(listener)
-            state.lock.unlock()
-            state.module?.ensureTap()
+            guard mask != 0 || !gestureMask.isEmpty else { return QJS_Undefined() }
+            if mask != 0 {
+                let listener = EventTapListener(mask: mask, callback: JS_DupValue(ctx, argv[1]), ctx: ctx)
+                let state = EventTapState.shared
+                state.lock.lock()
+                state.listeners.append(listener)
+                state.lock.unlock()
+                state.module?.ensureTap()
+            }
+            if !gestureMask.isEmpty {
+                GestureMonitor.shared.add(mask: gestureMask, callback: JS_DupValue(ctx, argv[1]), ctx: ctx)
+            }
             return QJS_Undefined()
         }, "tap", 2))
 
@@ -198,6 +208,7 @@ public final class EventModule: NativeModule {
 
     public func cleanup() {
         teardownTap()
+        GestureMonitor.shared.cleanup()
         let state = EventTapState.shared
         state.lock.lock()
         let listeners = state.listeners

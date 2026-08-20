@@ -18,6 +18,8 @@ public struct KeyCombo: Equatable, Sendable {
             case "shift": flags.insert(.maskShift)
             case "ctrl", "control": flags.insert(.maskControl)
             case "opt", "option", "alt": flags.insert(.maskAlternate)
+            case "hyper":
+                flags.formUnion([.maskCommand, .maskShift, .maskControl, .maskAlternate])
             default: keyPart = part
             }
         }
@@ -67,6 +69,7 @@ public struct KeyCombo: Equatable, Sendable {
             case "shift": return "\u{21E7}"
             case "ctrl", "control": return "\u{2303}"
             case "opt", "option", "alt": return "\u{2325}"
+            case "hyper": return "Hyper"
             case "space": return "Space"
             case "return", "enter": return "\u{23CE}"
             case "delete", "backspace": return "\u{232B}"

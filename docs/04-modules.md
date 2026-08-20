@@ -37,6 +37,9 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | NotesModule | `macotron.notes` | List and open Apple Notes |
 | ContactsModule | `macotron.contacts` | List and search Contacts |
 | PowerModule | `macotron.power` | Prevent sleep, lock, sleep, display sleep, screensaver, log out, restart, shutdown |
+| AXModule | `macotron.ax` | Accessibility tree: focused element, selected text, children, press |
+| CameraModule | `macotron.camera` | Camera list, preview panel, snapshot |
+| ShareModule | `macotron.share` | Share sheet and AirDrop |
 
 ## Key JS APIs
 
@@ -108,6 +111,24 @@ macotron.panel.onMessage(id, (data) => { /* ... */ });
 `html` is inserted into a host document (system font, padding, light/dark). `rawHtml` is a full document, the old `html` behavior. `glass: true` or `"regular"` is Liquid Glass; `"clear"` is the clearer Liquid Glass; `"translucent"` is a HUD blur (not glass). `frameless: true` hides the title bar (Escape closes). `closeOnBlur: true` closes when the panel loses key focus. Host `html` pages get a transparent background so the chrome shows through. In the page, `close()` closes the panel. `panel:closed` fires with `{ id }` when a panel goes away.
 
 Host CSS defines system colors as variables: `--macotron-accent`, `--macotron-accent-text`, `--macotron-label`, `--macotron-secondary-label`, `--macotron-fill`, `--macotron-control`, `--macotron-control-text`, `--macotron-control-border`, `--macotron-field`, `--macotron-field-text`, `--macotron-selected`, `--macotron-selected-text`, `--macotron-link`. They follow the system appearance. `button.primary` uses the accent color.
+
+`panel.open` also accepts `id` (reuse), `fullscreen` (stretch to the screen edges), and `qr` (append a QR PNG).
+
+**Window restore:** `macotron.window.restore([{ app, title, frame }])` matches by app and title, then moves. IDs change after a restart.
+
+**Hyper key:** `keyboard.setHyperKey("caps")` makes Caps Lock mean Command+Shift+Control+Option. Combos use `hyper+h`.
+
+**Plain paste:** `clipboard.setPastePlain(true)` makes Command-V paste text only.
+
+**Menu bar graphs:** `menubar.status` accepts `sparkline: { values }` or `svg`.
+
+**Display modes:** `display.nightShift`, `trueTone`, and `grayscale` plus the matching `set*` calls.
+
+**URL fallback:** `url.setDefaultHandler("https")` and `url.onFallback`. A miss shows a picker.
+
+**AX:** `ax.focused`, `selectedText`, `children`, `parent`, `press`, `setValue`, `find`.
+
+**Camera / record / share:** `camera.preview`, `audio.record`, `share.airDrop`.
 
 **localStorage:** Standard web API backed by JSON under the workdir data store.
 

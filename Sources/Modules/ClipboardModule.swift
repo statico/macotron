@@ -1,8 +1,15 @@
 // ClipboardModule.swift — macotron.clipboard: read, write, and track text/image history
 import AppKit
+import Carbon.HIToolbox
+import CoreGraphics
 import CQuickJS
 import Foundation
 import MacotronEngine
+
+private final class ClipboardPlainTapState: @unchecked Sendable {
+    static let shared = ClipboardPlainTapState()
+    var eventTap: CFMachPort?
+}
 
 @MainActor
 public final class ClipboardModule: NativeModule {
@@ -13,6 +20,10 @@ public final class ClipboardModule: NativeModule {
     private var lastChangeCount = NSPasteboard.general.changeCount
     private var timer: Timer?
     private weak var engine: Engine?
+    private var pastePlain = false
+    private var pasteTap: CFMachPort?
+    private var pasteTapSource: CFRunLoopSource?
+    var hasPasteTap: Bool { pasteTap != nil }
 
     public init() {}
 
@@ -118,6 +129,20 @@ public final class ClipboardModule: NativeModule {
             return JSBridge.newString(ctx, raw.base64EncodedString())
         }, "data", 1))
 
+        JS_SetPropertyStr(ctx, clipboard, "setPastePlain", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 1, let module = clipboardModule(ctx) else {
+                return JSBridge.newBool(ctx!, false)
+            }
+            return JSBridge.newBool(ctx, module.setPastePlain(JSBridge.toBool(ctx, argv[0])))
+        }, "setPastePlain", 1))
+
+        JS_SetPropertyStr(ctx, clipboard, "isPastePlain", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx, let module = clipboardModule(ctx) else {
+                return JSBridge.newBool(ctx!, false)
+            }
+            return JSBridge.newBool(ctx, module.pastePlain)
+        }, "isPastePlain", 0))
+
         JS_SetPropertyStr(ctx, macotron, "clipboard", clipboard)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
@@ -131,6 +156,75 @@ public final class ClipboardModule: NativeModule {
     public func cleanup() {
         timer?.invalidate()
         timer = nil
+        removePasteTap()
+        pastePlain = false
+    }
+
+    private func setPastePlain(_ on: Bool) -> Bool {
+        if engine?.dryRun == true {
+            pastePlain = on
+            return true
+        }
+        if on {
+            guard installPasteTap() else {
+                pastePlain = false
+                return false
+            }
+            pastePlain = true
+            return true
+        }
+        removePasteTap()
+        pastePlain = false
+        return true
+    }
+
+    private func installPasteTap() -> Bool {
+        guard pasteTap == nil else { return true }
+        let callback: CGEventTapCallBack = { _, type, event, _ in
+            if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+                if let tap = ClipboardPlainTapState.shared.eventTap {
+                    CGEvent.tapEnable(tap: tap, enable: true)
+                }
+                return Unmanaged.passRetained(event)
+            }
+            if type == .keyDown {
+                let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+                if keyCode == Int64(kVK_ANSI_V), event.flags.contains(.maskCommand) {
+                    ClipboardPlain.applyCurrentText()
+                }
+            }
+            return Unmanaged.passRetained(event)
+        }
+        let mask: CGEventMask = 1 << CGEventType.keyDown.rawValue
+        pasteTap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: mask,
+            callback: callback,
+            userInfo: nil
+        )
+        guard let pasteTap else { return false }
+        ClipboardPlainTapState.shared.eventTap = pasteTap
+        pasteTapSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, pasteTap, 0)
+        if let pasteTapSource {
+            CFRunLoopAddSource(CFRunLoopGetMain(), pasteTapSource, .commonModes)
+        }
+        CGEvent.tapEnable(tap: pasteTap, enable: true)
+        return true
+    }
+
+    private func removePasteTap() {
+        if let pasteTap {
+            CGEvent.tapEnable(tap: pasteTap, enable: false)
+            CFMachPortInvalidate(pasteTap)
+        }
+        if let pasteTapSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), pasteTapSource, .commonModes)
+        }
+        pasteTap = nil
+        pasteTapSource = nil
+        ClipboardPlainTapState.shared.eventTap = nil
     }
 
     private func poll() {
@@ -174,6 +268,13 @@ public final class ClipboardModule: NativeModule {
         ], at: 0)
         history = Array(history.prefix(50))
     }
+}
+
+@MainActor
+private func clipboardModule(_ ctx: OpaquePointer) -> ClipboardModule? {
+    guard let opaque = JS_GetContextOpaque(ctx) else { return nil }
+    let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+    return engine.configStore["__clipboardModule"] as? ClipboardModule
 }
 
 enum ClipboardPasteboard {

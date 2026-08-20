@@ -44,7 +44,7 @@ private final class WindowSnapState: @unchecked Sendable {
 @MainActor
 public final class WindowModule: NativeModule {
     public let name = "window"
-    public let moduleVersion = 4
+    public let moduleVersion = 5
 
     private weak var engine: Engine?
     private var eventTap: CFMachPort?
@@ -151,6 +151,13 @@ public final class WindowModule: NativeModule {
             )
         }, "setFullscreen", 2))
 
+        JS_SetPropertyStr(ctx, windowObj, "restore", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 1 else {
+                return JSBridge.newObject(ctx!, ["restored": 0, "missing": 0])
+            }
+            return WindowModule.jsRestore(ctx, entries: argv[0])
+        }, "restore", 1))
+
         JS_SetPropertyStr(ctx, macotron, "window", windowObj)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
@@ -221,6 +228,9 @@ public final class WindowModule: NativeModule {
             "app": app,
             "frame": frameDict
         ]
+        if let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier {
+            winDict["bundleID"] = bundleID
+        }
         if let displayID = screen(forAXFrame: frame).map(Self.displayID) {
             winDict["display"] = Int(displayID)
         }
@@ -352,6 +362,75 @@ public final class WindowModule: NativeModule {
 
         let ok = applyFraction(win, x: fx, y: fy, w: fw, h: fh, screen: screen, gap: 0)
         return QJS_NewBool(ctx, ok ? 1 : 0)
+    }
+
+    /// restore([{app, bundleID?, title?, frame, display?}]) -> { restored, missing }
+    private static func jsRestore(_ ctx: OpaquePointer, entries: JSValue) -> JSValue {
+        let raw = JSBridge.jsToSwift(ctx, entries)
+        let list = raw as? [Any] ?? []
+        if isDryRun(ctx) {
+            return JSBridge.newObject(ctx, ["restored": list.count, "missing": 0])
+        }
+
+        var remaining = snapshotWindows()
+        var restored = 0
+        var missing = 0
+        for item in list {
+            guard let dict = item as? [String: Any],
+                  let app = dict["app"] as? String, !app.isEmpty else {
+                missing += 1
+                continue
+            }
+            let entry = WindowRestore.Entry(
+                app: app,
+                title: dict["title"] as? String,
+                bundleID: dict["bundleID"] as? String
+            )
+            guard let id = WindowRestore.match(remaining, entry) else {
+                missing += 1
+                continue
+            }
+            remaining.removeAll { $0.id == id }
+            let frame = dict["frame"] as? [String: Any] ?? [:]
+            let frameObj = JSBridge.newObject(ctx, frame)
+            let moved = jsMove(ctx, windowID: id, opts: frameObj)
+            JS_FreeValue(ctx, frameObj)
+            let ok = JSBridge.toBool(ctx, moved)
+            JS_FreeValue(ctx, moved)
+            if ok {
+                restored += 1
+            } else {
+                missing += 1
+            }
+        }
+        return JSBridge.newObject(ctx, ["restored": restored, "missing": missing])
+    }
+
+    private static func isDryRun(_ ctx: OpaquePointer) -> Bool {
+        guard let opaque = JS_GetContextOpaque(ctx) else { return false }
+        return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
+    }
+
+    private static func snapshotWindows() -> [WindowRestore.Window] {
+        var results: [WindowRestore.Window] = []
+        for runApp in NSWorkspace.shared.runningApplications {
+            guard runApp.activationPolicy == .regular else { continue }
+            let pid = runApp.processIdentifier
+            let appName = runApp.localizedName ?? "Unknown"
+            let appRef = AXUIElementCreateApplication(pid)
+            var windowsRef: CFTypeRef?
+            let err = AXUIElementCopyAttributeValue(appRef, kAXWindowsAttribute as CFString, &windowsRef)
+            guard err == .success, let windows = windowsRef as? [AXUIElement] else { continue }
+            for (i, win) in windows.enumerated() {
+                results.append(WindowRestore.Window(
+                    id: WindowAX.windowID(pid: pid, index: i),
+                    app: appName,
+                    title: WindowAX.title(win),
+                    bundleID: runApp.bundleIdentifier
+                ))
+            }
+        }
+        return results
     }
 
     // MARK: - Snap

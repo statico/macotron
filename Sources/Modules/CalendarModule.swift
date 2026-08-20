@@ -66,7 +66,16 @@ public final class CalendarModule: NativeModule {
                 "allDay": event.isAllDay,
                 "location": event.location ?? "",
                 "calendar": event.calendar?.title ?? "",
+                "url": CalendarEventURL.pick(url: event.url?.absoluteString, location: event.location),
             ] as [String: Any]
         }
+    }
+}
+
+enum CalendarEventURL {
+    static func pick(url: String?, location: String?) -> String {
+        if let url, !url.isEmpty { return url }
+        let loc = location ?? ""
+        return loc.localizedCaseInsensitiveContains("https") ? loc : ""
     }
 }

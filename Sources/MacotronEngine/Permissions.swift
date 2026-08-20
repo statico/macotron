@@ -13,6 +13,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     case accessibility
         case screenRecording
         case camera
+        case microphone
         case fanControl
 
     public var id: String { rawValue }
@@ -23,6 +24,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .accessibility: return "Accessibility"
         case .screenRecording: return "Screen Recording"
         case .camera: return "Camera"
+        case .microphone: return "Microphone"
         case .fanControl: return "Background Helper"
         }
     }
@@ -34,6 +36,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .accessibility: return "Move and focus windows from plugins."
         case .screenRecording: return "Capture the screen for plugins that read it."
         case .camera: return "Scan a QR code or use the camera from a plugin."
+        case .microphone: return "Record audio from plugins."
         case .fanControl: return "Lets plugins control privileged features like fan control."
         }
     }
@@ -49,6 +52,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             return CGPreflightScreenCaptureAccess()
         case .camera:
             return AVCaptureDevice.authorizationStatus(for: .video) == .authorized
+        case .microphone:
+            return AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
         case .fanControl:
             return Permissions.fanHelper.status == .enabled
         }
@@ -58,7 +63,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     /// asking macOS for access, so it does not read as granting anything.
     public var actionTitle: String {
         switch self {
-        case .inputMonitoring, .accessibility, .screenRecording, .camera: return "Grant…"
+        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone: return "Grant…"
         case .fanControl: return "Install…"
         }
     }
@@ -68,7 +73,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     /// for admin approval, so it needs an explicit user gesture behind it.
     public var isAutoRequestable: Bool {
         switch self {
-        case .inputMonitoring, .accessibility, .screenRecording, .camera: return true
+        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone: return true
         case .fanControl: return false
         }
     }
@@ -77,7 +82,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     /// helper is ours to unregister.
     public var canRevoke: Bool {
         switch self {
-        case .inputMonitoring, .accessibility, .screenRecording, .camera: return false
+        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone: return false
         case .fanControl: return true
         }
     }
@@ -103,6 +108,9 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .camera:
             AVCaptureDevice.requestAccess(for: .video) { _ in }
             openSettings = true
+        case .microphone:
+            AVCaptureDevice.requestAccess(for: .audio) { _ in }
+            openSettings = true
         case .fanControl:
             openSettings = Permissions.registerFanHelper()
         }
@@ -113,7 +121,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     @MainActor
     public func revoke() {
         switch self {
-        case .inputMonitoring, .accessibility, .screenRecording, .camera:
+        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone:
             break
         case .fanControl:
             Permissions.unregisterFanHelper()
@@ -132,6 +140,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
         case .camera:
             urlString = "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Camera"
+        case .microphone:
+            urlString = "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Microphone"
         case .fanControl:
             urlString = "x-apple.systempreferences:com.apple.LoginItems-Settings.extension"
         }
@@ -156,6 +166,8 @@ public enum Permissions {
             return .screenRecording
         case "camera", "webcam", "qr":
             return .camera
+        case "microphone", "mic":
+            return .microphone
         case "fancontrol", "fan-control", "fan":
             return .fanControl
         default:

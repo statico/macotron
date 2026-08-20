@@ -92,6 +92,7 @@ declare const macotron: {
             id: number;
             title: string;
             app: string;
+            bundleID?: string;
             display?: number;
             frame: { x: number; y: number; width: number; height: number };
         }>;
@@ -99,6 +100,7 @@ declare const macotron: {
             id: number;
             title: string;
             app: string;
+            bundleID?: string;
             display?: number;
             frame: { x: number; y: number; width: number; height: number };
         } | null;
@@ -143,6 +145,16 @@ declare const macotron: {
                 [slot: string]: { x: number; y: number; w: number; h: number } | undefined;
             }>;
         }): boolean;
+        /** Match by app name (or bundleID) and title, then move. IDs change after a restart. */
+        restore(
+            entries: Array<{
+                app: string;
+                bundleID?: string;
+                title?: string;
+                frame: { x?: number; y?: number; width?: number; height?: number };
+                display?: number;
+            }>
+        ): { restored: number; missing: number };
     };
 
     keyboard: {
@@ -150,6 +162,9 @@ declare const macotron: {
         on(id: string, defaultCombo: string, callback: () => void): void;
         /** Current modifier state from the HID system. */
         flags(): { cmd: boolean; shift: boolean; ctrl: boolean; opt: boolean; caps: boolean; fn: boolean };
+        /** Caps Lock or Fn becomes Command+Shift+Control+Option while held. Pass `null` to clear. */
+        setHyperKey(key: "caps" | "fn" | null): boolean;
+        hyperKey(): "caps" | "fn" | null;
     };
 
     event: {
@@ -176,6 +191,9 @@ declare const macotron: {
                 dy?: number;
                 button?: string;
                 down?: boolean;
+                fingers?: number;
+                direction?: string;
+                delta?: number;
             }) => boolean | void
         ): void;
     };
@@ -221,9 +239,12 @@ declare const macotron: {
     };
 
     url: {
-        on(scheme: string, host: string, callback: (event: { url: string; scheme: string; host: string; path: string }) => void): void;
+        on(scheme: string, host: string, callback: (event: { url: string; scheme: string; host: string; path: string; query?: string; sourceBundle?: string }) => void): void;
         open(url: string, bundleID?: string, profile?: string): boolean;
         registerHandler(scheme: string): void;
+        setDefaultHandler(scheme: string): boolean;
+        isDefaultHandler(scheme: string): boolean;
+        onFallback(callback: (event: { url: string; scheme: string; host: string; path: string; query?: string; sourceBundle?: string }) => void): void;
     };
 
     fs: {
@@ -250,6 +271,9 @@ declare const macotron: {
         types(): string[];
         /** Pasteboard bytes for a UTI, base64, or null. */
         data(uti: string): string | null;
+        /** Command-V pastes `public.utf8-plain-text` only. */
+        setPastePlain(on: boolean): boolean;
+        isPastePlain(): boolean;
     };
 
     snippets: {
@@ -390,6 +414,9 @@ declare const macotron: {
         setVolume(level: number, id?: number | string): boolean;
         isMuted(id?: number | string): boolean;
         setMuted(on: boolean, id?: number | string): boolean;
+        record(opts: { path: string }): boolean;
+        stopRecord(): { path: string; seconds: number } | null;
+        isRecording(): boolean;
     };
 
     spaces: {
@@ -437,7 +464,31 @@ declare const macotron: {
             allDay: boolean;
             location: string;
             calendar: string;
+            url: string;
         }>;
+    };
+
+    ax: {
+        focused(): { id: number; role: string; title: string; value: string; frame: { x: number; y: number; width: number; height: number } } | null;
+        selectedText(): string | null;
+        children(id: number): Array<{ id: number; role: string; title: string; value: string; frame: { x: number; y: number; width: number; height: number } }>;
+        parent(id: number): { id: number; role: string; title: string; value: string; frame: { x: number; y: number; width: number; height: number } } | null;
+        press(id: number): boolean;
+        setValue(id: number, value: string): boolean;
+        find(opts: { role?: string; title?: string }): { id: number; role: string; title: string; value: string; frame: { x: number; y: number; width: number; height: number } } | null;
+    };
+
+    camera: {
+        list(): Array<{ id: string; name: string }>;
+        preview(opts?: { id?: string; width?: number; height?: number }): boolean;
+        stopPreview(): void;
+        snapshot(): string | null;
+    };
+
+    share: {
+        services(): string[];
+        open(opts: { files?: string[]; text?: string; url?: string }): boolean;
+        airDrop(paths: string[]): boolean;
     };
 
     ocr: {
@@ -550,6 +601,8 @@ declare const macotron: {
                 sfSymbol?: string;
                 icon?: string;
                 image?: string;
+                sparkline?: { values: number[]; width?: number; height?: number; color?: string };
+                svg?: string;
                 onClick?: () => void;
                 /** Left-click runs `onClick` when set; right/ctrl-click opens this menu. */
                 menu?: MenuBarMenuItem[];
@@ -590,6 +643,12 @@ declare const macotron: {
         restoreGamma(): boolean;
         setXDREnabled(enabled: boolean): boolean;
         isXDREnabled(): boolean;
+        nightShift(): { on: boolean; strength?: number; available: boolean };
+        setNightShift(on: boolean | { strength?: number }): { ok: boolean; on: boolean; strength?: number; available: boolean; error?: string };
+        trueTone(): { on: boolean; available: boolean };
+        setTrueTone(on: boolean): { ok: boolean; on: boolean; available: boolean; error?: string };
+        grayscale(): { on: boolean; available: boolean };
+        setGrayscale(on: boolean): { ok: boolean; on: boolean; available: boolean; error?: string };
     };
 
     keychain: {
@@ -611,6 +670,12 @@ declare const macotron: {
             /** No title bar. Escape closes. */
             frameless?: boolean;
             closeOnBlur?: boolean;
+            /** Reuse this id. Closes an existing panel with the same id. */
+            id?: string;
+            /** Stretch to the edges of the screen under the cursor. */
+            fullscreen?: boolean;
+            /** QR payload. Host appends a PNG of the code. */
+            qr?: string;
         }): string;
         close(id: string): void;
         postMessage(id: string, data: any): void;
@@ -668,7 +733,7 @@ declare const macotron: {
         /** Extra explanation shown in Settings → Plugins. */
         help?: string;
         /** `fanControl` lists the background helper on this plugin's Settings page. */
-        permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "fanControl">;
+        permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "fanControl" | "camera" | "microphone">;
         options?: Record<string, MacotronPluginOption>;
     }): Record<string, any>;
     /** @deprecated Use plugin() */
@@ -676,11 +741,11 @@ declare const macotron: {
         title?: string;
         description?: string;
         help?: string;
-        permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording">;
+        permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "camera" | "microphone">;
         options?: Record<string, MacotronPluginOption>;
     }): Record<string, any>;
     /** @deprecated Pass `permissions` to plugin() */
-    requirePermissions(list: Array<"accessibility" | "inputMonitoring" | "screenRecording">): void;
+    requirePermissions(list: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "camera" | "microphone">): void;
 };
 
 type MacotronPluginOption =
