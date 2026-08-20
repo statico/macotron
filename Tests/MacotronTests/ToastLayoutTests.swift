@@ -31,6 +31,14 @@ struct ToastLayoutTests {
         #expect(frame.minY == ToastLayout.margin)
     }
 
+    @Test("tall copy keeps its height and only width is capped")
+    func wrapsInsteadOfClippingHeight() {
+        let anchor = NSRect(x: 0, y: 0, width: 1200, height: 800)
+        let frame = ToastLayout.frame(size: NSSize(width: 800, height: 72), in: anchor, position: .bottom)
+        #expect(frame.width == ToastLayout.maxWidth)
+        #expect(frame.height == 72)
+    }
+
     @Test("title and body join on one line")
     func oneLine() {
         #expect(ToastLayout.line("Copied", nil) == "Copied")

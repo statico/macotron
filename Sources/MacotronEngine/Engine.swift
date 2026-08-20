@@ -65,6 +65,9 @@ public final class Engine {
     /// Fired after `pluginChecks` actually change (not on a no-op replace).
     public var onPluginChecksChanged: (() -> Void)?
 
+    /// Open Settings → Plugins on the calling plugin.
+    public var onOpenPluginSettings: ((String) -> Void)?
+
     /// User overrides for module options, loaded from module-settings.json.
     /// Keyed by filename → option key → value.
     public var moduleSettings: [String: [String: Any]] = [:]
@@ -373,7 +376,23 @@ public final class Engine {
                 return QJS_Undefined()
             }, "$$__checks", 1))
 
+        JS_SetPropertyStr(context, global, "$$__openSettings",
+            JS_NewCFunction(context, { ctx, thisVal, argc, argv -> JSValue in
+                guard let ctx else { return QJS_Undefined() }
+                let opaque = JS_GetContextOpaque(ctx)
+                guard let opaque else { return QJS_Undefined() }
+                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+                engine.openPluginSettings()
+                return QJS_Undefined()
+            }, "$$__openSettings", 0))
+
         JS_FreeValue(context, global)
+    }
+
+    func openPluginSettings() {
+        guard let file = currentEvaluatingFile, !file.isEmpty else { return }
+        let open = onOpenPluginSettings
+        DispatchQueue.main.async { open?(file) }
     }
 
     func replaceChecks(_ value: Any?) {

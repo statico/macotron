@@ -8,6 +8,9 @@ struct PermissionRow: View {
     let permission: Permission
     let granted: Bool
     var showsReason: Bool = true
+    /// Called after the row changes anything, so the status refreshes at once
+    /// instead of waiting for the next poll.
+    var onChange: (() -> Void)?
 
     /// Shared so every trailing control lines up on the same right edge.
     static let actionWidth: CGFloat = 104
@@ -32,15 +35,22 @@ struct PermissionRow: View {
 
             Spacer(minLength: 12)
 
-            if granted {
+            if granted, permission.canRevoke {
+                Button("Remove") {
+                    permission.revoke()
+                    onChange?()
+                }
+                .controlSize(.small)
+                .frame(width: Self.actionWidth, alignment: .trailing)
+            } else if granted {
                 Text("Granted")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .frame(width: Self.actionWidth, alignment: .trailing)
             } else {
-                Button("Grant…") {
-                    permission.request()
-                    permission.openSystemSettings()
+                Button(permission.actionTitle) {
+                    if permission.request() { permission.openSystemSettings() }
+                    onChange?()
                 }
                 .controlSize(.small)
                 .frame(width: Self.actionWidth, alignment: .trailing)

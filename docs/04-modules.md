@@ -38,7 +38,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Window:** `macotron.window.getAll()`, `.focused()`, `.focus(id)` (raise, unminimize, activate the app), `.minimize(id, on?)`, `.close(id)`, `.setFullscreen(id, on)`, `.move(id, frame)`, `.moveToFraction(id, {x,y,w,h,display?})` (fractions of the window's current display, or `display` from `macotron.display.list()`), `.snap({ enabled, threshold, corner, gap, zones })` — drag the focused window to a screen edge or corner (clicks do not snap). Zones are `{x,y,w,h}` fractions of the visible frame (same as `moveToFraction`). Omit a slot to disable it. `.setSnapEnabled` / `.isSnapEnabled` toggle without changing the map. `window:created` and `window:focused` fire with `{ id, title, app }`.
 
-**System:** `macotron.system.cpu()` is `{ usage }` 0–100 since the last call. `gpu()` is `{ name, usage }` or `null`. `locale()` is `{ language, region, measurement: "metric"|"us" }`. `fans()` is current RPM plus an optional `floor` (50 or 100). `setFanFloor(100 | 50 | null)` holds a minimum; `null` is system default. The host never commands below firmware min, and yields to macOS when it already wants a higher speed.
+**System:** `macotron.system.cpu()` is `{ usage }` 0–100 since the last call. `gpu()` is `{ name, usage }` or `null`. `locale()` is `{ language, region, measurement: "metric"|"us" }`. `fans()` is current RPM plus `available` (this Mac has fans), `controllable` (a floor can be set right now), and an optional `floor` (50 or 100). Reads need no privileges; writes do, so `controllable` is false until the user installs the fan helper from the plugin's Settings page (`macotron.settings.open()`). It is listed there only for plugins declaring the `fanControl` permission. `setFanFloor(100 | 50 | null)` holds a minimum; `null` is system default. The host never commands below firmware min, and yields to macOS when it already wants a higher speed.
 
 **Media:** `macotron.media.nowPlaying()` is `{ playing, title, artist, album, app, bundle, artwork? }`. `artwork` is a JPEG path when iTunes Search finds a cover. `playPause()` / `next()` / `previous()` talk to the system Now Playing target (Spotify, Music, SomaFM, Safari, …). `media:changed` fires when the snapshot changes.
 
@@ -73,6 +73,8 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 **Notify:** `macotron.notify.show(title, body, { sound, subtitle, id })` is a system banner. `macotron.notify.toast(title, body?, { position: "top"|"bottom", duration, sfSymbol, color })` is a one-line HUD centered at the bottom (or top) of the screen under the cursor, inset 48pt from the edges. Default duration is 3000ms. `color` is `info` (label color, no icon), `success` (green check), `error` / `failure` (red x), `warning` (orange triangle), a name (`green`), or `#RRGGBB`. Pass `sfSymbol` to override the default icon.
 
 **Checks:** `macotron.checks([{ title, ok, message }])` replaces this plugin's Checks list in Settings → Plugins. A row with `ok: false` shows an orange warning on the plugin (red stays a JS load error). Pass `[]` to clear. Call again when the status changes.
+
+**Settings:** `macotron.settings.open()` opens Settings → Plugins on the calling plugin.
 
 **Screen:** `macotron.screen.capture()` is a full-display PNG (base64). `capture({ selection: true })` lets the user drag a rectangle. `pickColor()` opens the system magnifier eyedropper and returns `{ hex, r, g, b, x, y }` or `null` if cancelled.
 

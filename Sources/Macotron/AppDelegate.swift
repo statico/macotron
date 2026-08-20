@@ -50,7 +50,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let wizardDone = UserDefaults.standard.bool(forKey: AppDelegate.wizardCompletedKey)
         if !wizardDone || PluginWorkspace.resolveFromDefaults() == nil {
             showSetupWizard()
-        } else if !Permissions.missing(from: requiredPermissions()).isEmpty {
+        } else if Permissions.missing(from: requiredPermissions()).contains(where: \.isAutoRequestable) {
             showPermissionsWizard()
         }
 
@@ -307,6 +307,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.onPluginChecksChanged = { [weak self] in
             self?.settingsState.refreshModules()
         }
+        engine.onOpenPluginSettings = { [weak self] file in
+            self?.settingsState.requestedTab = 1
+            self?.settingsState.requestedPlugin = file
+            self?.settingsWindow.show()
+        }
         settingsState.deleteModule = { [weak self] filename in
             guard let self else { return false }
             if self.moduleManager.deleteModule(filename: filename) {
@@ -473,7 +478,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 hasErrors: errorMsg != nil,
                 errorMessage: errorMsg,
                 isEnabled: isEnabled,
-                commands: commands
+                commands: commands,
+                permissions: (meta["permissions"] as? [Any] ?? []).compactMap {
+                    ($0 as? String).flatMap(Permissions.parse)
+                }
             ))
         }
 
@@ -609,7 +617,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             Permissions.registerWithSystem(required)
         }
 
-        menuBarManager?.setMissingPermissions(missing)
+        menuBarManager?.setMissingPermissions(missing.filter(\.isAutoRequestable))
         settingsState.refreshPermissions()
         schedulePermissionPolling(active: !missing.isEmpty)
     }
