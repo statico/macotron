@@ -591,7 +591,7 @@ struct KeyEventHandler: NSViewRepresentable {
                     onClearShortcut?()
                     return true
                 }
-                if let combo = HotkeyFormat.combo(from: event) {
+                if let combo = KeyCombo.combo(from: event) {
                     onRecordedCombo?(combo)
                     return true
                 }
@@ -687,7 +687,7 @@ struct ResultRow: View {
 
             if !result.shortcut.isEmpty {
                 HStack(spacing: 2) {
-                    ForEach(HotkeyFormat.glyphs(result.shortcut), id: \.self) { part in
+                    ForEach(KeyCombo.glyphs(result.shortcut), id: \.self) { part in
                         Text(part)
                             .font(.system(size: 10 * textScale, weight: .medium, design: .rounded))
                     }

@@ -36,7 +36,10 @@ struct AppShortcutsTab: View {
                     }
                 }
                 TableColumn("Shortcut") { app in
-                    AppShortcutRecorder(app: app, state: state)
+                    ShortcutField(shortcut: app.shortcut) { combo in
+                        state.saveCommandShortcut?(app.id, combo)
+                        state.refreshAppShortcuts()
+                    }
                         .frame(minWidth: 180)
                 }
                 .width(ideal: 220, max: 280)

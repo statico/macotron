@@ -238,26 +238,8 @@ public final class MenuBarManager: NSObject {
 
     // MARK: - Menu Building
 
-    /// Parse a hotkey combo string (e.g. "cmd+shift+k") into an NSMenuItem key equivalent and modifier mask.
     private func parseHotkey(_ combo: String) -> (key: String, modifiers: NSEvent.ModifierFlags) {
-        let parts = combo.lowercased().split(separator: "+")
-        var modifiers: NSEvent.ModifierFlags = []
-        var key = ""
-
-        for part in parts {
-            switch part {
-            case "cmd", "command": modifiers.insert(.command)
-            case "shift": modifiers.insert(.shift)
-            case "ctrl", "control": modifiers.insert(.control)
-            case "opt", "alt", "option": modifiers.insert(.option)
-            case "space": key = " "
-            case "return", "enter": key = "\r"
-            case "tab": key = "\t"
-            default: key = String(part)
-            }
-        }
-
-        return (key, modifiers)
+        KeyCombo.parse(combo)?.menuEquivalent ?? ("", [])
     }
 
     private func rebuildMenu() {

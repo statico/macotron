@@ -219,7 +219,7 @@ public enum Permissions {
         if let handle = dlopen(nil, RTLD_LAZY),
            let sym = dlsym(handle, "IOHIDCheckAccess") {
             let check = unsafeBitCast(sym, to: IOHIDCheckAccessFunc.self)
-            return HIDAccess.isGranted(check(kIOHIDRequestTypeListenEvent))
+            return check(kIOHIDRequestTypeListenEvent) == 0
         }
 
         // Fallback for pre-Sequoia: try creating a passive event tap.

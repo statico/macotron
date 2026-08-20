@@ -9,27 +9,6 @@ import os
 
 private let logger = Logger(subsystem: "io.statico.macotron", category: "window")
 
-enum WindowMutation {
-    static func perform(
-        enhancedUI: Bool?,
-        setEnhancedUI: (Bool) -> Void,
-        mutate: () -> Bool
-    ) -> Bool {
-        if enhancedUI == true { setEnhancedUI(false) }
-        defer {
-            if enhancedUI == true { setEnhancedUI(true) }
-        }
-        return mutate()
-    }
-
-    static func applyFrame(setSize: () -> Bool, setPosition: () -> Bool) -> Bool {
-        let firstSize = setSize()
-        let position = setPosition()
-        let finalSize = setSize()
-        return firstSize || position || finalSize
-    }
-}
-
 struct SnapDrag {
     var start: CGPoint?
     var dragging = false
@@ -146,7 +125,6 @@ public final class WindowModule: NativeModule {
         JS_SetPropertyStr(ctx, windowObj, "previewFraction", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_NewBool(ctx!, 0) }
             if argc < 1 || argv == nil || JSBridge.isUndefined(argv![0]) || JSBridge.isNull(argv![0]) {
-                logger.notice("previewFraction hide")
                 SnapPreview.shared.hide()
                 return QJS_NewBool(ctx, 1)
             }
@@ -220,55 +198,6 @@ public final class WindowModule: NativeModule {
         return results
     }
 
-    /// Extract title from an AXUIElement window.
-    private static func windowTitle(_ win: AXUIElement) -> String {
-        var titleRef: CFTypeRef?
-        let err = AXUIElementCopyAttributeValue(win, kAXTitleAttribute as CFString, &titleRef)
-        if err == .success, let title = titleRef as? String {
-            return title
-        }
-        return ""
-    }
-
-    /// Extract frame (position + size) from an AXUIElement window.
-    private static func windowFrame(_ win: AXUIElement) -> CGRect {
-        var posRef: CFTypeRef?
-        var sizeRef: CFTypeRef?
-        var origin = CGPoint.zero
-        var size = CGSize.zero
-
-        if AXUIElementCopyAttributeValue(win, kAXPositionAttribute as CFString, &posRef) == .success,
-           let posRef {
-            AXValueGetValue(posRef as! AXValue, .cgPoint, &origin)
-        }
-        if AXUIElementCopyAttributeValue(win, kAXSizeAttribute as CFString, &sizeRef) == .success,
-           let sizeRef {
-            AXValueGetValue(sizeRef as! AXValue, .cgSize, &size)
-        }
-        return CGRect(origin: origin, size: size)
-    }
-
-    /// Build a stable integer ID from a window's AXUIElement.
-    /// We hash the pid + window index to produce a consistent numeric handle
-    /// that JS can pass back for move operations.
-    private static func windowID(pid: pid_t, index: Int) -> Int32 {
-        // Combine pid and index into a simple integer handle
-        return Int32(pid) * 1000 + Int32(index)
-    }
-
-    /// Resolve a numeric window ID back to its AXUIElement.
-    private static func resolveWindow(id: Int32) -> AXUIElement? {
-        let pid = pid_t(id / 1000)
-        let index = Int(id % 1000)
-        let appRef = AXUIElementCreateApplication(pid)
-
-        var windowsRef: CFTypeRef?
-        let err = AXUIElementCopyAttributeValue(appRef, kAXWindowsAttribute as CFString, &windowsRef)
-        guard err == .success, let windows = windowsRef as? [AXUIElement] else { return nil }
-        guard index >= 0, index < windows.count else { return nil }
-        return windows[index]
-    }
-
     /// Build a JS object {id, title, app, frame:{x,y,width,height}} for a window.
     private static func windowToJS(
         _ ctx: OpaquePointer,
@@ -277,8 +206,8 @@ public final class WindowModule: NativeModule {
         app: String,
         win: AXUIElement
     ) -> JSValue {
-        let frame = windowFrame(win)
-        let id = windowID(pid: pid, index: index)
+        let frame = WindowAX.frame(win)
+        let id = WindowAX.windowID(pid: pid, index: index)
 
         let frameDict: [String: Any] = [
             "x": Double(frame.origin.x),
@@ -288,7 +217,7 @@ public final class WindowModule: NativeModule {
         ]
         var winDict: [String: Any] = [
             "id": Int(id),
-            "title": windowTitle(win),
+            "title": WindowAX.title(win),
             "app": app,
             "frame": frameDict
         ]
@@ -337,7 +266,7 @@ public final class WindowModule: NativeModule {
 
     /// focus(id) -> bool — raise, unminimize, activate the owning app
     private static func jsFocus(_ ctx: OpaquePointer, windowID: Int32) -> JSValue {
-        guard let win = resolveWindow(id: windowID) else {
+        guard let win = WindowAX.resolve(id: windowID) else {
             return QJS_NewBool(ctx, 0)
         }
         AXUIElementSetAttributeValue(win, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
@@ -351,11 +280,11 @@ public final class WindowModule: NativeModule {
 
     /// move(id, {x?, y?, width?, height?}) -> bool
     private static func jsMove(_ ctx: OpaquePointer, windowID: Int32, opts: JSValue) -> JSValue {
-        guard let win = resolveWindow(id: windowID) else {
+        guard let win = WindowAX.resolve(id: windowID) else {
             return QJS_NewBool(ctx, 0)
         }
 
-        let currentFrame = windowFrame(win)
+        let currentFrame = WindowAX.frame(win)
         var newOrigin = currentFrame.origin
         var newSize = currentFrame.size
 
@@ -384,11 +313,11 @@ public final class WindowModule: NativeModule {
     /// moveToFraction(id, {x?, y?, w?, h?, display?}) -> bool
     /// Fractions are relative to the window's current display, or `display` from macotron.display.list().
     private static func jsMoveToFraction(_ ctx: OpaquePointer, windowID: Int32, opts: JSValue) -> JSValue {
-        guard let win = resolveWindow(id: windowID) else {
+        guard let win = WindowAX.resolve(id: windowID) else {
             return QJS_NewBool(ctx, 0)
         }
 
-        var screen = Self.screen(forAXFrame: windowFrame(win)) ?? NSScreen.screens.first
+        var screen = Self.screen(forAXFrame: WindowAX.frame(win)) ?? NSScreen.screens.first
         let displayVal = JSBridge.getProperty(ctx, opts, "display")
         if !JSBridge.isUndefined(displayVal), !JSBridge.isNull(displayVal) {
             let id = CGDirectDisplayID(bitPattern: JSBridge.toInt32(ctx, displayVal))
@@ -567,10 +496,7 @@ public final class WindowModule: NativeModule {
     }
 
     private func finishSnap(at point: CGPoint, dragging: Bool) {
-        if Self.hitsOwnWindow(point) {
-            logger.notice("snap up over Macotron window, leaving preview")
-            return
-        }
+        if Self.hitsOwnWindow(point) { return }
         SnapPreview.shared.hide()
         guard dragging else { return }
         snapFocusedWindow(at: point)
@@ -595,7 +521,7 @@ public final class WindowModule: NativeModule {
                 screen = match
             }
         } else if let win = Self.focusedAXWindow() {
-            screen = Self.screen(forAXFrame: Self.windowFrame(win)) ?? screen
+            screen = Self.screen(forAXFrame: WindowAX.frame(win)) ?? screen
         }
         JS_FreeValue(ctx, displayVal)
         guard let screen else { return false }
@@ -743,7 +669,7 @@ public final class WindowModule: NativeModule {
     ) -> Bool {
         let vis = cocoaRectToAX(screen.visibleFrame)
         let g = gap
-        let currentFrame = windowFrame(win)
+        let currentFrame = WindowAX.frame(win)
         var origin = currentFrame.origin
         var size = currentFrame.size
         if let x { origin.x = vis.origin.x + x * vis.width + g }
@@ -760,26 +686,23 @@ public final class WindowModule: NativeModule {
                 : nil
         }
 
-        return WindowMutation.perform(
-            enhancedUI: enhancedUI,
-            setEnhancedUI: {
-                guard let app else { return }
-                let error = AXUIElementSetAttributeValue(
-                    app,
-                    "AXEnhancedUserInterface" as CFString,
-                    $0 ? kCFBooleanTrue : kCFBooleanFalse
-                )
-                if error != .success {
-                    logger.error("Failed to set AXEnhancedUserInterface: \(error.rawValue)")
-                }
-            },
-            mutate: {
-                WindowMutation.applyFrame(
-                    setSize: { setWindowSize(win, size: size) },
-                    setPosition: { setWindowPosition(win, point: origin) }
-                )
+        func setEnhancedUI(_ on: Bool) {
+            guard let app else { return }
+            let error = AXUIElementSetAttributeValue(
+                app,
+                "AXEnhancedUserInterface" as CFString,
+                on ? kCFBooleanTrue : kCFBooleanFalse
+            )
+            if error != .success {
+                logger.error("Failed to set AXEnhancedUserInterface: \(error.rawValue)")
             }
-        )
+        }
+        if enhancedUI == true { setEnhancedUI(false) }
+        defer { if enhancedUI == true { setEnhancedUI(true) } }
+        let firstSize = setWindowSize(win, size: size)
+        let position = setWindowPosition(win, point: origin)
+        let finalSize = setWindowSize(win, size: size)
+        return firstSize || position || finalSize
     }
 
     /// Screen whose Cocoa origin is (0,0) — AX/Quartz y is measured down from this screen's top.

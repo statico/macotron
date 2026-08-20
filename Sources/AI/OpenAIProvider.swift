@@ -22,65 +22,7 @@ public final class OpenAIProvider: AIProvider, @unchecked Sendable {
     }
 
     public func chat(messages: [AIChatMessage], options: AIRequestOptions) async throws -> String {
-        guard let key = apiKey, !key.isEmpty else {
-            throw AIProviderError.missingAPIKey
-        }
-
-        let model = options.model ?? defaultModel
-        let normalized = try AIChatMessages.normalize(messages)
-        var apiMessages: [[String: Any]] = []
-        if let systemPrompt = options.systemPrompt {
-            apiMessages.append(["role": "system", "content": systemPrompt])
-        }
-        apiMessages.append(contentsOf: normalized.map {
-            ["role": $0.role, "content": $0.content]
-        })
-
-        let body: [String: Any] = [
-            "model": model,
-            "max_tokens": options.maxTokens,
-            "temperature": options.temperature,
-            "messages": apiMessages,
-        ]
-
-        let jsonData = try JSONSerialization.data(withJSONObject: body)
-
-        var request = URLRequest(url: URL(string: "\(baseURL)/v1/chat/completions")!)
-        request.httpMethod = "POST"
-        request.httpBody = jsonData
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 120
-
-        let (data, response): (Data, URLResponse)
-        do {
-            (data, response) = try await URLSession.shared.data(for: request)
-        } catch {
-            throw AIProviderError.networkError(underlying: error)
-        }
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw AIProviderError.invalidResponse
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
-            logger.error("OpenAI API error \(httpResponse.statusCode): \(errorBody)")
-            throw AIProviderError.httpError(
-                statusCode: httpResponse.statusCode,
-                message: errorBody
-            )
-        }
-
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
-              let first = choices.first,
-              let message = first["message"] as? [String: Any],
-              let content = message["content"] as? String else {
-            throw AIProviderError.invalidResponse
-        }
-
-        return content
+        try await stream(messages: messages, options: options, onChunk: { _ in })
     }
 
     public func stream(

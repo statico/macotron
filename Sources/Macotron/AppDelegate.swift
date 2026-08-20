@@ -12,7 +12,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var workspace: PluginWorkspace!
     private var menuBarManager: MenuBarManager!
     private var launcherPanel: LauncherPanel!
-    private var launcherHotkey: GlobalHotkey?
+    private var launcherHotKeyID: UInt32?
     private var settingsWindow: SettingsWindow!
     private let settingsState = SettingsState()
     private let launcherPrefs = LauncherPrefs()
@@ -203,8 +203,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func rebootstrap(workspaceRoot: URL) {
         moduleManager?.stopWatching()
-        launcherHotkey?.cleanup()
-        launcherHotkey = nil
+        if let id = launcherHotKeyID {
+            CarbonHotKeys.shared.unregister(id)
+            launcherHotKeyID = nil
+        }
 
         PluginWorkspace.savePath(workspaceRoot)
         workspace = PluginWorkspace(root: workspaceRoot)
@@ -252,8 +254,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 settings["launcher"] = launcher
             }
             self.engine.configStore = self.workspace.readSettings()
-            self.launcherHotkey?.updateHotkey(combo)
-            self.menuBarManager.updateLauncherShortcut(combo)
+            self.installLauncherHotkey()
         }
 
         settingsState.readShowDockIcon = { [weak self] in
@@ -588,13 +589,20 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Hotkey / prefs
 
     private func installLauncherHotkey() {
+        if let id = launcherHotKeyID {
+            CarbonHotKeys.shared.unregister(id)
+            launcherHotKeyID = nil
+        }
         guard moduleManager != nil else { return }
         let combo = resolveHotkey()
-        launcherHotkey?.cleanup()
-        let hotkey = GlobalHotkey(combo: combo) { [weak self] in
-            self?.launcherPanel.toggle()
+        if let parsed = KeyCombo.parse(combo) {
+            launcherHotKeyID = CarbonHotKeys.shared.register(
+                keyCode: UInt32(parsed.keyCode),
+                carbonModifiers: parsed.carbonModifiers
+            ) { [weak self] in
+                Task { @MainActor in self?.launcherPanel.toggle() }
+            }
         }
-        launcherHotkey = hotkey
         menuBarManager.updateLauncherShortcut(combo)
     }
 
@@ -878,11 +886,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private func search(_ query: String) -> [SearchResult] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let pluginHits = launcherModule?.allHits() ?? []
-        let favorites = LauncherFavorites.load(from: workspace.readSettings()["launcherFavorites"])
+        let favorites = Self.favoriteIDs(from: workspace.readSettings()["launcherFavorites"])
         let shortcuts = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
 
         if q.isEmpty {
-            return favorites.ids.compactMap { id in
+            return favorites.compactMap { id in
                 result(id: id, pluginHits: pluginHits, shortcuts: shortcuts, isFavorite: true)
             }
         }
@@ -985,11 +993,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func toggleFavorite(_ id: String) {
         try? workspace.updateSettings { settings in
-            var favs = LauncherFavorites.load(from: settings["launcherFavorites"])
-            favs.toggle(id)
-            settings["launcherFavorites"] = favs.jsonObject()
+            var ids = Self.favoriteIDs(from: settings["launcherFavorites"])
+            if let i = ids.firstIndex(of: id) { ids.remove(at: i) }
+            else if !id.isEmpty { ids.append(id) }
+            settings["launcherFavorites"] = ids
         }
         engine.configStore = workspace.readSettings()
+    }
+
+    private static func favoriteIDs(from object: Any?) -> [String] {
+        let raw = (object as? [String]) ?? (object as? [Any])?.compactMap { $0 as? String } ?? []
+        var seen = Set<String>()
+        return raw.filter { !$0.isEmpty && seen.insert($0).inserted }
     }
 
     /// Render offscreen for screenshots. The view is hosted in a real window so

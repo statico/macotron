@@ -13,13 +13,3 @@ struct GeminiAPITests {
     }
 }
 
-@Suite("AIProviderFactory")
-struct AIProviderFactoryTests {
-    @Test("maps picker names")
-    func names() {
-        #expect(AIProviderFactory.create(name: "gemini").providerName == "gemini")
-        #expect(AIProviderFactory.create(name: "anthropic").providerName == "claude")
-        #expect(AIProviderFactory.create(name: "small").providerName == "local")
-        #expect(AIProviderFactory.create(name: "gpu").providerName == "local")
-    }
-}

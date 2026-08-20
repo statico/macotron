@@ -213,8 +213,9 @@ public final class AIModule: NativeModule {
                 systemPrompt: systemPrompt
             )
 
-            let config = AIProviderFactory.ProviderConfig(apiKey: apiKey, model: storedModel)
-            let provider = AIProviderFactory.create(name: providerName, config: config)
+            guard let provider = AIModule.provider(providerName, apiKey: apiKey, model: storedModel) else {
+                return "Unknown AI provider".withCString { QJS_ThrowTypeError(ctx, $0) }
+            }
 
             var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
             let promise = JS_NewPromiseCapability(ctx, &resolving)
@@ -323,8 +324,9 @@ public final class AIModule: NativeModule {
                 systemPrompt: systemPrompt
             )
 
-            let config = AIProviderFactory.ProviderConfig(apiKey: apiKey, model: storedModel)
-            let provider = AIProviderFactory.create(name: providerName, config: config)
+            guard let provider = AIModule.provider(providerName, apiKey: apiKey, model: storedModel) else {
+                return "Unknown AI provider".withCString { QJS_ThrowTypeError(ctx, $0) }
+            }
 
             var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
             let promise = JS_NewPromiseCapability(ctx, &resolving)
@@ -412,5 +414,15 @@ public final class AIModule: NativeModule {
             messages.append(AIChatMessage(role: role, content: content))
         }
         return try AIChatMessages.normalize(messages)
+    }
+
+    private static func provider(_ name: String, apiKey: String?, model: String?) -> AIProvider? {
+        switch name {
+        case "claude": return ClaudeProvider(apiKey: apiKey, model: model)
+        case "openai": return OpenAIProvider(apiKey: apiKey, model: model)
+        case "gemini": return GeminiProvider(apiKey: apiKey, model: model)
+        case "local": return LocalProvider()
+        default: return nil
+        }
     }
 }

@@ -21,6 +21,22 @@ enum WindowAX {
         return windows[index]
     }
 
+    static func frame(_ win: AXUIElement) -> CGRect {
+        var posRef: CFTypeRef?
+        var sizeRef: CFTypeRef?
+        var origin = CGPoint.zero
+        var size = CGSize.zero
+        if AXUIElementCopyAttributeValue(win, kAXPositionAttribute as CFString, &posRef) == .success,
+           let posRef {
+            AXValueGetValue(posRef as! AXValue, .cgPoint, &origin)
+        }
+        if AXUIElementCopyAttributeValue(win, kAXSizeAttribute as CFString, &sizeRef) == .success,
+           let sizeRef {
+            AXValueGetValue(sizeRef as! AXValue, .cgSize, &size)
+        }
+        return CGRect(origin: origin, size: size)
+    }
+
     static func title(_ win: AXUIElement) -> String {
         var ref: CFTypeRef?
         guard AXUIElementCopyAttributeValue(win, kAXTitleAttribute as CFString, &ref) == .success,

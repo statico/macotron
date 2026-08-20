@@ -697,21 +697,27 @@ private enum PluginForm {
     static let fieldMaxWidth: CGFloat = 280
 }
 
-struct AppShortcutRecorder: View {
-    let app: AppShortcutSummary
-    @ObservedObject var state: SettingsState
+struct ShortcutField: View {
+    var label: String?
+    let shortcut: String
+    var onSave: (String) -> Void
     @State private var combo = ""
 
     var body: some View {
-        HotkeyRecorderView(combo: $combo) {
-            state.saveCommandShortcut?(app.id, combo)
-            state.refreshAppShortcuts()
+        HStack(alignment: .center, spacing: 12) {
+            if let label {
+                Text(label)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .frame(width: PluginForm.labelWidth, alignment: .leading)
+            }
+            HotkeyRecorderView(combo: $combo) { onSave(combo) }
+                .frame(width: PluginForm.recorderWidth)
+            if label != nil { Spacer(minLength: 0) }
         }
-        .frame(width: PluginForm.recorderWidth)
-        .onAppear { combo = app.shortcut }
-        .onChange(of: app.shortcut) { _, newValue in
-            combo = newValue
-        }
+        .onAppear { combo = shortcut }
+        .onChange(of: shortcut) { _, newValue in combo = newValue }
     }
 }
 
@@ -772,11 +778,8 @@ private final class CommandHeld: ObservableObject, @unchecked Sendable {
     }
 
     func sync(appActive: Bool = true) {
-        let held = CommandHold.isHeld(
-            commandDown: CommandHold.commandDown(NSEvent.modifierFlags),
-            recording: ShortcutRecording.isActive,
-            appActive: appActive
-        )
+        let commandDown = NSEvent.modifierFlags.intersection(.deviceIndependentFlagsMask).contains(.command)
+        let held = appActive && !ShortcutRecording.isActive && commandDown
         if isHeld != held { isHeld = held }
     }
 }
@@ -851,7 +854,7 @@ struct PluginDetailView: View {
 
             HStack {
                 Button(command.isHeld ? "Reveal in Finder" : "Open Source File") {
-                    if CommandHold.commandDown(NSEvent.modifierFlags) {
+                    if NSEvent.modifierFlags.intersection(.deviceIndependentFlagsMask).contains(.command) {
                         state.revealModuleFile?(summary.filename)
                     } else {
                         state.openModuleFile?(summary.filename)
@@ -954,8 +957,8 @@ struct PluginDetailView: View {
     private var hotkeysSection: some View {
         pluginSection("Shortcuts") {
             ForEach(summary.hotkeys) { hotkey in
-                CommandShortcutRow(command: hotkey) { id, combo in
-                    state.saveKeyboardShortcut?(id, combo)
+                ShortcutField(label: hotkey.name, shortcut: hotkey.shortcut) { combo in
+                    state.saveKeyboardShortcut?(hotkey.id, combo)
                     state.refreshModules()
                 }
             }
@@ -965,8 +968,8 @@ struct PluginDetailView: View {
     private var commandsSection: some View {
         pluginSection("Commands") {
             ForEach(summary.commands) { command in
-                CommandShortcutRow(command: command) { id, combo in
-                    state.saveCommandShortcut?(id, combo)
+                ShortcutField(label: command.name, shortcut: command.shortcut) { combo in
+                    state.saveCommandShortcut?(command.id, combo)
                     state.refreshModules()
                 }
             }
@@ -1153,27 +1156,3 @@ struct ModuleOptionRow: View {
     }
 }
 
-struct CommandShortcutRow: View {
-    let command: PluginCommandSummary
-    var onSave: (String, String) -> Void
-    @State private var combo: String = ""
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Text(command.name)
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .frame(width: PluginForm.labelWidth, alignment: .leading)
-            HotkeyRecorderView(combo: $combo) {
-                onSave(command.id, combo)
-            }
-            .frame(width: PluginForm.recorderWidth)
-            Spacer(minLength: 0)
-        }
-        .onAppear { combo = command.shortcut }
-        .onChange(of: command.shortcut) { _, newValue in
-            combo = newValue
-        }
-    }
-}
