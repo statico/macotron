@@ -157,6 +157,7 @@ public final class SettingsState: ObservableObject {
     public var saveCommandShortcut: ((_ commandId: String, _ combo: String) -> Void)?
     public var saveKeyboardShortcut: ((_ hotkeyId: String, _ combo: String) -> Void)?
     public var deleteModule: ((_ filename: String) -> Bool)?
+    public var openModuleFile: ((_ filename: String) -> Void)?
     public var changePluginsFolder: (() -> Void)?
     public var openPluginsFolder: (() -> Void)?
     public var loadRequiredPermissions: (() -> [Permission])?
@@ -886,9 +887,6 @@ struct PluginDetailView: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Text(summary.filename)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.tertiary)
             }
 
             Spacer(minLength: 8)
@@ -898,6 +896,11 @@ struct PluginDetailView: View {
                 set: { state.setModuleEnabled?(summary.filename, $0) }
             ))
             .toggleStyle(.switch)
+            .controlSize(.small)
+
+            Button("Open") {
+                state.openModuleFile?(summary.filename)
+            }
             .controlSize(.small)
         }
     }

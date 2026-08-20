@@ -342,6 +342,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return false
         }
+        settingsState.openModuleFile = { [weak self] filename in
+            guard let self else { return }
+            let url = self.moduleManager.configDir.appending(path: "plugins").appending(path: filename)
+            NSWorkspace.shared.open(url)
+        }
         settingsState.saveModuleOption = { [weak self] filename, key, value in
             guard let self else { return }
             self.moduleManager.saveModuleOption(filename: filename, key: key, value: value)
