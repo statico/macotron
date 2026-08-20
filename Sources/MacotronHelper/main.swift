@@ -4,17 +4,17 @@ import Security
 import SMCKit
 import os
 
-final class FanFloorService: NSObject, FanHelperProtocol, @unchecked Sendable {
-    private let log = Logger(subsystem: "io.statico.macotron", category: "fanhelper")
+final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable {
+    private let log = Logger(subsystem: "io.statico.macotron", category: "helper")
     private let lock = NSLock()
-    private let queue = DispatchQueue(label: "macotron.fanhelper")
+    private let queue = DispatchQueue(label: "macotron.helper.fan")
     private let smc = SMCConnection()
     private var didUnlock = false
     private var floor: Int?
     private var modeKey = "F0Md"
     private var timer: DispatchSourceTimer?
 
-    func setFloor(_ percent: Int, reply: @escaping (String?) -> Void) {
+    func setFanFloor(_ percent: Int, reply: @escaping (String?) -> Void) {
         lock.lock()
         floor = min(100, max(1, percent))
         let error = apply()
@@ -23,7 +23,7 @@ final class FanFloorService: NSObject, FanHelperProtocol, @unchecked Sendable {
         reply(error)
     }
 
-    func restore(reply: @escaping (String?) -> Void) {
+    func restoreFans(reply: @escaping (String?) -> Void) {
         lock.lock()
         floor = nil
         startTimer(false)
@@ -152,10 +152,10 @@ final class FanFloorService: NSObject, FanHelperProtocol, @unchecked Sendable {
     }
 }
 
-final class FanHelperListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
-    private let log = Logger(subsystem: "io.statico.macotron", category: "fanhelper")
+final class HelperListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked Sendable {
+    private let log = Logger(subsystem: "io.statico.macotron", category: "helper")
     private let lock = NSLock()
-    private let service = FanFloorService()
+    private let service = HelperService()
     private var connectionCount = 0
 
     func listener(
@@ -167,7 +167,7 @@ final class FanHelperListenerDelegate: NSObject, NSXPCListenerDelegate, @uncheck
             return false
         }
 
-        connection.exportedInterface = NSXPCInterface(with: FanHelperProtocol.self)
+        connection.exportedInterface = NSXPCInterface(with: MacotronHelperProtocol.self)
         connection.exportedObject = service
         connection.invalidationHandler = { [weak self] in
             self?.connectionInvalidated()
@@ -237,8 +237,8 @@ final class FanHelperListenerDelegate: NSObject, NSXPCListenerDelegate, @uncheck
     }
 }
 
-let delegate = FanHelperListenerDelegate()
-let listener = NSXPCListener(machServiceName: FanHelperService.machServiceName)
+let delegate = HelperListenerDelegate()
+let listener = NSXPCListener(machServiceName: MacotronHelperService.machServiceName)
 listener.delegate = delegate
 listener.resume()
 RunLoop.current.run()

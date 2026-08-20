@@ -57,16 +57,16 @@ final class FanController: @unchecked Sendable {
         guard helperEnabled else {
             var result = snapshotLocked()
             lock.unlock()
-            result.error = "Fan helper is not installed"
+            result.error = Self.notInstalled
             return result
         }
         lock.unlock()
 
         let error: String?
         if let requestedFloor {
-            error = call { $0.setFloor(requestedFloor, reply: $1) }
+            error = call { $0.setFanFloor(requestedFloor, reply: $1) }
         } else {
-            error = call { $0.restore(reply: $1) }
+            error = call { $0.restoreFans(reply: $1) }
         }
 
         lock.lock()
@@ -90,12 +90,12 @@ final class FanController: @unchecked Sendable {
         floor = nil
         lock.unlock()
         guard needed else { return }
-        _ = call { $0.restore(reply: $1) }
+        _ = call { $0.restoreFans(reply: $1) }
         dropConnection()
     }
 
     private var helperEnabled: Bool {
-        SMAppService.daemon(plistName: FanHelperService.plistName).status == .enabled
+        SMAppService.daemon(plistName: MacotronHelperService.plistName).status == .enabled
     }
 
     private func snapshotLocked() -> FanSnapshot {
@@ -131,13 +131,13 @@ final class FanController: @unchecked Sendable {
         }
     }
 
-    private func call(_ body: (FanHelperProtocol, @escaping (String?) -> Void) -> Void) -> String? {
+    private func call(_ body: (MacotronHelperProtocol, @escaping (String?) -> Void) -> Void) -> String? {
         let reply = HelperReply()
         let proxy = connection().remoteObjectProxyWithErrorHandler { error in
             reply.finish(Self.displayError(error.localizedDescription))
         }
-        guard let helper = proxy as? FanHelperProtocol else {
-            return "Fan helper connection failed"
+        guard let helper = proxy as? MacotronHelperProtocol else {
+            return "Macotron helper connection failed"
         }
         body(helper) { error in
             reply.finish(error)
@@ -150,10 +150,10 @@ final class FanController: @unchecked Sendable {
         defer { lock.unlock() }
         if let helperConnection { return helperConnection }
         let connection = NSXPCConnection(
-            machServiceName: FanHelperService.machServiceName,
+            machServiceName: MacotronHelperService.machServiceName,
             options: .privileged
         )
-        connection.remoteObjectInterface = NSXPCInterface(with: FanHelperProtocol.self)
+        connection.remoteObjectInterface = NSXPCInterface(with: MacotronHelperProtocol.self)
         connection.invalidationHandler = { [weak self, weak connection] in
             guard let self, let connection else { return }
             lock.lock()
@@ -180,10 +180,12 @@ final class FanController: @unchecked Sendable {
         "F\(index)\(suffix)"
     }
 
+    static let notInstalled = "Macotron helper is not installed"
+
     /// XPC's own copy is a long "Couldn't communicate with a helper application".
     /// That just means the daemon is not running or rejected us.
     static func displayError(_ error: String) -> String {
-        helperUnreachable(error) ? "Fan helper is not installed" : error
+        helperUnreachable(error) ? notInstalled : error
     }
 
     static func helperUnreachable(_ error: String) -> Bool {
@@ -218,7 +220,7 @@ private final class HelperReply: @unchecked Sendable {
 
     func wait() -> String? {
         guard semaphore.wait(timeout: .now() + 15) == .success else {
-            return "Fan helper did not respond"
+            return "Macotron helper did not respond"
         }
         lock.lock()
         defer { lock.unlock() }

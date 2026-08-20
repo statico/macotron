@@ -11,10 +11,10 @@ private let logger = Logger(subsystem: "io.statico.macotron", category: "permiss
 public enum Permission: String, CaseIterable, Sendable, Identifiable {
     case inputMonitoring
     case accessibility
-        case screenRecording
-        case camera
-        case microphone
-        case fanControl
+    case screenRecording
+    case camera
+    case microphone
+    case helper
 
     public var id: String { rawValue }
 
@@ -25,7 +25,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .screenRecording: return "Screen Recording"
         case .camera: return "Camera"
         case .microphone: return "Microphone"
-        case .fanControl: return "Background Helper"
+        case .helper: return "Background Helper"
         }
     }
 
@@ -37,7 +37,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .screenRecording: return "Capture the screen for plugins that read it."
         case .camera: return "Scan a QR code or use the camera from a plugin."
         case .microphone: return "Record audio from plugins."
-        case .fanControl: return "Lets plugins control privileged features like fan control."
+        case .helper: return "Lets plugins control privileged features like fan control."
         }
     }
 
@@ -54,8 +54,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             return AVCaptureDevice.authorizationStatus(for: .video) == .authorized
         case .microphone:
             return AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
-        case .fanControl:
-            return Permissions.fanHelper.status == .enabled
+        case .helper:
+            return Permissions.helperService.status == .enabled
         }
     }
 
@@ -64,7 +64,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     public var actionTitle: String {
         switch self {
         case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone: return "Grant…"
-        case .fanControl: return "Install…"
+        case .helper: return "Install…"
         }
     }
 
@@ -74,16 +74,16 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     public var isAutoRequestable: Bool {
         switch self {
         case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone: return true
-        case .fanControl: return false
+        case .helper: return false
         }
     }
 
-    /// TCC permissions can only be turned off in System Settings; the fan
-    /// helper is ours to unregister.
+    /// TCC permissions can only be turned off in System Settings; the helper
+    /// is ours to unregister.
     public var canRevoke: Bool {
         switch self {
         case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone: return false
-        case .fanControl: return true
+        case .helper: return true
         }
     }
 
@@ -111,8 +111,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .microphone:
             AVCaptureDevice.requestAccess(for: .audio) { _ in }
             openSettings = true
-        case .fanControl:
-            openSettings = Permissions.registerFanHelper()
+        case .helper:
+            openSettings = Permissions.registerHelper()
         }
         logger.info("Requested \(self.rawValue) permission")
         return openSettings
@@ -123,8 +123,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         switch self {
         case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone:
             break
-        case .fanControl:
-            Permissions.unregisterFanHelper()
+        case .helper:
+            Permissions.unregisterHelper()
         }
     }
 
@@ -142,7 +142,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             urlString = "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Camera"
         case .microphone:
             urlString = "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Microphone"
-        case .fanControl:
+        case .helper:
             urlString = "x-apple.systempreferences:com.apple.LoginItems-Settings.extension"
         }
         guard let url = URL(string: urlString) else { return }
@@ -168,8 +168,8 @@ public enum Permissions {
             return .camera
         case "microphone", "mic":
             return .microphone
-        case "fancontrol", "fan-control", "fan":
-            return .fanControl
+        case "helper":
+            return .helper
         default:
             return nil
         }
@@ -195,26 +195,26 @@ public enum Permissions {
         }
     }
 
-    // MARK: - Fan helper daemon
+    // MARK: - Privileged helper daemon
 
-    static var fanHelper: SMAppService {
-        SMAppService.daemon(plistName: FanHelperService.plistName)
+    static var helperService: SMAppService {
+        SMAppService.daemon(plistName: MacotronHelperService.plistName)
     }
 
-    /// Release a held floor before launchd tears the daemon down.
-    public static var beforeFanHelperUnregister: (() -> Void)?
+    /// Let the helper's capabilities wind down before launchd tears it apart.
+    public static var beforeHelperUnregister: (() -> Void)?
 
     /// The daemon lands in Login Items & Extensions switched off, so
     /// `.requiresApproval` is the expected outcome of the first registration.
     /// Returns true when Settings should open so the user can approve it.
-    static func registerFanHelper() -> Bool {
-        let service = fanHelper
+    static func registerHelper() -> Bool {
+        let service = helperService
         if service.status == .enabled { return false }
         do {
             try service.register()
         } catch {
             if service.status != .requiresApproval {
-                logger.error("Fan helper registration failed: \(error.localizedDescription)")
+                logger.error("Helper registration failed: \(error.localizedDescription)")
                 let alert = NSAlert()
                 alert.messageText = "Could not install the background helper"
                 alert.informativeText = error.localizedDescription
@@ -226,13 +226,13 @@ public enum Permissions {
         return service.status != .enabled
     }
 
-    static func unregisterFanHelper() {
-        beforeFanHelperUnregister?()
+    static func unregisterHelper() {
+        beforeHelperUnregister?()
         do {
-            try fanHelper.unregister()
-            logger.info("Removed the fan helper")
+            try helperService.unregister()
+            logger.info("Removed the helper")
         } catch {
-            logger.error("Fan helper removal failed: \(error.localizedDescription)")
+            logger.error("Helper removal failed: \(error.localizedDescription)")
         }
     }
 
