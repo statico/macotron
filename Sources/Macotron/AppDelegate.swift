@@ -316,6 +316,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         }
+        settingsState.searchInstalledApps = { [weak self] query in
+            guard let self else { return [] }
+            return self.appSearchProvider.matching(query, limit: query.isEmpty ? 40 : 24).map { app in
+                AppShortcutSummary(id: app.bundleID, name: app.name, icon: app.icon)
+            }
+        }
         engine.onPluginChecksChanged = { [weak self] in
             self?.settingsState.refreshModules()
         }
