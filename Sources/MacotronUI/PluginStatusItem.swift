@@ -1,6 +1,39 @@
 import AppKit
 import MacotronEngine
 
+// HARD-WON RENDERING NOTES — read before changing how status items draw.
+//
+// NSStatusBarButton silently mangles two things we hand it, and both were
+// diagnosed by snapshotting the live buttons (`cacheDisplay`) rather than
+// trusting the APIs:
+//
+// 1. Multi-line attributed titles are NOT vertically centered. Pixel
+//    measurements showed a two-line title block sitting ~4pt above the bar's
+//    true center, so one edge always clipped. Paragraph-style tricks
+//    (negative lineSpacing, maximumLineHeight caps, baselineOffset) only
+//    move the clipping around. Buttons DO center images reliably, so
+//    two-line items are drawn into a single bar-height image
+//    (StatusLineStyle.image) with explicit line layout.
+//
+// 2. Symbol-backed NSImages (from NSImage(systemSymbolName:)) are re-laid
+//    out with the button's own symbol configuration, vertically squashing
+//    the glyph: a cup.and.saucer whose natural ink is 22x16pt drew at
+//    20x11pt, which reads as "clipped". Mutating `.size` on a symbol image
+//    is equally unsafe (it crops/distorts instead of scaling). The fix is
+//    to rasterize the configured symbol into a handler-backed NSImage
+//    (see loadImage); the button cannot reconfigure those. Handler images
+//    still work as templates and redraw per-appearance, since the drawing
+//    handler runs at display time — MenuBarIcon uses the same technique.
+//
+// Sizing: menu bar icons live in an 18pt slot (MenuBarIcon); SF symbols at
+// pointSize 15/.medium match the visual scale of system status icons.
+// Larger images (the old 20pt/18pt combo) clip against the button's
+// vertical insets.
+//
+// If rendering regresses, re-verify with a button snapshot, not the screen:
+// temporarily dump `button.cacheDisplay(in:to:)` PNGs after apply() and
+// measure the ink extents. Screen recording permission is not needed.
+
 @MainActor
 final class PluginStatusItem: NSObject {
     let id: String
