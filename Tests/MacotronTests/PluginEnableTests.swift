@@ -15,6 +15,20 @@ struct PluginEnableTests {
         return (ws, dir)
     }
 
+    @Test("listModules returns filenames without reading plugin source")
+    func listModulesDoesNotReadSource() throws {
+        let (ws, dir) = try makeWorkspace()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        try "// Huge weather plugin\nconst x = 1;\n"
+            .write(to: ws.pluginsDir.appending(path: "demo-weather.js"), atomically: true, encoding: .utf8)
+
+        let manager = ModuleManager(engine: Engine(), workspace: ws)
+        let listed = manager.listModules()
+        #expect(listed.map(\.filename) == ["demo-weather.js"])
+        #expect(listed.map(\.description) == [""])
+    }
+
     @Test("setModuleEnabled persists to settings.json")
     func setModuleEnabledPersists() throws {
         let (ws, dir) = try makeWorkspace()

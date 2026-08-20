@@ -77,6 +77,34 @@ struct EngineTests {
         #expect(result == "true")
     }
 
+    @Test("$$__on records unique events for the current plugin file")
+    func recordsPluginEvents() {
+        let engine = Engine()
+        engine.currentEvaluatingFile = "weather.js"
+        engine.evaluate("""
+            $$__on("timer:tick", function() {});
+            $$__on("timer:tick", function() {});
+            $$__on("system:wake", function() {});
+        """)
+        #expect(engine.pluginEvents["weather.js"] == ["timer:tick", "system:wake"])
+    }
+
+    @Test("$$__on does not record events without a plugin file")
+    func pluginEventsNeedAFile() {
+        let engine = Engine()
+        engine.evaluate("$$__on('timer:tick', function() {})")
+        #expect(engine.pluginEvents.isEmpty)
+    }
+
+    @Test("reset clears recorded plugin events")
+    func resetClearsPluginEvents() {
+        let engine = Engine()
+        engine.currentEvaluatingFile = "weather.js"
+        engine.evaluate("$$__on('timer:tick', function() {})")
+        engine.reset()
+        #expect(engine.pluginEvents.isEmpty)
+    }
+
     // MARK: - Type Return Tests
 
     @Test("Evaluate returns number type correctly")

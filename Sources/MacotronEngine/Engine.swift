@@ -59,6 +59,9 @@ public final class Engine {
     /// Keyed by filename → raw metadata dict from JS.
     public var moduleMetadata: [String: [String: Any]] = [:]
 
+    /// Event names registered via `macotron.on`, keyed by plugin filename.
+    public var pluginEvents: [String: [String]] = [:]
+
     /// Latest `macotron.checks()` rows, keyed by plugin filename.
     public var pluginChecks: [String: [PluginCheck]] = [:]
 
@@ -245,6 +248,7 @@ public final class Engine {
                 if let opaque {
                     let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
                     engine.eventBus.on(event, callback: argv[1], ctx: ctx)
+                    engine.recordPluginEvent(event)
                 }
                 return QJS_Undefined()
             }, "$$__on", 2))
@@ -393,6 +397,15 @@ public final class Engine {
         guard let file = currentEvaluatingFile, !file.isEmpty else { return }
         let open = onOpenPluginSettings
         DispatchQueue.main.async { open?(file) }
+    }
+
+    func recordPluginEvent(_ event: String) {
+        guard let file = currentEvaluatingFile, !file.isEmpty, !event.isEmpty else { return }
+        var events = pluginEvents[file] ?? []
+        if !events.contains(event) {
+            events.append(event)
+            pluginEvents[file] = events
+        }
     }
 
     func replaceChecks(_ value: Any?) {
@@ -604,6 +617,13 @@ public final class Engine {
         }
     }
 
+    /// Called after plugins have been evaluated following a reset.
+    public func notifyModulesDidReload() {
+        for module in modules {
+            module.didReload()
+        }
+    }
+
     // MARK: - Reset
 
     /// Full reset for reload
@@ -619,6 +639,7 @@ public final class Engine {
         moduleMetadata.removeAll()
         declaredPermissions.removeAll()
         pluginChecks.removeAll()
+        pluginEvents.removeAll()
 
         // Free old command callbacks
         for (_, cmd) in commandRegistry {
