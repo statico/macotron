@@ -24,12 +24,12 @@ Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew o
 | demo-power.js | power.* | Toggle Keep Awake |
 | demo-fan.js | system.fans / setFanFloor | Toggle Fan 100% |
 | demo-now-playing.js | media.nowPlaying, media:changed | Play/Pause, Next Track |
-| demo-audio.js | audio.devices / setOutput | Cycle Output |
+| demo-audio.js | audio.devices / setOutput / setMuted | Cycle Output, Mute |
 | demo-spaces.js | spaces.list / go | Next Space |
 | demo-usb.js | usb.list, usb:changed | USB Devices |
 | demo-shortcuts.js | shortcuts.list / run | (launcher rows) |
 | demo-notes.js | notes.list, launcher.set | (launcher rows) |
-| demo-wifi.js | network.wifiSSID, wifi:changed | Wi-Fi SSID |
+| demo-wifi.js | network.wifi / bluetooth / airDrop | Toggle Wi-Fi |
 | demo-brightness.js | display brightness/XDR | Toggle XDR |
 | demo-night-vision.js | display.setGamma | Toggle Night Vision |
 | demo-weather.js | http + menubar.status | Refresh Weather |
@@ -43,7 +43,7 @@ Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew o
 | demo-calculator.js | panel | Calculator |
 | demo-regex.js | panel | Regex Workbench |
 | demo-present-mode.js | defaults + Finder | Toggle Present Mode |
-| demo-appearance.js | osascript System Events | Toggle Dark Mode |
+| demo-appearance.js | system.darkMode | Toggle Dark Mode |
 | demo-security-checklist.js | shell probes | Security Checklist |
 | demo-screenshot-rename.js | ocr + fs | Rename Last Screenshot |
 | demo-batch-rename.js | fs.rename | Prefix Downloads Today |

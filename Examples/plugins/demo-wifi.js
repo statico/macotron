@@ -1,18 +1,65 @@
-// demo-wifi.js
-// APIs: macotron.network.wifiSSID, macotron.network.interfaces, macotron.on("wifi:changed"), macotron.notify, macotron.command
-
 macotron.plugin({
   title: "Wi-Fi",
-  description: "Show the current network name.",
+  description: "Toggle Wi-Fi, Bluetooth, and AirDrop from the menu bar.",
 });
 
-let lastChange = null;
+function clip(name) {
+  name = name || "Off";
+  return name.length > 15 ? name.slice(0, 14) + "…" : name;
+}
 
-macotron.on("wifi:changed", (info) => {
-    lastChange = info.ssid || "Disconnected";
-});
+function airDropLabel(mode) {
+  if (mode === "everyone") return "Everyone";
+  if (mode === "contacts") return "Contacts Only";
+  return "Off";
+}
 
-macotron.command("Wi-Fi SSID", "Show the current Wi-Fi network name", () => {
-    const ssid = macotron.network.wifiSSID() || "Not connected";
-    macotron.notify.toast("Wi-Fi", lastChange ? `${ssid} — last change: ${lastChange}` : ssid);
+function paint() {
+  const wifi = macotron.network.wifi();
+  const title = !wifi.available ? "No Wi-Fi" : wifi.on ? clip(wifi.ssid || "On") : "Wi-Fi Off";
+  macotron.menubar.status("wifi", {
+    title: title,
+    sfSymbol: wifi.on ? "wifi" : "wifi.slash",
+    menu: [
+      {
+        title: wifi.on ? "Turn Wi-Fi Off" : "Turn Wi-Fi On",
+        onClick: () => toast(macotron.network.setWifi(!wifi.on), "Wi-Fi", (r) => r.on ? (r.ssid || "On") : "Off"),
+      },
+      {
+        title: macotron.network.bluetooth().on ? "Turn Bluetooth Off" : "Turn Bluetooth On",
+        onClick: () => {
+          const on = !macotron.network.bluetooth().on;
+          toast(macotron.network.setBluetooth(on), "Bluetooth", (r) => r.on ? "On" : "Off");
+        },
+      },
+      {
+        title: "AirDrop: " + airDropLabel(macotron.network.airDrop().mode),
+        menu: [
+          { title: "Off", onClick: () => setAirDrop("off") },
+          { title: "Contacts Only", onClick: () => setAirDrop("contacts") },
+          { title: "Everyone", onClick: () => setAirDrop("everyone") },
+        ],
+      },
+    ],
+  });
+}
+
+function toast(result, title, label) {
+  if (!result.ok) {
+    macotron.notify.toast(title, result.error || "Failed", { color: "failure" });
+    return;
+  }
+  macotron.notify.toast(title, label(result), { color: "success" });
+  paint();
+}
+
+function setAirDrop(mode) {
+  toast(macotron.network.setAirDrop(mode), "AirDrop", () => airDropLabel(mode));
+}
+
+macotron.on("wifi:changed", paint);
+paint();
+macotron.command("Toggle Wi-Fi", "Turn Wi-Fi on or off", () => {
+  const on = !macotron.network.wifi().on;
+  toast(macotron.network.setWifi(on), "Wi-Fi", (r) => r.on ? (r.ssid || "On") : "Off");
 });

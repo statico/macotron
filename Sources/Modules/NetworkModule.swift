@@ -1,4 +1,4 @@
-// NetworkModule.swift — macotron.network: Wi-Fi SSID, interfaces, wifi:changed
+// NetworkModule.swift — macotron.network: Wi-Fi, Bluetooth, AirDrop, interfaces
 import CQuickJS
 import Darwin
 import Foundation
@@ -10,7 +10,7 @@ public final class NetworkModule: NativeModule {
 
     private weak var engine: Engine?
     private var timer: Timer?
-    private var lastSSID: String?
+    private var lastWifi: (on: Bool, ssid: String?)?
 
     public init() {}
 
@@ -25,11 +25,44 @@ public final class NetworkModule: NativeModule {
 
         JS_SetPropertyStr(ctx, network, "wifiSSID", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            if let ssid = NetworkModule.currentSSID() {
+            if let ssid = NetworkControl.currentSSID() {
                 return JSBridge.newString(ctx, ssid)
             }
             return QJS_Null()
         }, "wifiSSID", 0))
+
+        JS_SetPropertyStr(ctx, network, "wifi", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newObject(ctx, NetworkControl.wifi())
+        }, "wifi", 0))
+
+        JS_SetPropertyStr(ctx, network, "setWifi", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
+            let on = JSBridge.toBool(ctx, argv[0])
+            return JSBridge.newObject(ctx, NetworkControl.setWifi(on, dryRun: NetworkModule.dryRun(ctx)))
+        }, "setWifi", 1))
+
+        JS_SetPropertyStr(ctx, network, "bluetooth", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newObject(ctx, BluetoothRadio.snapshot())
+        }, "bluetooth", 0))
+
+        JS_SetPropertyStr(ctx, network, "setBluetooth", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
+            let on = JSBridge.toBool(ctx, argv[0])
+            return JSBridge.newObject(ctx, BluetoothRadio.set(on, dryRun: NetworkModule.dryRun(ctx)))
+        }, "setBluetooth", 1))
+
+        JS_SetPropertyStr(ctx, network, "airDrop", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newObject(ctx, NetworkControl.airDrop())
+        }, "airDrop", 0))
+
+        JS_SetPropertyStr(ctx, network, "setAirDrop", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
+            let mode = JSBridge.toString(ctx, argv[0]) ?? ""
+            return JSBridge.newObject(ctx, NetworkControl.setAirDrop(mode, dryRun: NetworkModule.dryRun(ctx)))
+        }, "setAirDrop", 1))
 
         JS_SetPropertyStr(ctx, network, "interfaces", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
@@ -41,7 +74,7 @@ public final class NetworkModule: NativeModule {
         JS_FreeValue(ctx, global)
 
         guard !engine.dryRun else { return }
-        lastSSID = NetworkModule.currentSSID()
+        lastWifi = NetworkModule.wifiKey()
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.poll() }
         }
@@ -54,13 +87,14 @@ public final class NetworkModule: NativeModule {
     }
 
     private func poll() {
-        let ssid = NetworkModule.currentSSID()
-        guard ssid != lastSSID else { return }
-        lastSSID = ssid
+        let key = NetworkModule.wifiKey()
+        if let last = lastWifi, last.on == key.on, last.ssid == key.ssid { return }
+        lastWifi = key
         guard let engine, let ctx = engine.context else { return }
 
         let data = JS_NewObject(ctx)
-        if let ssid {
+        JS_SetPropertyStr(ctx, data, "on", JSBridge.newBool(ctx, key.on))
+        if let ssid = key.ssid {
             JS_SetPropertyStr(ctx, data, "ssid", JSBridge.newString(ctx, ssid))
         } else {
             JS_SetPropertyStr(ctx, data, "ssid", QJS_Null())
@@ -69,28 +103,14 @@ public final class NetworkModule: NativeModule {
         JS_FreeValue(ctx, data)
     }
 
-    // ponytail: Process fallback — CoreWLAN often fails to link under SPM
-    private static func currentSSID() -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
-        process.arguments = ["-getairportnetwork", "en0"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            return nil
-        }
-        let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if out.isEmpty || out.localizedCaseInsensitiveContains("not associated") {
-            return nil
-        }
-        guard let range = out.range(of: ": ") else { return nil }
-        let ssid = String(out[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-        return ssid.isEmpty ? nil : ssid
+    private static func wifiKey() -> (on: Bool, ssid: String?) {
+        let snap = NetworkControl.wifi()
+        return (snap["on"] as? Bool ?? false, snap["ssid"] as? String)
+    }
+
+    private static func dryRun(_ ctx: OpaquePointer) -> Bool {
+        let opaque = JS_GetContextOpaque(ctx)
+        return opaque.map { Unmanaged<Engine>.fromOpaque($0).takeUnretainedValue().dryRun } ?? false
     }
 
     private static func ipv4Interfaces() -> [Any] {

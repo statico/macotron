@@ -221,7 +221,22 @@ declare const macotron: {
     };
 
     network: {
+        /** Current SSID, or null when Wi-Fi is off or disconnected. */
         wifiSSID(): string | null;
+        wifi(): { available: boolean; on: boolean; ssid?: string };
+        setWifi(on: boolean): { ok: boolean; available: boolean; on: boolean; ssid?: string; error?: string };
+        bluetooth(): {
+            on: boolean;
+            devices: Array<{ name: string; address: string; connected: boolean }>;
+        };
+        setBluetooth(on: boolean): { ok: boolean; on: boolean; error?: string };
+        /** AirDrop discovery. `contacts` is Contacts Only. */
+        airDrop(): { mode: "off" | "contacts" | "everyone" };
+        setAirDrop(mode: "off" | "contacts" | "everyone"): {
+            ok: boolean;
+            mode: "off" | "contacts" | "everyone";
+            error?: string;
+        };
         interfaces(): Array<{ name: string; ip: string }>;
     };
 
@@ -391,6 +406,11 @@ declare const macotron: {
             lowPowerMode: boolean;
             error?: string;
         };
+        /** System appearance, not Macotron's own Settings theme. */
+        darkMode(): boolean;
+        setDarkMode(on: boolean): { ok: boolean; darkMode: boolean; error?: string };
+        /** Whether a Focus mode (Do Not Disturb, Sleep, Work, …) is on. */
+        focus(): { focused: boolean };
         disk(): { total: number; free: number; used: number };
         network(): { bytesIn: number; bytesOut: number };
         processes(limit?: number): Array<{ name: string; pid: number; cpu: number }>;

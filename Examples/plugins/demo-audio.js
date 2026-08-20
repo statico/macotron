@@ -31,6 +31,13 @@ function cycle() {
   macotron.notify.toast("Output", next.name);
 }
 
+function mute() {
+  const on = !macotron.audio.isMuted();
+  macotron.audio.setMuted(on);
+  macotron.notify.toast("Volume", on ? "Muted" : "Unmuted");
+}
+
 macotron.on("audio:changed", paint);
 paint();
 macotron.command("Cycle Output", "Switch to the next audio output", cycle);
+macotron.command("Mute", "Mute or unmute the system output", mute);

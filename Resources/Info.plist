@@ -34,6 +34,8 @@
     </array>
     <key>NSAppleEventsUsageDescription</key>
     <string>Macotron plugins can control other apps through Apple events.</string>
+    <key>NSFocusStatusUsageDescription</key>
+    <string>Plugins can see when a Focus mode is on.</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
     <string>Macotron plugins can list upcoming calendar events.</string>
     <key>NSContactsUsageDescription</key>
