@@ -26,6 +26,16 @@ enum PanelGlass: Equatable {
     }
 }
 
+enum PanelChrome {
+    static let cornerRadius: CGFloat = 12
+
+    static func styleMask(frameless: Bool) -> NSWindow.StyleMask {
+        frameless
+            ? [.borderless, .fullSizeContentView]
+            : [.titled, .closable, .resizable, .utilityWindow]
+    }
+}
+
 @MainActor
 enum PanelShell {
     nonisolated static func css(glass: Bool) -> String {
@@ -34,7 +44,7 @@ enum PanelShell {
             ? "light-dark(rgba(255,255,255,0.55), rgba(44,44,46,0.45))"
             : "light-dark(#ffffff, #2c2c2e)"
         return """
-    html { color-scheme: light dark; }
+    html { color-scheme: light dark; background: \(pageBg); }
     :root {
       --macotron-accent: AccentColor;
       --macotron-accent-text: AccentColorText;
@@ -194,6 +204,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     private let webView: WKWebView
     private let onMessage: (String, Any) -> Void
     private let onClosed: () -> Void
+    private let frameless: Bool
     private var zoomMonitor: Any?
 
     init(
@@ -204,12 +215,14 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         html: String,
         hostChrome: Bool,
         glass: PanelGlass = .none,
+        frameless: Bool = false,
         onMessage: @escaping (String, Any) -> Void,
         onClosed: @escaping () -> Void
     ) {
         self.id = id
         self.onMessage = onMessage
         self.onClosed = onClosed
+        self.frameless = frameless
 
         let config = WKWebViewConfiguration()
         let controller = WKUserContentController()
@@ -223,12 +236,12 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         let wv = WKWebView(frame: NSRect(origin: .zero, size: size), configuration: config)
         wv.appearance = NSApp.effectiveAppearance
         wv.setValue(false, forKey: "drawsBackground")
-        wv.underPageBackgroundColor = glass.isEnabled ? .clear : NSColor.windowBackgroundColor
+        wv.underPageBackgroundColor = (glass.isEnabled || frameless) ? .clear : NSColor.windowBackgroundColor
         self.webView = wv
 
         let p = PluginPanel(
             contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.titled, .closable, .resizable, .utilityWindow],
+            styleMask: PanelChrome.styleMask(frameless: frameless),
             backing: .buffered,
             defer: false
         )
@@ -239,11 +252,15 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         p.hidesOnDeactivate = false
         p.becomesKeyOnlyIfNeeded = false
         p.isReleasedWhenClosed = false
-        if glass.isEnabled {
+        if glass.isEnabled || frameless {
             p.isOpaque = false
             p.backgroundColor = .clear
+            p.hasShadow = true
         }
-        p.contentView = Self.embed(wv, glass: glass, size: size)
+        if frameless {
+            p.isMovableByWindowBackground = true
+        }
+        p.contentView = Self.embed(wv, glass: glass, size: size, frameless: frameless)
         self.panel = p
 
         super.init()
@@ -253,7 +270,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         wv.loadHTMLString(html, baseURL: URL(string: "about:blank"))
         zoomMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, event.window === self.panel else { return event }
-            return self.handleZoomKey(event) ? nil : event
+            return self.handleKey(event) ? nil : event
         }
         NotificationCenter.default.addObserver(
             self,
@@ -269,23 +286,42 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         )
     }
 
-    private static func embed(_ webView: WKWebView, glass: PanelGlass, size: NSSize) -> NSView {
-        guard glass.isEnabled else { return webView }
+    private static func embed(_ webView: WKWebView, glass: PanelGlass, size: NSSize, frameless: Bool) -> NSView {
         let frame = NSRect(origin: .zero, size: size)
         webView.frame = frame
         webView.autoresizingMask = [.width, .height]
-        if #available(macOS 26.0, *) {
-            let view = NSGlassEffectView(frame: frame)
-            view.style = glass == .clear ? .clear : .regular
-            view.contentView = webView
-            view.autoresizingMask = [.width, .height]
-            return view
+        let radius = frameless ? PanelChrome.cornerRadius : 0
+        if glass.isEnabled {
+            if #available(macOS 26.0, *) {
+                let view = NSGlassEffectView(frame: frame)
+                view.style = glass == .clear ? .clear : .regular
+                view.contentView = webView
+                view.autoresizingMask = [.width, .height]
+                if radius > 0 {
+                    view.cornerRadius = radius
+                    view.clipsToBounds = true
+                }
+                return view
+            }
+            return Self.roundedVisual(frame: frame, webView: webView, clear: glass == .clear, radius: radius)
         }
+        if frameless {
+            return Self.roundedVisual(frame: frame, webView: webView, clear: false, radius: radius)
+        }
+        return webView
+    }
+
+    private static func roundedVisual(frame: NSRect, webView: WKWebView, clear: Bool, radius: CGFloat) -> NSVisualEffectView {
         let view = NSVisualEffectView(frame: frame)
-        view.material = glass == .clear ? .fullScreenUI : .hudWindow
+        view.material = clear ? .fullScreenUI : .hudWindow
         view.blendingMode = .behindWindow
         view.state = .active
         view.autoresizingMask = [.width, .height]
+        if radius > 0 {
+            view.wantsLayer = true
+            view.layer?.cornerRadius = radius
+            view.layer?.masksToBounds = true
+        }
         view.addSubview(webView)
         return view
     }
@@ -342,6 +378,14 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         webView.uiDelegate = nil
         NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: panel)
         NotificationCenter.default.removeObserver(self, name: NSWindow.didBecomeKeyNotification, object: panel)
+    }
+
+    private func handleKey(_ event: NSEvent) -> Bool {
+        if frameless, event.keyCode == 53 {
+            close()
+            return true
+        }
+        return handleZoomKey(event)
     }
 
     private func handleZoomKey(_ event: NSEvent) -> Bool {
