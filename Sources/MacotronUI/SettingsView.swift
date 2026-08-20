@@ -414,10 +414,15 @@ public struct SettingsView: View {
                 }
 
                 formRow("Launcher Hotkey") {
-                    HotkeyRecorderView(combo: $state.launcherHotkey) {
-                        state.saveHotkey()
+                    VStack(alignment: .leading, spacing: 4) {
+                        HotkeyRecorderView(combo: $state.launcherHotkey) {
+                            state.saveHotkey()
+                        }
+                        .frame(width: PluginForm.recorderWidth)
+                        ShortcutConflictNote(
+                            message: state.shortcutWarning(id: ShortcutConflicts.launcherID, combo: state.launcherHotkey)
+                        )
                     }
-                    .frame(width: PluginForm.recorderWidth)
                 }
                 .zIndex(1)
                 .padding(.top, 8)
@@ -553,7 +558,10 @@ public struct SettingsView: View {
                                         selectedPlugin = summary.filename
                                         pluginListFocused = true
                                     } label: {
-                                        PluginListRow(summary: summary)
+                                        PluginListRow(
+                                            summary: summary,
+                                            hasShortcutConflict: state.pluginHasShortcutConflict(summary.filename)
+                                        )
                                             .padding(.horizontal, 8)
                                             .padding(.vertical, 5)
                                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -700,20 +708,25 @@ private enum PluginForm {
 struct ShortcutField: View {
     var label: String?
     let shortcut: String
+    var conflict: String?
     var onSave: (String) -> Void
     @State private var combo = ""
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .top, spacing: 12) {
             if let label {
                 Text(label)
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
                     .frame(width: PluginForm.labelWidth, alignment: .leading)
+                    .padding(.top, 6)
             }
-            HotkeyRecorderView(combo: $combo) { onSave(combo) }
-                .frame(width: PluginForm.recorderWidth)
+            VStack(alignment: .leading, spacing: 4) {
+                HotkeyRecorderView(combo: $combo) { onSave(combo) }
+                    .frame(width: PluginForm.recorderWidth)
+                ShortcutConflictNote(message: conflict)
+            }
             if label != nil { Spacer(minLength: 0) }
         }
         .onAppear { combo = shortcut }
@@ -723,6 +736,7 @@ struct ShortcutField: View {
 
 struct PluginListRow: View {
     let summary: ModuleSummary
+    var hasShortcutConflict = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -736,7 +750,7 @@ struct PluginListRow: View {
                 Image(systemName: "xmark.octagon.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(.red)
-            } else if summary.needsSetup || summary.hasFailedChecks {
+            } else if summary.needsSetup || summary.hasFailedChecks || hasShortcutConflict {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(.orange)
@@ -834,6 +848,9 @@ struct PluginDetailView: View {
                     }
                     if summary.hasFailedChecks && summary.isEnabled {
                         detailBadge(text: "Warning", color: .orange)
+                    }
+                    if summary.isEnabled && state.pluginHasShortcutConflict(summary.filename) {
+                        detailBadge(text: "Shortcut conflict", color: .orange)
                     }
                 }
                 Spacer(minLength: 8)
@@ -957,7 +974,11 @@ struct PluginDetailView: View {
     private var hotkeysSection: some View {
         pluginSection("Shortcuts") {
             ForEach(summary.hotkeys) { hotkey in
-                ShortcutField(label: hotkey.name, shortcut: hotkey.shortcut) { combo in
+                ShortcutField(
+                    label: hotkey.name,
+                    shortcut: hotkey.shortcut,
+                    conflict: state.shortcutWarning(id: "hotkey:\(hotkey.id)", combo: hotkey.shortcut)
+                ) { combo in
                     state.saveKeyboardShortcut?(hotkey.id, combo)
                     state.refreshModules()
                 }
@@ -968,7 +989,11 @@ struct PluginDetailView: View {
     private var commandsSection: some View {
         pluginSection("Commands") {
             ForEach(summary.commands) { command in
-                ShortcutField(label: command.name, shortcut: command.shortcut) { combo in
+                ShortcutField(
+                    label: command.name,
+                    shortcut: command.shortcut,
+                    conflict: state.shortcutWarning(id: "command:\(command.id)", combo: command.shortcut)
+                ) { combo in
                     state.saveCommandShortcut?(command.id, combo)
                     state.refreshModules()
                 }
@@ -1049,11 +1074,19 @@ struct ModuleOptionRow: View {
                     }
                 }
         case "keybinding":
-            HotkeyRecorderView(combo: $hotkeyValue) {
-                state.saveModuleOption?(filename, option.key, hotkeyValue)
-                state.refreshModules()
+            VStack(alignment: .leading, spacing: 4) {
+                HotkeyRecorderView(combo: $hotkeyValue) {
+                    state.saveModuleOption?(filename, option.key, hotkeyValue)
+                    state.refreshModules()
+                }
+                .frame(width: PluginForm.recorderWidth)
+                ShortcutConflictNote(
+                    message: state.shortcutWarning(
+                        id: "option:\(filename)/\(option.key)",
+                        combo: (option.currentValue as? String) ?? ""
+                    )
+                )
             }
-            .frame(width: PluginForm.recorderWidth)
             .onAppear { hotkeyValue = (option.currentValue as? String) ?? "" }
         case "dropdown":
             if option.choices.isEmpty {
