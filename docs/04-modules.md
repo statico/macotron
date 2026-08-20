@@ -40,6 +40,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | AXModule | `macotron.ax` | Accessibility tree: focused element, selected text, children, press |
 | CameraModule | `macotron.camera` | Camera list, preview panel, snapshot |
 | ShareModule | `macotron.share` | Share sheet and AirDrop |
+| ScheduleModule | `macotron.every` / `macotron.at` | Interval and wall-clock schedules |
 
 ## Key JS APIs
 
@@ -94,6 +95,8 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 **Checks:** `macotron.checks([{ title, ok, message }])` replaces this plugin's Checks list in Settings → Plugins. A row with `ok: false` shows an orange warning on the plugin (red stays a JS load error). Pass `[]` to clear. Call again when the status changes.
 
 **Settings:** `macotron.settings.open()` opens Settings → Plugins on the calling plugin.
+
+**Schedule:** `macotron.every(30_000, fn)` repeats every 30s. `macotron.every("1h", fn)` fires each local hour at :00; `"15m"` is :00, :15, :30, :45. `macotron.at("1pm", fn)` runs daily at 13:00; pass `{ weekdays: [1,2,3,4,5] }` (JS `getDay()`, 0=Sun) before the callback for weekdays only. Both return `stop()`. Reload cancels all jobs.
 
 **Screen:** `macotron.screen.capture()` is a full-display PNG (base64). `capture({ selection: true })` lets the user drag a rectangle. `pickColor()` opens the system magnifier eyedropper and returns `{ hex, r, g, b, x, y }` or `null` if cancelled.
 

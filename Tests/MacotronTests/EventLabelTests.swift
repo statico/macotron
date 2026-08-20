@@ -19,4 +19,10 @@ struct EventLabelTests {
     func fallback() {
         #expect(EventLabel.displayName("custom:did-fire") == "Custom did fire")
     }
+
+    @Test("schedule events use readable labels")
+    func schedule() {
+        #expect(EventLabel.displayName("schedule:every 1h") == "Every 1h")
+        #expect(EventLabel.displayName("schedule:at 13:00") == "At 13:00")
+    }
 }

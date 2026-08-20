@@ -55,3 +55,7 @@ App Launch
 Any file change in the workdir triggers a hot reload. **Reload** clears all listeners, commands, menubar items, and panels. Then the engine re-executes every plugin from disk.
 
 Bytecode caches under `.cache/` inside the workdir. That directory is gitignored.
+
+## Scheduling
+
+`macotron.every(ms | "1h", fn)` and `macotron.at("1pm", fn)` register wall-clock jobs in native `ScheduleModule`. Both return a stop function. Jobs run only while Macotron is launched; reload cancels all schedules. `macotron.sleep(ms)` remains a one-shot JS promise helper in `macotron-runtime.js`.

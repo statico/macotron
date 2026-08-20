@@ -55,11 +55,6 @@ macotron.sleep = function(ms) {
     return new Promise(function(resolve) { setTimeout(resolve, ms); });
 };
 
-macotron.every = function(ms, callback) {
-    var id = setInterval(callback, ms);
-    return function() { clearInterval(id); };
-};
-
 // --- console shim ---
 
 var console = {
