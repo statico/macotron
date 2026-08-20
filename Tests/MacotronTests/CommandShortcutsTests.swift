@@ -28,6 +28,14 @@ struct CommandShortcutsTests {
         #expect(table.bindings["a"] == nil)
     }
 
+    @Test("unbound stays cleared instead of falling back to the default")
+    func unboundDoesNotUseDefault() {
+        var table = CommandShortcuts()
+        table.assign(commandId: "a", combo: CommandShortcuts.unbound)
+        #expect(table.resolved("a", default: "ctrl+opt+k") == "")
+        #expect(table.resolved("b", default: "ctrl+opt+k") == "ctrl+opt+k")
+    }
+
     @Test("removeCombo drops every id using that combo")
     func removeCombo() {
         var table = CommandShortcuts()
