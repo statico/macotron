@@ -426,6 +426,30 @@ public final class SystemModule: NativeModule {
             return JSBridge.newObject(ctx, LowPowerMode.set(enabled, dryRun: dryRun))
         }, "setLowPowerMode", 1))
 
+        JS_SetPropertyStr(ctx, systemObj, "darkMode",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newBool(ctx, DarkMode.isOn())
+        }, "darkMode", 0))
+
+        JS_SetPropertyStr(ctx, systemObj, "setDarkMode",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+            guard let argv, argc >= 1 else {
+                return QJS_ThrowTypeError(ctx, "setDarkMode requires a boolean")
+            }
+            let on = JSBridge.toBool(ctx, argv[0])
+            let opaque = JS_GetContextOpaque(ctx)
+            let dryRun = opaque.map { Unmanaged<Engine>.fromOpaque($0).takeUnretainedValue().dryRun } ?? false
+            return JSBridge.newObject(ctx, DarkMode.set(on, dryRun: dryRun))
+        }, "setDarkMode", 1))
+
+        JS_SetPropertyStr(ctx, systemObj, "focus",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newObject(ctx, FocusStatus.snapshot())
+        }, "focus", 0))
+
         JS_SetPropertyStr(ctx, systemObj, "setFanFloor",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }

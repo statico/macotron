@@ -312,6 +312,11 @@ public final class PluginWorkspace {
         `macotron.screen.pickColor()` opens the system magnifier and returns
         `{ hex, r, g, b, x, y }` or `null`.
 
+        Control Center-style toggles live on the host: `macotron.audio.volume` /
+        `setVolume` / `setMuted`, `network.wifi` / `setWifi`, `network.bluetooth` /
+        `setBluetooth`, `network.airDrop` / `setAirDrop("off"|"contacts"|"everyone")`,
+        `system.darkMode` / `setDarkMode`, `system.focus()` (`{ focused }`, read-only).
+
         ## Launcher commands
 
         ```js
