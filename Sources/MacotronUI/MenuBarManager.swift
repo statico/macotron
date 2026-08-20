@@ -33,6 +33,7 @@ public final class MenuBarManager: NSObject {
 
     /// Extra NSStatusItems registered by plugins, next to the Macotron icon.
     private var extraStatusItems: [String: PluginStatusItem] = [:]
+    private var statusRegistered: Set<String>?
     private var pluginMenuBoxes: [PluginMenu.Action] = []
 
     /// Items registered by JS modules, keyed by ID
@@ -44,6 +45,8 @@ public final class MenuBarManager: NSObject {
     /// SF Symbol set by a JS module, or nil to use the Macotron glyph.
     /// Redrawn when the permission warning changes.
     private var symbolName: String?
+    private var iconColor: NSColor?
+    private var iconColorThisReload = false
 
     /// Required permissions the user has not granted yet.
     private var missingPermissions: [Permission] = []
@@ -112,19 +115,33 @@ public final class MenuBarManager: NSObject {
         refreshStatusImage()
     }
 
-    /// The glyph stays a template image so macOS tints it for the current menu
-    /// bar appearance. The red dot is a sibling view, because a badged image
-    /// cannot be a template image and would render with a fixed color.
+    public func setIconColor(_ raw: String?) {
+        iconColorThisReload = true
+        iconColor = PluginStatusItem.parseColor(raw)
+        refreshStatusImage()
+    }
+
+    /// Extra status items bake color into the image because `contentTintColor`
+    /// on `NSStatusBarButton` does not tint a custom glyph on Tahoe. Same here:
+    /// a colored icon is an original image; the default glyph stays a template.
     private func refreshStatusImage() {
         guard let button = statusItem.button else { return }
         if let symbolName {
             let base = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Macotron")
-            base?.isTemplate = true
-            button.image = base
+            if let iconColor {
+                button.image = base?.withSymbolConfiguration(.init(paletteColors: [iconColor]))
+                button.image?.isTemplate = false
+            } else {
+                base?.isTemplate = true
+                button.image = base
+            }
         } else {
-            button.image = MenuBarIcon.makeImage()
+            button.image = MenuBarIcon.makeImage(tint: iconColor)
         }
+        button.contentTintColor = nil
 
+        // Permission dot is a sibling; badging the image would force a
+        // non-template icon and a fixed color.
         badgeView?.removeFromSuperview()
         badgeView = nil
 
@@ -167,6 +184,7 @@ public final class MenuBarManager: NSObject {
     ) {
         let extra = extraStatusItems[id] ?? PluginStatusItem(id: id)
         extraStatusItems[id] = extra
+        statusRegistered?.insert(id)
         extra.apply(
             title: title,
             subtitle: subtitle,
@@ -190,6 +208,23 @@ public final class MenuBarManager: NSObject {
     public func removeAllStatus() {
         extraStatusItems.values.forEach { $0.remove() }
         extraStatusItems.removeAll()
+    }
+
+    public func beginStatusReload() {
+        statusRegistered = []
+        iconColorThisReload = false
+    }
+
+    public func finishStatusReload() {
+        guard let registered = statusRegistered else { return }
+        statusRegistered = nil
+        for id in extraStatusItems.keys where !registered.contains(id) {
+            removeStatus(id: id)
+        }
+        if !iconColorThisReload, iconColor != nil {
+            iconColor = nil
+            refreshStatusImage()
+        }
     }
 
     public func setVisible(_ visible: Bool) {

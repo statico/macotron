@@ -1,7 +1,18 @@
-// SettingsView.swift — General prefs, plugins list, about
+// SettingsView.swift — General prefs, plugins list
 import AppKit
 import MacotronEngine
 import SwiftUI
+import UniformTypeIdentifiers
+
+enum PluginListNav {
+    static func neighbor(of selected: String?, in filenames: [String], delta: Int) -> String? {
+        guard !filenames.isEmpty else { return selected }
+        guard let selected, let index = filenames.firstIndex(of: selected) else {
+            return delta >= 0 ? filenames.first : filenames.last
+        }
+        return filenames[min(max(index + delta, 0), filenames.count - 1)]
+    }
+}
 
 /// One choice in a `dropdown` plugin option
 public struct ModuleOptionChoice: Identifiable, Equatable {
@@ -114,6 +125,13 @@ public struct AppShortcutSummary: Identifiable {
     }
 }
 
+public enum SettingsTab: Int, CaseIterable {
+    case general
+    case permissions
+    case plugins
+    case shortcuts
+}
+
 @MainActor
 public final class SettingsState: ObservableObject {
     @Published public var launcherHotkey: String = "cmd+space"
@@ -149,7 +167,6 @@ public final class SettingsState: ObservableObject {
     public var writeLauncherBackground: ((LauncherBackground) -> Void)?
     public var loadModuleSummaries: (() -> [ModuleSummary])?
     public var loadAppShortcuts: (() -> [AppShortcutSummary])?
-    public var searchInstalledApps: ((String) -> [AppShortcutSummary])?
     public var saveModuleOption: ((_ filename: String, _ key: String, _ value: Any) -> Void)?
     public var saveModuleSecret: ((_ filename: String, _ key: String, _ secret: String) -> Void)?
     public var clearModuleSecret: ((_ filename: String, _ key: String) -> Void)?
@@ -158,6 +175,7 @@ public final class SettingsState: ObservableObject {
     public var saveKeyboardShortcut: ((_ hotkeyId: String, _ combo: String) -> Void)?
     public var deleteModule: ((_ filename: String) -> Bool)?
     public var openModuleFile: ((_ filename: String) -> Void)?
+    public var revealModuleFile: ((_ filename: String) -> Void)?
     public var changePluginsFolder: (() -> Void)?
     public var openPluginsFolder: (() -> Void)?
     public var loadRequiredPermissions: (() -> [Permission])?
@@ -248,12 +266,13 @@ public final class SettingsState: ObservableObject {
 
 public struct SettingsView: View {
     @ObservedObject var state: SettingsState
-    @State private var selectedTab: Int
+    @State private var selectedTab: SettingsTab
     @State private var selectedPlugin: String?
+    @FocusState private var pluginListFocused: Bool
 
     public init(state: SettingsState, initialTab: Int = 0) {
         self.state = state
-        self._selectedTab = State(initialValue: initialTab)
+        self._selectedTab = State(initialValue: SettingsTab(rawValue: initialTab) ?? .general)
     }
 
     private let labelWidth: CGFloat = 140
@@ -269,10 +288,10 @@ public struct SettingsView: View {
 
             Group {
                 switch selectedTab {
-                case 1: pluginsTab
-                case 2: shortcutsTab
-                case 3: aboutTab
-                default: generalTab
+                case .general: generalTab
+                case .permissions: permissionsTab
+                case .plugins: pluginsTab
+                case .shortcuts: shortcutsTab
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -289,16 +308,21 @@ public struct SettingsView: View {
     private var tabBar: some View {
         HStack(spacing: 4) {
             Spacer()
-            tabButton(icon: "gearshape", label: "General", tag: 0)
-            tabButton(icon: "puzzlepiece.extension", label: "Plugins", tag: 1)
-            tabButton(icon: "command", label: "Shortcuts", tag: 2)
-            tabButton(icon: "info.circle", label: "About", tag: 3)
+            tabButton(icon: "gearshape", label: "General", tab: .general)
+            tabButton(
+                icon: "lock.shield",
+                label: "Permissions",
+                tab: .permissions,
+                warn: !state.missingPermissions.isEmpty
+            )
+            tabButton(icon: "puzzlepiece.extension", label: "Plugins", tab: .plugins)
+            tabButton(icon: "command", label: "Shortcuts", tab: .shortcuts)
             Spacer()
         }
     }
 
     private func applySettingsRequest() {
-        if let tab = state.requestedTab {
+        if let raw = state.requestedTab, let tab = SettingsTab(rawValue: raw) {
             selectedTab = tab
             state.requestedTab = nil
         }
@@ -308,10 +332,10 @@ public struct SettingsView: View {
         }
     }
 
-    private func tabButton(icon: String, label: String, tag: Int) -> some View {
-        let isSelected = selectedTab == tag
+    private func tabButton(icon: String, label: String, tab: SettingsTab, warn: Bool = false) -> some View {
+        let isSelected = selectedTab == tab
         return Button {
-            selectedTab = tag
+            selectedTab = tab
         } label: {
             VStack(spacing: 2) {
                 Image(systemName: icon)
@@ -320,7 +344,7 @@ public struct SettingsView: View {
                 Text(label)
                     .font(.system(size: 10, weight: .medium))
             }
-            .frame(width: 70, height: 48)
+            .frame(width: 78, height: 48)
             .contentShape(RoundedRectangle(cornerRadius: 8))
             .background(
                 RoundedRectangle(cornerRadius: 8)
@@ -328,20 +352,53 @@ public struct SettingsView: View {
             )
         }
         .buttonStyle(.plain)
-        .foregroundStyle(isSelected ? .primary : .secondary)
+        .foregroundStyle(warn ? Color.orange : (isSelected ? Color.primary : Color.secondary))
     }
 
     private var generalTab: some View {
         ScrollView {
             VStack(spacing: 0) {
-                permissionsSection
+                VStack(spacing: 8) {
+                    if let bannerURL = Bundle.main.url(forResource: "banner", withExtension: "png"),
+                       let nsImage = NSImage(contentsOf: bannerURL) {
+                        Image(nsImage: nsImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: 280)
+                    }
+                    Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0")")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 20)
+                .padding(.bottom, 16)
 
-                formRow("Launch at Login") {
-                    Toggle("Open Macotron when you log in", isOn: Binding(
-                        get: { state.launchAtLogin },
-                        set: { state.toggleLaunchAtLogin($0) }
-                    ))
-                    .toggleStyle(.checkbox)
+                Divider()
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 8)
+
+                formRow("Plugins Folder") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(state.pluginsPath.isEmpty ? "(not set)" : state.pluginsPath)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .truncationMode(.middle)
+
+                        HStack(spacing: 8) {
+                            Button("Change…") {
+                                state.changePluginsFolder?()
+                                state.load()
+                            }
+                            .controlSize(.small)
+
+                            Button("Open Folder") {
+                                state.openPluginsFolder?()
+                            }
+                            .controlSize(.small)
+                        }
+                    }
                 }
 
                 formRow("Launcher Hotkey") {
@@ -354,6 +411,14 @@ public struct SettingsView: View {
                 .padding(.top, 8)
 
                 formDivider
+
+                formRow("Launch at Login") {
+                    Toggle("Open Macotron when you log in", isOn: Binding(
+                        get: { state.launchAtLogin },
+                        set: { state.toggleLaunchAtLogin($0) }
+                    ))
+                    .toggleStyle(.checkbox)
+                }
 
                 formRow("Dock Icon") {
                     Toggle("Show Dock icon", isOn: Binding(
@@ -411,31 +476,6 @@ public struct SettingsView: View {
                     .pickerStyle(.segmented)
                     .frame(width: 340, alignment: .leading)
                 }
-
-                formDivider
-
-                formRow("Plugins Folder") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(state.pluginsPath.isEmpty ? "(not set)" : state.pluginsPath)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                            .truncationMode(.middle)
-
-                        HStack(spacing: 8) {
-                            Button("Change…") {
-                                state.changePluginsFolder?()
-                                state.load()
-                            }
-                            .controlSize(.small)
-
-                            Button("Open Folder") {
-                                state.openPluginsFolder?()
-                            }
-                            .controlSize(.small)
-                        }
-                    }
-                }
                 .padding(.bottom, 16)
             }
         }
@@ -443,25 +483,15 @@ public struct SettingsView: View {
 
     // MARK: - Permissions
 
-    private var permissionsSection: some View {
+    private var permissionsTab: some View {
         let missing = state.missingPermissions
 
-        return VStack(spacing: 0) {
-            formRow("Permissions") {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        Text(permissionsSummary(missing: missing))
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-
-                        Spacer(minLength: 12)
-
-                        Button("Re-check") {
-                            state.refreshPermissions()
-                        }
-                        .controlSize(.small)
-                        .frame(width: PermissionRow.actionWidth, alignment: .trailing)
-                    }
+        return VStack(alignment: .leading, spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(permissionsSummary(missing: missing))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
 
                     ForEach(state.requiredPermissions) { permission in
                         PermissionRow(
@@ -471,14 +501,24 @@ public struct SettingsView: View {
                         )
                     }
                 }
+                .padding(24)
             }
+
+            HStack {
+                Spacer()
+                Button("Re-check") {
+                    state.refreshPermissions()
+                }
+                .controlSize(.small)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
         }
         .background(missing.isEmpty ? Color.clear : Color.orange.opacity(0.08))
-        .overlay(alignment: .bottom) { Divider() }
     }
 
     /// Not everything in this list is needed for Macotron to run — a plugin can
-    /// ask for the fan helper — so the copy talks about approval, not working.
+    /// ask for the background helper — so the copy talks about approval, not working.
     private func permissionsSummary(missing: [Permission]) -> String {
         switch missing.count {
         case 0: return "Macotron has everything it needs."
@@ -493,27 +533,34 @@ public struct SettingsView: View {
                 if state.moduleSummaries.isEmpty {
                     emptyPluginsPlaceholder
                 } else {
-                    ScrollView {
-                        VStack(spacing: 1) {
-                            ForEach(state.moduleSummaries) { summary in
-                                let selected = selectedPlugin == summary.filename
-                                Button {
-                                    selectedPlugin = summary.filename
-                                } label: {
-                                    PluginListRow(summary: summary)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 5)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 5)
-                                                .fill(selected ? Color.accentColor.opacity(0.18) : Color.clear)
-                                        )
-                                        .contentShape(Rectangle())
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            VStack(spacing: 1) {
+                                ForEach(state.moduleSummaries) { summary in
+                                    let selected = selectedPlugin == summary.filename
+                                    Button {
+                                        selectedPlugin = summary.filename
+                                        pluginListFocused = true
+                                    } label: {
+                                        PluginListRow(summary: summary)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 5)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 5)
+                                                    .fill(selected ? Color.accentColor.opacity(0.18) : Color.clear)
+                                            )
+                                            .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .id(summary.filename)
                                 }
-                                .buttonStyle(.plain)
                             }
+                            .padding(6)
                         }
-                        .padding(6)
+                        .onChange(of: selectedPlugin) { _, file in
+                            if let file { proxy.scrollTo(file, anchor: .center) }
+                        }
                     }
                     .frame(maxHeight: .infinity)
                 }
@@ -546,9 +593,14 @@ public struct SettingsView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .focusable()
+        .focused($pluginListFocused)
+        .focusEffectDisabled()
+        .onKeyPress(.upArrow) { handlePluginArrow(-1) }
+        .onKeyPress(.downArrow) { handlePluginArrow(1) }
         .onAppear {
-            state.refreshModules()
             selectInitialPlugin()
+            pluginListFocused = true
         }
         .onChange(of: state.moduleSummaries.map(\.filename)) {
             selectInitialPlugin()
@@ -580,44 +632,25 @@ public struct SettingsView: View {
         }?.filename ?? filenames.first
     }
 
-    private var shortcutsTab: some View {
-        AppShortcutsTab(state: state)
+    private func handlePluginArrow(_ delta: Int) -> KeyPress.Result {
+        if NSApp.keyWindow?.firstResponder is NSTextView { return .ignored }
+        guard movePluginSelection(delta) else { return .ignored }
+        return .handled
     }
 
-    private var aboutTab: some View {
-        VStack(spacing: 16) {
-            Spacer()
-
-            if let bannerURL = Bundle.main.url(forResource: "banner", withExtension: "png"),
-               let nsImage = NSImage(contentsOf: bannerURL) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: 360)
-            }
-
-            Text("A thin macOS host for JavaScript plugins. Edit plugins with your coding agent — Macotron loads and runs them.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 420)
-
-            Link(destination: URL(string: "https://github.com/statico/macotron")!) {
-                HStack(spacing: 4) {
-                    Image(systemName: "link")
-                    Text("github.com/statico/macotron")
-                }
-                .font(.callout)
-            }
-
-            Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0")")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-
-            Spacer()
+    @discardableResult
+    private func movePluginSelection(_ delta: Int) -> Bool {
+        let files = state.moduleSummaries.map(\.filename)
+        guard let next = PluginListNav.neighbor(of: selectedPlugin, in: files, delta: delta) else {
+            return false
         }
-        .frame(maxWidth: .infinity)
-        .padding(24)
+        selectedPlugin = next
+        pluginListFocused = true
+        return true
+    }
+
+    private var shortcutsTab: some View {
+        AppShortcutsTab(state: state)
     }
 
     private func formRow<Content: View>(
@@ -651,8 +684,6 @@ private enum PluginForm {
 
 struct AppShortcutsTab: View {
     @ObservedObject var state: SettingsState
-    @State private var query = ""
-    @State private var matches: [AppShortcutSummary] = []
     @State private var pending: AppShortcutSummary?
     @State private var combo = ""
 
@@ -660,7 +691,7 @@ struct AppShortcutsTab: View {
         VStack(spacing: 0) {
             addSection
             Divider()
-            if state.appShortcuts.isEmpty {
+            if state.appShortcuts.isEmpty, pending == nil {
                 Text("No app shortcuts yet.")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -669,6 +700,7 @@ struct AppShortcutsTab: View {
                     ForEach(state.appShortcuts) { app in
                         shortcutRow(app)
                     }
+                    .onDelete(perform: removeShortcuts)
                 }
                 .listStyle(.inset)
             }
@@ -684,54 +716,28 @@ struct AppShortcutsTab: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: 8) {
-                TextField("Add an app…", text: $query)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 280)
-                    .onChange(of: query) { _, value in
-                        if pending != nil, value != pending?.name {
-                            pending = nil
-                            combo = ""
-                        }
-                        matches = query.isEmpty ? [] : (state.searchInstalledApps?(query) ?? [])
-                    }
+                Button {
+                    pickApplication()
+                } label: {
+                    Label("Add Application", systemImage: "plus")
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Add Application")
 
-                HotkeyRecorderView(combo: $combo) {}
-                    .frame(width: PluginForm.recorderWidth)
-                    .disabled(pending == nil)
-
-                Button("Add") { addPending() }
-                    .controlSize(.small)
-                    .disabled(pending == nil || combo.isEmpty)
-            }
-
-            if let pending {
-                HStack(spacing: 8) {
+                if let pending {
                     appIcon(pending)
                     Text(pending.name)
                         .font(.system(size: 12, weight: .medium))
-                    Text("Record a shortcut, then Add.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-            } else if !matches.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(matches.prefix(8)) { app in
-                        Button {
-                            pending = app
-                            query = app.name
-                            matches = []
-                        } label: {
-                            HStack(spacing: 8) {
-                                appIcon(app)
-                                Text(app.name)
-                                    .font(.system(size: 12))
-                                Spacer()
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.vertical, 4)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    HotkeyRecorderView(combo: $combo) {
+                        addPending()
                     }
+                    .frame(width: PluginForm.recorderWidth)
+                } else {
+                    Spacer(minLength: 0)
                 }
             }
         }
@@ -746,13 +752,31 @@ struct AppShortcutsTab: View {
                 .lineLimit(1)
             Spacer(minLength: 8)
             AppShortcutRecorder(app: app, state: state)
-            Button("Remove") {
-                state.saveCommandShortcut?(app.id, "")
-                state.refreshAppShortcuts()
+            Button {
+                removeShortcut(app.id)
+            } label: {
+                Label("Remove", systemImage: "minus.circle.fill")
+                    .labelStyle(.iconOnly)
+                    .font(.system(size: 15))
+                    .foregroundStyle(.secondary)
+                    .symbolRenderingMode(.hierarchical)
             }
-            .controlSize(.small)
+            .buttonStyle(.borderless)
+            .help("Remove Shortcut")
         }
         .padding(.vertical, 2)
+    }
+
+    private func removeShortcut(_ id: String) {
+        state.saveCommandShortcut?(id, "")
+        state.refreshAppShortcuts()
+    }
+
+    private func removeShortcuts(at offsets: IndexSet) {
+        for index in offsets {
+            state.saveCommandShortcut?(state.appShortcuts[index].id, "")
+        }
+        state.refreshAppShortcuts()
     }
 
     private func addPending() {
@@ -760,9 +784,38 @@ struct AppShortcutsTab: View {
         state.saveCommandShortcut?(pending.id, combo)
         state.refreshAppShortcuts()
         self.pending = nil
-        query = ""
         combo = ""
-        matches = []
+    }
+
+    private func pickApplication() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.application]
+        panel.directoryURL = URL(fileURLWithPath: "/Applications", isDirectory: true)
+        panel.prompt = "Add"
+        panel.message = "Choose an application"
+        guard panel.runModal() == .OK, let url = panel.url,
+              let app = appSummary(from: url) else { return }
+        if state.appShortcuts.contains(where: { $0.id == app.id }) {
+            pending = nil
+            combo = ""
+            return
+        }
+        pending = app
+        combo = ""
+    }
+
+    private func appSummary(from url: URL) -> AppShortcutSummary? {
+        let resolved = url.resolvingSymlinksInPath()
+        guard let bundle = Bundle(url: resolved),
+              let bundleID = bundle.bundleIdentifier else { return nil }
+        let name = (bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
+            ?? (bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)
+            ?? resolved.deletingPathExtension().lastPathComponent
+        let icon = NSWorkspace.shared.icon(forFile: resolved.path(percentEncoded: false))
+        return AppShortcutSummary(id: bundleID, name: name, icon: icon)
     }
 
     private func appIcon(_ app: AppShortcutSummary) -> some View {
@@ -810,9 +863,13 @@ struct PluginListRow: View {
             Spacer(minLength: 4)
 
             if summary.hasErrors {
-                Circle().fill(.red).frame(width: 6, height: 6)
+                Image(systemName: "xmark.octagon.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
             } else if summary.needsSetup || summary.hasFailedChecks {
-                Circle().fill(.orange).frame(width: 6, height: 6)
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.orange)
             }
         }
         .padding(.vertical, 2)
@@ -820,10 +877,51 @@ struct PluginListRow: View {
     }
 }
 
+private final class CommandHeld: ObservableObject, @unchecked Sendable {
+    @Published private(set) var isHeld = false
+    private var monitor: Any?
+    private var observers: [NSObjectProtocol] = []
+
+    init() {
+        sync()
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged, .leftMouseUp, .rightMouseUp]) { [weak self] event in
+            self?.sync()
+            return event
+        }
+        let center = NotificationCenter.default
+        observers.append(center.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.sync()
+        })
+        observers.append(center.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.sync(appActive: false)
+        })
+        observers.append(center.addObserver(forName: ShortcutRecording.didChange, object: nil, queue: .main) { [weak self] _ in
+            self?.sync()
+        })
+    }
+
+    deinit {
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        for observer in observers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    func sync(appActive: Bool = true) {
+        let held = CommandHold.isHeld(
+            commandDown: CommandHold.commandDown(NSEvent.modifierFlags),
+            recording: ShortcutRecording.isActive,
+            appActive: appActive
+        )
+        if isHeld != held { isHeld = held }
+    }
+}
+
 struct PluginDetailView: View {
     let summary: ModuleSummary
     @ObservedObject var state: SettingsState
     @State private var showDeleteAlert = false
+    @StateObject private var command = CommandHeld()
 
     var body: some View {
         ScrollView {
@@ -838,10 +936,10 @@ struct PluginDetailView: View {
                 if !summary.isEnabled {
                     disabledHint
                 } else {
-                    if !summary.events.isEmpty { badges }
                     if !summary.hotkeys.isEmpty { hotkeysSection }
                     if !summary.commands.isEmpty { commandsSection }
                     if !summary.options.isEmpty { settingsSection }
+                    if !summary.events.isEmpty { eventsSection }
                 }
             }
             .padding(20)
@@ -888,8 +986,13 @@ struct PluginDetailView: View {
             }
 
             HStack {
-                Button("Open") {
-                    state.openModuleFile?(summary.filename)
+                Button(command.isHeld ? "Reveal in Finder" : "Open") {
+                    if CommandHold.commandDown(NSEvent.modifierFlags) {
+                        state.revealModuleFile?(summary.filename)
+                    } else {
+                        state.openModuleFile?(summary.filename)
+                    }
+                    command.sync()
                 }
                 .controlSize(.small)
                 Spacer()
@@ -972,10 +1075,14 @@ struct PluginDetailView: View {
         .cornerRadius(6)
     }
 
-    private var badges: some View {
-        HStack(spacing: 4) {
-            ForEach(summary.events, id: \.self) { event in
-                detailBadge(text: event, color: .purple)
+    private var eventsSection: some View {
+        pluginSection("Listens for") {
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(summary.events, id: \.self) { event in
+                    Text("•  \(EventLabel.displayName(event))")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }

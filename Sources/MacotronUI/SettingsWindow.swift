@@ -13,7 +13,7 @@ public final class SettingsWindow {
     }
 
     /// Default size. Resizable; the SwiftUI root fills the content view.
-    private static let contentSize = NSSize(width: 760, height: 620)
+    private static let contentSize = NSSize(width: 760, height: 680)
     private static let minSize = NSSize(width: 640, height: 480)
 
     public func show() {
