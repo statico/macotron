@@ -104,8 +104,10 @@ final class PluginStatusItem: NSObject {
         onClick?()
     }
 
-    fileprivate static let iconSize: CGFloat = 20
-    private static let symbolConfig = NSImage.SymbolConfiguration(pointSize: 18, weight: .medium)
+    // Match the menu bar's standard 18pt icon slot (see MenuBarIcon);
+    // larger images clip against the status button's vertical insets.
+    fileprivate static let iconSize: CGFloat = 18
+    private static let symbolConfig = NSImage.SymbolConfiguration(pointSize: 15, weight: .medium)
 
     private static func loadImage(sfSymbol: String?, path: String?, color: NSColor?) -> NSImage? {
         if let path, !path.isEmpty {
@@ -122,8 +124,15 @@ final class PluginStatusItem: NSObject {
         if let color {
             config = config.applying(.init(paletteColors: [color]))
         }
-        let out = img.withSymbolConfiguration(config) ?? img
-        out.size = NSSize(width: iconSize, height: iconSize)
+        let configured = img.withSymbolConfiguration(config) ?? img
+        // Rasterize: NSStatusBarButton re-applies its own symbol layout to
+        // symbol-backed images, squashing the glyph into a shorter band.
+        // A handler-backed image keeps our metrics and still tints as a
+        // template, like MenuBarIcon.
+        let out = NSImage(size: configured.size, flipped: false) { rect in
+            configured.draw(in: rect)
+            return true
+        }
         out.isTemplate = color == nil
         return out
     }
