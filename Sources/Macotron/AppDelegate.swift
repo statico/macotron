@@ -743,6 +743,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.addModule(ShellModule())
         engine.addModule(FileSystemModule())
         engine.addModule(NotifyModule())
+        engine.addModule(DialogModule())
         engine.addModule(ClipboardModule())
         engine.addModule(SnippetsModule())
 

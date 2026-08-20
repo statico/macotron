@@ -8,6 +8,10 @@ interface MenuBarMenuItem {
     menu?: MenuBarMenuItem[];
 }
 
+declare function alert(message?: any): void;
+declare function confirm(message?: any): boolean;
+declare function prompt(message?: any, defaultValue?: string): string | null;
+
 declare const macotron: {
     version: {
         app: string;
@@ -37,6 +41,12 @@ declare const macotron: {
             >;
         }
     ): void;
+    /** Blocking OK sheet. Same as global `alert`. */
+    alert(message?: any): void;
+    /** Blocking OK/Cancel sheet. Same as global `confirm`. */
+    confirm(message?: any): boolean;
+    /** Blocking text sheet. Cancel returns `null`. Same as global `prompt`. */
+    prompt(message?: any, defaultValue?: string): string | null;
     log(...args: any[]): void;
     sleep(ms: number): Promise<void>;
     every(ms: number, callback: () => void | Promise<void>): () => void;
@@ -218,6 +228,11 @@ declare const macotron: {
         isPreventing(): boolean;
         lock(): boolean;
         sleep(): boolean;
+        displaySleep(): boolean;
+        screensaver(): boolean;
+        logOut(): boolean;
+        restart(): boolean;
+        shutdown(): boolean;
     };
 
     network: {

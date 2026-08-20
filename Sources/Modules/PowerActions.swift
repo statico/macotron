@@ -1,11 +1,12 @@
-// PowerActions.swift — lock screen, sleep, and sleep/lock notifications
+// PowerActions.swift — lock, sleep, and related power actions
 import AppKit
 import Darwin
 import Foundation
 import MacotronEngine
 
 enum PowerActions {
-    static func lock() -> Bool {
+    static func lock(dryRun: Bool = false) -> Bool {
+        if dryRun { return true }
         if let fn = SkyLightLock.lockScreen {
             fn()
             return true
@@ -15,8 +16,35 @@ enum PowerActions {
         ])
     }
 
-    static func sleep() -> Bool {
-        run("/usr/bin/osascript", ["-e", "tell application \"System Events\" to sleep"])
+    static func sleep(dryRun: Bool = false) -> Bool {
+        appleEvent("sleep", dryRun: dryRun)
+    }
+
+    static func displaySleep(dryRun: Bool = false) -> Bool {
+        if dryRun { return true }
+        return run("/usr/bin/pmset", ["displaysleepnow"])
+    }
+
+    static func screensaver(dryRun: Bool = false) -> Bool {
+        if dryRun { return true }
+        return run("/usr/bin/open", ["-a", "ScreenSaverEngine"])
+    }
+
+    static func logOut(dryRun: Bool = false) -> Bool {
+        appleEvent("log out", dryRun: dryRun)
+    }
+
+    static func restart(dryRun: Bool = false) -> Bool {
+        appleEvent("restart", dryRun: dryRun)
+    }
+
+    static func shutdown(dryRun: Bool = false) -> Bool {
+        appleEvent("shut down", dryRun: dryRun)
+    }
+
+    private static func appleEvent(_ verb: String, dryRun: Bool) -> Bool {
+        if dryRun { return true }
+        return run("/usr/bin/osascript", ["-e", "tell application \"System Events\" to \(verb)"])
     }
 
     private static func run(_ path: String, _ args: [String]) -> Bool {
