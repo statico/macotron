@@ -84,4 +84,27 @@ struct ScheduleModuleTests {
         #expect(engine.pluginEvents["weather.js"]?.contains("schedule:every 1h") == true)
         #expect(engine.pluginEvents["weather.js"]?.contains("schedule:at 13:00") == true)
     }
+
+    @Test("runtime.js does not overwrite native every")
+    func runtimeDoesNotOverwriteEvery() throws {
+        let runtimeURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "Sources/Macotron/Resources/macotron-runtime.js")
+        let runtimeJS = try String(contentsOf: runtimeURL, encoding: .utf8)
+
+        let engine = Engine()
+        engine.dryRun = true
+        engine.addModule(ScheduleModule())
+        engine.registerAllModules()
+        engine.evaluate(runtimeJS, filename: "macotron-runtime.js")
+
+        engine.currentEvaluatingFile = "test.js"
+        let (_, error) = engine.evaluate("""
+            macotron.every("1h", function() {});
+            """)
+        #expect(error == nil)
+        #expect(engine.pluginEvents["test.js"]?.contains("schedule:every 1h") == true)
+    }
 }
