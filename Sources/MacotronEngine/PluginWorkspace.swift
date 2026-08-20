@@ -350,6 +350,7 @@ public final class PluginWorkspace {
         `html` is inserted into a host document (system font, padding, light/dark).
         `rawHtml` is a full document. `glass: true` (or `"regular"`) uses Liquid Glass
         with a transparent page background; `glass: "clear"` is the clearer variant.
+        `frameless: true` hides the title bar; Escape closes.
         Host CSS exposes `--macotron-accent` (and related `--macotron-*` system colors);
         `button.primary` uses the accent color. In the page, `close()` closes the panel.
         The page may also call `webkit.messageHandlers.macotron.postMessage(data)`.
@@ -371,7 +372,7 @@ public final class PluginWorkspace {
         Valid permission names: `accessibility`, `inputMonitoring`, `screenRecording`,
         `fanControl`. Window control needs `accessibility`. Screen capture needs
         `screenRecording`. Holding a fan-speed floor needs `fanControl`, which the
-        user installs from this plugin's Settings page.
+        user installs as the background helper from this plugin's Settings page.
 
         Add `options` on the same call to expose configurable settings. The user
         edits values in Settings → Plugins; the plugin reads the resolved values

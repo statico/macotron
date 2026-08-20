@@ -375,6 +375,21 @@ declare const macotron: {
             timeRemaining: number;
             /** Minutes until full, or -1 if unknown. */
             timeToFull: number;
+            /** `"ac"` or `"battery"`. */
+            source: "ac" | "battery";
+            /** Maximum capacity as a percent of design, when known. */
+            health?: number;
+            /** Charge cycle count, when known. */
+            cycles?: number;
+            /** Adapter wattage when on AC, when known. */
+            watts?: number;
+            lowPowerMode: boolean;
+        };
+        /** Needs an admin password. `pmset` Low Power Mode for battery and adapter. */
+        setLowPowerMode(enabled: boolean): {
+            ok: boolean;
+            lowPowerMode: boolean;
+            error?: string;
         };
         disk(): { total: number; free: number; used: number };
         network(): { bytesIn: number; bytesOut: number };
@@ -417,6 +432,8 @@ declare const macotron: {
         update(id: string, opts: { title?: string; icon?: string }): void;
         remove(id: string): void;
         setIcon(sfSymbolName: string): void;
+        /** Tint the Macotron menu bar glyph. Pass `null` to restore the system color. */
+        setIconColor(color?: string | null): void;
         setTitle(text: string): void;
         /** Extra status item next to the Macotron icon. */
         status(
@@ -485,7 +502,7 @@ declare const macotron: {
     };
 
     panel: {
-        /** `html` is body markup in a host document (fonts, padding, light/dark). `rawHtml` is a full document. `glass` is Liquid Glass: `true`/`"regular"` (translucent) or `"clear"`. */
+        /** `html` is body markup in a host document (fonts, padding, light/dark). `rawHtml` is a full document. `glass` is Liquid Glass: `true`/`"regular"` (translucent) or `"clear"`. `frameless` hides the title bar. */
         open(opts: {
             title?: string;
             width?: number;
@@ -493,6 +510,8 @@ declare const macotron: {
             html?: string;
             rawHtml?: string;
             glass?: boolean | "regular" | "clear";
+            /** No title bar. Escape closes. */
+            frameless?: boolean;
         }): string;
         close(id: string): void;
         postMessage(id: string, data: any): void;
@@ -549,7 +568,7 @@ declare const macotron: {
         description?: string;
         /** Extra explanation shown in Settings → Plugins. */
         help?: string;
-        /** `fanControl` lists the fan helper on this plugin's Settings page. */
+        /** `fanControl` lists the background helper on this plugin's Settings page. */
         permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "fanControl">;
         options?: Record<string, MacotronModuleOption>;
     }): Record<string, any>;

@@ -6,7 +6,7 @@ The first-run wizard does not demand permissions up front. The required set is t
 
 | Permission | Source | Why |
 |---|---|---|
-| **Input Monitoring** | Baseline | Global hotkeys for the launcher and plugins |
+| **Input Monitoring** | Baseline | Snippet expansion, window snap, and event taps |
 | **Accessibility** | Baseline | Move and focus windows |
 | **Screen Recording** | Declared by a plugin | Capture the screen |
 
@@ -25,7 +25,7 @@ macotron.plugin({
 When a required permission is missing, Macotron shows two alerts:
 
 - A red dot on the menu bar icon, and a red row in the menu that names each missing permission.
-- A permissions block at the top of Settings → General. Each row has a **Grant** button and an **Open Settings** button.
+- A permissions tab in Settings. Each row has a **Grant** button. The tab is orange when anything still needs approval.
 
 The app re-checks on launch, after every plugin reload, when it becomes active, and every 3 seconds while anything is missing.
 
@@ -71,7 +71,7 @@ enum CapabilityTier {
 
 ### Moderate (reversible side effects)
 
-`window.move`, `window.moveToFraction`, `window.focus`, `window.minimize`, `window.close`, `window.setFullscreen`, `window.snap`, `window.setSnapEnabled`, `notify.show`, `notify.toast`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `app.hide`, `app.quit`, `app.menu`, `audio.setInput`, `audio.setOutput`, `audio.setVolume`, `audio.setMuted`, `spaces.go`, `spaces.moveWindow`, `shortcuts.run`, `panel.open`, `panel.close`, `screen.pickColor`, `media.playPause`, `media.next`, `media.previous`, `launcher.set`, `notes.open`, `display.setGamma`, `display.restoreGamma`, `event.post`, `event.tap`, `mouse.warp`
+`window.move`, `window.moveToFraction`, `window.focus`, `window.minimize`, `window.close`, `window.setFullscreen`, `window.snap`, `window.setSnapEnabled`, `notify.show`, `notify.toast`, `menubar.*`, `keyboard.on`, `clipboard.set`, `app.launch`, `app.switch`, `app.hide`, `app.quit`, `app.menu`, `audio.setInput`, `audio.setOutput`, `audio.setVolume`, `audio.setMuted`, `spaces.go`, `spaces.moveWindow`, `shortcuts.run`, `panel.open`, `panel.close`, `screen.pickColor`, `media.playPause`, `media.next`, `media.previous`, `launcher.set`, `notes.open`, `display.setGamma`, `display.restoreGamma`, `event.post`, `event.tap`, `mouse.warp`, `system.setLowPowerMode`
 
 ### Dangerous (system / network / filesystem)
 
