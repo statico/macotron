@@ -20,17 +20,17 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .inputMonitoring: return "Input Monitoring"
         case .accessibility: return "Accessibility"
         case .screenRecording: return "Screen Recording"
-        case .fanControl: return "Fan Control"
+        case .fanControl: return "Background Helper"
         }
     }
 
     /// Short reason shown in Settings so the user knows why Macotron asks.
     public var reason: String {
         switch self {
-        case .inputMonitoring: return "Global hotkeys for the launcher and plugins."
+        case .inputMonitoring: return "Snippet expansion, window snap, and event taps."
         case .accessibility: return "Move and focus windows from plugins."
         case .screenRecording: return "Capture the screen for plugins that read it."
-        case .fanControl: return "Set fan speeds from plugins. Installs a helper you approve as an admin."
+        case .fanControl: return "Lets plugins control privileged features like fan control."
         }
     }
 
@@ -48,7 +48,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         }
     }
 
-    /// Title of the row action. Fan control installs a helper daemon instead of
+    /// Title of the row action. The background helper installs a daemon instead of
     /// asking macOS for access, so it does not read as granting anything.
     public var actionTitle: String {
         switch self {
@@ -191,7 +191,7 @@ public enum Permissions {
             if service.status != .requiresApproval {
                 logger.error("Fan helper registration failed: \(error.localizedDescription)")
                 let alert = NSAlert()
-                alert.messageText = "Could not install the fan helper"
+                alert.messageText = "Could not install the background helper"
                 alert.informativeText = error.localizedDescription
                     + "\n\nSign Macotron with a Developer ID, then try Install again."
                 alert.runModal()

@@ -4,6 +4,11 @@ import Testing
 @Suite("Fan permission")
 @MainActor
 struct FanPermissionTests {
+    @Test func settingsCallsItBackgroundHelper() {
+        #expect(Permission.fanControl.title == "Background Helper")
+        #expect(Permission.fanControl.reason == "Lets plugins control privileged features like fan control.")
+    }
+
     @Test func aliases() {
         #expect(Permissions.parse("fan") == .fanControl)
         #expect(Permissions.parse("fan-control") == .fanControl)
