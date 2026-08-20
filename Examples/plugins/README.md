@@ -29,6 +29,7 @@ Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew o
 | demo-usb.js | usb.list, usb:changed | USB Devices |
 | demo-shortcuts.js | shortcuts.list / run | (launcher rows) |
 | demo-notes.js | notes.list, launcher.set | (launcher rows) |
+| demo-system-settings.js | launcher.set, url.open | (System Settings panes) |
 | demo-wifi.js | network.wifi / bluetooth / airDrop | Toggle Wi-Fi |
 | demo-brightness.js | display brightness/XDR | Toggle XDR |
 | demo-night-vision.js | display.setGamma | Toggle Night Vision |
