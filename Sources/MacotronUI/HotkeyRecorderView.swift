@@ -176,6 +176,7 @@ public struct HotkeyRecorderView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, minHeight: 36, maxHeight: 36)
+        .padding(.horizontal, 8)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(nsColor: .controlBackgroundColor))
@@ -187,6 +188,20 @@ public struct HotkeyRecorderView: View {
                     lineWidth: isRecording ? 2 : 1
                 )
         )
+        .overlay(alignment: .trailing) {
+            if !combo.isEmpty {
+                Button(action: clearShortcut) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Clear Shortcut")
+                .accessibilityLabel("Clear Shortcut")
+                .padding(.trailing, 8)
+            }
+        }
         .contentShape(Rectangle())
         .onTapGesture {
             if !isRecording {
@@ -271,6 +286,12 @@ public struct HotkeyRecorderView: View {
         }
     }
 
+    private func clearShortcut() {
+        combo = ""
+        stopRecording()
+        onSave()
+    }
+
     private func handleKeyEvent(_ event: NSEvent) {
         // Escape cancels
         if event.keyCode == UInt16(kVK_Escape) {
@@ -280,9 +301,7 @@ public struct HotkeyRecorderView: View {
 
         // Delete/Backspace clears the shortcut
         if event.keyCode == UInt16(kVK_Delete) || event.keyCode == UInt16(kVK_ForwardDelete) {
-            combo = ""
-            stopRecording()
-            onSave()
+            clearShortcut()
             return
         }
 

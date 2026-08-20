@@ -1,6 +1,9 @@
 import Foundation
 
 public struct CommandShortcuts: Equatable, Sendable {
+    /// Stored when the user clears a plugin hotkey so it does not fall back to the default.
+    public static let unbound = "none"
+
     public private(set) var bindings: [String: String]
 
     public init(bindings: [String: String] = [:]) {
@@ -25,6 +28,11 @@ public struct CommandShortcuts: Equatable, Sendable {
 
     public func combo(for commandId: String) -> String {
         bindings[commandId] ?? ""
+    }
+
+    public func resolved(_ id: String, default defaultCombo: String) -> String {
+        guard let stored = bindings[id] else { return defaultCombo }
+        return stored == Self.unbound ? "" : stored
     }
 
     public static func load(from object: Any?) -> CommandShortcuts {

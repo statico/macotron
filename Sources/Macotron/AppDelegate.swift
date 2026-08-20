@@ -484,7 +484,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     PluginCommandSummary(
                         id: $0.id,
                         name: $0.key,
-                        shortcut: keyboardShortcuts.bindings[$0.id] ?? $0.defaultCombo
+                        shortcut: keyboardShortcuts.resolved($0.id, default: $0.defaultCombo)
                     )
                 }
 
@@ -662,12 +662,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func resolveHotkey() -> String {
         if let launcher = engine.configStore["launcher"] as? [String: Any],
-           let hotkey = launcher["hotkey"] as? String, !hotkey.isEmpty {
+           let hotkey = launcher["hotkey"] as? String {
             return hotkey
         }
         if let workspace,
            let launcher = workspace.readSettings()["launcher"] as? [String: Any],
-           let hotkey = launcher["hotkey"] as? String, !hotkey.isEmpty {
+           let hotkey = launcher["hotkey"] as? String {
             return hotkey
         }
         return "cmd+space"
@@ -839,8 +839,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         var stored = combo
-        if let defaultCombo, combo.isEmpty || combo.lowercased() == defaultCombo.lowercased() {
-            stored = ""
+        if let defaultCombo {
+            if combo.isEmpty {
+                stored = CommandShortcuts.unbound
+            } else if combo.lowercased() == defaultCombo.lowercased() {
+                stored = ""
+            }
         }
         try? workspace.updateSettings { settings in
             var table = CommandShortcuts.load(from: settings[tableKey])
@@ -866,7 +870,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let table = CommandShortcuts.load(from: workspace.readSettings()["keyboardShortcuts"])
         keyboardModule?.setPluginBindings(
             engine.hotkeyRegistry.values.map { hotkey in
-                (eventName: "keyboard:\(hotkey.id)", combo: table.bindings[hotkey.id] ?? hotkey.defaultCombo)
+                (eventName: "keyboard:\(hotkey.id)", combo: table.resolved(hotkey.id, default: hotkey.defaultCombo))
             }
         )
     }

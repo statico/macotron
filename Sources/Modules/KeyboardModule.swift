@@ -246,7 +246,7 @@ public final class KeyboardModule: NativeModule {
             let pluginFile = engine.currentEvaluatingFile ?? ""
             let fullId = pluginFile.isEmpty ? key : "\(pluginFile)/\(key)"
             let table = CommandShortcuts.load(from: engine.configStore["keyboardShortcuts"])
-            let comboStr = table.bindings[fullId] ?? defaultCombo
+            let comboStr = table.resolved(fullId, default: defaultCombo)
 
             engine.hotkeyRegistry[fullId] = RegisteredHotkey(
                 id: fullId,
@@ -256,7 +256,7 @@ public final class KeyboardModule: NativeModule {
             )
             engine.eventBus.on("keyboard:\(fullId)", callback: argv[2], ctx: ctx)
 
-            if KeyCombo.parse(comboStr) == nil {
+            if !comboStr.isEmpty, KeyCombo.parse(comboStr) == nil {
                 logger.warning("Failed to parse keyboard combo: \(comboStr)")
             }
 
