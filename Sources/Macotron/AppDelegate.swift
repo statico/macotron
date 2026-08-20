@@ -304,6 +304,28 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.loadModuleSummaries = { [weak self] in
             self?.buildPluginSummaries() ?? []
         }
+        settingsState.loadAppShortcuts = { [weak self] in
+            guard let self else { return [] }
+            let table = CommandShortcuts.load(from: self.workspace.readSettings()["commandShortcuts"])
+            return table.bindings.keys.compactMap { id -> AppShortcutSummary? in
+                guard self.engine.commandRegistry[id] == nil,
+                      let app = self.appSearchProvider.entry(bundleID: id) else { return nil }
+                return AppShortcutSummary(
+                    id: app.bundleID, name: app.name, icon: app.icon, shortcut: table.combo(for: id)
+                )
+            }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        }
+        settingsState.searchInstalledApps = { [weak self] query in
+            guard let self else { return [] }
+            let taken = Set(
+                CommandShortcuts.load(from: self.workspace.readSettings()["commandShortcuts"]).bindings.keys
+            )
+            return self.appSearchProvider.matching(query).compactMap { app in
+                guard !taken.contains(app.bundleID) else { return nil }
+                return AppShortcutSummary(id: app.bundleID, name: app.name, icon: app.icon)
+            }
+        }
         engine.onPluginChecksChanged = { [weak self] in
             self?.settingsState.refreshModules()
         }

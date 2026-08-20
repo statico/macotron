@@ -56,6 +56,27 @@ final class AppSearchProvider {
         lastRefresh = Date()
     }
 
+    func all() -> [AppEntry] {
+        if Date().timeIntervalSince(lastRefresh) > 30 {
+            refresh()
+        }
+        return allApps
+    }
+
+    func matching(_ query: String, limit: Int = 12) -> [AppEntry] {
+        let apps = all()
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return Array(apps.prefix(limit)) }
+        var scored: [(entry: AppEntry, score: Int)] = []
+        for app in apps {
+            if let s = FuzzyMatch.score(query: q, target: app.name), s > 0 {
+                scored.append((app, s))
+            }
+        }
+        scored.sort { $0.score > $1.score }
+        return scored.prefix(limit).map(\.entry)
+    }
+
     /// Search apps by query, returns sorted results
     func search(_ query: String) -> [SearchResult] {
         // Refresh every 30 seconds

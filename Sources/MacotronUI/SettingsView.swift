@@ -100,6 +100,20 @@ public struct ModuleSummary: Identifiable {
     }
 }
 
+public struct AppShortcutSummary: Identifiable {
+    public let id: String
+    public let name: String
+    public let icon: NSImage?
+    public var shortcut: String
+
+    public init(id: String, name: String, icon: NSImage? = nil, shortcut: String = "") {
+        self.id = id
+        self.name = name
+        self.icon = icon
+        self.shortcut = shortcut
+    }
+}
+
 @MainActor
 public final class SettingsState: ObservableObject {
     @Published public var launcherHotkey: String = "cmd+space"
@@ -110,6 +124,7 @@ public final class SettingsState: ObservableObject {
     @Published public var textScale: Double = 1.0
     @Published public var launcherBackground: LauncherBackground = .translucent
     @Published public var moduleSummaries: [ModuleSummary] = []
+    @Published public var appShortcuts: [AppShortcutSummary] = []
     @Published public var pluginsPath: String = ""
     @Published public var requestedTab: Int?
     @Published public var requestedPlugin: String?
@@ -133,6 +148,8 @@ public final class SettingsState: ObservableObject {
     public var readLauncherBackground: (() -> LauncherBackground)?
     public var writeLauncherBackground: ((LauncherBackground) -> Void)?
     public var loadModuleSummaries: (() -> [ModuleSummary])?
+    public var loadAppShortcuts: (() -> [AppShortcutSummary])?
+    public var searchInstalledApps: ((String) -> [AppShortcutSummary])?
     public var saveModuleOption: ((_ filename: String, _ key: String, _ value: Any) -> Void)?
     public var saveModuleSecret: ((_ filename: String, _ key: String, _ secret: String) -> Void)?
     public var clearModuleSecret: ((_ filename: String, _ key: String) -> Void)?
@@ -157,6 +174,7 @@ public final class SettingsState: ObservableObject {
         launcherBackground = readLauncherBackground?() ?? .translucent
         pluginsPath = configDirURL?.path(percentEncoded: false) ?? ""
         refreshModules()
+        refreshAppShortcuts()
         refreshPermissions()
     }
 
@@ -174,6 +192,10 @@ public final class SettingsState: ObservableObject {
 
     public func refreshModules() {
         moduleSummaries = loadModuleSummaries?() ?? []
+    }
+
+    public func refreshAppShortcuts() {
+        appShortcuts = loadAppShortcuts?() ?? []
     }
 
     public func saveHotkey() {
@@ -247,7 +269,8 @@ public struct SettingsView: View {
             Group {
                 switch selectedTab {
                 case 1: pluginsTab
-                case 2: aboutTab
+                case 2: shortcutsTab
+                case 3: aboutTab
                 default: generalTab
                 }
             }
@@ -267,7 +290,8 @@ public struct SettingsView: View {
             Spacer()
             tabButton(icon: "gearshape", label: "General", tag: 0)
             tabButton(icon: "puzzlepiece.extension", label: "Plugins", tag: 1)
-            tabButton(icon: "info.circle", label: "About", tag: 2)
+            tabButton(icon: "command", label: "Shortcuts", tag: 2)
+            tabButton(icon: "info.circle", label: "About", tag: 3)
             Spacer()
         }
     }
@@ -540,6 +564,10 @@ public struct SettingsView: View {
         }?.filename ?? filenames.first
     }
 
+    private var shortcutsTab: some View {
+        AppShortcutsTab(state: state)
+    }
+
     private var aboutTab: some View {
         VStack(spacing: 16) {
             Spacer()
@@ -603,6 +631,155 @@ private enum PluginForm {
     static let labelWidth: CGFloat = 140
     static let recorderWidth: CGFloat = 240
     static let fieldMaxWidth: CGFloat = 280
+}
+
+struct AppShortcutsTab: View {
+    @ObservedObject var state: SettingsState
+    @State private var query = ""
+    @State private var matches: [AppShortcutSummary] = []
+    @State private var pending: AppShortcutSummary?
+    @State private var combo = ""
+
+    var body: some View {
+        VStack(spacing: 0) {
+            addSection
+            Divider()
+            if state.appShortcuts.isEmpty {
+                Text("No app shortcuts yet.")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(state.appShortcuts) { app in
+                        shortcutRow(app)
+                    }
+                }
+                .listStyle(.inset)
+            }
+        }
+        .onAppear { state.refreshAppShortcuts() }
+    }
+
+    private var addSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Launch or hide an app with a global hotkey. The same shortcut hides the app when it is already frontmost.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                TextField("Add an app…", text: $query)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 280)
+                    .onChange(of: query) { _, value in
+                        if pending != nil, value != pending?.name {
+                            pending = nil
+                            combo = ""
+                        }
+                        matches = query.isEmpty ? [] : (state.searchInstalledApps?(query) ?? [])
+                    }
+
+                HotkeyRecorderView(combo: $combo) {}
+                    .frame(width: PluginForm.recorderWidth)
+                    .disabled(pending == nil)
+
+                Button("Add") { addPending() }
+                    .controlSize(.small)
+                    .disabled(pending == nil || combo.isEmpty)
+            }
+
+            if let pending {
+                HStack(spacing: 8) {
+                    appIcon(pending)
+                    Text(pending.name)
+                        .font(.system(size: 12, weight: .medium))
+                    Text("Record a shortcut, then Add.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            } else if !matches.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(matches.prefix(8)) { app in
+                        Button {
+                            pending = app
+                            query = app.name
+                            matches = []
+                        } label: {
+                            HStack(spacing: 8) {
+                                appIcon(app)
+                                Text(app.name)
+                                    .font(.system(size: 12))
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+        }
+        .padding(16)
+    }
+
+    private func shortcutRow(_ app: AppShortcutSummary) -> some View {
+        HStack(spacing: 10) {
+            appIcon(app)
+            Text(app.name)
+                .font(.system(size: 12, weight: .medium))
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            AppShortcutRecorder(app: app, state: state)
+            Button("Remove") {
+                state.saveCommandShortcut?(app.id, "")
+                state.refreshAppShortcuts()
+            }
+            .controlSize(.small)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func addPending() {
+        guard let pending, !combo.isEmpty else { return }
+        state.saveCommandShortcut?(pending.id, combo)
+        state.refreshAppShortcuts()
+        self.pending = nil
+        query = ""
+        combo = ""
+        matches = []
+    }
+
+    private func appIcon(_ app: AppShortcutSummary) -> some View {
+        Group {
+            if let icon = app.icon {
+                Image(nsImage: icon)
+                    .resizable()
+                    .frame(width: 20, height: 20)
+            } else {
+                Image(systemName: "app")
+                    .frame(width: 20, height: 20)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+struct AppShortcutRecorder: View {
+    let app: AppShortcutSummary
+    @ObservedObject var state: SettingsState
+    @State private var combo = ""
+
+    var body: some View {
+        HotkeyRecorderView(combo: $combo) {
+            state.saveCommandShortcut?(app.id, combo)
+            state.refreshAppShortcuts()
+        }
+        .frame(width: PluginForm.recorderWidth)
+        .onAppear { combo = app.shortcut }
+        .onChange(of: app.shortcut) { _, newValue in
+            combo = newValue
+        }
+    }
 }
 
 struct PluginListRow: View {
