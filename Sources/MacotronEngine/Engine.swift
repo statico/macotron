@@ -38,7 +38,7 @@ public final class Engine {
     public let eventBus = EventBus()
 
     private var modules: [NativeModule] = []
-    private var timers: [UInt32: DispatchSourceTimer] = [:]
+    private var timers: [UInt32: Timer] = [:]
     private var nextTimerID: UInt32 = 1
     private var interruptDeadline: Date?
 
@@ -435,26 +435,22 @@ public final class Engine {
         let protectedCallback = JS_DupValue(context, callback)
         let pluginFile = currentEvaluatingFile
 
-        let timer = DispatchSource.makeTimerSource(queue: .main)
-        let interval = DispatchTimeInterval.milliseconds(Int(max(ms, 1)))
-        if repeats {
-            timer.schedule(deadline: .now() + interval, repeating: interval)
-        } else {
-            timer.schedule(deadline: .now() + interval)
-        }
-        timer.setEventHandler { [weak self] in
-            guard let self else { return }
-            self.withEvaluatingFile(pluginFile) {
-                _ = JS_Call(self.context, protectedCallback, QJS_Undefined(), 0, nil)
-                self.drainJobQueue()
-            }
-            if !repeats {
-                JS_FreeValue(self.context, protectedCallback)
-                self.cancelTimer(id)
+        let interval = TimeInterval(max(ms, 1)) / 1000
+        let timer = Timer(timeInterval: interval, repeats: repeats) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.withEvaluatingFile(pluginFile) {
+                    _ = JS_Call(self.context, protectedCallback, QJS_Undefined(), 0, nil)
+                    self.drainJobQueue()
+                }
+                if !repeats {
+                    JS_FreeValue(self.context, protectedCallback)
+                    self.cancelTimer(id)
+                }
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
         timers[id] = timer
-        timer.resume()
         return id
     }
 
@@ -468,13 +464,13 @@ public final class Engine {
     }
 
     public func cancelTimer(_ id: UInt32) {
-        timers[id]?.cancel()
+        timers[id]?.invalidate()
         timers.removeValue(forKey: id)
     }
 
     public func cancelAllTimers() {
         for (_, timer) in timers {
-            timer.cancel()
+            timer.invalidate()
         }
         timers.removeAll()
     }

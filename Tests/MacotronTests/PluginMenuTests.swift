@@ -34,4 +34,32 @@ struct PluginMenuTests {
         #expect(item.isEnabled)
         #expect(item.action != nil)
     }
+
+    @Test("sync updates titles on the same items")
+    func syncUpdatesTitles() {
+        var boxes: [PluginMenu.Action] = []
+        let menu = PluginMenu.make(
+            [MenuBarEntry(title: "CPU 1%")],
+            retaining: &boxes
+        )
+        let item = menu.items[0]
+        PluginMenu.sync(menu, to: [MenuBarEntry(title: "CPU 2%")], retaining: &boxes)
+        #expect(menu.items[0] === item)
+        #expect(menu.items[0].title == "CPU 2%")
+    }
+
+    @Test("sync rebuilds when the shape changes")
+    func syncRebuildsShape() {
+        var boxes: [PluginMenu.Action] = []
+        let menu = PluginMenu.make(
+            [MenuBarEntry(title: "CPU 1%")],
+            retaining: &boxes
+        )
+        PluginMenu.sync(
+            menu,
+            to: [MenuBarEntry(title: "CPU 1%"), MenuBarEntry(title: "GPU 2%")],
+            retaining: &boxes
+        )
+        #expect(menu.items.map(\.title) == ["CPU 1%", "GPU 2%"])
+    }
 }
