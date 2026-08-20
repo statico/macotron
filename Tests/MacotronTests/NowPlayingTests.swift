@@ -37,4 +37,35 @@ struct NowPlayingTests {
         """.utf8)
         #expect(ITunesArtwork.previewURL(from: json)?.absoluteString.hasSuffix("200x200bb.jpg") == true)
     }
+
+    @Test("prefers a playing music app over Safari and WhatsApp")
+    func prefersMusicApp() {
+        let safari = NowPlayingPayload.from([
+            "playing": true, "title": "Tab", "app": "Safari", "bundle": "com.apple.Safari",
+        ])
+        let chat = NowPlayingPayload.from([
+            "playing": true, "title": "Voice", "app": "WhatsApp", "bundle": "net.whatsapp.WhatsApp",
+        ])
+        let radio = NowPlayingPayload.from([
+            "playing": true, "title": "Groove Salad", "app": "SomaFM", "bundle": "com.somafm.somafmmac",
+        ])
+        let picked = NowPlayingPayload.pick([safari, chat, radio])
+        #expect(picked.bundle == "com.somafm.somafmmac")
+        #expect(NowPlayingPayload.isTransient("com.apple.Safari"))
+        #expect(NowPlayingPayload.isTransient("net.whatsapp.WhatsApp"))
+        #expect(!NowPlayingPayload.isTransient("com.somafm.somafmmac"))
+    }
+
+    @Test("parses a candidates array")
+    func candidates() {
+        let json = Data("""
+        {"candidates":[
+          {"playing":true,"title":"Tab","app":"Safari","bundle":"com.apple.Safari"},
+          {"playing":true,"title":"Groove Salad","artist":"SomaFM","app":"SomaFM","bundle":"com.somafm.somafmmac"}
+        ]}
+        """.utf8)
+        let info = NowPlayingPayload.parse(json)
+        #expect(info.bundle == "com.somafm.somafmmac")
+        #expect(info.title == "Groove Salad")
+    }
 }
