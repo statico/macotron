@@ -14,6 +14,19 @@ struct AppLaunchTests {
         #expect(NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.finder") != nil)
     }
 
+    @Test("search path includes Finder and Keychain Access")
+    func catalogIncludesFinderAndKeychain() {
+        let dirs = AppCatalog.searchDirectories()
+        #expect(dirs.contains { $0.path == "/System/Library/CoreServices/Applications" })
+        #expect(AppCatalog.extraApps.contains { $0.lastPathComponent == "Finder.app" })
+        #expect(FileManager.default.fileExists(
+            atPath: "/System/Library/CoreServices/Applications/Keychain Access.app"
+        ))
+        #expect(FileManager.default.fileExists(
+            atPath: "/System/Library/CoreServices/Finder.app"
+        ))
+    }
+
     @Test("shortcut hides when the app is already frontmost")
     func hideIfFrontmost() {
         #expect(AppLaunch.shouldHide(bundleID: "com.apple.Safari", frontmost: "com.apple.Safari"))
