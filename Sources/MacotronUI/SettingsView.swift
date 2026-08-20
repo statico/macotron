@@ -843,16 +843,6 @@ struct PluginDetailView: View {
                     if !summary.commands.isEmpty { commandsSection }
                     if !summary.options.isEmpty { settingsSection }
                 }
-
-                Divider()
-
-                HStack {
-                    Spacer()
-                    Button("Delete Plugin…", role: .destructive) {
-                        showDeleteAlert = true
-                    }
-                    .controlSize(.small)
-                }
             }
             .padding(20)
         }
@@ -869,8 +859,8 @@ struct PluginDetailView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(summary.title)
                         .font(.system(size: 16, weight: .semibold))
@@ -881,27 +871,35 @@ struct PluginDetailView: View {
                         detailBadge(text: "Warning", color: .orange)
                     }
                 }
-                if !summary.description.isEmpty {
-                    Text(summary.description)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                Toggle("Enabled", isOn: Binding(
+                    get: { summary.isEnabled },
+                    set: { state.setModuleEnabled?(summary.filename, $0) }
+                ))
+                .toggleStyle(.switch)
+                .controlSize(.small)
+            }
+
+            if !summary.description.isEmpty {
+                Text(summary.description)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack {
+                Button("Open") {
+                    state.openModuleFile?(summary.filename)
                 }
+                .controlSize(.small)
+                Spacer()
+                Button("Delete…", role: .destructive) {
+                    showDeleteAlert = true
+                }
+                .controlSize(.small)
             }
 
-            Spacer(minLength: 8)
-
-            Toggle("Enabled", isOn: Binding(
-                get: { summary.isEnabled },
-                set: { state.setModuleEnabled?(summary.filename, $0) }
-            ))
-            .toggleStyle(.switch)
-            .controlSize(.small)
-
-            Button("Open") {
-                state.openModuleFile?(summary.filename)
-            }
-            .controlSize(.small)
+            Divider()
         }
     }
 
