@@ -57,8 +57,6 @@ function paint() {
         subtitle: "GPU " + s.gpuN + "%",
         sfSymbol: "cpu",
         color: colorize ? tint(Math.max(s.cpu, s.gpuN)) : undefined,
-        // Enough for "CPU 100%" at 10pt plus the icon, without parking extra gap.
-        minWidth: 72,
         menu: menu(s),
     });
     macotron.menubar.add("system-metrics-menu", {

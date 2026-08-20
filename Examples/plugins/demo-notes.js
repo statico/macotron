@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "Notes",
-    description: "Apple Notes in the launcher.",
+    description: "Search Apple Notes from the launcher.",
 });
 
 function paint() {
