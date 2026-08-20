@@ -280,7 +280,6 @@ public struct SettingsView: View {
         self._selectedTab = State(initialValue: SettingsTab(rawValue: initialTab) ?? .general)
     }
 
-    private let labelWidth: CGFloat = 140
     private let githubPluginsURL = URL(string: "https://github.com/search?q=topic%3Amacotron-plugin&type=repositories")!
 
     public var body: some View {
@@ -673,24 +672,27 @@ public struct SettingsView: View {
         HStack(alignment: .center, spacing: 12) {
             Text(label)
                 .foregroundStyle(.secondary)
-                .frame(width: labelWidth, alignment: .leading)
+                .multilineTextAlignment(.trailing)
+                .frame(width: PluginForm.labelWidth, alignment: .trailing)
 
             content()
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(width: PluginForm.controlWidth, alignment: .leading)
         }
-        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
     }
 
     private var formDivider: some View {
         Divider()
-            .padding(.leading, 24 + labelWidth + 12)
+            .frame(width: PluginForm.labelWidth + 12 + PluginForm.controlWidth)
+            .frame(maxWidth: .infinity)
             .padding(.vertical, 4)
     }
 }
 
 private enum PluginForm {
     static let labelWidth: CGFloat = 140
+    static let controlWidth: CGFloat = 340
     static let recorderWidth: CGFloat = 240
     static let fieldMaxWidth: CGFloat = 280
 }
