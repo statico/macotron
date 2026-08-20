@@ -108,4 +108,26 @@ struct PluginScheduleTests {
         #expect(throws: Error.self) { try PluginSchedule.parseEvery("foo") }
         #expect(throws: Error.self) { try PluginSchedule.parseEvery("0h") }
     }
+
+    @Test("parseAt rejects invalid seconds")
+    func parseAtRejectsInvalidSeconds() {
+        #expect(throws: Error.self) { try PluginSchedule.parseAt("13:00:xx", weekdays: nil) }
+    }
+
+    @Test("parseAt rejects invalid weekday")
+    func parseAtRejectsInvalidWeekday() {
+        #expect(throws: Error.self) { try PluginSchedule.parseAt("09:00", weekdays: [7]) }
+        #expect(throws: Error.self) { try PluginSchedule.parseAt("09:00", weekdays: []) }
+    }
+
+    @Test("nextAligned returns strictly after input date")
+    func nextAlignedStrictlyAfter() throws {
+        let calendar = utcCalendar()
+        let minuteSchedule = try PluginSchedule.parseEvery("15m")
+        let hourSchedule = try PluginSchedule.parseEvery("1h")
+        let onBoundary = date(2026, 8, 20, 12, 15, 0, calendar: calendar)
+        #expect(minuteSchedule.nextDate(after: onBoundary, calendar: calendar) > onBoundary)
+        let onHourBoundary = date(2026, 8, 20, 13, 0, 0, calendar: calendar)
+        #expect(hourSchedule.nextDate(after: onHourBoundary, calendar: calendar) > onHourBoundary)
+    }
 }

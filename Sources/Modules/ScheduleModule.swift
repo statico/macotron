@@ -3,6 +3,9 @@ import AppKit
 import CQuickJS
 import Foundation
 import MacotronEngine
+import os
+
+private let logger = Logger(subsystem: "io.statico.macotron", category: "schedule")
 
 @MainActor
 public final class ScheduleModule: NativeModule {
@@ -88,12 +91,11 @@ public final class ScheduleModule: NativeModule {
             return makeStopFunction(ctx: ctx, jobID: id)
         }
 
-        let ms = Int32(JSBridge.toDouble(ctx, spec))
+        let ms = JSBridge.toInt32(ctx, spec)
         guard ms > 0 else {
             JS_FreeValue(ctx, protected)
             return QJS_ThrowTypeError(ctx, "every interval must be positive")
         }
-        engine.recordPluginEvent("schedule:every \(ms)")
         let id = addIntervalJob(ctx: ctx, ms: ms, callback: protected, pluginFile: pluginFile)
         return makeStopFunction(ctx: ctx, jobID: id)
     }
@@ -112,7 +114,11 @@ public final class ScheduleModule: NativeModule {
             weekdays = nil
         } else if argc >= 3, JS_IsFunction(ctx, argv[2]) {
             let opts = JSBridge.jsToSwift(ctx, argv[1]) as? [String: Any]
-            weekdays = Self.parseWeekdays(opts?["weekdays"])
+            do {
+                weekdays = try Self.parseWeekdays(opts?["weekdays"])
+            } catch {
+                return QJS_ThrowTypeError(ctx, "invalid weekdays")
+            }
             callback = argv[2]
         } else {
             return QJS_ThrowTypeError(ctx, "at requires a callback")
@@ -171,7 +177,13 @@ public final class ScheduleModule: NativeModule {
     fileprivate func invokeJob(_ job: ScheduleJob) {
         guard let engine, !job.cancelled else { return }
         engine.withEvaluatingFile(job.pluginFile) {
-            _ = JS_Call(engine.context, job.callback, QJS_Undefined(), 0, nil)
+            let result = JS_Call(engine.context, job.callback, QJS_Undefined(), 0, nil)
+            if JS_IsException(result) {
+                let errStr = JSBridge.getExceptionString(engine.context)
+                logger.error("Schedule job \(job.id): \(errStr, privacy: .public)")
+            } else {
+                JS_FreeValue(engine.context, result)
+            }
             engine.drainJobQueue()
         }
     }
@@ -215,16 +227,27 @@ public final class ScheduleModule: NativeModule {
         observerTokens = []
     }
 
-    private static func parseWeekdays(_ value: Any?) -> [Int]? {
+    private static func parseWeekdays(_ value: Any?) throws -> [Int]? {
         guard let arr = value as? [Any] else { return nil }
-        let days = arr.compactMap { item -> Int? in
+        guard !arr.isEmpty else { throw WeekdayError.invalid }
+        var days: [Int] = []
+        for item in arr {
+            let day: Int?
             switch item {
-            case let i as Int: return i
-            case let d as Double: return Int(d)
-            default: return nil
+            case let i as Int: day = i
+            case let d as Double: day = Int(d)
+            default: day = nil
             }
+            guard let day, (0...6).contains(day) else { throw WeekdayError.invalid }
+            days.append(day)
         }
-        return days.isEmpty ? nil : days
+        return days
+    }
+
+    fileprivate var isDryRun: Bool { engine?.dryRun == true }
+
+    private enum WeekdayError: Error {
+        case invalid
     }
 }
 
@@ -248,6 +271,7 @@ private final class ScheduleJob {
     }
 
     func startInterval(ms: Int32) {
+        guard module?.isDryRun != true else { return }
         timer?.invalidate()
         let interval = TimeInterval(max(ms, 1)) / 1000
         timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
@@ -266,6 +290,7 @@ private final class ScheduleJob {
     }
 
     func scheduleWallClockTimer() {
+        guard module?.isDryRun != true else { return }
         timer?.invalidate()
         guard let fireDate = nextFire, !cancelled else { return }
         let timer = Timer(fire: fireDate, interval: 0, repeats: false) { [weak self] _ in
