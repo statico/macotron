@@ -279,6 +279,27 @@ declare const macotron: {
         open(id: string): void;
     };
 
+    contacts: {
+        list(): Array<{
+            id: string;
+            name: string;
+            first: string;
+            last: string;
+            organization: string;
+            emails: string[];
+            phones: string[];
+        }>;
+        search(query: string): Array<{
+            id: string;
+            name: string;
+            first: string;
+            last: string;
+            organization: string;
+            emails: string[];
+            phones: string[];
+        }>;
+    };
+
     app: {
         list(): Array<{ name: string; bundleID: string; pid: number }>;
         launch(bundleID: string): void;

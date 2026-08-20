@@ -32,6 +32,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | MediaModule | `macotron.media` | Now Playing metadata, artwork, play/pause |
 | LauncherModule | `macotron.launcher` | Extra rows in the quick launcher |
 | NotesModule | `macotron.notes` | List and open Apple Notes |
+| ContactsModule | `macotron.contacts` | List and search Contacts |
 | PowerModule | `macotron.power` | Prevent sleep, lock, sleep |
 
 ## Key JS APIs
@@ -44,7 +45,9 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Launcher:** `macotron.launcher.set(id, items)` replaces that plugin's extra rows in the quick launcher. Each item is `{ id, title, subtitle?, app?, sfSymbol?, kind?, onClick }`. `app` is a bundle ID (Notes uses `com.apple.Notes`). An empty query shows only starred items (⌘S). Typing filters plugin rows with apps and commands.
 
-**Notes:** `macotron.notes.list()` is `{ id, title, folder }[]`. `open(id)` shows the note in the Notes app. macOS prompts to allow controlling Notes on first use.
+**Notes:** `macotron.notes.list()` is `{ id, title, folder }[]`. `open(id)` shows the note in the Notes app. macOS prompts to allow controlling Notes on first use. Recently Deleted notes are omitted.
+
+**Contacts:** `macotron.contacts.list()` and `.search(query)` are `{ id, name, first, last, organization, emails, phones }[]`. macOS prompts for Contacts access on first use.
 
 **App:** `macotron.app.launch(bundleID)` and `.switch(bundleID)` both open via Launch Services (`activates: true`), so a running app comes forward. `.list()`, `.frontmost()`, `.hide(bundleID?)`, `.quit(bundleID?)`, `.menu(["File", "New"], bundleID?)`. Events: `app:activated`, `app:launched`, `app:terminated`.
 
