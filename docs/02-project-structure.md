@@ -6,7 +6,7 @@ This layout matches the host-shell redesign. See [2026-08-17-host-shell-design.m
 
 ```
 macotron/
-├── Makefile                         # build, run, bundle, dev
+├── Makefile                         # build, run, bundle
 ├── Package.swift                    # Swift Package Manager manifest
 ├── Vendor/
 │   └── quickjs-ng/                  # QuickJS source

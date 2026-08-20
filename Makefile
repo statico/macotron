@@ -35,7 +35,7 @@ SIGN_FLAGS = $(if $(findstring Developer ID,$(SIGN_IDENTITY)),--options runtime,
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run bundle check clean cleanprefs dev reload eval health snippets commands release
+.PHONY: help build run bundle check clean cleanprefs release
 
 ##@ General
 
@@ -89,31 +89,9 @@ run: bundle ## Bundle and launch (kills existing instance first)
 check: bundle ## Typecheck load plugins (ARGS='plugins/foo.js' optional)
 	$(BUNDLE)/Contents/MacOS/$(APP_NAME) --check $(ARGS)
 
-dev: bundle ## Bundle and run with debug server on :7777
-	$(BUNDLE)/Contents/MacOS/$(APP_NAME) --debug-server
-
 release: ## Compile a release binary
 	swift build -c release --build-path $(BUILD_DIR)
 	@echo "TODO: bundle, sign with Developer ID, notarize, create DMG"
-
-##@ Debug server (make dev)
-
-reload: ## Hot-reload plugins
-	@curl -s -X POST http://localhost:7777/reload
-
-eval: ## Eval JS (JS='macotron.notify.show("hi","there")')
-	@curl -s -X POST http://localhost:7777/eval \
-		-H "Content-Type: application/json" \
-		-d '{"js": "$(JS)"}'
-
-health: ## Show debug server health JSON
-	@curl -s http://localhost:7777/health | python3 -m json.tool
-
-snippets: ## List loaded plugins (legacy endpoint name)
-	@curl -s http://localhost:7777/snippets | python3 -m json.tool
-
-commands: ## List registered launcher commands
-	@curl -s http://localhost:7777/commands | python3 -m json.tool
 
 ##@ Maintenance
 

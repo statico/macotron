@@ -92,7 +92,6 @@ The workdir is a git repo the app can initialize (`settings.json`, `plugins/`, a
 ```bash
 make build    # compile
 make run      # compile, bundle, launch
-make dev      # same, plus debug server on :7777
 make clean    # build artifacts
 ```
 
@@ -123,17 +122,6 @@ Look for `Authority=Macotron-Dev`, not adhoc.
 ```bash
 make cleanprefs   # wipe prefs, wizard on next launch
 ```
-
-`make dev` starts a debug server on port 7777:
-
-| Endpoint | Method | What |
-|---|---|---|
-| `/screenshot` | GET | PNG of the launcher |
-| `/snapshot` | GET | Accessibility tree JSON |
-| `/eval` | POST | Run JS in the engine |
-| `/reload` | POST | Reload plugins |
-| `/snippets` | GET | Loaded plugins |
-| `/open` | POST | Toggle the launcher |
 
 ## Docs
 
