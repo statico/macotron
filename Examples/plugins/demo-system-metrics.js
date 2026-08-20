@@ -57,9 +57,8 @@ function paint() {
         subtitle: "GPU " + s.gpuN + "%",
         sfSymbol: "cpu",
         color: colorize ? tint(Math.max(s.cpu, s.gpuN)) : undefined,
-        // "CPU 100%" / "GPU 100%" at 10pt plus the 20pt icon. Proportional
-        // digits would otherwise shift neighbors as usage ticks.
-        minWidth: 96,
+        // Enough for "CPU 100%" at 10pt plus the icon, without parking extra gap.
+        minWidth: 72,
         menu: menu(s),
     });
     macotron.menubar.add("system-metrics-menu", {
