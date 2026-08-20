@@ -2,7 +2,7 @@ macotron.plugin({
   title: "Fan",
   description: "Hold a fan-speed floor from the menu bar.",
   permissions: ["fanControl"],
-  help: "Click the fan icon in the menu bar to hold a 50% or 100% floor, or restore the system default.\n\nReading fan speed always works. Holding a floor needs the Macotron fan helper — use Install on this page.",
+  help: "Click the fan icon in the menu bar to hold a 50% or 100% floor, or restore the system default.\n\nReading fan speed always works. Holding a floor needs the Macotron background helper — use Install on this page.",
 });
 
 function snapshot() {
@@ -27,7 +27,7 @@ function menu(s) {
     if (!s.available) return rows;
     rows.push("-");
     if (!s.controllable) {
-        rows.push({ title: "Install fan helper…", onClick: () => macotron.settings.open() });
+        rows.push({ title: "Install background helper…", onClick: () => macotron.settings.open() });
         rows.push("-");
     }
     rows.push(floorItem(s, "50%", 50));
@@ -42,7 +42,7 @@ function checkRows(s) {
         return [{ title: "Speed control", ok: !s.error, message: s.error || "No fans on this Mac" }];
     }
     if (!s.controllable) {
-        return [{ title: "Speed control", ok: false, message: "Reading speed only. Install the fan helper on this page." }];
+        return [{ title: "Speed control", ok: false, message: "Reading speed only. Install the background helper on this page." }];
     }
     return [{
         title: "Speed control",
@@ -72,7 +72,8 @@ function setFloor(percent) {
         macotron.notify.toast("Fan", s.error, { color: "error" });
         return;
     }
-    if (percent == null) macotron.notify.toast("Fan", "System default");
+    if (percent == null) macotron.notify.toast("Fan", "Off");
+    else if (percent === 100) macotron.notify.toast("Fan", "On", { color: "success" });
     else macotron.notify.toast("Fan", percent + "% floor", { color: "success" });
 }
 
