@@ -21,5 +21,5 @@ async function summarizeSelection() {
     }
 }
 
-macotron.keyboard.on("Summarize", "cmd+shift+s", summarizeSelection);
+macotron.keyboard.on("Summarize Screen", "cmd+shift+s", summarizeSelection);
 macotron.command("Summarize Screen", "Drag a box and ask Claude what is in it", summarizeSelection);

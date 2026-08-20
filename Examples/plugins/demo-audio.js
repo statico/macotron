@@ -7,10 +7,15 @@ function outputs() {
   return macotron.audio.devices().filter((d) => d.output);
 }
 
+function clip(name) {
+  name = name || "Audio";
+  return name.length > 15 ? name.slice(0, 14) + "…" : name;
+}
+
 function paint() {
   const out = macotron.audio.output();
   macotron.menubar.status("audio", {
-    title: out ? out.name : "Audio",
+    title: clip(out && out.name),
     sfSymbol: "speaker.wave.2",
     onClick: cycle,
   });

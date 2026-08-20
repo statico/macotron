@@ -2,7 +2,7 @@
 // APIs: macotron.command, macotron.clipboard.set, macotron.notify
 
 macotron.plugin({
-  title: "Date",
+  title: "Date Stamp",
   description: "Copy the current ISO-8601 timestamp.",
 });
 

@@ -3,7 +3,7 @@
 
 const opts = macotron.plugin({
     title: "Weather",
-    description: "Menubar weather via wttr.in",
+    description: "Current weather in the menu bar.",
     options: {
         location: {
             type: "string",
@@ -214,11 +214,11 @@ function weatherMenu(data, units, error, observation) {
             icon: weatherSymbol(current.weatherCode),
         },
         "-",
-        { title: "Feels like " + feelsLike + "°" },
-        { title: "Humidity " + current.humidity + "%" },
-        { title: "Wind " + wind },
-        { title: "UV index " + current.uvIndex },
-        { title: "Visibility " + visibility },
+        { title: "Feels like " + feelsLike + "°", icon: "thermometer.medium" },
+        { title: "Humidity " + current.humidity + "%", icon: "humidity.fill" },
+        { title: "Wind " + wind, icon: "wind" },
+        { title: "UV index " + current.uvIndex, icon: "sun.max" },
+        { title: "Visibility " + visibility, icon: "eye" },
         "-",
         {
             title: "Next 12 Hours",
@@ -318,7 +318,7 @@ async function refreshWeather() {
 macotron.every(opts.refreshMs || 600000, refreshWeather);
 refreshWeather();
 
-macotron.command("Refresh Weather", "Fetch wttr.in into the menubar", () => {
+macotron.command("Refresh Weather", "Refresh the menu bar weather", () => {
     refreshWeather().then((success) => macotron.notify.toast(
         "Weather",
         success ? "Updated" : "Update failed",

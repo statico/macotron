@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "Night Vision",
-    description: "Crush green and blue with the display gamma table.",
+    description: "Tint the display red for dark rooms.",
 });
 
 let on = false;
@@ -16,4 +16,4 @@ function toggle() {
     }
 }
 
-macotron.command("Toggle Night Vision", "Red-only display gamma", toggle);
+macotron.command("Toggle Night Vision", "Tint the display red", toggle);

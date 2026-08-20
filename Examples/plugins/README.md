@@ -8,15 +8,17 @@ Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew o
 |---|---|---|
 | demo-clipboard-history.js | clipboard.history | Clipboard History |
 | demo-clipboard-image.js | clipboard.setImage/paste/remove | Clipboard Images |
-| demo-snippets.js | snippets.* + expansion | Insert OMW, List snippets |
-| demo-calendar.js | calendar.upcoming | upcoming-events |
+| demo-snippets.js | snippets.* + expansion | Insert OMW, List Snippets |
+| demo-calendar.js | calendar.upcoming | Upcoming Events |
 | demo-focus-idle.js | app:activated, frontmost | Frontmost App |
-| demo-idle.js | idle.*, system:idle/active | Idle seconds |
+| demo-idle.js | idle.*, system:idle/active | Idle Seconds |
 | demo-ocr.js | ocr.recognize, screen.capture | OCR Selection |
 | demo-color-picker.js | screen.pickColor | Pick Color |
 | demo-system-metrics.js | system.cpu/gpu | System Metrics |
-| demo-window-tiling.js | window.moveToFraction | Tile Left/Right/Full, next/prev display |
-| demo-window-snap.js | window.snap | Toggle Window Snap |
+| demo-battery.js | system.battery | Battery |
+| demo-meetings.js | calendar.upcoming | Next Meeting |
+| demo-windows.js | window.moveToFraction / snap / focus | Tile Left/Right/Full, Switch Window |
+| demo-disk-usage.js | shell.run df/du + panel | Disk Usage |
 | demo-browser-profiles.js | url.open | Open GitHub in Safari |
 | demo-url-router.js | url.on / open | Open YouTube in Safari |
 | demo-power.js | power.* | Toggle Keep Awake |
@@ -31,12 +33,12 @@ Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew o
 | demo-brightness.js | display brightness/XDR | Toggle XDR |
 | demo-night-vision.js | display.setGamma | Toggle Night Vision |
 | demo-weather.js | http + menubar.status | Refresh Weather |
+| demo-icon-rainbow.js | menubar.setIconColor |  |
 | demo-pomodoro.js | timer + menubar.status | Start Pomodoro |
 | demo-datetime.js | clipboard.set | Insert ISO Date |
 | demo-lorem.js | command arguments | Generate Lorem Ipsum |
 | demo-screen-ai-summary.js | screen + ai | Summarize Screen |
 | demo-ai-chat.js | panel + ai.local/claude/gemini | AI Chat |
-| demo-window-hopper.js | window.getAll + window.focus | Switch Window |
 | demo-devutils.js | clipboard | UUID, timestamp, Base64, JWT |
 | demo-calculator.js | panel | Calculator |
 | demo-regex.js | panel | Regex Workbench |

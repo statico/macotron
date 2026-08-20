@@ -16,7 +16,7 @@ macotron.on("system:active", () => {
     lastTransition = "active";
 });
 
-macotron.command("Idle seconds", "Show seconds since last HID input", () => {
+macotron.command("Idle Seconds", "Show seconds since last HID input", () => {
     const seconds = Math.floor(macotron.idle.seconds());
     macotron.notify.toast("Idle", `${seconds}s (last transition: ${lastTransition})`);
 });

@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Pomodoro",
-  description: "Menubar work timer.",
+  description: "A 25-minute focus timer in the menu bar.",
 });
 
 const WORK_MS = 25 * 60 * 1000;
@@ -94,4 +94,4 @@ function stop() {
 paint();
 macotron.every(1000, tick);
 
-macotron.command("Start Pomodoro", "25-minute focus timer in the menubar", startWork);
+macotron.command("Start Pomodoro", "25-minute focus timer in the menu bar", startWork);
