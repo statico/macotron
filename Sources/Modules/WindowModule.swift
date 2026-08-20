@@ -329,57 +329,10 @@ public final class WindowModule: NativeModule {
 
     /// focused() -> window object or QJS_Null()
     private static func jsFocused(_ ctx: OpaquePointer) -> JSValue {
-        let sysWide = AXUIElementCreateSystemWide()
-
-        // Get the focused application
-        var focusedAppRef: CFTypeRef?
-        let appErr = AXUIElementCopyAttributeValue(
-            sysWide,
-            kAXFocusedApplicationAttribute as CFString,
-            &focusedAppRef
-        )
-        guard appErr == .success, let focusedApp = focusedAppRef else {
-            return QJS_Null()
-        }
-
-        // Get the focused window of that application
-        var focusedWinRef: CFTypeRef?
-        let winErr = AXUIElementCopyAttributeValue(
-            focusedApp as! AXUIElement,
-            kAXFocusedWindowAttribute as CFString,
-            &focusedWinRef
-        )
-        guard winErr == .success, let focusedWin = focusedWinRef else {
-            return QJS_Null()
-        }
-
-        let axWin = focusedWin as! AXUIElement
-
-        // Get the PID of the focused application
-        var pid: pid_t = 0
-        AXUIElementGetPid(focusedApp as! AXUIElement, &pid)
-
-        // Figure out the index of this window among the app's windows
-        let appRef = AXUIElementCreateApplication(pid)
-        var windowsRef: CFTypeRef?
-        var windowIndex = 0
-        if AXUIElementCopyAttributeValue(appRef, kAXWindowsAttribute as CFString, &windowsRef) == .success,
-           let windows = windowsRef as? [AXUIElement] {
-            for (i, win) in windows.enumerated() {
-                // Compare by checking title + position as a heuristic
-                if windowTitle(win) == windowTitle(axWin) {
-                    let f1 = windowFrame(win)
-                    let f2 = windowFrame(axWin)
-                    if f1 == f2 {
-                        windowIndex = i
-                        break
-                    }
-                }
-            }
-        }
-
+        guard let axWin = focusedAXWindow() else { return QJS_Null() }
+        let pid = pid(of: axWin)
         let appName = NSRunningApplication(processIdentifier: pid)?.localizedName ?? "Unknown"
-        return windowToJS(ctx, pid: pid, index: windowIndex, app: appName, win: axWin)
+        return windowToJS(ctx, pid: pid, index: WindowAX.index(of: axWin, pid: pid), app: appName, win: axWin)
     }
 
     /// focus(id) -> bool — raise, unminimize, activate the owning app
@@ -635,15 +588,14 @@ public final class WindowModule: NativeModule {
         var screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })
             ?? NSScreen.main
             ?? NSScreen.screens.first
-        if let win = Self.focusedAXWindow() {
-            screen = Self.screen(forAXFrame: Self.windowFrame(win)) ?? screen
-        }
         let displayVal = JSBridge.getProperty(ctx, opts, "display")
         if !JSBridge.isUndefined(displayVal), !JSBridge.isNull(displayVal) {
             let id = CGDirectDisplayID(bitPattern: JSBridge.toInt32(ctx, displayVal))
             if let match = Self.screen(displayID: id) {
                 screen = match
             }
+        } else if let win = Self.focusedAXWindow() {
+            screen = Self.screen(forAXFrame: Self.windowFrame(win)) ?? screen
         }
         JS_FreeValue(ctx, displayVal)
         guard let screen else { return false }
@@ -711,23 +663,70 @@ public final class WindowModule: NativeModule {
         return setSnapEnabled(enabled)
     }
 
+    private static let axFocusTimeout: Float = 0.15
+
+    private static func pid(of win: AXUIElement) -> pid_t {
+        var pid: pid_t = 0
+        AXUIElementGetPid(win, &pid)
+        return pid
+    }
+
+    /// Focused window of another app. Skip Macotron: a key panel makes us the
+    /// AX focused app, and asking for our own focused window can stall for seconds.
     private static func focusedAXWindow() -> AXUIElement? {
-        let sysWide = AXUIElementCreateSystemWide()
-        var focusedAppRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(
-            sysWide,
-            kAXFocusedApplicationAttribute as CFString,
-            &focusedAppRef
-        ) == .success, let focusedApp = focusedAppRef else { return nil }
+        let own = ProcessInfo.processInfo.processIdentifier
+        if let win = axFocusedWindow(pid: nil), pid(of: win) != own {
+            return win
+        }
+        if let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier != own,
+           let win = axFocusedWindow(pid: app.processIdentifier) {
+            return win
+        }
+        return frontmostForeignWindow()
+    }
 
-        var focusedWinRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(
-            focusedApp as! AXUIElement,
-            kAXFocusedWindowAttribute as CFString,
-            &focusedWinRef
-        ) == .success, let focusedWin = focusedWinRef else { return nil }
+    private static func axFocusedWindow(pid: pid_t?) -> AXUIElement? {
+        let app: AXUIElement
+        if let pid {
+            app = AXUIElementCreateApplication(pid)
+        } else {
+            let sys = AXUIElementCreateSystemWide()
+            AXUIElementSetMessagingTimeout(sys, axFocusTimeout)
+            var appRef: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(
+                sys,
+                kAXFocusedApplicationAttribute as CFString,
+                &appRef
+            ) == .success, let appRef else { return nil }
+            app = appRef as! AXUIElement
+        }
+        AXUIElementSetMessagingTimeout(app, axFocusTimeout)
+        var winRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &winRef) == .success,
+           let winRef {
+            return (winRef as! AXUIElement)
+        }
+        var windowsRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+           let windows = windowsRef as? [AXUIElement] {
+            return windows.first
+        }
+        return nil
+    }
 
-        return (focusedWin as! AXUIElement)
+    private static func frontmostForeignWindow() -> AXUIElement? {
+        let own = ProcessInfo.processInfo.processIdentifier
+        guard let info = CGWindowListCopyWindowInfo(
+            [.optionOnScreenOnly, .excludeDesktopElements],
+            kCGNullWindowID
+        ) as? [[String: Any]] else { return nil }
+        for window in info {
+            let pid = pid_t(window[kCGWindowOwnerPID as String] as? Int32 ?? 0)
+            let layer = window[kCGWindowLayer as String] as? Int ?? 0
+            guard pid != own, pid != 0, layer == 0 else { continue }
+            if let win = axFocusedWindow(pid: pid) { return win }
+        }
+        return nil
     }
 
     // MARK: - AX Mutation Helpers
