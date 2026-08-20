@@ -55,6 +55,10 @@ struct KeyCombo: Equatable {
         return eventMods == modifiers
     }
 
+    var carbonModifiers: UInt32 {
+        CarbonHotKeys.modifiers(from: modifiers)
+    }
+
     /// Map a key name string to a macOS virtual key code.
     private static func keyCodeFromString(_ key: String) -> CGKeyCode? {
         switch key {
@@ -157,71 +161,64 @@ extension KeyCombo: Hashable {
 
 // MARK: - KeyboardModule
 
-/// Global state for the CGEvent tap callback (must be accessible from a C function pointer).
-/// Stored outside the actor because the event tap callback runs on an arbitrary thread.
-private struct HostBinding {
-    let commandId: String
-    let combo: KeyCombo
-}
-
-private struct PluginBinding {
-    let eventName: String
-    var combo: KeyCombo
-}
-
-private final class KeyboardTapState: @unchecked Sendable {
-    let lock = NSLock()
-    var pluginBindings: [PluginBinding] = []
-    var hostBindings: [HostBinding] = []
-    weak var module: KeyboardModule?
-
-    static let shared = KeyboardTapState()
-}
-
 @MainActor
 public final class KeyboardModule: NativeModule {
     public let name = "keyboard"
 
-    /// Called once when the CGEvent tap cannot be created (needs Input Monitoring).
-    public var onTrustFailure: (() -> Void)?
-
     public var onHostCommand: ((String) -> Void)?
 
+    private weak var engine: Engine?
+    private var hostHotKeyIDs: [UInt32] = []
+    private var pluginHotKeyIDs: [UInt32] = []
+
+    public init() {}
+
     public func setHostBindings(_ bindings: [(commandId: String, combo: String)]) {
-        let parsed: [HostBinding] = bindings.compactMap { item in
+        CarbonHotKeys.shared.unregister(hostHotKeyIDs)
+        hostHotKeyIDs.removeAll()
+        guard engine?.dryRun != true else { return }
+        for item in bindings {
             guard let combo = KeyCombo.parse(item.combo) else {
                 NSLog("[Macotron] Skipping invalid command shortcut '%@' for %@", item.combo, item.commandId)
-                return nil
+                continue
             }
-            return HostBinding(commandId: item.commandId, combo: combo)
+            let commandId = item.commandId
+            if let id = CarbonHotKeys.shared.register(
+                keyCode: UInt32(combo.keyCode),
+                carbonModifiers: combo.carbonModifiers,
+                handler: { [weak self] in
+                    DispatchQueue.main.async { self?.onHostCommand?(commandId) }
+                }
+            ) {
+                hostHotKeyIDs.append(id)
+            }
         }
-        let state = KeyboardTapState.shared
-        state.lock.lock()
-        state.hostBindings = parsed
-        state.lock.unlock()
     }
 
     public func setPluginBindings(_ bindings: [(eventName: String, combo: String)]) {
-        let parsed: [PluginBinding] = bindings.compactMap { item in
+        CarbonHotKeys.shared.unregister(pluginHotKeyIDs)
+        pluginHotKeyIDs.removeAll()
+        guard engine?.dryRun != true else { return }
+        for item in bindings {
             guard let combo = KeyCombo.parse(item.combo) else {
                 NSLog("[Macotron] Skipping invalid plugin shortcut '%@'", item.combo)
-                return nil
+                continue
             }
-            return PluginBinding(eventName: item.eventName, combo: combo)
+            let eventName = item.eventName
+            if let id = CarbonHotKeys.shared.register(
+                keyCode: UInt32(combo.keyCode),
+                carbonModifiers: combo.carbonModifiers,
+                handler: { [weak self] in
+                    DispatchQueue.main.async {
+                        guard let self, let engine = self.engine else { return }
+                        engine.eventBus.emit(eventName, engine: engine)
+                    }
+                }
+            ) {
+                pluginHotKeyIDs.append(id)
+            }
         }
-        let state = KeyboardTapState.shared
-        state.lock.lock()
-        state.pluginBindings = parsed
-        state.lock.unlock()
     }
-
-    private weak var engine: Engine?
-    private var eventTap: CFMachPort?
-    private var runLoopSource: CFRunLoopSource?
-    private var registeredCombos: [KeyCombo] = []
-    private var didReportTrustFailure = false
-
-    public init() {}
 
     public func register(in engine: Engine, options: [String: Any]) {
         self.engine = engine
@@ -259,13 +256,7 @@ public final class KeyboardModule: NativeModule {
             )
             engine.eventBus.on("keyboard:\(fullId)", callback: argv[2], ctx: ctx)
 
-            if let combo = KeyCombo.parse(comboStr) {
-                let state = KeyboardTapState.shared
-                state.lock.lock()
-                state.pluginBindings.removeAll { $0.eventName == "keyboard:\(fullId)" }
-                state.pluginBindings.append(PluginBinding(eventName: "keyboard:\(fullId)", combo: combo))
-                state.lock.unlock()
-            } else {
+            if KeyCombo.parse(comboStr) == nil {
                 logger.warning("Failed to parse keyboard combo: \(comboStr)")
             }
 
@@ -288,113 +279,10 @@ public final class KeyboardModule: NativeModule {
         JS_SetPropertyStr(ctx, macotron, "keyboard", keyboardObj)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
-
-        // Dry-run accepts keyboard.on without installing a CGEvent tap.
-        guard !engine.dryRun else { return }
-
-        KeyboardTapState.shared.module = self
-        setupEventTap()
     }
 
     public func cleanup() {
-        teardownEventTap()
-        KeyboardTapState.shared.lock.lock()
-        KeyboardTapState.shared.pluginBindings.removeAll()
-        KeyboardTapState.shared.module = nil
-        KeyboardTapState.shared.lock.unlock()
-        registeredCombos.removeAll()
-    }
-
-    // MARK: - Event Tap
-
-    private func setupEventTap() {
-        guard eventTap == nil else { return }
-
-        let eventMask: CGEventMask = (1 << CGEventType.keyDown.rawValue)
-
-        // CGEvent tap callback — this is a C function pointer, cannot capture context.
-        // We use the global KeyboardTapState singleton to access registered combos.
-        let callback: CGEventTapCallBack = { proxy, type, event, refcon -> Unmanaged<CGEvent>? in
-            // If the tap is disabled by the system, re-enable it
-            if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-                if let refcon {
-                    let machPort = Unmanaged<AnyObject>.fromOpaque(refcon).takeUnretainedValue()
-                    CGEvent.tapEnable(tap: (machPort as! CFMachPort), enable: true)
-                }
-                return Unmanaged.passRetained(event)
-            }
-
-            guard type == .keyDown else { return Unmanaged.passRetained(event) }
-
-            let state = KeyboardTapState.shared
-            state.lock.lock()
-            let pluginBindings = state.pluginBindings
-            let hostBindings = state.hostBindings
-            state.lock.unlock()
-
-            for binding in hostBindings {
-                if binding.combo.matches(event) {
-                    let commandId = binding.commandId
-                    DispatchQueue.main.async {
-                        KeyboardTapState.shared.module?.onHostCommand?(commandId)
-                    }
-                    return nil
-                }
-            }
-
-            for binding in pluginBindings {
-                if binding.combo.matches(event) {
-                    let eventName = binding.eventName
-                    DispatchQueue.main.async {
-                        let state = KeyboardTapState.shared
-                        guard let module = state.module else { return }
-                        guard let engine = module.engine else { return }
-                        engine.eventBus.emit(eventName, engine: engine)
-                    }
-                    return nil
-                }
-            }
-
-            return Unmanaged.passRetained(event)
-        }
-
-        eventTap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .defaultTap,
-            eventsOfInterest: eventMask,
-            callback: callback,
-            userInfo: nil
-        )
-
-        guard let eventTap else {
-            logger.error("Failed to create CGEvent tap. Ensure Input Monitoring / Accessibility permission is granted.")
-            if !didReportTrustFailure {
-                didReportTrustFailure = true
-                onTrustFailure?()
-            }
-            return
-        }
-
-        // Store the eventTap in shared state for the callback to reference if needed.
-
-        runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
-        if let runLoopSource {
-            CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
-        }
-        CGEvent.tapEnable(tap: eventTap, enable: true)
-
-        logger.info("Keyboard event tap installed")
-    }
-
-    private func teardownEventTap() {
-        if let eventTap {
-            CGEvent.tapEnable(tap: eventTap, enable: false)
-        }
-        if let runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
-        }
-        eventTap = nil
-        runLoopSource = nil
+        CarbonHotKeys.shared.unregister(pluginHotKeyIDs)
+        pluginHotKeyIDs.removeAll()
     }
 }
