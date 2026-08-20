@@ -67,7 +67,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Event:** `macotron.event.post({ type: "click"|"key"|"unicode"|"scroll", ... })` posts HID. `event.tap(["flagsChanged","scroll"], cb)` listens; return `false` to swallow. Coords are Cocoa (same as `window.frame`). `macotron.mouse.location()`, `.warp(x, y)`, `.buttons()`.
 
-**Display:** `list()` is `{ id, width, height, main, frame, visibleFrame, scale, rotation, builtin, mirrored, serial, mm }`. `display:changed` fires with `{ id, flags }` (`add`, `remove`, `move`, `main`, `mode`, `enable`, `disable`, `mirror`, `unmirror`, `shape`). `getBrightness` / `setBrightness`, `setXDREnabled`. `setGamma({ red, green, blue }, black?, id?)` writes the display LUT (omit `id` for every screen). Red-only night vision is `setGamma({ red: 1, green: 0, blue: 0 })`. `restoreGamma()` puts ColorSync back. Plugin unload also restores ColorSync.
+**Display:** `list()` is `{ id, width, height, main, frame, visibleFrame, scale, rotation, builtin, mirrored, serial, mm }`. `display:changed` fires with `{ id, flags }` (`add`, `remove`, `move`, `main`, `mode`, `enable`, `disable`, `mirror`, `unmirror`, `shape`). `getBrightness` / `setBrightness`, `setXDREnabled`. `setGamma({ red, green, blue }, black?, id?)` writes the display LUT (omit `id` for every screen). Red-only night vision is `setGamma({ red: 1, green: 0, blue: 0 })`. Extra-dark (below hardware min) is a lowered white point with black at 0. Invert is swapped white and black. `restoreGamma()` puts ColorSync back. Plugin unload also restores ColorSync.
 
 **Shell:** `macotron.shell.run(cmd, args)` — first call to an unapproved command prompts Allow Once / Always Allow / Deny.
 

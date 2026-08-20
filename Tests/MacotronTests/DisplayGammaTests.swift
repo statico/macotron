@@ -38,4 +38,21 @@ struct DisplayGammaTests {
         #expect(t.r.last == 1)
         #expect(t.g.last == 0.5)
     }
+
+    @Test("swapped white and black inverts the ramp")
+    func invert() {
+        let t = DisplayGamma.tables(black: .white, white: .black)
+        #expect(t.r.first == 1)
+        #expect(t.r.last == 0)
+    }
+
+    @Test("a lowered white point keeps black at zero")
+    func extraDark() {
+        let t = DisplayGamma.tables(
+            black: .black,
+            white: .init(red: 0.35, green: 0.35, blue: 0.35)
+        )
+        #expect(t.r.first == 0)
+        #expect(abs(t.r.last! - 0.35) < 0.001)
+    }
 }
