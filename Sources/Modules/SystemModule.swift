@@ -56,6 +56,7 @@ enum BatteryStatus {
         var charged = false
         var timeRemaining = -1
         var timeToFull = -1
+        var source = "battery"
         for desc in sources {
             let capacity = int(desc[kIOPSCurrentCapacityKey])
             let maxCapacity = int(desc[kIOPSMaxCapacityKey])
@@ -64,6 +65,7 @@ enum BatteryStatus {
             }
             if let state = desc[kIOPSPowerSourceStateKey] as? String {
                 charging = (state == kIOPSACPowerValue)
+                source = charging ? "ac" : "battery"
             }
             if let flag = desc[kIOPSIsChargedKey] as? Bool {
                 charged = flag
@@ -83,7 +85,24 @@ enum BatteryStatus {
             "charged": charged,
             "timeRemaining": timeRemaining,
             "timeToFull": timeToFull,
+            "source": source,
         ]
+    }
+
+    static func smartExtras(_ props: [String: Any]) -> [String: Any] {
+        var extras: [String: Any] = [:]
+        if let cycles = int(props["CycleCount"]), cycles >= 0 {
+            extras["cycles"] = cycles
+        }
+        if let max = int(props["AppleRawMaxCapacity"]),
+           let design = int(props["DesignCapacity"]), design > 0 {
+            extras["health"] = Int((Double(max) / Double(design) * 100).rounded())
+        }
+        if let adapter = props["AdapterDetails"] as? [String: Any],
+           let watts = int(adapter["Watts"]), watts > 0 {
+            extras["watts"] = watts
+        }
+        return extras
     }
 
     static func current() -> [String: Any] {
@@ -97,13 +116,71 @@ enum BatteryStatus {
                 }
             }
         }
-        return snapshot(sources)
+        var snap = snapshot(sources)
+        for (key, value) in smartExtras(smartBatteryProps()) {
+            snap[key] = value
+        }
+        snap["lowPowerMode"] = ProcessInfo.processInfo.isLowPowerModeEnabled
+        return snap
+    }
+
+    static func smartBatteryProps() -> [String: Any] {
+        var iterator: io_iterator_t = 0
+        guard IOServiceGetMatchingServices(
+            kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"), &iterator
+        ) == KERN_SUCCESS else { return [:] }
+        defer { IOObjectRelease(iterator) }
+        let service = IOIteratorNext(iterator)
+        guard service != 0 else { return [:] }
+        defer { IOObjectRelease(service) }
+        var props: Unmanaged<CFMutableDictionary>?
+        guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
+              let dict = props?.takeRetainedValue() as? [String: Any] else { return [:] }
+        return dict
     }
 
     static func int(_ value: Any?) -> Int? {
         if let n = value as? Int { return n }
         if let n = value as? NSNumber { return n.intValue }
         return nil
+    }
+}
+
+enum LowPowerMode {
+    static func script(_ enabled: Bool) -> String {
+        "do shell script \"pmset -a lowpowermode \(enabled ? "1" : "0")\" with administrator privileges"
+    }
+
+    static func set(_ enabled: Bool, dryRun: Bool) -> [String: Any] {
+        if dryRun {
+            return ["ok": true, "lowPowerMode": enabled]
+        }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script(enabled)]
+        let err = Pipe()
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = err
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            return [
+                "ok": false,
+                "lowPowerMode": ProcessInfo.processInfo.isLowPowerModeEnabled,
+                "error": error.localizedDescription,
+            ]
+        }
+        if process.terminationStatus != 0 {
+            let msg = String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return [
+                "ok": false,
+                "lowPowerMode": ProcessInfo.processInfo.isLowPowerModeEnabled,
+                "error": msg.isEmpty ? "Could not change Low Power Mode" : msg,
+            ]
+        }
+        return ["ok": true, "lowPowerMode": enabled]
     }
 }
 
@@ -336,6 +413,18 @@ public final class SystemModule: NativeModule {
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newObject(ctx, FanController.shared.snapshot().js)
         }, "fans", 0))
+
+        JS_SetPropertyStr(ctx, systemObj, "setLowPowerMode",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+            guard let argv, argc >= 1 else {
+                return QJS_ThrowTypeError(ctx, "setLowPowerMode requires a boolean")
+            }
+            let enabled = JSBridge.toBool(ctx, argv[0])
+            let opaque = JS_GetContextOpaque(ctx)
+            let dryRun = opaque.map { Unmanaged<Engine>.fromOpaque($0).takeUnretainedValue().dryRun } ?? false
+            return JSBridge.newObject(ctx, LowPowerMode.set(enabled, dryRun: dryRun))
+        }, "setLowPowerMode", 1))
 
         JS_SetPropertyStr(ctx, systemObj, "setFanFloor",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
