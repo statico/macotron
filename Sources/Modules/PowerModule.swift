@@ -7,7 +7,7 @@ import MacotronEngine
 @MainActor
 public final class PowerModule: NativeModule {
     public let name = "power"
-    public let moduleVersion = 2
+    public let moduleVersion = 3
 
     private var assertionID: IOPMAssertionID = 0
     private var active = false
@@ -58,13 +58,38 @@ public final class PowerModule: NativeModule {
 
         JS_SetPropertyStr(ctx, power, "lock", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
-            return JSBridge.newBool(ctx, PowerActions.lock())
+            return JSBridge.newBool(ctx, PowerActions.lock(dryRun: engineDryRun(ctx)))
         }, "lock", 0))
 
         JS_SetPropertyStr(ctx, power, "sleep", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
-            return JSBridge.newBool(ctx, PowerActions.sleep())
+            return JSBridge.newBool(ctx, PowerActions.sleep(dryRun: engineDryRun(ctx)))
         }, "sleep", 0))
+
+        JS_SetPropertyStr(ctx, power, "displaySleep", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return JSBridge.newBool(ctx!, false) }
+            return JSBridge.newBool(ctx, PowerActions.displaySleep(dryRun: engineDryRun(ctx)))
+        }, "displaySleep", 0))
+
+        JS_SetPropertyStr(ctx, power, "screensaver", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return JSBridge.newBool(ctx!, false) }
+            return JSBridge.newBool(ctx, PowerActions.screensaver(dryRun: engineDryRun(ctx)))
+        }, "screensaver", 0))
+
+        JS_SetPropertyStr(ctx, power, "logOut", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return JSBridge.newBool(ctx!, false) }
+            return JSBridge.newBool(ctx, PowerActions.logOut(dryRun: engineDryRun(ctx)))
+        }, "logOut", 0))
+
+        JS_SetPropertyStr(ctx, power, "restart", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return JSBridge.newBool(ctx!, false) }
+            return JSBridge.newBool(ctx, PowerActions.restart(dryRun: engineDryRun(ctx)))
+        }, "restart", 0))
+
+        JS_SetPropertyStr(ctx, power, "shutdown", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return JSBridge.newBool(ctx!, false) }
+            return JSBridge.newBool(ctx, PowerActions.shutdown(dryRun: engineDryRun(ctx)))
+        }, "shutdown", 0))
 
         JS_SetPropertyStr(ctx, macotron, "power", power)
         JS_FreeValue(ctx, macotron)
@@ -116,4 +141,10 @@ private func powerModule(_ ctx: OpaquePointer) -> PowerModule? {
     guard let opaque = JS_GetContextOpaque(ctx) else { return nil }
     let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
     return engine.configStore["__powerModule"] as? PowerModule
+}
+
+@MainActor
+private func engineDryRun(_ ctx: OpaquePointer) -> Bool {
+    guard let opaque = JS_GetContextOpaque(ctx) else { return false }
+    return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
 }

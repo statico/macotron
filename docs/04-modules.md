@@ -12,6 +12,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | ScreenModule | `macotron.screen` | ScreenCaptureKit screenshots + color picker |
 | ShellModule | `macotron.shell` | Process/command execution (with allowlist) |
 | NotifyModule | `macotron.notify` | UserNotifications + one-line HUD toasts |
+| DialogModule | `alert` / `confirm` / `prompt` | Blocking NSAlert sheets (also on `macotron`) |
 | URLSchemeModule | `macotron.url` | URL handler registration |
 | FileSystemModule | `macotron.fs` | File read/write/rename/watch (FSEvents) |
 | ClipboardModule | `macotron.clipboard` | NSPasteboard |
@@ -33,7 +34,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | LauncherModule | `macotron.launcher` | Extra rows in the quick launcher |
 | NotesModule | `macotron.notes` | List and open Apple Notes |
 | ContactsModule | `macotron.contacts` | List and search Contacts |
-| PowerModule | `macotron.power` | Prevent sleep, lock, sleep |
+| PowerModule | `macotron.power` | Prevent sleep, lock, sleep, display sleep, screensaver, log out, restart, shutdown |
 
 ## Key JS APIs
 
@@ -61,7 +62,9 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Shortcuts:** `shortcuts.list()` and `shortcuts.run(name)` call `/usr/bin/shortcuts`.
 
-**Power:** `preventSleep` / `allowSleep` / `isPreventing`, plus `lock()` and `sleep()`. Events: `system:sleep`, `system:wake`, `system:lock`, `system:unlock`.
+**Power:** `preventSleep` / `allowSleep` / `isPreventing`, plus `lock()`, `sleep()`, `displaySleep()`, `screensaver()`, `logOut()`, `restart()`, and `shutdown()`. Events: `system:sleep`, `system:wake`, `system:lock`, `system:unlock`.
+
+**Dialog:** `alert(message)`, `confirm(message)`, and `prompt(message, default?)` are blocking NSAlert sheets, same as the browser. They also live on `macotron`. Cancel on `confirm` is `false`; cancel on `prompt` is `null`.
 
 **Keyboard:** `macotron.keyboard.on("Tile Left", "ctrl+opt+left", callback)` — the id is the Settings label and is unique per plugin; override the combo in Settings → Plugins. `keyboard.flags()` is `{ cmd, shift, ctrl, opt, caps, fn }`.
 

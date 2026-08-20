@@ -46,7 +46,7 @@ No in-app coding agent. The plugins on disk are the source of truth.
 - List Mission Control spaces and switch desktops
 - USB attach and detach
 - Run Shortcuts.app shortcuts
-- Lock the Mac or put it to sleep; hear sleep, wake, and lock
+- Lock, sleep, display sleep, screensaver, log out, restart, and shut down; hear sleep, wake, and lock
 - Minimize, close, or fullscreen a window
 - React when a window is created or focused
 - Upcoming Calendar events
