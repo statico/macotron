@@ -41,9 +41,10 @@ function menu(s) {
         { title: "Disk " + s.diskUsed + "% used" },
     ];
     if (s.bat && s.bat.level >= 0) {
-        rows.push({
-            title: "Battery " + Math.round(s.bat.level) + "%" + (s.bat.charging ? " charging" : ""),
-        });
+        let extra = s.bat.charging ? " charging" : "";
+        if (s.bat.charging && s.bat.timeToFull > 0) extra += " · " + s.bat.timeToFull + " min";
+        if (!s.bat.charging && s.bat.timeRemaining > 0) extra = " · " + s.bat.timeRemaining + " min";
+        rows.push({ title: "Battery " + Math.round(s.bat.level) + "%" + extra });
     }
     return rows;
 }

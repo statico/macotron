@@ -38,7 +38,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Window:** `macotron.window.getAll()`, `.focused()`, `.focus(id)` (raise, unminimize, activate the app), `.minimize(id, on?)`, `.close(id)`, `.setFullscreen(id, on)`, `.move(id, frame)`, `.moveToFraction(id, {x,y,w,h,display?})` (fractions of the window's current display, or `display` from `macotron.display.list()`), `.snap({ enabled, threshold, corner, gap, zones })` — drag the focused window to a screen edge or corner (clicks do not snap). Zones are `{x,y,w,h}` fractions of the visible frame (same as `moveToFraction`). Omit a slot to disable it. `.setSnapEnabled` / `.isSnapEnabled` toggle without changing the map. `window:created` and `window:focused` fire with `{ id, title, app }`.
 
-**System:** `macotron.system.cpu()` is `{ usage }` 0–100 since the last call. `gpu()` is `{ name, usage }` or `null`. `locale()` is `{ language, region, measurement: "metric"|"us" }`. `fans()` is current RPM plus `available` (this Mac has fans), `controllable` (a floor can be set right now), and an optional `floor` (50 or 100). Reads need no privileges; writes do, so `controllable` is false until the user installs the fan helper from the plugin's Settings page (`macotron.settings.open()`). It is listed there only for plugins declaring the `fanControl` permission. `setFanFloor(100 | 50 | null)` holds a minimum; `null` is system default. The host never commands below firmware min, and yields to macOS when it already wants a higher speed.
+**System:** `macotron.system.cpu()` is `{ usage }` 0–100 since the last call. `gpu()` is `{ name, usage }` or `null`. `locale()` is `{ language, region, measurement: "metric"|"us" }`. `battery()` is `{ level, charging, charged, timeRemaining, timeToFull }` (`timeRemaining` / `timeToFull` are minutes, or `-1` if unknown). `fans()` is current RPM plus `available` (this Mac has fans), `controllable` (a floor can be set right now), and an optional `floor` (50 or 100). Reads need no privileges; writes do, so `controllable` is false until the user installs the fan helper from the plugin's Settings page (`macotron.settings.open()`). It is listed there only for plugins declaring the `fanControl` permission. `setFanFloor(100 | 50 | null)` holds a minimum; `null` is system default. The host never commands below firmware min, and yields to macOS when it already wants a higher speed.
 
 **Media:** `macotron.media.nowPlaying()` is `{ playing, title, artist, album, app, bundle, artwork? }`. `artwork` is a JPEG path when iTunes Search finds a cover. `playPause()` / `next()` / `previous()` talk to the system Now Playing target (Spotify, Music, SomaFM, Safari, …). `media:changed` fires when the snapshot changes.
 
@@ -66,7 +66,11 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Shell:** `macotron.shell.run(cmd, args)` — first call to an unapproved command prompts Allow Once / Always Allow / Deny.
 
-**Files:** `read`, `write`, `exists`, `list`, `watch`, `rename(from, to)`. Paths expand `~`. `rename` fails if `to` already exists.
+**Files:** `read`, `readBytes` (base64), `write`, `exists`, `list`, `watch`, `rename(from, to)`. Paths expand `~`. `rename` fails if `to` already exists.
+
+**Clipboard:** `text()`, `set(text)`, `setImage(base64)`, `clear()`, `types()`, `data(uti)` (base64 or `null`). `clipboard:changed` is `{ changeCount, types }`. History: `history()`, `paste(id)`, `remove(id)`, `clearHistory()`.
+
+**Calendar:** `upcoming({ hours })` is `{ id, title, start, end, allDay, location, calendar }[]`. Times are epoch ms.
 
 **MenuBar:** `macotron.menubar.add(id, config)` (rows in the Macotron menu; `menu` is a nested dropdown), `.status(id, config)` (extra item next to the Macotron icon: `title`, `subtitle`, `color`, `subtitleColor`, `bold`, `italic`, `secondary`, `minWidth` in points, `sfSymbol`, `image` file path, `onClick`, `menu`), `.update`, `.remove`, `.setIcon`, `.setTitle`. Two-line extras use the same size and color for both lines unless `secondary` is set (smaller, dimmer subtitle).
 

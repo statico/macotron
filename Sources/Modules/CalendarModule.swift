@@ -62,7 +62,10 @@ public final class CalendarModule: NativeModule {
                 "id": event.eventIdentifier ?? event.calendarItemIdentifier,
                 "title": event.title ?? "",
                 "start": event.startDate.timeIntervalSince1970 * 1000,
-                "end": event.endDate.timeIntervalSince1970 * 1000
+                "end": event.endDate.timeIntervalSince1970 * 1000,
+                "allDay": event.isAllDay,
+                "location": event.location ?? "",
+                "calendar": event.calendar?.title ?? "",
             ] as [String: Any]
         }
     }

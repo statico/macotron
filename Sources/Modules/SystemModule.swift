@@ -49,6 +49,64 @@ private final class CPUTicks: @unchecked Sendable {
     }
 }
 
+enum BatteryStatus {
+    static func snapshot(_ sources: [[String: Any]]) -> [String: Any] {
+        var level: Double = -1
+        var charging = false
+        var charged = false
+        var timeRemaining = -1
+        var timeToFull = -1
+        for desc in sources {
+            let capacity = int(desc[kIOPSCurrentCapacityKey])
+            let maxCapacity = int(desc[kIOPSMaxCapacityKey])
+            if let capacity, let maxCapacity, maxCapacity > 0 {
+                level = Double(capacity) / Double(maxCapacity) * 100.0
+            }
+            if let state = desc[kIOPSPowerSourceStateKey] as? String {
+                charging = (state == kIOPSACPowerValue)
+            }
+            if let flag = desc[kIOPSIsChargedKey] as? Bool {
+                charged = flag
+            } else if let n = desc[kIOPSIsChargedKey] as? NSNumber {
+                charged = n.boolValue
+            }
+            if let minutes = int(desc[kIOPSTimeToEmptyKey]), minutes >= 0 {
+                timeRemaining = minutes
+            }
+            if let minutes = int(desc[kIOPSTimeToFullChargeKey]), minutes >= 0 {
+                timeToFull = minutes
+            }
+        }
+        return [
+            "level": level,
+            "charging": charging,
+            "charged": charged,
+            "timeRemaining": timeRemaining,
+            "timeToFull": timeToFull,
+        ]
+    }
+
+    static func current() -> [String: Any] {
+        var sources: [[String: Any]] = []
+        if let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
+           let list = IOPSCopyPowerSourcesList(snapshot)?.takeRetainedValue() as? [Any] {
+            for source in list {
+                if let desc = IOPSGetPowerSourceDescription(snapshot, source as CFTypeRef)?
+                    .takeUnretainedValue() as? [String: Any] {
+                    sources.append(desc)
+                }
+            }
+        }
+        return snapshot(sources)
+    }
+
+    static func int(_ value: Any?) -> Int? {
+        if let n = value as? Int { return n }
+        if let n = value as? NSNumber { return n.intValue }
+        return nil
+    }
+}
+
 enum GPUStats {
     static func utilization() -> Double? {
         var iterator: io_iterator_t = 0
@@ -168,35 +226,10 @@ public final class SystemModule: NativeModule {
             ])
         }, "memory", 0))
 
-        // macotron.system.battery() -> {level, charging}
         JS_SetPropertyStr(ctx, systemObj, "battery",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
-
-            var level: Double = -1
-            var isCharging = false
-
-            if let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
-               let sources = IOPSCopyPowerSourcesList(snapshot)?.takeRetainedValue() as? [Any] {
-                for source in sources {
-                    if let desc = IOPSGetPowerSourceDescription(snapshot, source as CFTypeRef)?
-                        .takeUnretainedValue() as? [String: Any] {
-                        if let capacity = desc[kIOPSCurrentCapacityKey] as? Int,
-                           let maxCapacity = desc[kIOPSMaxCapacityKey] as? Int,
-                           maxCapacity > 0 {
-                            level = Double(capacity) / Double(maxCapacity) * 100.0
-                        }
-                        if let state = desc[kIOPSPowerSourceStateKey] as? String {
-                            isCharging = (state == kIOPSACPowerValue)
-                        }
-                    }
-                }
-            }
-
-            return JSBridge.newObject(ctx, [
-                "level": level,
-                "charging": isCharging
-            ])
+            return JSBridge.newObject(ctx, BatteryStatus.current())
         }, "battery", 0))
 
         // macotron.system.disk() -> {total, free, used}

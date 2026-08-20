@@ -7,15 +7,17 @@ import MacotronEngine
 @MainActor
 public final class ClipboardModule: NativeModule {
     public let name = "clipboard"
-    public let moduleVersion = 2
+    public let moduleVersion = 3
 
     private var history: [[String: Any]] = []
     private var lastChangeCount = NSPasteboard.general.changeCount
     private var timer: Timer?
+    private weak var engine: Engine?
 
     public init() {}
 
     public func register(in engine: Engine, options: [String: Any]) {
+        self.engine = engine
         engine.configStore["__clipboardModule"] = self
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
@@ -98,6 +100,24 @@ public final class ClipboardModule: NativeModule {
             return QJS_Undefined()
         }, "clearHistory", 0))
 
+        JS_SetPropertyStr(ctx, clipboard, "clear", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            NSPasteboard.general.clearContents()
+            return QJS_Undefined()
+        }, "clear", 0))
+
+        JS_SetPropertyStr(ctx, clipboard, "types", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newArray(ctx, ClipboardPasteboard.types())
+        }, "types", 0))
+
+        JS_SetPropertyStr(ctx, clipboard, "data", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 1, let uti = JSBridge.toString(ctx, argv[0]) else {
+                return QJS_Undefined()
+            }
+            guard let raw = ClipboardPasteboard.data(uti) else { return QJS_Null() }
+            return JSBridge.newString(ctx, raw.base64EncodedString())
+        }, "data", 1))
+
         JS_SetPropertyStr(ctx, macotron, "clipboard", clipboard)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
@@ -117,6 +137,8 @@ public final class ClipboardModule: NativeModule {
         let pasteboard = NSPasteboard.general
         guard pasteboard.changeCount != lastChangeCount else { return }
         lastChangeCount = pasteboard.changeCount
+        emitChanged(pasteboard)
+
         if let text = pasteboard.string(forType: .string), !text.isEmpty {
             push(kind: "text", text: text)
             return
@@ -133,6 +155,16 @@ public final class ClipboardModule: NativeModule {
         push(kind: "image", text: png.base64EncodedString())
     }
 
+    private func emitChanged(_ pasteboard: NSPasteboard) {
+        guard let engine, let ctx = engine.context else { return }
+        let data = JSBridge.newObject(ctx, [
+            "changeCount": lastChangeCount,
+            "types": ClipboardPasteboard.types(pasteboard),
+        ])
+        engine.eventBus.emit("clipboard:changed", engine: engine, data: data)
+        JS_FreeValue(ctx, data)
+    }
+
     private func push(kind: String, text: String) {
         history.insert([
             "id": UUID().uuidString,
@@ -141,5 +173,19 @@ public final class ClipboardModule: NativeModule {
             "ts": Date().timeIntervalSince1970 * 1000,
         ], at: 0)
         history = Array(history.prefix(50))
+    }
+}
+
+enum ClipboardPasteboard {
+    static func types(_ pasteboard: NSPasteboard = .general) -> [String] {
+        names(pasteboard.types ?? [])
+    }
+
+    static func names(_ types: [NSPasteboard.PasteboardType]) -> [String] {
+        types.map(\.rawValue)
+    }
+
+    static func data(_ uti: String, _ pasteboard: NSPasteboard = .general) -> Data? {
+        pasteboard.data(forType: NSPasteboard.PasteboardType(uti))
     }
 }
