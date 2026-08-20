@@ -1,10 +1,10 @@
 const opts = macotron.plugin({
     title: "Windows",
-    description: "Tile with the keyboard, snap by dragging, or switch by name.",
+    description: "Tile with the keyboard or snap by dragging. Hold Shift for thirds; the top edge is the middle third.",
     permissions: ["accessibility"],
     options: {
         threshold: { type: "number", label: "Snap edge (px)", default: 20 },
-        corner: { type: "number", label: "Snap corner (px)", default: 48 },
+        corner: { type: "number", label: "Snap corner (px)", default: 80 },
         gap: { type: "number", label: "Snap gap (px)", default: 0 },
         snapLayout: {
             type: "dropdown",

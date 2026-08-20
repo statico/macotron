@@ -27,6 +27,13 @@ struct SnapGeometryTests {
         #expect(SnapGeometry.slot(at: CGPoint(x: 500, y: 400), screen: screen, corner: 48, threshold: 20) == nil)
     }
 
+    @Test("a point just inside a visible top-left is a corner")
+    func visibleTopLeft() {
+        let visible = CGRect(x: 0, y: 0, width: 1000, height: 764)
+        #expect(SnapGeometry.slot(at: CGPoint(x: 12, y: 760), screen: visible, corner: 80, threshold: 20) == "tl")
+        #expect(SnapGeometry.slot(at: CGPoint(x: 500, y: 760), screen: visible, corner: 80, threshold: 20) == "top")
+    }
+
     @Test("top-origin left half is the Cocoa left half")
     func cocoaLeft() {
         let rect = SnapGeometry.cocoaRect(

@@ -53,9 +53,9 @@ final class SnapPreview {
         box.wantsLayer = true
         box.layer?.cornerRadius = 12
         box.layer?.cornerCurve = .continuous
-        box.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.28).cgColor
-        box.layer?.borderWidth = 2
-        box.layer?.borderColor = NSColor.controlAccentColor.withAlphaComponent(0.8).cgColor
+        box.layer?.backgroundColor = NSColor.white.withAlphaComponent(0.2).cgColor
+        box.layer?.borderWidth = 1.5
+        box.layer?.borderColor = NSColor.white.withAlphaComponent(0.45).cgColor
         box.autoresizingMask = [.width, .height]
 
         let panel = SnapPreviewPanel(
