@@ -32,6 +32,7 @@ Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew o
 | demo-wifi.js | network.wifi / bluetooth / airDrop | Toggle Wi-Fi |
 | demo-brightness.js | display brightness/XDR | Toggle XDR |
 | demo-night-vision.js | display.setGamma | Toggle Night Vision |
+| demo-gamma-black.js | display.setGamma white/black | Toggle Extra Dark, Toggle Invert Display |
 | demo-weather.js | http + menubar.status | Refresh Weather |
 | demo-icon-rainbow.js | menubar.setIconColor |  |
 | demo-pomodoro.js | timer + menubar.status | Start Pomodoro |
