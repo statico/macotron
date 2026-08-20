@@ -4,12 +4,15 @@ enum NotesStore {
     static func list() -> [NoteRecord] {
         let source = """
         tell application "Notes"
-            if (count of notes) is 0 then return ""
-            set theIds to id of notes
-            set theNames to name of notes
             set theOut to ""
-            repeat with i from 1 to (count of theIds)
-                set theOut to theOut & (item i of theIds) & tab & (item i of theNames) & linefeed
+            repeat with aNote in notes
+                set folderName to ""
+                try
+                    set folderName to name of container of aNote
+                end try
+                if folderName is not "Recently Deleted" then
+                    set theOut to theOut & (id of aNote) & tab & (name of aNote) & tab & folderName & linefeed
+                end if
             end repeat
             return theOut
         end tell
