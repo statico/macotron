@@ -57,7 +57,7 @@ final class FanController: @unchecked Sendable {
         guard helperEnabled else {
             var result = snapshotLocked()
             lock.unlock()
-            result.error = Self.notInstalled
+            result.error = "Macotron helper is not installed"
             return result
         }
         lock.unlock()
@@ -180,12 +180,10 @@ final class FanController: @unchecked Sendable {
         "F\(index)\(suffix)"
     }
 
-    static let notInstalled = "Macotron helper is not installed"
-
     /// XPC's own copy is a long "Couldn't communicate with a helper application".
     /// That just means the daemon is not running or rejected us.
     static func displayError(_ error: String) -> String {
-        helperUnreachable(error) ? notInstalled : error
+        helperUnreachable(error) ? "Macotron helper is not installed" : error
     }
 
     static func helperUnreachable(_ error: String) -> Bool {

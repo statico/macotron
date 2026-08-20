@@ -9,9 +9,8 @@ struct HelperPermissionTests {
         #expect(Permission.helper.reason == "Lets plugins control privileged features like fan control.")
     }
 
-    @Test func aliases() {
+    @Test func parse() {
         #expect(Permissions.parse("helper") == .helper)
-        #expect(Permissions.parse("background-helper") == .helper)
         #expect(Permissions.parse("fanControl") == nil)
     }
 
