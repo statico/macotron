@@ -310,7 +310,7 @@ declare const macotron: {
         setWifi(on: boolean): { ok: boolean; available: boolean; on: boolean; ssid?: string; error?: string };
         bluetooth(): {
             on: boolean;
-            devices: Array<{ name: string; address: string; connected: boolean }>;
+            devices: Array<{ name: string; address: string; connected: boolean; battery?: number }>;
         };
         setBluetooth(on: boolean): { ok: boolean; on: boolean; error?: string };
         /** AirDrop discovery. `contacts` is Contacts Only. */
@@ -321,6 +321,8 @@ declare const macotron: {
             error?: string;
         };
         interfaces(): Array<{ name: string; ip: string }>;
+        counters(): Array<{ name: string; ip?: string; bytesIn: number; bytesOut: number }>;
+        ping(host?: string): { ms: number | null; host: string; error?: string };
     };
 
     /** `timeout` is seconds (default 1.5). Types may omit `local.` */

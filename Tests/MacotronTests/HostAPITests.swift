@@ -1,4 +1,5 @@
 import AppKit
+import CoreAudio
 import Foundation
 import IOKit.ps
 import Testing
@@ -11,6 +12,14 @@ struct AudioDevicesTests {
         #expect(AudioDevices.clampVolume(-1) == 0)
         #expect(AudioDevices.clampVolume(0.25) == 0.25)
         #expect(AudioDevices.clampVolume(2) == 1)
+    }
+
+    @Test("mute prefers input scope when the device has input")
+    func muteScope() {
+        #expect(AudioDevices.muteScope(input: true, output: false) == kAudioObjectPropertyScopeInput)
+        #expect(AudioDevices.muteScope(input: false, output: true) == kAudioObjectPropertyScopeOutput)
+        #expect(AudioDevices.muteScope(input: true, output: true) == kAudioObjectPropertyScopeInput)
+        #expect(AudioDevices.muteScope(input: false, output: false) == kAudioObjectPropertyScopeOutput)
     }
 }
 

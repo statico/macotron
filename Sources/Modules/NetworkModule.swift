@@ -7,6 +7,7 @@ import MacotronEngine
 @MainActor
 public final class NetworkModule: NativeModule {
     public let name = "network"
+    public let moduleVersion = 2
 
     private weak var engine: Engine?
     private var timer: Timer?
@@ -68,6 +69,20 @@ public final class NetworkModule: NativeModule {
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newArray(ctx, NetworkModule.ipv4Interfaces())
         }, "interfaces", 0))
+
+        JS_SetPropertyStr(ctx, network, "counters", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newArray(ctx, NetworkModule.counters())
+        }, "counters", 0))
+
+        JS_SetPropertyStr(ctx, network, "ping", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx else { return QJS_Undefined() }
+            var host = "1.1.1.1"
+            if argc >= 1, let argv, let given = JSBridge.toString(ctx, argv[0]), !given.isEmpty {
+                host = given
+            }
+            return JSBridge.newObject(ctx, NetworkControl.ping(host))
+        }, "ping", 1))
 
         JS_SetPropertyStr(ctx, macotron, "network", network)
         JS_FreeValue(ctx, macotron)
@@ -141,5 +156,46 @@ public final class NetworkModule: NativeModule {
             ] as [String: Any])
         }
         return result
+    }
+
+    private static func counters() -> [Any] {
+        var byName: [String: (ip: String?, bytesIn: Int, bytesOut: Int)] = [:]
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0, let first = ifaddr else { return [] }
+        defer { freeifaddrs(ifaddr) }
+
+        var ptr: UnsafeMutablePointer<ifaddrs>? = first
+        while let iface = ptr {
+            defer { ptr = iface.pointee.ifa_next }
+            let flags = Int32(iface.pointee.ifa_flags)
+            let name = String(cString: iface.pointee.ifa_name)
+            if name == "lo0" || (flags & IFF_LOOPBACK) != 0 { continue }
+            guard let addr = iface.pointee.ifa_addr else { continue }
+            var cur = byName[name] ?? (nil, 0, 0)
+            if addr.pointee.sa_family == UInt8(AF_LINK), let data = iface.pointee.ifa_data {
+                let stats = data.assumingMemoryBound(to: if_data.self).pointee
+                cur.bytesIn = Int(stats.ifi_ibytes)
+                cur.bytesOut = Int(stats.ifi_obytes)
+            } else if addr.pointee.sa_family == UInt8(AF_INET), cur.ip == nil {
+                var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                let len = socklen_t(addr.pointee.sa_len)
+                if getnameinfo(addr, len, &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 {
+                    cur.ip = host.withUnsafeBufferPointer { buf in
+                        String(decoding: buf.prefix(while: { $0 != 0 }).map { UInt8(bitPattern: $0) }, as: UTF8.self)
+                    }
+                }
+            }
+            byName[name] = cur
+        }
+        return byName.keys.sorted().map { name -> [String: Any] in
+            let cur = byName[name]!
+            var row: [String: Any] = [
+                "name": name,
+                "bytesIn": cur.bytesIn,
+                "bytesOut": cur.bytesOut,
+            ]
+            if let ip = cur.ip { row["ip"] = ip }
+            return row
+        }
     }
 }
