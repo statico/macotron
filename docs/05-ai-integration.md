@@ -1,12 +1,12 @@
 # AI Integration
 
-Macotron does not ship an in-app coding agent. External tools such as Cursor and Claude Code edit plugins in the workdir. The host only runs plugins and exposes AI APIs to those plugins.
+Macotron does not ship an in-app coding agent. External tools such as Claude Code, Codex, Cursor, and pi.dev edit plugins in the workdir. The host only runs plugins and exposes AI APIs to those plugins.
 
 ## Who Writes Plugins
 
 | Role | Responsibility |
 |---|---|
-| Cursor / Claude Code / other agents | Create and edit `.js` files under `plugins/` |
+| Claude Code, Codex, Cursor, pi.dev | Create and edit `.js` files under `plugins/` |
 | Macotron host | Load, watch, and run plugins. Own `AGENTS.md` and `CLAUDE.md` |
 | Plugin code | Call `macotron.ai` when a plugin needs model output |
 

@@ -92,7 +92,7 @@ Plugins must run on a stock Mac. Use `macotron.*` and Apple-shipped CLI tools on
 ## First-Run Flow
 
 1. Pick the workdir in the wizard.
-2. Optionally open the directory in Finder or Cursor.
+2. Optionally open the directory in Finder or your editor.
 3. Make sure that the app wrote `AGENTS.md` and `CLAUDE.md`.
 4. Ask an external agent to add files under `plugins/`.
 5. Grant Accessibility or Screen Recording only when a plugin needs those features.

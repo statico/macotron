@@ -38,7 +38,7 @@ Sources/
 │       └── macotron.d.ts
 │
 ├── MacotronUI/                  # Host UI only
-│   ├── WizardView.swift         # Pick workdir, optional open in Finder / Cursor
+│   ├── WizardView.swift         # Pick workdir, optional open in Finder or your editor
 │   ├── WizardWindow.swift
 │   ├── SettingsView.swift
 │   ├── SettingsWindow.swift

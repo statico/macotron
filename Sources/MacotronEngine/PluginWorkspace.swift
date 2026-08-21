@@ -686,7 +686,7 @@ public final class PluginWorkspace {
 
     This folder is your Macotron workdir. Add JavaScript plugins under `plugins/`.
 
-    Open this folder in Cursor or Claude Code to edit plugins. Macotron reloads on save.
+    Open this folder in Claude Code, Codex, Cursor, or pi.dev to edit plugins. Macotron reloads on save.
 
     Example plugins live at
     https://github.com/statico/macotron/tree/main/Examples/plugins

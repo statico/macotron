@@ -41,7 +41,7 @@ Source of truth: [2026-08-17-host-shell-design.md](superpowers/specs/2026-08-17-
 ### HS-1 — Workdir and Settings
 
 - [ ] First-run wizard picks plugins directory
-- [ ] Optional open in Finder / Cursor
+- [ ] Optional open in Finder or your editor
 - [ ] `git init` of the workdir
 - [ ] Seed human `README.md` once if missing
 - [ ] Write app-owned `AGENTS.md` and `CLAUDE.md` (do not edit banner)

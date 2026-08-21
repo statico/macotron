@@ -21,8 +21,9 @@ public enum PluginAuthoring {
     public static let agents: [PluginAuthoringTool] = [
         PluginAuthoringTool(id: "claude", name: "Claude Code", command: "claude", app: nil),
         PluginAuthoringTool(id: "codex", name: "Codex", command: "codex", app: nil),
-        PluginAuthoringTool(id: "gemini", name: "Gemini CLI", command: "gemini", app: nil),
         PluginAuthoringTool(id: "cursor-agent", name: "Cursor CLI", command: "cursor-agent", app: nil),
+        PluginAuthoringTool(id: "pi", name: "pi.dev", command: "pi", app: nil),
+        PluginAuthoringTool(id: "gemini", name: "Gemini CLI", command: "gemini", app: nil),
     ]
 
     public static let editors: [PluginAuthoringTool] = [

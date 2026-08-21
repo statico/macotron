@@ -9,7 +9,7 @@ Macotron is a thin macOS host. External coding agents edit plugins. The app does
 ## Product shape
 
 - Minimal UI: first-run wizard, settings, menu bar, launcher hotkey, plugin list.
-- User picks one plugins directory (workdir for Cursor / Claude Code).
+- User picks one plugins directory (workdir for Claude Code, Codex, Cursor, or pi.dev).
 - That directory is a git repo for local versioning.
 - App writes and owns `AGENTS.md` and `CLAUDE.md` (do not edit; overwritten).
 - App seeds a human `README.md` once if missing.
@@ -61,7 +61,7 @@ Content: what the directory is, plugin rules, API summary, git commit guidance (
 
 ## Lazy permissions
 
-- Wizard: pick directory, optional open in Finder / Cursor. Do not demand Accessibility up front.
+- Wizard: pick directory, optional open in Finder or your editor. Do not demand Accessibility up front.
 - Input Monitoring / Accessibility: prompt when keyboard module registers a global hotkey or when the launcher hotkey cannot install.
 - Screen Recording: prompt when screen/window capture APIs are first used.
 
