@@ -1,9 +1,16 @@
+const systemLocale = macotron.system.locale().language;
+
 const opts = macotron.plugin({
   title: "Translate",
   description: "Translate the selected text with the on-device model.",
   permissions: ["accessibility"],
   options: {
-    locale: { type: "string", label: "Target locale (blank = system)", default: "" },
+    locale: {
+      type: "string",
+      label: "Target locale",
+      placeholder: systemLocale,
+      default: "",
+    },
   },
 });
 
@@ -17,10 +24,10 @@ function esc(s) {
 macotron.command("Translate Selection", "Translate the selected text", async () => {
   const text = macotron.ax.selectedText();
   if (!text) {
-    macotron.notify.toast("Translate", "No selected text");
+    macotron.notify.toast("Cannot translate", "No selected text", { color: "error" });
     return;
   }
-  const target = (opts.locale || "").trim() || macotron.system.locale().language;
+  const target = (opts.locale || "").trim() || systemLocale;
   let body = "";
   try {
     body = await macotron.ai.local().chat(text, {
@@ -31,6 +38,9 @@ macotron.command("Translate Selection", "Translate the selected text", async () 
   }
   macotron.panel.open({
     title: "Translate",
-    html: "<p>" + esc(text) + "</p><p>" + esc(body) + "</p>",
+    html:
+      '<p class="muted">Translation to ' + esc(target) + ":</p>" +
+      "<p>" + esc(body) + "</p>" +
+      '<p class="muted">' + esc(text) + "</p>",
   });
 });
