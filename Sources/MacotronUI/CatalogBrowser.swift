@@ -9,6 +9,7 @@ public struct CatalogBrowser: View {
     var onPreview: (CatalogPlugin) -> Void
 
     @State private var query = ""
+    @StateObject private var command = CommandHeld()
 
     public init(
         plugins: [CatalogPlugin],
@@ -32,6 +33,7 @@ public struct CatalogBrowser: View {
                         CatalogRow(
                             plugin: plugin,
                             installed: installedNames.contains(plugin.filename),
+                            commandHeld: command.isHeld,
                             onInstall: { onInstall(plugin) },
                             onPreview: { onPreview(plugin) }
                         )
@@ -55,23 +57,24 @@ public struct CatalogBrowser: View {
 private struct CatalogRow: View {
     let plugin: CatalogPlugin
     let installed: Bool
+    let commandHeld: Bool
     var onInstall: () -> Void
     var onPreview: () -> Void
 
+    private var canReinstall: Bool { installed && commandHeld }
+
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Text(plugin.title)
                         .font(.system(size: 13, weight: .semibold))
                     if plugin.highlighted {
-                        Text("Featured")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(.orange)
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.yellow)
+                            .accessibilityLabel("Featured")
                     }
-                    Text(plugin.isStock ? "Stock" : "Demo")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.secondary)
                 }
                 Text(plugin.description)
                     .font(.system(size: 11))
@@ -79,10 +82,13 @@ private struct CatalogRow: View {
                     .lineLimit(2)
             }
             Spacer(minLength: 8)
-            Button("Preview") { onPreview() }
+            Button("View Source") { onPreview() }
                 .controlSize(.small)
-            Button(installed ? "Reinstall…" : "Install…") { onInstall() }
-                .controlSize(.small)
+            Button(canReinstall ? "Reinstall…" : installed ? "Installed" : "Install…") {
+                onInstall()
+            }
+            .controlSize(.small)
+            .disabled(installed && !canReinstall)
         }
         .padding(8)
         .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.04)))
@@ -92,13 +98,11 @@ private struct CatalogRow: View {
 public struct CatalogInstallSheet: View {
     let plugin: CatalogPlugin
     var overwrite: CatalogOverwrite?
-    var modelNote: String?
     var report: PluginScanReport?
     var scanning: Bool
     var isReview: Bool
     var grantedPermissions: Set<Permission>
     var onPermissionChange: () -> Void
-    var onScan: () -> Void
     var onInstall: (Bool) -> Void
     var onCancel: () -> Void
     @State private var showSource = false
@@ -129,29 +133,7 @@ public struct CatalogInstallSheet: View {
                     }
                 }
             }
-            if let modelNote {
-                Text(modelNote)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-            if scanning {
-                ProgressView("Scanning with Apple Intelligence…")
-            } else if let report {
-                if report.approved {
-                    Text("Automated checks passed.")
-                        .foregroundStyle(.green)
-                } else {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Automated checks flagged this plugin.")
-                            .foregroundStyle(.orange)
-                        ForEach(report.staticFlags, id: \.self) { Text("• \($0)") }
-                        ForEach(Array(report.findings.enumerated()), id: \.offset) { _, finding in
-                            Text("• Pass \(finding.pass): \(finding.message)")
-                        }
-                    }
-                    .font(.system(size: 12))
-                }
-            }
+            scanStatus
             if showSource {
                 ScrollView {
                     Text(plugin.source)
@@ -159,18 +141,17 @@ public struct CatalogInstallSheet: View {
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxHeight: 220)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Spacer(minLength: 0)
             }
             HStack {
-                Button(showSource ? "Hide Source" : "Preview Source") {
+                Button(showSource ? "Hide Source Code" : "Show Source Code") {
                     showSource.toggle()
                 }
                 Spacer()
                 Button("Cancel", action: onCancel)
-                if report == nil, !scanning {
-                    Button("Scan & Continue") { onScan() }
-                        .keyboardShortcut(.defaultAction)
-                } else if let report, report.needsOverride {
+                if let report, report.needsOverride {
                     Button(isReview ? "Run Anyway" : "Install Anyway") { onInstall(true) }
                         .keyboardShortcut(.defaultAction)
                 } else if report?.approved == true {
@@ -180,6 +161,56 @@ public struct CatalogInstallSheet: View {
             }
         }
         .padding(20)
-        .frame(width: 560)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    @ViewBuilder
+    private var scanStatus: some View {
+        if scanning {
+            ProgressView("Scanning with Apple Intelligence…")
+        } else if let report {
+            VStack(alignment: .leading, spacing: 8) {
+                if report.approved {
+                    scanBanner(
+                        "checkmark.circle.fill",
+                        "Scanned for safety by AI. Looks good.",
+                        .green
+                    )
+                } else {
+                    if !report.modelAvailable {
+                        scanBanner(
+                            "exclamationmark.triangle.fill",
+                            report.unavailableReason ?? "Apple Intelligence is unavailable.",
+                            .orange
+                        )
+                    }
+                    if !report.staticFlags.isEmpty || !report.findings.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            scanBanner(
+                                "xmark.circle.fill",
+                                "Automated checks failed.",
+                                .red
+                            )
+                            ForEach(report.staticFlags, id: \.self) { Text("• \($0)") }
+                            ForEach(Array(report.findings.enumerated()), id: \.offset) { _, finding in
+                                Text("• Pass \(finding.pass): \(finding.message)")
+                            }
+                        }
+                        .font(.callout)
+                        .foregroundStyle(.red)
+                    }
+                }
+            }
+        }
+    }
+
+    private func scanBanner(_ symbol: String, _ text: String, _ color: Color) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: symbol)
+                .font(.title3)
+            Text(text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundStyle(color)
     }
 }

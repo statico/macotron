@@ -92,7 +92,7 @@ public struct WizardView: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack(spacing: 12) {
+        HStack {
             if !state.isFirstStep {
                 Button("Back") {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -100,13 +100,7 @@ public struct WizardView: View {
                     }
                 }
             }
-
-            if state.steps.count > 1 {
-                stepDots
-            }
-
             Spacer()
-
             if state.isLastStep {
                 Button(finishLabel) {
                     state.finish()
@@ -124,6 +118,11 @@ public struct WizardView: View {
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(state.currentStep == .folder && state.pluginsURL == nil)
+            }
+        }
+        .overlay {
+            if state.steps.count > 1 {
+                stepDots
             }
         }
         .padding(16)
@@ -166,7 +165,7 @@ public struct WizardView: View {
                     .fontWeight(.bold)
             }
 
-            Text("Macotron is a thin macOS host for JavaScript plugins. Pick a folder for your plugins — edit them with Cursor or Claude Code.")
+            Text("Macotron is a thin macOS host for JavaScript plugins. Pick a folder for your plugins, then edit them with your favorite AI coding agent.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -179,7 +178,7 @@ public struct WizardView: View {
             stepHeader(
                 icon: "folder",
                 title: "Plugins Folder",
-                subtitle: "Choose a directory Macotron will use as your plugin workdir. The app will create plugins/, settings.json, and agent docs there."
+                subtitle: "Choose a directory Macotron will use for plugins. The app will create plugins/, settings.json, and agent docs there."
             )
 
             if state.pluginsPath.isEmpty {
@@ -213,9 +212,10 @@ public struct WizardView: View {
         VStack(alignment: .leading, spacing: 12) {
             stepHeader(
                 icon: "puzzlepiece.extension",
-                title: "Choose Plugins",
-                subtitle: "Stock plugins are highlighted. You can skip this and install later from Settings."
+                title: "Install Some Plugins",
+                subtitle: "Here are some example plugins to get you started. You can install more later from Settings, or make your own."
             )
+            .frame(maxWidth: .infinity)
             CatalogBrowser(
                 plugins: permissions.catalogPlugins,
                 installedNames: permissions.installedPluginNames,
@@ -224,28 +224,6 @@ public struct WizardView: View {
             )
         }
         .padding(24)
-        .sheet(item: $permissions.installTarget) { plugin in
-            CatalogInstallSheet(
-                plugin: plugin,
-                overwrite: permissions.overwrite,
-                modelNote: permissions.scanNote,
-                report: permissions.scanReport,
-                scanning: permissions.scanning,
-                isReview: permissions.isReviewing,
-                grantedPermissions: permissions.grantedPermissions,
-                onPermissionChange: { permissions.refreshPermissions() },
-                onScan: { permissions.onScanCatalog?(plugin) },
-                onInstall: { override in
-                    permissions.onInstallCatalog?(plugin, override)
-                    permissions.installTarget = nil
-                    permissions.isReviewing = false
-                },
-                onCancel: {
-                    permissions.installTarget = nil
-                    permissions.isReviewing = false
-                }
-            )
-        }
     }
 
     private var permissionsStep: some View {
