@@ -18,7 +18,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | browser-profiles.js | url.open | Open GitHub in Safari |
 | calculator.js | panel | Calculator |
 | calendar.js | calendar.upcoming | Upcoming Events |
-| clipboard-history.js | clipboard.history, launcher.set | (launcher rows) |
+| clipboard-history.js | clipboard.history, launcher.set, panel | Clipboard History |
 | clipboard-image.js | clipboard.setImage/paste/remove | Clipboard Images |
 | color-picker.js | screen.pickColor | Pick Color |
 | contacts.js | contacts.list, launcher.set | (launcher rows) |
@@ -26,9 +26,9 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | datetime.js | clipboard.set | Insert ISO Date |
 | devutils.js | clipboard | UUID, timestamp, Base64, JWT |
 | disk-usage.js | shell.run df/du + panel | Disk Usage |
-| eject.js | fs.list + diskutil eject | (eject volumes) |
+| eject.js | fs.list + diskutil eject | Empty Trash |
 | fan.js | system.fans / setFanFloor | Toggle Fan 100% |
-| file-search.js | spotlight + panel | Search Files |
+| file-search.js | spotlight.search kind + panel | Search Files |
 | focus-idle.js | app:activated, frontmost | Frontmost App |
 | gestures.js | event.tap swipe, window.moveToFraction | (3-finger swipe tiles) |
 | heic-to-jpeg.js | sips + fs | Convert Downloads HEIC |
@@ -64,7 +64,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | security-checklist.js | shell probes | Security Checklist |
 | share.js | share.open, share.airDrop | Share Text, Share File, AirDrop File |
 | shortcuts.js | shortcuts.list / run | (launcher rows) |
-| snippets.js | snippets.* + expansion | Insert OMW, List Snippets |
+| snippets.js | snippets.* + expansion, launcher.set | Insert OMW |
 | spaces.js | spaces.list / go | Next Space |
 | system-metrics.js | system.cpu/gpu | System Metrics |
 | system-settings.js | launcher.set, url.open | (System Settings panes) |
