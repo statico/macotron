@@ -121,6 +121,7 @@ private struct CatalogInstallSheet: View {
                     state.installTarget = nil
                     state.isReviewing = false
                 }
+                    .keyboardShortcut(.cancelAction)
                 Button(primaryLabel) {
                     install(override: state.scanReport?.needsOverride == true)
                 }

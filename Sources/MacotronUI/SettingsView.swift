@@ -381,6 +381,13 @@ public struct SettingsView: View {
                     installedNames: state.installedPluginNames,
                     onInstall: { state.beginInstall($0) }
                 )
+                HStack {
+                    Spacer()
+                    Button("Done") {
+                        showCatalog = false
+                    }
+                        .keyboardShortcut(.cancelAction)
+                }
             }
             .padding(16)
             .frame(width: 560, height: 480)
