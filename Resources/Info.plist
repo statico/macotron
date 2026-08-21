@@ -47,6 +47,8 @@
     <string>Macotron plugins can list and control HomeKit accessories.</string>
     <key>NSContactsUsageDescription</key>
     <string>Macotron plugins can search and list contacts.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Macotron plugins can capture the screen to read it, pick a region, or scan a QR code.</string>
     <key>NSCameraUsageDescription</key>
     <string>Macotron plugins can scan QR codes with the camera.</string>
     <key>NSMicrophoneUsageDescription</key>

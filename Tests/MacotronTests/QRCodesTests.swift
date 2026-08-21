@@ -17,6 +17,18 @@ struct QRCodesTests {
         let empty = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
         #expect(QRCodes.detect(data: empty) == nil)
     }
+
+    @Test("oversize base64 is rejected before Vision")
+    func rejectsHugeBase64() {
+        let huge = String(repeating: "A", count: QRCodes.maxEncodedBytes + 1)
+        #expect(QRCodes.decodeBase64(huge) == nil)
+    }
+
+    @Test("oversize payload is not encoded")
+    func rejectsHugeText() {
+        let text = String(repeating: "x", count: QRCodes.maxTextCount + 1)
+        #expect(QRCodes.png(text: text) == nil)
+    }
 }
 
 @Suite("Camera permission")

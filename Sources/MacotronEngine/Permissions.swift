@@ -15,6 +15,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     case camera
     case microphone
     case helper
+    case automation
 
     public var id: String { rawValue }
 
@@ -26,6 +27,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .camera: return "Camera"
         case .microphone: return "Microphone"
         case .helper: return "Background Helper"
+        case .automation: return "Automation"
         }
     }
 
@@ -38,6 +40,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .camera: return "Scan a QR code or use the camera from a plugin."
         case .microphone: return "Record audio from plugins."
         case .helper: return "Lets plugins control privileged features like fan control."
+        case .automation: return "Control other apps through Apple events."
         }
     }
 
@@ -56,6 +59,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             return AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
         case .helper:
             return Permissions.helperService.status == .enabled
+        case .automation:
+            return true
         }
     }
 
@@ -65,6 +70,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         switch self {
         case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone: return "Grant…"
         case .helper: return "Install…"
+        case .automation: return "Open Settings…"
         }
     }
 
@@ -74,7 +80,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     public var isAutoRequestable: Bool {
         switch self {
         case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone: return true
-        case .helper: return false
+        case .helper, .automation: return false
         }
     }
 
@@ -82,7 +88,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     /// is ours to unregister.
     public var canRevoke: Bool {
         switch self {
-        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone: return false
+        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation: return false
         case .helper: return true
         }
     }
@@ -113,6 +119,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             openSettings = true
         case .helper:
             openSettings = Permissions.registerHelper()
+        case .automation:
+            openSettings = true
         }
         return openSettings
     }
@@ -120,7 +128,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     @MainActor
     public func revoke() {
         switch self {
-        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone:
+        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation:
             break
         case .helper:
             Permissions.unregisterHelper()
@@ -143,6 +151,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             urlString = "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Microphone"
         case .helper:
             urlString = "x-apple.systempreferences:com.apple.LoginItems-Settings.extension"
+        case .automation:
+            urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation"
         }
         guard let url = URL(string: urlString) else { return }
         NSWorkspace.shared.open(url)
@@ -152,7 +162,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
 @MainActor
 public enum Permissions {
     /// Always required, whether or not any plugin is installed.
-    public static let baseline: [Permission] = [.inputMonitoring, .accessibility]
+    public static let baseline: [Permission] = [.inputMonitoring, .accessibility, .automation]
 
     /// Map a plugin declaration string to a permission.
     public static func parse(_ name: String) -> Permission? {
@@ -169,6 +179,8 @@ public enum Permissions {
             return .microphone
         case "helper":
             return .helper
+        case "automation", "appleevents", "apple-events":
+            return .automation
         default:
             return nil
         }

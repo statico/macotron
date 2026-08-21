@@ -201,6 +201,7 @@ public final class FileSystemModule: NativeModule {
             guard let content = JSBridge.toString(ctx, argv[1]) else {
                 return QJS_ThrowTypeError(ctx, "fs.write: content must be a string")
             }
+            if Engine.isDryRun(ctx) { return QJS_Undefined() }
 
             let expandedPath = NSString(string: path).expandingTildeInPath
             do {
@@ -243,6 +244,7 @@ public final class FileSystemModule: NativeModule {
                   let to = JSBridge.toString(ctx, argv[1]) else {
                 return QJS_ThrowTypeError(ctx, "fs.rename: from and to must be strings")
             }
+            if Engine.isDryRun(ctx) { return QJS_Undefined() }
             let src = NSString(string: from).expandingTildeInPath
             let dest = NSString(string: to).expandingTildeInPath
             do {
@@ -310,6 +312,9 @@ public final class FileSystemModule: NativeModule {
             }
             guard let path = JSBridge.toString(ctx, argv[0]) else {
                 return QJS_ThrowTypeError(ctx, "fs.watch: path must be a string")
+            }
+            if Engine.isDryRun(ctx) {
+                return JS_NewCFunction(ctx, { _, _, _, _ in QJS_Undefined() }, "stop", 0)
             }
 
             let opaque = JS_GetContextOpaque(ctx)

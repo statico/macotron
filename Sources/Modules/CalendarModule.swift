@@ -21,6 +21,7 @@ public final class CalendarModule: NativeModule {
         JS_SetPropertyStr(ctx, calendar, "upcoming",
                           JS_NewCFunction(ctx, { ctx, _, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
+            if Engine.isDryRun(ctx) { return JSBridge.newArray(ctx, []) }
 
             var hours = 24.0
             if let argv, argc > 0, !JS_IsUndefined(argv[0]), !JS_IsNull(argv[0]) {

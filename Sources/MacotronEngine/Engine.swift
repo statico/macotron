@@ -104,6 +104,11 @@ public final class Engine {
     /// When true, modules stub side effects (hotkeys, panels, notifications).
     public var dryRun = false
 
+    public static func isDryRun(_ ctx: OpaquePointer?) -> Bool {
+        guard let ctx, let opaque = JS_GetContextOpaque(ctx) else { return false }
+        return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
+    }
+
     /// Base directory for resolving ES module imports (set by ModuleManager)
     public var moduleBaseDir: URL?
 

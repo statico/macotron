@@ -39,5 +39,18 @@ struct ClipboardPastePlainTests {
         #expect(result == #"{"on":true,"isOn":true,"off":true,"isOff":false}"#)
         let module = engine.configStore["__clipboardModule"] as? ClipboardModule
         #expect(module?.hasPasteTap == false)
+        #expect(module?.isPolling == false)
+        _ = engine.evaluate("macotron.clipboard.history()")
+        #expect(module?.isPolling == false)
+    }
+}
+
+@Suite("ClipboardHistoryPolicy")
+struct ClipboardHistoryPolicyTests {
+    @Test("concealed types are not recorded")
+    func skipsConcealed() {
+        #expect(!ClipboardHistoryPolicy.isRecordable(["org.nspasteboard.ConcealedType", "public.utf8-plain-text"]))
+        #expect(!ClipboardHistoryPolicy.isRecordable(["org.nspasteboard.TransientType"]))
+        #expect(ClipboardHistoryPolicy.isRecordable(["public.utf8-plain-text"]))
     }
 }

@@ -63,6 +63,7 @@ public final class AppModule: NativeModule {
                 logger.error("app.launch: bundleID argument required")
                 return QJS_Undefined()
             }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             return JSBridge.newBool(ctx, AppLaunch.open(bundleID: bundleID))
         }, "launch", 1))
 
@@ -76,6 +77,7 @@ public final class AppModule: NativeModule {
                 logger.error("app.switch: bundleID argument required")
                 return QJS_Undefined()
             }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             return JSBridge.newBool(ctx, AppLaunch.open(bundleID: bundleID))
         }, "switch", 1))
 
@@ -93,12 +95,14 @@ public final class AppModule: NativeModule {
 
         JS_SetPropertyStr(ctx, appObj, "hide", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             let id = argc > 0 ? JSBridge.toString(ctx, argv![0]) : nil
             return JSBridge.newBool(ctx, AppControl.hide(id))
         }, "hide", 1))
 
         JS_SetPropertyStr(ctx, appObj, "quit", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             let id = argc > 0 ? JSBridge.toString(ctx, argv![0]) : nil
             return JSBridge.newBool(ctx, AppControl.quit(id))
         }, "quit", 1))
@@ -110,6 +114,7 @@ public final class AppModule: NativeModule {
                 return JSBridge.newBool(ctx, false)
             }
             let bundleID = argc > 1 ? JSBridge.toString(ctx, argv[1]) : nil
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             guard let app = AppControl.running(bundleID) else { return JSBridge.newBool(ctx, false) }
             return JSBridge.newBool(ctx, AppMenu.select(pid: app.processIdentifier, path: path))
         }, "menu", 2))

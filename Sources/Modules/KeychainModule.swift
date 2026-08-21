@@ -40,6 +40,7 @@ public final class KeychainModule: NativeModule {
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
             guard let key = JSBridge.toString(ctx, argv[0]), !isLedgerAccount(key),
                   let value = JSBridge.toString(ctx, argv[1]) else { return QJS_Undefined() }
+            if Engine.isDryRun(ctx) { return QJS_Undefined() }
 
             KeychainStore.write(account: key, value: value)
             return QJS_Undefined()
@@ -49,6 +50,7 @@ public final class KeychainModule: NativeModule {
         JS_SetPropertyStr(ctx, keychainObj, "delete", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             guard let key = JSBridge.toString(ctx, argv[0]), !isLedgerAccount(key) else { return QJS_Undefined() }
+            if Engine.isDryRun(ctx) { return QJS_Undefined() }
 
             KeychainStore.delete(account: key)
             return QJS_Undefined()

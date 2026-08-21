@@ -64,6 +64,13 @@ public final class HTTPModule: NativeModule {
         argv: UnsafeMutablePointer<JSValue>,
         hasBody: Bool
     ) -> JSValue {
+        if Engine.isDryRun(ctx) {
+            return JSBridge.newObject(ctx, [
+                "status": 0,
+                "body": "",
+                "headers": [String: Any]()
+            ])
+        }
         // Parse URL (always first argument)
         guard let urlString = JSBridge.toString(ctx, argv[0]),
               let url = URL(string: urlString) else {

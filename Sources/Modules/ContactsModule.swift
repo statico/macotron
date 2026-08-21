@@ -51,11 +51,13 @@ public final class ContactsModule: NativeModule {
 
         JS_SetPropertyStr(ctx, contacts, "list", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
+            if Engine.isDryRun(ctx) { return JSBridge.newArray(ctx, []) }
             return JSBridge.newArray(ctx, ContactsModule.fetch(query: ""))
         }, "list", 0))
 
         JS_SetPropertyStr(ctx, contacts, "search", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
+            if Engine.isDryRun(ctx) { return JSBridge.newArray(ctx, []) }
             var query = ""
             if let argv, argc >= 1 {
                 query = JSBridge.toString(ctx, argv[0]) ?? ""
