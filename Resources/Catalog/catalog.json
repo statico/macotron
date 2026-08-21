@@ -1,363 +1,293 @@
 {
   "plugins": [
     {
-      "filename": "demo-ai-chat.js",
-      "kind": "demo",
+      "filename": "calculator.js",
+      "highlighted": true,
+      "category": "Tools"
+    },
+    {
+      "filename": "clipboard-history.js",
+      "highlighted": true,
+      "category": "Clipboard"
+    },
+    {
+      "filename": "file-search.js",
+      "highlighted": true,
+      "category": "Files"
+    },
+    {
+      "filename": "lock-screen.js",
+      "highlighted": true,
+      "category": "System"
+    },
+    {
+      "filename": "meetings.js",
+      "highlighted": true,
+      "category": "Productivity"
+    },
+    {
+      "filename": "notes.js",
+      "highlighted": true,
+      "category": "Productivity"
+    },
+    {
+      "filename": "snippets.js",
+      "highlighted": true,
+      "category": "Productivity"
+    },
+    {
+      "filename": "weather.js",
+      "highlighted": true,
+      "category": "Menu bar"
+    },
+    {
+      "filename": "window-grid.js",
+      "highlighted": true,
+      "category": "Windows"
+    },
+    {
+      "filename": "windows.js",
+      "highlighted": true,
+      "category": "Windows"
+    },
+    {
+      "filename": "ai-chat.js",
       "highlighted": false,
       "category": "AI"
     },
     {
-      "filename": "demo-appearance.js",
-      "kind": "stock",
+      "filename": "appearance.js",
       "highlighted": false,
       "category": "System"
     },
     {
-      "filename": "demo-audio.js",
-      "kind": "stock",
+      "filename": "audio.js",
       "highlighted": false,
       "category": "Media"
     },
     {
-      "filename": "demo-batch-rename.js",
-      "kind": "demo",
+      "filename": "batch-rename.js",
       "highlighted": false,
       "category": "Files"
     },
     {
-      "filename": "demo-battery.js",
-      "kind": "stock",
+      "filename": "battery.js",
       "highlighted": false,
       "category": "Menu bar"
     },
     {
-      "filename": "demo-brightness.js",
-      "kind": "stock",
+      "filename": "brightness.js",
       "highlighted": false,
       "category": "System"
     },
     {
-      "filename": "demo-browser-picker.js",
-      "kind": "demo",
+      "filename": "browser-picker.js",
       "highlighted": false,
       "category": "Browser"
     },
     {
-      "filename": "demo-browser-profiles.js",
-      "kind": "demo",
-      "highlighted": false,
-      "category": "Browser"
-    },
-    {
-      "filename": "demo-calculator.js",
-      "kind": "stock",
-      "highlighted": true,
-      "category": "Tools"
-    },
-    {
-      "filename": "demo-calendar.js",
-      "kind": "stock",
+      "filename": "calendar.js",
       "highlighted": false,
       "category": "Productivity"
     },
     {
-      "filename": "demo-clipboard-history.js",
-      "kind": "stock",
-      "highlighted": true,
-      "category": "Clipboard"
-    },
-    {
-      "filename": "demo-clipboard-image.js",
-      "kind": "stock",
+      "filename": "clipboard-image.js",
       "highlighted": false,
       "category": "Clipboard"
     },
     {
-      "filename": "demo-color-picker.js",
-      "kind": "stock",
+      "filename": "color-picker.js",
       "highlighted": false,
       "category": "Screen"
     },
     {
-      "filename": "demo-cpu-graph.js",
-      "kind": "demo",
+      "filename": "cpu-graph.js",
       "highlighted": false,
       "category": "Menu bar"
     },
     {
-      "filename": "demo-datetime.js",
-      "kind": "stock",
+      "filename": "datetime.js",
       "highlighted": false,
       "category": "Tools"
     },
     {
-      "filename": "demo-devutils.js",
-      "kind": "demo",
+      "filename": "devutils.js",
       "highlighted": false,
       "category": "Tools"
     },
     {
-      "filename": "demo-disk-usage.js",
-      "kind": "demo",
-      "highlighted": false,
-      "category": "Files"
-    },
-    {
-      "filename": "demo-display-modes.js",
-      "kind": "demo",
+      "filename": "fan.js",
       "highlighted": false,
       "category": "System"
     },
     {
-      "filename": "demo-fan.js",
-      "kind": "demo",
+      "filename": "focus-idle.js",
       "highlighted": false,
       "category": "System"
     },
     {
-      "filename": "demo-file-search.js",
-      "kind": "stock",
-      "highlighted": true,
-      "category": "Files"
-    },
-    {
-      "filename": "demo-focus-idle.js",
-      "kind": "demo",
-      "highlighted": false,
-      "category": "System"
-    },
-    {
-      "filename": "demo-gamma-black.js",
-      "kind": "demo",
-      "highlighted": false,
-      "category": "System"
-    },
-    {
-      "filename": "demo-gestures.js",
-      "kind": "demo",
+      "filename": "gestures.js",
       "highlighted": false,
       "category": "Windows"
     },
     {
-      "filename": "demo-heic-to-jpeg.js",
-      "kind": "demo",
+      "filename": "heic-to-jpeg.js",
       "highlighted": false,
       "category": "Files"
     },
     {
-      "filename": "demo-hid.js",
-      "kind": "demo",
+      "filename": "hid.js",
       "highlighted": false,
       "category": "Devices"
     },
     {
-      "filename": "demo-hyper.js",
-      "kind": "demo",
+      "filename": "hyper.js",
       "highlighted": false,
       "category": "Input"
     },
     {
-      "filename": "demo-icon-rainbow.js",
-      "kind": "demo",
+      "filename": "icon-rainbow.js",
       "highlighted": false,
       "category": "Menu bar"
     },
     {
-      "filename": "demo-idle.js",
-      "kind": "demo",
+      "filename": "idle.js",
       "highlighted": false,
       "category": "System"
     },
     {
-      "filename": "demo-layouts.js",
-      "kind": "demo",
+      "filename": "layouts.js",
       "highlighted": false,
       "category": "Windows"
     },
     {
-      "filename": "demo-lock-screen.js",
-      "kind": "stock",
-      "highlighted": true,
-      "category": "System"
-    },
-    {
-      "filename": "demo-lorem.js",
-      "kind": "demo",
+      "filename": "lorem.js",
       "highlighted": false,
       "category": "Tools"
     },
     {
-      "filename": "demo-meeting-overlay.js",
-      "kind": "demo",
+      "filename": "meeting-overlay.js",
       "highlighted": false,
       "category": "Productivity"
     },
     {
-      "filename": "demo-meetings.js",
-      "kind": "stock",
-      "highlighted": true,
-      "category": "Productivity"
-    },
-    {
-      "filename": "demo-night-vision.js",
-      "kind": "demo",
-      "highlighted": false,
-      "category": "System"
-    },
-    {
-      "filename": "demo-notes.js",
-      "kind": "stock",
-      "highlighted": true,
-      "category": "Productivity"
-    },
-    {
-      "filename": "demo-now-playing.js",
-      "kind": "stock",
+      "filename": "now-playing.js",
       "highlighted": false,
       "category": "Menu bar"
     },
     {
-      "filename": "demo-ocr.js",
-      "kind": "stock",
+      "filename": "ocr.js",
       "highlighted": false,
       "category": "Screen"
     },
     {
-      "filename": "demo-plain-paste.js",
-      "kind": "demo",
+      "filename": "plain-paste.js",
       "highlighted": false,
       "category": "Clipboard"
     },
     {
-      "filename": "demo-pomodoro.js",
-      "kind": "demo",
+      "filename": "pomodoro.js",
       "highlighted": false,
       "category": "Productivity"
     },
     {
-      "filename": "demo-power.js",
-      "kind": "stock",
+      "filename": "present-mode.js",
       "highlighted": false,
       "category": "System"
     },
     {
-      "filename": "demo-present-mode.js",
-      "kind": "demo",
-      "highlighted": false,
-      "category": "System"
-    },
-    {
-      "filename": "demo-qr.js",
-      "kind": "demo",
+      "filename": "qr.js",
       "highlighted": false,
       "category": "Screen"
     },
     {
-      "filename": "demo-record.js",
-      "kind": "demo",
+      "filename": "record.js",
       "highlighted": false,
       "category": "Media"
     },
     {
-      "filename": "demo-regex.js",
-      "kind": "demo",
+      "filename": "regex.js",
       "highlighted": false,
       "category": "Tools"
     },
     {
-      "filename": "demo-screen-ai-summary.js",
-      "kind": "demo",
-      "highlighted": false,
-      "category": "AI"
-    },
-    {
-      "filename": "demo-screenshot-rename.js",
-      "kind": "demo",
-      "highlighted": false,
-      "category": "Files"
-    },
-    {
-      "filename": "demo-security-checklist.js",
-      "kind": "demo",
-      "highlighted": false,
-      "category": "System"
-    },
-    {
-      "filename": "demo-share.js",
-      "kind": "demo",
-      "highlighted": false,
-      "category": "Tools"
-    },
-    {
-      "filename": "demo-shortcuts.js",
-      "kind": "stock",
-      "highlighted": false,
-      "category": "Productivity"
-    },
-    {
-      "filename": "demo-snippets.js",
-      "kind": "stock",
-      "highlighted": true,
-      "category": "Productivity"
-    },
-    {
-      "filename": "demo-spaces.js",
-      "kind": "stock",
-      "highlighted": false,
-      "category": "Windows"
-    },
-    {
-      "filename": "demo-system-metrics.js",
-      "kind": "stock",
-      "highlighted": false,
-      "category": "Menu bar"
-    },
-    {
-      "filename": "demo-system-settings.js",
-      "kind": "demo",
-      "highlighted": false,
-      "category": "System"
-    },
-    {
-      "filename": "demo-url-router.js",
-      "kind": "demo",
+      "filename": "browser-profiles.js",
       "highlighted": false,
       "category": "Browser"
     },
     {
-      "filename": "demo-usb.js",
-      "kind": "demo",
-      "highlighted": false,
-      "category": "Devices"
-    },
-    {
-      "filename": "demo-weather.js",
-      "kind": "stock",
-      "highlighted": true,
-      "category": "Menu bar"
-    },
-    {
-      "filename": "demo-wifi.js",
-      "kind": "stock",
+      "filename": "screen-effects.js",
       "highlighted": false,
       "category": "System"
     },
     {
-      "filename": "demo-window-grid.js",
-      "kind": "stock",
-      "highlighted": true,
-      "category": "Windows"
+      "filename": "screen-ai-summary.js",
+      "highlighted": false,
+      "category": "AI"
     },
     {
-      "filename": "demo-window-switcher.js",
-      "kind": "demo",
+      "filename": "screenshot-rename.js",
+      "highlighted": false,
+      "category": "Files"
+    },
+    {
+      "filename": "security-checklist.js",
+      "highlighted": false,
+      "category": "System"
+    },
+    {
+      "filename": "share.js",
+      "highlighted": false,
+      "category": "Tools"
+    },
+    {
+      "filename": "shortcuts.js",
+      "highlighted": false,
+      "category": "Productivity"
+    },
+    {
+      "filename": "spaces.js",
       "highlighted": false,
       "category": "Windows"
     },
     {
-      "filename": "demo-windows.js",
-      "kind": "stock",
-      "highlighted": true,
+      "filename": "power.js",
+      "highlighted": false,
+      "category": "System"
+    },
+    {
+      "filename": "disk-usage.js",
+      "highlighted": false,
+      "category": "Files"
+    },
+    {
+      "filename": "system-metrics.js",
+      "highlighted": false,
+      "category": "Menu bar"
+    },
+    {
+      "filename": "system-settings.js",
+      "highlighted": false,
+      "category": "System"
+    },
+    {
+      "filename": "url-router.js",
+      "highlighted": false,
+      "category": "Browser"
+    },
+    {
+      "filename": "usb.js",
+      "highlighted": false,
+      "category": "Devices"
+    },
+    {
+      "filename": "wifi.js",
+      "highlighted": false,
+      "category": "System"
+    },
+    {
+      "filename": "window-switcher.js",
+      "highlighted": false,
       "category": "Windows"
     }
   ]

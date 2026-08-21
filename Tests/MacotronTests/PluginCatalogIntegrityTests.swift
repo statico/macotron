@@ -101,13 +101,13 @@ struct PluginCatalogTests {
             .appending(path: "macotron-renames-\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
-        try "x".write(to: dir.appending(path: "demo-weather.js"), atomically: true, encoding: .utf8)
+        try "x".write(to: dir.appending(path: "weather.js"), atomically: true, encoding: .utf8)
         try "x".write(to: dir.appending(path: "demo-night-vision.js"), atomically: true, encoding: .utf8)
         let json = dir.appending(path: "catalog.json")
         try """
         {"plugins":[
-          {"filename":"demo-weather.js","kind":"stock","highlighted":true,"category":"Menu bar"},
-          {"filename":"demo-night-vision.js","kind":"demo","highlighted":false,"category":"System"}
+          {"filename":"weather.js","highlighted":true,"category":"Menu bar"},
+          {"filename":"demo-night-vision.js","highlighted":false,"category":"System"}
         ]}
         """.write(to: json, atomically: true, encoding: .utf8)
         let renames = PluginCatalog.legacyRenames(jsonURL: json)
@@ -122,18 +122,17 @@ struct PluginCatalogTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         try """
         macotron.plugin({ title: "Weather", description: "Sky", permissions: ["accessibility"] });
-        """.write(to: dir.appending(path: "demo-weather.js"), atomically: true, encoding: .utf8)
+        """.write(to: dir.appending(path: "weather.js"), atomically: true, encoding: .utf8)
         let json = dir.appending(path: "catalog.json")
         try """
-        {"plugins":[{"filename":"demo-weather.js","kind":"stock","highlighted":true,"category":"Menu bar"}]}
+        {"plugins":[{"filename":"weather.js","highlighted":true,"category":"Menu bar"}]}
         """.write(to: json, atomically: true, encoding: .utf8)
         let plugins = PluginCatalog.load(jsonURL: json)
         #expect(plugins.count == 1)
         #expect(plugins[0].title == "Weather")
         #expect(plugins[0].highlighted)
-        #expect(plugins[0].isStock)
         #expect(plugins[0].permissions == [.accessibility])
-        #expect(plugins[0].fileURL.lastPathComponent == "demo-weather.js")
+        #expect(plugins[0].fileURL.lastPathComponent == "weather.js")
     }
 
     @MainActor
