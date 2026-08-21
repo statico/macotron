@@ -62,6 +62,18 @@ let package = Package(
             path: "Sources/MacotronHelper"
         ),
 
+        .executableTarget(
+            name: "PluginScan",
+            dependencies: ["AI", "MacotronEngine"],
+            path: "Sources/PluginScanCLI",
+            linkerSettings: [
+                .unsafeFlags([
+                    "-Xlinker", "-weak_framework",
+                    "-Xlinker", "FoundationModels",
+                ]),
+            ]
+        ),
+
         // Main app executable
         .executableTarget(
             name: "Macotron",

@@ -44,7 +44,7 @@ Last-approved plugin bytes are stored as SHA-256 hashes in the Keychain (`macotr
 
 Catalog plugins ship inside the signed app bundle, so installing one does not scan: its bytes are already as trusted as Macotron itself. **Scan Anyway** runs the scan on demand.
 
-Reviewing a plugin that changed on disk does scan, because those bytes came from outside the bundle. The scan makes three on-device passes when Apple Intelligence is available; a failed scan or a missing model still lets you **Run Anyway**.
+Reviewing a plugin that changed on disk does scan, because those bytes came from outside the bundle. The scan makes three on-device passes when Apple Intelligence is available; a failed scan or a missing model still lets you **Run Anyway**. Model findings that only complain about ordinary host APIs, titles, or the scanner wrapper are dropped. Static flags still fail `eval()`, keychain-plus-HTTP, curl/wget shells, prompt-injection comments, and a forged `<UNTRUSTED_PLUGIN_SOURCE>` closer. Sweep with `make scan`.
 
 With Hot Reload off, an on-disk rewrite keeps the running plugin and asks for Review & Reload. Cold start does not execute unapproved bytes. Turning Hot Reload on skips the scan and shows an orange menu-bar dot.
 
