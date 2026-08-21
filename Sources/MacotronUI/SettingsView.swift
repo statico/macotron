@@ -312,7 +312,6 @@ public final class SettingsState: ObservableObject {
         let header = PluginHeader.parse(source)
         installTarget = CatalogPlugin(
             filename: filename,
-            kind: "demo",
             highlighted: false,
             category: "Installed",
             title: header.title ?? filename,

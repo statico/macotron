@@ -1,7 +1,44 @@
 macotron.plugin({
-    title: "Display Modes",
-    description: "Toggle Night Shift, True Tone, and grayscale.",
+    title: "Screen Effects",
+    description: "Control color, gamma, and system display effects.",
 });
+
+let nightVisionOn = false;
+
+function toggleNightVision() {
+    nightVisionOn = !nightVisionOn;
+    if (nightVisionOn) {
+        macotron.display.setGamma({ red: 1, green: 0, blue: 0 });
+        macotron.notify.toast("Night vision", "On", { color: "success" });
+    } else {
+        macotron.display.restoreGamma();
+        macotron.notify.toast("Night vision", "Off");
+    }
+}
+
+const DIM = 0.35;
+let gammaMode = "off";
+
+function rgb(v) {
+    return { red: v, green: v, blue: v };
+}
+
+function applyGamma() {
+    if (gammaMode === "dim") {
+        macotron.display.setGamma(rgb(DIM), rgb(0));
+    } else if (gammaMode === "invert") {
+        macotron.display.setGamma(rgb(0), rgb(1));
+    } else {
+        macotron.display.restoreGamma();
+    }
+}
+
+function setGammaMode(next) {
+    gammaMode = gammaMode === next ? "off" : next;
+    applyGamma();
+    const body = gammaMode === "dim" ? "Extra dark" : gammaMode === "invert" ? "Inverted" : "Off";
+    macotron.notify.toast("Gamma", body, { color: gammaMode === "off" ? undefined : "success" });
+}
 
 function report(name, result) {
     if (!result || result.available === false || result.ok === false) {
@@ -10,6 +47,10 @@ function report(name, result) {
     }
     macotron.notify.toast(name, result.on ? "On" : "Off", { color: "success" });
 }
+
+macotron.command("Toggle Night Vision", "Tint the display red", toggleNightVision);
+macotron.command("Toggle Extra Dark", "Dim below the hardware brightness floor", () => setGammaMode("dim"));
+macotron.command("Toggle Invert Display", "Swap the gamma white and black points", () => setGammaMode("invert"));
 
 macotron.command("Toggle Night Shift", "Enable or disable Night Shift", () => {
     const cur = macotron.display.nightShift();

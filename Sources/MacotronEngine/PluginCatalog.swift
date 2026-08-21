@@ -2,7 +2,6 @@ import Foundation
 
 public struct CatalogPlugin: Equatable, Identifiable, Sendable {
     public var filename: String
-    public var kind: String
     public var highlighted: Bool
     public var category: String
     public var title: String
@@ -13,11 +12,9 @@ public struct CatalogPlugin: Equatable, Identifiable, Sendable {
     public var fileURL: URL
 
     public var id: String { filename }
-    public var isStock: Bool { kind == "stock" }
 
     public init(
         filename: String,
-        kind: String,
         highlighted: Bool,
         category: String,
         title: String,
@@ -28,7 +25,6 @@ public struct CatalogPlugin: Equatable, Identifiable, Sendable {
         fileURL: URL
     ) {
         self.filename = filename
-        self.kind = kind
         self.highlighted = highlighted
         self.category = category
         self.title = title
@@ -63,7 +59,6 @@ public enum PluginCatalog {
             let perms = header.permissions.compactMap(Permission.init(rawValue:))
             return CatalogPlugin(
                 filename: filename,
-                kind: row["kind"] as? String ?? "demo",
                 highlighted: row["highlighted"] as? Bool ?? false,
                 category: row["category"] as? String ?? "Other",
                 title: header.title ?? String(filename.dropLast(3)),
@@ -76,7 +71,6 @@ public enum PluginCatalog {
         }
         .sorted { lhs, rhs in
             if lhs.highlighted != rhs.highlighted { return lhs.highlighted && !rhs.highlighted }
-            if lhs.isStock != rhs.isStock { return lhs.isStock && !rhs.isStock }
             return lhs.title.localizedStandardCompare(rhs.title) == .orderedAscending
         }
     }
