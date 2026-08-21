@@ -229,23 +229,43 @@ struct MenuPluginsTests {
         let result = try eval(plugin: "eject.js", mock: #"""
             var statusConfig = null;
             var runs = [];
+            var confirmOk = false;
+            function confirm() { return confirmOk; }
             var macotron = {
                 plugin: () => ({}),
+                command: () => {},
                 fs: { list: () => ["Macintosh HD", "Macintosh HD - Data", "Data", "Backup", ".hidden"] },
                 menubar: { status: (id, cfg) => { statusConfig = cfg; } },
                 every: () => {},
-                shell: { run: (cmd, args) => { runs.push(args); } }
+                shell: { run: (cmd, args) => { runs.push({ cmd: cmd, args: args }); } }
             };
             """#, extra: #"""
             var names = userVolumes(["Macintosh HD", "Data", "Stick", ".foo"]);
             statusConfig.menu[0].onClick();
-            JSON.stringify({ names: names, symbol: statusConfig.sfSymbol, runs: runs, menu: statusConfig.menu.map(r => r.title) })
+            var menu = statusConfig.menu.map(r => r.title);
+            confirmOk = false;
+            statusConfig.menu[menu.length - 1].onClick();
+            var afterNo = runs.length;
+            confirmOk = true;
+            statusConfig.menu[menu.length - 1].onClick();
+            JSON.stringify({
+                names: names,
+                symbol: statusConfig.sfSymbol,
+                runs: runs,
+                afterNo: afterNo,
+                menu: menu,
+                last: menu[menu.length - 1]
+            })
             """#)
         #expect(result.contains(#""Stick""#))
         #expect(!result.contains("Macintosh HD"))
         #expect(result.contains("eject.fill"))
         #expect(result.contains("/Volumes/Backup") || result.contains("Eject Backup"))
         #expect(result.contains(#""eject""#))
+        #expect(result.contains(#""last":"Empty Trash""#))
+        #expect(result.contains(#""afterNo":1"#))
+        #expect(result.contains("/usr/bin/osascript"))
+        #expect(result.contains("empty the trash"))
     }
 
     @Test("tmutil parser maps percent and idle")
