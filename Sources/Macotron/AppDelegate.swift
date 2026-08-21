@@ -13,6 +13,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var workspace: PluginWorkspace!
     private var menuBarManager: MenuBarManager!
     private var launcherPanel: LauncherPanel!
+    private var hotkeysOverlayPanel: HotkeysOverlayPanel!
     private var launcherHotKeyID: UInt32?
     private var settingsWindow: SettingsWindow!
     private let settingsState = SettingsState()
@@ -162,6 +163,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         launcherPanel.onHide = { [weak self] in
             self?.launcherSession.reset()
         }
+        hotkeysOverlayPanel = HotkeysOverlayPanel()
 
         registerModules()
         installModuleManagerCallbacks()
@@ -231,6 +233,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self.engine.configStore = self.workspace.readSettings()
             self.installLauncherHotkey()
         }
+        settingsState.readShowHotkeysHotkey = { [weak self] in
+            guard let self else { return "" }
+            let table = CommandShortcuts.load(from: self.workspace.readSettings()["commandShortcuts"])
+            return table.combo(for: HostCommands.showHotkeysID)
+        }
 
         settingsState.readShowDockIcon = { [weak self] in
             self?.readUIValue("showDockIcon") as? Bool ?? true
@@ -294,6 +301,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             let table = CommandShortcuts.load(from: self.workspace.readSettings()["commandShortcuts"])
             return table.bindings.keys.compactMap { id -> AppShortcutSummary? in
                 guard self.engine.commandRegistry[id] == nil,
+                      HostCommands.definition(for: id) == nil,
                       let app = self.appSearchProvider.entry(bundleID: id) else { return nil }
                 return AppShortcutSummary(
                     id: app.bundleID, name: app.name, icon: app.icon, shortcut: table.combo(for: id)
@@ -868,6 +876,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func executeCommand(_ id: String, args: [String: Any] = [:]) {
         launcherPanel.dismiss()
+        if runHostCommand(id) {
+            return
+        }
         if engine.commandRegistry[id] != nil {
             _ = engine.invokeCommand(id, args: args)
             return
@@ -878,7 +889,42 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         appSearchProvider.launchApp(bundleID: id)
     }
 
+    @discardableResult
+    private func runHostCommand(_ id: String) -> Bool {
+        switch id {
+        case HostCommands.showHotkeysID:
+            showHotkeysOverlay()
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func showHotkeysOverlay() {
+        launcherPanel.dismiss()
+        hotkeysOverlayPanel.toggle(rows: ShortcutConflicts.hotkeyRows(from: currentShortcutClaims()))
+    }
+
+    private func currentShortcutClaims() -> [ShortcutConflicts.Claim] {
+        let table = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
+        let apps = table.bindings.keys.compactMap { id -> AppShortcutSummary? in
+            guard engine.commandRegistry[id] == nil,
+                  HostCommands.definition(for: id) == nil,
+                  let app = appSearchProvider.entry(bundleID: id) else { return nil }
+            return AppShortcutSummary(id: app.bundleID, name: app.name, icon: app.icon, shortcut: table.combo(for: id))
+        }
+        return ShortcutConflicts.claims(
+            launcher: resolveHotkey(),
+            apps: apps,
+            modules: settingsState.moduleSummaries,
+            commandShortcuts: table
+        )
+    }
+
     private func handleCommandShortcut(_ commandId: String) {
+        if runHostCommand(commandId) {
+            return
+        }
         guard let cmd = engine.commandRegistry[commandId] else {
             if launcherPanel.isVisible {
                 launcherPanel.dismiss()
@@ -1006,6 +1052,19 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         var results: [SearchResult] = []
 
+        for host in HostCommands.all {
+            if let score = FuzzyMatch.score(query: q, target: host.name), score > 0 {
+                results.append(SearchResult(
+                    id: host.id,
+                    title: host.name,
+                    subtitle: host.description,
+                    type: .command,
+                    shortcut: shortcuts.combo(for: host.id),
+                    isFavorite: favorites.contains(host.id)
+                ))
+            }
+        }
+
         for (_, cmd) in engine.commandRegistry {
             if let score = FuzzyMatch.score(query: q, target: cmd.name), score > 0 {
                 results.append(SearchResult(
@@ -1072,6 +1131,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 type: .plugin,
                 nsImage: hit.image,
                 kind: hit.kind,
+                isFavorite: isFavorite
+            )
+        }
+        if let host = HostCommands.definition(for: id) {
+            return SearchResult(
+                id: host.id,
+                title: host.name,
+                subtitle: host.description,
+                type: .command,
+                shortcut: shortcuts.combo(for: host.id),
                 isFavorite: isFavorite
             )
         }

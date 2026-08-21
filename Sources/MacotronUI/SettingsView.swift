@@ -139,6 +139,7 @@ public enum SettingsTab: Int, CaseIterable {
 @MainActor
 public final class SettingsState: ObservableObject {
     @Published public var launcherHotkey: String = "cmd+space"
+    @Published public var showHotkeysHotkey: String = ""
     @Published public var showDockIcon: Bool = true
     @Published public var showMenuBarIcon: Bool = true
     @Published public var launchAtLogin: Bool = false
@@ -170,6 +171,7 @@ public final class SettingsState: ObservableObject {
 
     public var readHotkey: (() -> String)?
     public var writeHotkey: ((String) -> Void)?
+    public var readShowHotkeysHotkey: (() -> String)?
     public var readShowDockIcon: (() -> Bool)?
     public var writeShowDockIcon: ((Bool) -> Void)?
     public var readShowMenuBarIcon: (() -> Bool)?
@@ -204,6 +206,7 @@ public final class SettingsState: ObservableObject {
 
     public func load() {
         launcherHotkey = readHotkey?() ?? "cmd+space"
+        showHotkeysHotkey = readShowHotkeysHotkey?() ?? ""
         showDockIcon = readShowDockIcon?() ?? true
         showMenuBarIcon = readShowMenuBarIcon?() ?? true
         launchAtLogin = readLaunchAtLogin?() ?? false
@@ -238,6 +241,11 @@ public final class SettingsState: ObservableObject {
 
     public func saveHotkey() {
         writeHotkey?(launcherHotkey)
+    }
+
+    public func saveShowHotkeysHotkey() {
+        saveCommandShortcut?(HostCommands.showHotkeysID, showHotkeysHotkey)
+        showHotkeysHotkey = readShowHotkeysHotkey?() ?? ""
     }
 
     public func toggleDockIcon(_ value: Bool) {
@@ -513,6 +521,22 @@ public struct SettingsView: View {
                 }
                 .zIndex(1)
                 .padding(.top, 8)
+
+                formRow("Show Hotkeys") {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HotkeyRecorderView(combo: $state.showHotkeysHotkey) {
+                            state.saveShowHotkeysHotkey()
+                        }
+                        .frame(width: PluginForm.recorderWidth)
+                        ShortcutConflictNote(
+                            message: state.shortcutWarning(
+                                id: HostCommands.showHotkeysID,
+                                combo: state.showHotkeysHotkey
+                            )
+                        )
+                    }
+                }
+                .zIndex(1)
 
                 formDivider
 
