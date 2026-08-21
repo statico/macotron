@@ -291,7 +291,10 @@ public final class ModuleManager {
         if !pluginChanges.isEmpty {
             var added = false
             for path in pluginChanges {
-                let name = URL(fileURLWithPath: path).lastPathComponent
+                let url = URL(fileURLWithPath: path)
+                let name = url.lastPathComponent
+                guard let source = try? String(contentsOf: url, encoding: .utf8),
+                      !PluginTrust.matches(filename: name, source: source) else { continue }
                 if pendingReview.insert(name).inserted { added = true }
             }
             if added { onPendingReviewChange?() }

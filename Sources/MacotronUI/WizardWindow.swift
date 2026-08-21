@@ -25,7 +25,7 @@ public final class WizardWindow {
     /// The window is not resizable, so the content is pinned to this size. The
     /// root view fills its parent, which would otherwise grow the window to the
     /// full height of the screen.
-    private static let contentSize = NSSize(width: 560, height: 620)
+    private static let contentSize = NSSize(width: 640, height: 720)
 
     public func show() {
         if let window, window.isVisible {

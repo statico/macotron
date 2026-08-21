@@ -159,6 +159,7 @@ public final class SettingsState: ObservableObject {
     @Published public var scanning = false
     @Published public var scanNote: String?
     @Published public var overwrite: CatalogOverwrite?
+    @Published public var isReviewing = false
 
     public var onSetHotReload: ((Bool) -> Void)?
     public var onScanCatalog: ((CatalogPlugin) -> Void)?
@@ -292,6 +293,7 @@ public final class SettingsState: ObservableObject {
         scanReport = nil
         scanNote = nil
         scanning = false
+        isReviewing = false
         let dest = configDirURL?
             .appending(path: "plugins")
             .appending(path: plugin.filename)
@@ -302,6 +304,26 @@ public final class SettingsState: ObservableObject {
             overwrite = nil
         }
         installTarget = plugin
+    }
+
+    public func beginReview(filename: String, source: String, destHash: String?) {
+        scanReport = nil
+        scanNote = nil
+        scanning = false
+        isReviewing = true
+        overwrite = nil
+        let header = PluginHeader.parse(source)
+        installTarget = CatalogPlugin(
+            filename: filename,
+            kind: "demo",
+            highlighted: false,
+            category: "Installed",
+            title: header.title ?? filename,
+            description: header.description ?? "",
+            permissions: header.permissions.compactMap(Permission.init(rawValue:)),
+            source: source,
+            bundleHash: destHash ?? PluginHash.sha256(source: source)
+        )
     }
 }
 
@@ -365,13 +387,21 @@ public struct SettingsView: View {
                 modelNote: state.scanNote,
                 report: state.scanReport,
                 scanning: state.scanning,
+                isReview: state.isReviewing,
+                grantedPermissions: state.grantedPermissions,
+                onPermissionChange: { state.refreshPermissions() },
                 onScan: { state.onScanCatalog?(plugin) },
                 onInstall: { override in
                     state.onInstallCatalog?(plugin, override)
-                    state.installTarget = nil
-                    showCatalog = false
+                    if !state.isReviewing {
+                        state.installTarget = nil
+                        showCatalog = false
+                    }
                 },
-                onCancel: { state.installTarget = nil }
+                onCancel: {
+                    state.installTarget = nil
+                    state.isReviewing = false
+                }
             )
         }
     }

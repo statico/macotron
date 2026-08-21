@@ -53,6 +53,38 @@ struct PluginScanTests {
         #expect(PluginScan.staticFlags("eval(code)").contains("Uses eval()"))
         #expect(PluginScan.staticFlags("const x = 1").isEmpty)
     }
+
+    @Test func anyPassFailureFailsReport() {
+        let report = PluginScan.failed(
+            anyPassFails: [
+                [],
+                [PluginScanFinding(pass: 2, message: "exfil")],
+            ],
+            staticFlags: []
+        )
+        #expect(!report.approved)
+        #expect(report.needsOverride)
+        #expect(report.findings.map(\.pass) == [2])
+    }
+
+    @Test func unavailableModelNeedsOverride() {
+        let report = PluginScan.unavailableReport(reason: "Turn on Apple Intelligence in System Settings to get automated checks.")
+        #expect(!report.modelAvailable)
+        #expect(!report.approved)
+        #expect(report.needsOverride)
+        #expect(report.unavailableReason?.contains("Apple Intelligence") == true)
+    }
+
+    @Test func tokenChunksHonorBudget() {
+        let chunks = PluginScan.chunks(
+            String(repeating: "a", count: 50),
+            maxTokens: 20,
+            overlapTokens: 5,
+            tokenCount: { $0.count }
+        )
+        #expect(chunks.count > 1)
+        #expect(chunks.allSatisfy { $0.text.count <= 20 })
+    }
 }
 
 @Suite("PluginCatalog")
