@@ -8,7 +8,7 @@ Macotron loads the plugins and runs them. The app does not write plugin code.
 ## Layout
 
 - `plugins/*.js` — plugin scripts. Macotron loads every `.js` file in alphabetical order.
-- `settings.json` — launcher hotkey, UI prefs, module options. Do not put secrets here.
+- `settings.json` — launcher hotkey, UI prefs, plugin options. Do not put secrets here.
 - `.cache/` — bytecode cache and typecheck config. Gitignored. Do not edit.
 - `AGENTS.md` / `CLAUDE.md` — owned by Macotron. Overwritten on every launch.
 
@@ -67,6 +67,11 @@ one-line HUD on the screen under the cursor (3s default). `color` is `info`,
 `macotron.notify.show` is a system banner.
 `macotron.screen.pickColor()` opens the system magnifier and returns
 `{ hex, r, g, b, x, y }` or `null`.
+`macotron.hid.list/open/sendFeature/sendOutput/readFeature/readInput/listen`
+talks to HID devices (report id is the first send byte). `hid:input` is
+`{ id, reportId, data }`.
+`macotron.qr.detect({ image|path })`, `qr.scan({ camera|screenshot })`,
+`qr.image(text)`, and `qr.show(text)` read and display QR codes.
 
 Control Center-style toggles live on the host: `macotron.audio.volume` /
 `setVolume` / `setMuted`, `network.wifi` / `setWifi`, `network.bluetooth` /
@@ -110,7 +115,8 @@ macotron.panel.onMessage(id, (data) => { /* ... */ });
 
 `html` is inserted into a host document (system font, padding, light/dark).
 `rawHtml` is a full document. `glass: true` (or `"regular"`) uses Liquid Glass
-with a transparent page background; `glass: "clear"` is the clearer variant.
+with a transparent page background; `glass: "clear"` is the clearer variant;
+`glass: "translucent"` is a HUD blur. `closeOnBlur: true` closes on unfocus.
 `frameless: true` hides the title bar; Escape closes.
 Host CSS exposes `--macotron-accent` (and related `--macotron-*` system colors);
 `button.primary` uses the accent color. In the page, `close()` closes the panel.
@@ -131,9 +137,10 @@ const opts = macotron.plugin({
 ```
 
 Valid permission names: `accessibility`, `inputMonitoring`, `screenRecording`,
-`fanControl`. Window control needs `accessibility`. Screen capture needs
-`screenRecording`. Holding a fan-speed floor needs `fanControl`, which the
-user installs as the background helper from this plugin's Settings page.
+`camera`, `helper`. Window control needs `accessibility`. Screen capture needs
+`screenRecording`. QR camera scan needs `camera`. Privileged work such as holding
+a fan-speed floor needs `helper`, which the user installs as the background helper
+from this plugin's Settings page.
 
 Add `options` on the same call to expose configurable settings. The user
 edits values in Settings → Plugins; the plugin reads the resolved values
@@ -158,6 +165,7 @@ const opts = macotron.plugin({
     openHotkey: { type: "keybinding", label: "Open chat", default: "cmd+shift+c" },
     notesFile: { type: "file", label: "Notes file" },
     workspace: { type: "directory", label: "Workspace folder" },
+    locale: { type: "string", label: "Locale", placeholder: macotron.system.locale().language },
   },
 });
 // opts.apiKey === resolved secret string (or "")
@@ -165,6 +173,11 @@ const opts = macotron.plugin({
 
 Option types: `string`, `boolean`, `number`, `keybinding`, `dropdown`
 (requires `choices: [{ value, label }]`), `password`, `file`, `directory`.
+
+Text, number, password, file, and directory options accept `placeholder`,
+the grey hint shown while the field is empty. It is read at plugin load,
+so it can show live state such as the current system locale. Use it
+instead of writing the fallback into the label.
 Every option takes `label`, optional `default`, and optional `required`
 (Settings shows a "Needs setup" hint while a required option is unset).
 

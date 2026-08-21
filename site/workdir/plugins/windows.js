@@ -4,14 +4,116 @@ const opts = macotron.plugin({
     permissions: ["accessibility"],
     options: {
         threshold: { type: "number", label: "Snap edge (px)", default: 20 },
-        corner: { type: "number", label: "Snap corner (px)", default: 48 },
+        corner: { type: "number", label: "Snap corner (px)", default: 80 },
         gap: { type: "number", label: "Snap gap (px)", default: 0 },
+        snapLayout: {
+            type: "dropdown",
+            label: "Snap zones",
+            default: "halves",
+            choices: [
+                { value: "halves", label: "Halves" },
+                { value: "thirds", label: "Thirds" },
+                { value: "quarters", label: "Quarters" },
+            ],
+        },
+        snapModifier: {
+            type: "dropdown",
+            label: "Alternate snap key",
+            default: "shift",
+            choices: [
+                { value: "none", label: "None" },
+                { value: "shift", label: "Shift" },
+                { value: "ctrl", label: "Control" },
+                { value: "opt", label: "Option" },
+                { value: "cmd", label: "Command" },
+            ],
+        },
+        snapModifierLayout: {
+            type: "dropdown",
+            label: "Alternate snap zones",
+            default: "thirds",
+            choices: [
+                { value: "halves", label: "Halves" },
+                { value: "thirds", label: "Thirds" },
+                { value: "quarters", label: "Quarters" },
+            ],
+        },
+        cycleDisplays: {
+            type: "boolean",
+            label: "Cycle through displays",
+            default: false,
+        },
     },
 });
 
-function tile(frame) {
+const LAYOUTS = {
+    halves: {
+        left: { x: 0, y: 0, w: 0.5, h: 1 },
+        right: { x: 0.5, y: 0, w: 0.5, h: 1 },
+        top: { x: 0, y: 0, w: 1, h: 1 },
+        bottom: { x: 0, y: 0.5, w: 1, h: 0.5 },
+        tl: { x: 0, y: 0, w: 0.5, h: 0.5 },
+        tr: { x: 0.5, y: 0, w: 0.5, h: 0.5 },
+        bl: { x: 0, y: 0.5, w: 0.5, h: 0.5 },
+        br: { x: 0.5, y: 0.5, w: 0.5, h: 0.5 },
+    },
+    thirds: {
+        left: { x: 0, y: 0, w: 1 / 3, h: 1 },
+        right: { x: 2 / 3, y: 0, w: 1 / 3, h: 1 },
+        top: { x: 1 / 3, y: 0, w: 1 / 3, h: 1 },
+        bottom: { x: 0, y: 2 / 3, w: 1, h: 1 / 3 },
+        tl: { x: 0, y: 0, w: 1 / 3, h: 0.5 },
+        tr: { x: 2 / 3, y: 0, w: 1 / 3, h: 0.5 },
+        bl: { x: 0, y: 0.5, w: 1 / 3, h: 0.5 },
+        br: { x: 2 / 3, y: 0.5, w: 1 / 3, h: 0.5 },
+    },
+    quarters: {
+        left: { x: 0, y: 0, w: 0.5, h: 1 },
+        right: { x: 0.5, y: 0, w: 0.5, h: 1 },
+        top: { x: 0, y: 0, w: 1, h: 0.5 },
+        bottom: { x: 0, y: 0.5, w: 1, h: 0.5 },
+        tl: { x: 0, y: 0, w: 0.5, h: 0.5 },
+        tr: { x: 0.5, y: 0, w: 0.5, h: 0.5 },
+        bl: { x: 0, y: 0.5, w: 0.5, h: 0.5 },
+        br: { x: 0.5, y: 0.5, w: 0.5, h: 0.5 },
+    },
+};
+
+function layoutNamed(name) {
+    return LAYOUTS[name] || LAYOUTS.halves;
+}
+
+const LEFT_HALF = { x: 0, y: 0, w: 0.5, h: 1 };
+const RIGHT_HALF = { x: 0.5, y: 0, w: 0.5, h: 1 };
+const TOP_HALF = { x: 0, y: 0, w: 1, h: 0.5 };
+const BOTTOM_HALF = { x: 0, y: 0.5, w: 1, h: 0.5 };
+const FIRST_THIRD = { x: 0, y: 0, w: 1 / 3, h: 1 };
+const CENTER_THIRD = { x: 1 / 3, y: 0, w: 1 / 3, h: 1 };
+const LAST_THIRD = { x: 2 / 3, y: 0, w: 1 / 3, h: 1 };
+const FIRST_TWO_THIRDS = { x: 0, y: 0, w: 2 / 3, h: 1 };
+const LAST_TWO_THIRDS = { x: 1 / 3, y: 0, w: 2 / 3, h: 1 };
+
+let lastCycle = { name: "", windowId: null, frameIndex: -1 };
+
+function cycle(name, frames, start) {
     const win = macotron.window.focused();
-    if (win) macotron.window.moveToFraction(win.id, frame);
+    if (!win) return;
+    const displays = macotron.display.list();
+    let displayIndex = Math.max(0, displays.findIndex((d) => d.id === win.display));
+    const same = lastCycle.name === name && lastCycle.windowId === win.id;
+    let frameIndex = start || 0;
+    if (same) {
+        frameIndex = lastCycle.frameIndex + 1;
+        if (frameIndex >= frames.length) {
+            frameIndex = 0;
+            if (opts.cycleDisplays && displays.length > 1) {
+                displayIndex = (displayIndex + 1) % displays.length;
+            }
+        }
+    }
+    lastCycle = { name, windowId: win.id, frameIndex };
+    const display = displays[displayIndex] && displays[displayIndex].id;
+    macotron.window.moveToFraction(win.id, Object.assign({ display }, frames[frameIndex]));
 }
 
 function neighborDisplay(current, delta) {
@@ -26,35 +128,39 @@ function moveToDisplay(delta) {
     if (win) macotron.window.moveToFraction(win.id, { x: 0, y: 0, w: 1, h: 1, display: neighborDisplay(win.display, delta) });
 }
 
-macotron.keyboard.on("Tile Left", "ctrl+opt+left", () => tile({ x: 0, y: 0, w: 0.5, h: 1 }));
-macotron.keyboard.on("Tile Right", "ctrl+opt+right", () => tile({ x: 0.5, y: 0, w: 0.5, h: 1 }));
-macotron.keyboard.on("Tile Up", "ctrl+opt+up", () => tile({ x: 0, y: 0, w: 1, h: 0.5 }));
-macotron.keyboard.on("Tile Down", "ctrl+opt+down", () => tile({ x: 0, y: 0.5, w: 1, h: 0.5 }));
-macotron.keyboard.on("Full Screen", "ctrl+opt+return", () => tile({ x: 0, y: 0, w: 1, h: 1 }));
-macotron.keyboard.on("Center", "ctrl+opt+c", () => tile({ x: 0.125, y: 0.125, w: 0.75, h: 0.75 }));
+macotron.keyboard.on("Left Half", "ctrl+opt+left", () => cycle("left", [LEFT_HALF, RIGHT_HALF], 0));
+macotron.keyboard.on("Right Half", "ctrl+opt+right", () => cycle("right", [RIGHT_HALF, LEFT_HALF], 0));
+macotron.keyboard.on("Top Half", "ctrl+opt+up", () => cycle("top", [TOP_HALF, BOTTOM_HALF], 0));
+macotron.keyboard.on("Bottom Half", "ctrl+opt+down", () => cycle("bottom", [BOTTOM_HALF, TOP_HALF], 0));
+macotron.keyboard.on("Full Screen", "ctrl+opt+return", () => cycle("full", [{ x: 0, y: 0, w: 1, h: 1 }], 0));
+macotron.keyboard.on("Center", "ctrl+opt+c", () => cycle("center", [{ x: 0.125, y: 0.125, w: 0.75, h: 0.75 }], 0));
+macotron.keyboard.on("Top Left", "ctrl+opt+u", () => cycle("tl", [{ x: 0, y: 0, w: 0.5, h: 0.5 }], 0));
+macotron.keyboard.on("Top Right", "ctrl+opt+i", () => cycle("tr", [{ x: 0.5, y: 0, w: 0.5, h: 0.5 }], 0));
+macotron.keyboard.on("Bottom Left", "ctrl+opt+j", () => cycle("bl", [{ x: 0, y: 0.5, w: 0.5, h: 0.5 }], 0));
+macotron.keyboard.on("Bottom Right", "ctrl+opt+k", () => cycle("br", [{ x: 0.5, y: 0.5, w: 0.5, h: 0.5 }], 0));
+macotron.keyboard.on("First Third", "ctrl+opt+d", () => cycle("thirds", [FIRST_THIRD, CENTER_THIRD, LAST_THIRD], 0));
+macotron.keyboard.on("Center Third", "ctrl+opt+e", () => cycle("thirds", [CENTER_THIRD, LAST_THIRD, FIRST_THIRD], 0));
+macotron.keyboard.on("Last Third", "ctrl+opt+f", () => cycle("thirds", [LAST_THIRD, FIRST_THIRD, CENTER_THIRD], 0));
+macotron.keyboard.on("First Two Thirds", "ctrl+opt+t", () => cycle("twothirds", [FIRST_TWO_THIRDS, LAST_TWO_THIRDS], 0));
+macotron.keyboard.on("Last Two Thirds", "ctrl+opt+y", () => cycle("twothirds", [LAST_TWO_THIRDS, FIRST_TWO_THIRDS], 0));
 macotron.keyboard.on("Next Display", "ctrl+opt+cmd+right", () => moveToDisplay(1));
 macotron.keyboard.on("Previous Display", "ctrl+opt+cmd+left", () => moveToDisplay(-1));
 
-macotron.window.snap({
+const snapOpts = {
     enabled: true,
     threshold: opts.threshold,
     corner: opts.corner,
     gap: opts.gap,
-    zones: {
-        left: { x: 0, y: 0, w: 0.5, h: 1 },
-        right: { x: 0.5, y: 0, w: 0.5, h: 1 },
-        top: { x: 0, y: 0, w: 1, h: 1 },
-        bottom: { x: 0, y: 0.5, w: 1, h: 0.5 },
-        tl: { x: 0, y: 0, w: 0.5, h: 0.5 },
-        tr: { x: 0.5, y: 0, w: 0.5, h: 0.5 },
-        bl: { x: 0, y: 0.5, w: 0.5, h: 0.5 },
-        br: { x: 0.5, y: 0.5, w: 0.5, h: 0.5 },
-    },
-});
+    zones: layoutNamed(opts.snapLayout),
+};
+if (opts.snapModifier && opts.snapModifier !== "none") {
+    snapOpts.modifiers = { [opts.snapModifier]: layoutNamed(opts.snapModifierLayout) };
+}
+macotron.window.snap(snapOpts);
 
-macotron.command("Tile Left Half", "Snap focused window left", () => tile({ x: 0, y: 0, w: 0.5, h: 1 }));
-macotron.command("Tile Right Half", "Snap focused window right", () => tile({ x: 0.5, y: 0, w: 0.5, h: 1 }));
-macotron.command("Tile Full Screen", "Maximize focused window", () => tile({ x: 0, y: 0, w: 1, h: 1 }));
+macotron.command("Tile Left Half", "Snap focused window left", () => cycle("left", [LEFT_HALF, RIGHT_HALF], 0));
+macotron.command("Tile Right Half", "Snap focused window right", () => cycle("right", [RIGHT_HALF, LEFT_HALF], 0));
+macotron.command("Tile Full Screen", "Maximize focused window", () => cycle("full", [{ x: 0, y: 0, w: 1, h: 1 }], 0));
 macotron.command("Toggle Window Snap", "Enable or disable drag-to-edge snapping", () => {
     const next = !macotron.window.isSnapEnabled();
     const changed = macotron.window.setSnapEnabled(next);
