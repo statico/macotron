@@ -105,6 +105,34 @@ struct ImportGateTests {
         #expect(store.read(filename: "plugins/lib/more.js") == PluginHash.sha256(source: moreSource))
     }
 
+    @Test("approving reviewed source walks multiline static imports")
+    func approveImportsWalksMultilineImports() throws {
+        let (ws, dir) = try makeWorkspace()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let store = MemoryHashStore()
+        let previous = PluginTrust.store
+        PluginTrust.store = store
+        defer { PluginTrust.store = previous }
+
+        let moreSource = "export const bonus = 1;\nexport const extra = 2;\n"
+        let utilSource = """
+            import {
+              bonus,
+              extra,
+            } from "./more.js";
+            export const answer = 39 + bonus + extra;
+            """
+        let libDir = ws.pluginsDir.appending(path: "lib")
+        try FileManager.default.createDirectory(at: libDir, withIntermediateDirectories: true)
+        try utilSource.write(to: libDir.appending(path: "util.js"), atomically: true, encoding: .utf8)
+        try moreSource.write(to: libDir.appending(path: "more.js"), atomically: true, encoding: .utf8)
+
+        PluginTrust.approveImports(in: Self.pluginSource, importerDir: ws.pluginsDir, baseDir: ws.root)
+
+        #expect(store.read(filename: "plugins/lib/more.js") == PluginHash.sha256(source: moreSource))
+    }
+
     @Test("imports resolved outside the workdir stay ungated")
     func importOutsideWorkdirStaysUngated() throws {
         let (ws, dir) = try makeWorkspace()

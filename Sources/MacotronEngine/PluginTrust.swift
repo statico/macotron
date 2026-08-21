@@ -96,7 +96,7 @@ public enum PluginTrust {
     nonisolated private static func importSpecifiers(in source: String) -> [String] {
         let patterns = [
             /import\s*\(\s*["']([^"']+)["']\s*\)/,
-            /(?m)^\s*import\s+(?:[^"'\n]+\bfrom\s+)?["']([^"']+)["']/,
+            /(?m)^\s*import\s+(?:[^"']+?\bfrom\s+)?["']([^"']+)["']/,
         ]
         return patterns.flatMap { pattern in
             source.matches(of: pattern).map { String($0.output.1) }
