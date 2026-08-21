@@ -75,7 +75,12 @@ declare const macotron: {
     prompt(message?: any, defaultValue?: string): string | null;
     log(...args: any[]): void;
     sleep(ms: number): Promise<void>;
-    every(ms: number, callback: () => void | Promise<void>): () => void;
+    every(msOrDuration: number | string, callback: () => void | Promise<void>): () => void;
+    at(
+        time: string,
+        callbackOrOpts: (() => void | Promise<void>) | { weekdays?: number[] },
+        callback?: () => void | Promise<void>
+    ): () => void;
     /**
      * Replace this plugin's Checks list in Settings → Plugins.
      * A row with `ok: false` shows an orange warning on the plugin.
