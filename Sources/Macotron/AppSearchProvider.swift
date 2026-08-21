@@ -51,10 +51,14 @@ final class AppSearchProvider {
         lastRefresh = Date()
     }
 
-    func all() -> [AppEntry] {
+    private func refreshIfStale() {
         if Date().timeIntervalSince(lastRefresh) > 30 {
             refresh()
         }
+    }
+
+    func all() -> [AppEntry] {
+        refreshIfStale()
         return allApps
     }
 
@@ -72,39 +76,8 @@ final class AppSearchProvider {
         return scored.prefix(limit).map(\.entry)
     }
 
-    /// Search apps by query, returns sorted results
-    func search(_ query: String) -> [SearchResult] {
-        // Refresh every 30 seconds
-        if Date().timeIntervalSince(lastRefresh) > 30 {
-            refresh()
-        }
-
-        guard !query.isEmpty else { return [] }
-
-        var scored: [(entry: AppEntry, score: Int)] = []
-        for app in allApps {
-            if let s = FuzzyMatch.score(query: query, target: app.name), s > 0 {
-                scored.append((app, s))
-            }
-        }
-
-        scored.sort { $0.score > $1.score }
-
-        return scored.prefix(20).map { item in
-            SearchResult(
-                id: item.entry.bundleID,
-                title: item.entry.name,
-                subtitle: "",
-                type: .app,
-                nsImage: item.entry.icon
-            )
-        }
-    }
-
     func entry(bundleID: String) -> AppEntry? {
-        if Date().timeIntervalSince(lastRefresh) > 30 {
-            refresh()
-        }
+        refreshIfStale()
         return allApps.first(where: { $0.bundleID == bundleID })
     }
 

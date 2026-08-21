@@ -1020,15 +1020,15 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        results.append(contentsOf: appSearchProvider.search(q).map { app in
+        results.append(contentsOf: appSearchProvider.matching(q, limit: 20).map { app in
             SearchResult(
-                id: app.id,
-                title: app.title,
-                subtitle: app.subtitle,
-                type: app.type,
-                nsImage: app.nsImage,
-                shortcut: shortcuts.combo(for: app.id),
-                isFavorite: favorites.contains(app.id)
+                id: app.bundleID,
+                title: app.name,
+                subtitle: "",
+                type: .app,
+                nsImage: app.icon,
+                shortcut: shortcuts.combo(for: app.bundleID),
+                isFavorite: favorites.contains(app.bundleID)
             )
         })
 
