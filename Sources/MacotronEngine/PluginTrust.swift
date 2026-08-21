@@ -18,6 +18,8 @@ public final class MemoryHashStore: PluginHashStore {
     public func hasAnyHashes() -> Bool { !hashes.isEmpty }
 }
 
+/// Ledger lives in the host-only trust service, isolated from plugin secrets
+/// so `macotron.keychain.*` can never forge or wipe approvals.
 public final class KeychainHashStore: PluginHashStore {
     public init() {}
 
@@ -26,19 +28,22 @@ public final class KeychainHashStore: PluginHashStore {
     }
 
     public func read(filename: String) -> String? {
-        KeychainStore.read(account: Self.account(filename))
+        KeychainStore.read(account: Self.account(filename), service: KeychainStore.trustServiceName)
     }
 
     public func write(filename: String, hash: String) {
-        KeychainStore.write(account: Self.account(filename), value: hash)
+        KeychainStore.write(
+            account: Self.account(filename), value: hash,
+            service: KeychainStore.trustServiceName)
     }
 
     public func delete(filename: String) {
-        KeychainStore.delete(account: Self.account(filename))
+        KeychainStore.delete(account: Self.account(filename), service: KeychainStore.trustServiceName)
     }
 
     public func hasAnyHashes() -> Bool {
-        false
+        KeychainStore.accounts(service: KeychainStore.trustServiceName)
+            .contains { $0.hasPrefix("macotron.plugin.hash.") }
     }
 }
 
@@ -123,27 +128,16 @@ public enum PluginTrust {
     }
 
     /// First upgrade: if the ledger is empty, treat every current plugin as approved.
+    /// Only the host can write the trust service, so an empty ledger genuinely
+    /// means never-approved — plugins cannot wipe it to force a re-trust.
     public static func grandfatherIfEmpty(pluginsDir: URL, store: PluginHashStore = store) {
-        if store is KeychainHashStore {
-            if currentFilesHaveAnyHash(pluginsDir: pluginsDir, store: store) { return }
-        } else if store.hasAnyHashes() {
-            return
-        }
+        if store.hasAnyHashes() { return }
         let files = (try? FileManager.default.contentsOfDirectory(
             at: pluginsDir, includingPropertiesForKeys: nil
         )) ?? []
         for file in files where file.pathExtension == "js" {
             guard let hash = PluginHash.sha256(file: file) else { continue }
             store.write(filename: file.lastPathComponent, hash: hash)
-        }
-    }
-
-    private static func currentFilesHaveAnyHash(pluginsDir: URL, store: PluginHashStore) -> Bool {
-        let files = (try? FileManager.default.contentsOfDirectory(
-            at: pluginsDir, includingPropertiesForKeys: nil
-        )) ?? []
-        return files.contains { file in
-            file.pathExtension == "js" && store.read(filename: file.lastPathComponent) != nil
         }
     }
 }

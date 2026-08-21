@@ -10,16 +10,20 @@ private let logger = Logger(subsystem: "io.statico.macotron", category: "keychai
 public enum KeychainStore {
     public static let serviceName = "io.statico.macotron"
 
+    /// Host-only service for the plugin trust ledger. Never exposed to
+    /// `macotron.keychain.*`, so plugins cannot forge or wipe approvals.
+    public static let trustServiceName = "io.statico.macotron.trust"
+
     /// Stable Keychain account id for a plugin's password option.
     /// Example: `macotron.plugin.chat.js.apiKey`
     public static func pluginOptionAccount(filename: String, key: String) -> String {
         "macotron.plugin.\(filename).\(key)"
     }
 
-    public static func read(account: String) -> String? {
+    public static func read(account: String, service: String = serviceName) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: serviceName,
+            kSecAttrService as String: service,
             kSecAttrAccount as String: account,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
@@ -35,12 +39,12 @@ public enum KeychainStore {
         return nil
     }
 
-    public static func write(account: String, value: String) {
+    public static func write(account: String, value: String, service: String = serviceName) {
         guard let data = value.data(using: .utf8) else { return }
 
         let searchQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: serviceName,
+            kSecAttrService as String: service,
             kSecAttrAccount as String: account,
         ]
         let updateAttrs: [String: Any] = [
@@ -60,10 +64,10 @@ public enum KeychainStore {
         }
     }
 
-    public static func delete(account: String) {
+    public static func delete(account: String, service: String = serviceName) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: serviceName,
+            kSecAttrService as String: service,
             kSecAttrAccount as String: account,
         ]
 
@@ -71,5 +75,20 @@ public enum KeychainStore {
         if status != errSecSuccess && status != errSecItemNotFound {
             logger.error("KeychainStore.delete: SecItemDelete failed with status \(status)")
         }
+    }
+
+    /// All account ids stored under `service`.
+    public static func accounts(service: String) -> [String] {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitAll,
+        ]
+
+        var result: AnyObject?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let items = result as? [[String: Any]] else { return [] }
+        return items.compactMap { $0[kSecAttrAccount as String] as? String }
     }
 }
