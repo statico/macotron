@@ -162,6 +162,13 @@ struct PluginScanTests {
         #expect(report.unavailableReason?.contains("Apple Intelligence") == true)
     }
 
+    @Test func reportBindsToScannedBytes() {
+        let report = PluginScanReport(sourceHash: PluginHash.sha256(source: "let a = 1"))
+        #expect(report.matches(source: "let a = 1"))
+        #expect(!report.matches(source: "let a = 2"))
+        #expect(!PluginScanReport().matches(source: "let a = 1"))
+    }
+
     @Test func tokenChunksHonorBudget() {
         let chunks = PluginScan.chunks(
             String(repeating: "a", count: 50),
@@ -797,6 +804,65 @@ struct CatalogInstallScanTests {
         )
         #expect(scanned == ["weather.js"])
         #expect(!state.installIsBuiltIn)
+    }
+
+    @Test("a scan that finishes after the bytes changed is dropped and never approves")
+    func staleVerdictRejected() {
+        let state = SettingsState()
+        state.onScanCatalog = { _ in }
+        state.beginReview(
+            filename: "foo.js",
+            source: "new bytes",
+            destHash: nil,
+            fileURL: URL(fileURLWithPath: "/tmp/foo.js")
+        )
+        state.scanning = true
+
+        let stale = PluginScanReport(sourceHash: PluginHash.sha256(source: "old bytes"))
+        state.applyScanReport(stale)
+        #expect(state.scanReport == nil)
+        #expect(state.scanning)
+
+        state.scanReport = stale
+        #expect(!state.allowsInstall(of: state.installTarget!, override: true))
+    }
+
+    @Test("a report bound to the bytes about to write lands and allows install")
+    func freshVerdictLands() {
+        let state = SettingsState()
+        state.onScanCatalog = { _ in }
+        let source = "macotron.plugin({ title: \"x\" });"
+        state.beginReview(
+            filename: "foo.js",
+            source: source,
+            destHash: nil,
+            fileURL: URL(fileURLWithPath: "/tmp/foo.js")
+        )
+        state.scanning = true
+
+        let report = PluginScanReport(sourceHash: PluginHash.sha256(source: source))
+        state.applyScanReport(report)
+        #expect(state.scanReport == report)
+        #expect(!state.scanning)
+        #expect(state.allowsInstall(of: state.installTarget!, override: false))
+    }
+
+    @Test("a bound report with findings still needs the override")
+    func boundReportHonorsOverride() {
+        let state = SettingsState()
+        let item = plugin("weather.js")
+        state.scanReport = PluginScanReport(
+            findings: [PluginScanFinding(pass: 1, message: "exfil")],
+            sourceHash: PluginHash.sha256(source: item.source)
+        )
+        #expect(!state.allowsInstall(of: item, override: false))
+        #expect(state.allowsInstall(of: item, override: true))
+    }
+
+    @Test("a built-in with no report installs as before")
+    func noReportStillInstallsBuiltIn() {
+        let state = SettingsState()
+        #expect(state.allowsInstall(of: plugin("weather.js"), override: false))
     }
 }
 
