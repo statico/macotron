@@ -8,7 +8,10 @@ private let logger = Logger(subsystem: "io.statico.macotron", category: "keychai
 /// Generic-password Keychain storage. Lives in MacotronEngine so `$$__module`
 /// can resolve `password` option refs without depending on the Modules target.
 public enum KeychainStore {
-    public static let serviceName = "io.statico.macotron"
+    /// Default Keychain service. Tests override this to `io.statico.macotron.tests`
+    /// so they never write real login-Keychain items. Set once before any use;
+    /// `nonisolated(unsafe)` because Swift 6 forbids mutable statics otherwise.
+    public nonisolated(unsafe) static var serviceName = "io.statico.macotron"
 
     /// Host-only service for the plugin trust ledger. Never exposed to
     /// `macotron.keychain.*`, so plugins cannot forge or wipe approvals.
