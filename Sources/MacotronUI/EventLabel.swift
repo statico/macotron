@@ -34,6 +34,12 @@ enum EventLabel {
         if event.hasPrefix("url:") {
             return "URL " + event.dropFirst("url:".count).replacingOccurrences(of: ":", with: "://")
         }
+        if event.hasPrefix("schedule:every ") {
+            return "Every " + event.dropFirst("schedule:every ".count)
+        }
+        if event.hasPrefix("schedule:at ") {
+            return "At " + event.dropFirst("schedule:at ".count)
+        }
         return fallback(event)
     }
 

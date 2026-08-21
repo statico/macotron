@@ -157,6 +157,7 @@ enum PluginChecker {
         engine.addModule(CameraModule())
         engine.addModule(ShareModule())
         engine.addModule(ShortcutsModule())
+        engine.addModule(ScheduleModule())
     }
 }
 

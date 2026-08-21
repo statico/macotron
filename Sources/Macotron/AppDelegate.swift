@@ -748,6 +748,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.addModule(PowerModule())
         engine.addModule(NetworkModule())
         engine.addModule(IdleModule())
+        engine.addModule(ScheduleModule())
         engine.addModule(MediaModule())
         engine.addModule(AudioModule())
         engine.addModule(SpacesModule())
