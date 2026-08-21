@@ -3,7 +3,7 @@
 
 macotron.plugin({
   title: "Date Stamp",
-  description: "Copy the current ISO-8601 timestamp.",
+  description: "Copy the current date and time in ISO-8601 format.",
 });
 
 macotron.command("Insert ISO Date", "Copy current ISO-8601 timestamp to the clipboard", () => {

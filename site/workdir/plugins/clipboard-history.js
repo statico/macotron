@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Clipboard History",
-  description: "Show recent clipboard text.",
+  description: "Search recent clipboard items from the launcher and paste one.",
 });
 
 macotron.command("Clipboard History", "Show recent clipboard text", () => {

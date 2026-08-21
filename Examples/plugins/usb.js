@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "USB",
-  description: "Toast when a USB device is plugged in.",
+  description: "Announce when a USB device is plugged in, and list attached devices.",
 });
 
 macotron.on("usb:changed", (info) => {

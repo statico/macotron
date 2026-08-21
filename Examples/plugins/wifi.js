@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Wi-Fi",
-  description: "Toggle Wi-Fi, Bluetooth, and AirDrop from the menu bar.",
+  description: "Turn Wi-Fi, Bluetooth, and AirDrop on or off from the menu bar.",
 });
 
 function clip(name) {

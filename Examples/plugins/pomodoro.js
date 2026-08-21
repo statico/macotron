@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Pomodoro",
-  description: "A 25-minute focus timer in the menu bar.",
+  description: "Run a 25-minute focus timer in the menu bar.",
 });
 
 const WORK_MS = 25 * 60 * 1000;

@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "HomeKit",
-    description: "Home accessories in the menu bar.",
+    description: "Control Home accessories from the menu bar.",
 });
 
 function paint() {

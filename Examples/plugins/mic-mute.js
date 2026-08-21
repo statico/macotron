@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Mic Mute",
-  description: "Mute the input from the menu bar.",
+  description: "Mute or unmute the microphone from the menu bar.",
 });
 
 function paint() {

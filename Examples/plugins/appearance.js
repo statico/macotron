@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "Appearance",
-    description: "Toggle system light and dark mode.",
+    description: "Switch this Mac between light and dark appearance.",
 });
 
 macotron.command("Toggle Dark Mode", "Switch system appearance between light and dark", () => {

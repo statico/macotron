@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Shortcuts",
-  description: "Run Shortcuts.app shortcuts from the launcher.",
+  description: "Run shortcuts from the launcher.",
 });
 
 function refresh() {

@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Time Machine",
-  description: "Backup progress in the menu bar.",
+  description: "Show Time Machine backup progress in the menu bar.",
 });
 
 function parseTmutil(text) {

@@ -74,7 +74,7 @@ function folderName(path, home) {
 
 macotron.plugin({
     title: "Storage",
-    description: "See folder sizes in your home folder.",
+    description: "See how much space folders in your home folder use.",
 });
 
 macotron.command("Disk Usage", "Browse folder sizes in your home folder", () => {

@@ -2,7 +2,7 @@
 
 macotron.plugin({
   title: "Dev Utils",
-  description: "Copy UUIDs, hashes, and other developer strings.",
+  description: "Copy a UUID, Unix time, Base64 text, or a decoded JWT.",
 });
 
 function copy(title, value) {

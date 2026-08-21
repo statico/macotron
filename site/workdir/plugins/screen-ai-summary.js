@@ -2,7 +2,7 @@
 
 macotron.plugin({
     title: "Screen Summary",
-    description: "Summarize a selected area with Claude.",
+    description: "Drag a box on screen and ask Claude what is in it.",
     permissions: ["screenRecording"],
 });
 

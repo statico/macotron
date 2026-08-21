@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Calendar",
-  description: "Show upcoming events.",
+  description: "Show your upcoming calendar events.",
 });
 
 macotron.command("Upcoming Events", "Show upcoming calendar events", () => {

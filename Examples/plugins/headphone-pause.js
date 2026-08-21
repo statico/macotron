@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Headphone Pause",
-  description: "Pause media when headphones unplug.",
+  description: "Pause playback when you unplug headphones.",
 });
 
 let last = macotron.audio.output();

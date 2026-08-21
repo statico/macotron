@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "Now Playing",
-    description: "Album art and track info in the menu bar.",
+    description: "Show the current track in the menu bar, and play, pause, or skip.",
 });
 
 function clip(s, n) {

@@ -1,6 +1,6 @@
 const opts = macotron.plugin({
     title: "AI Chat",
-    description: "Chat with the on-device model, Claude, or Gemini.",
+    description: "Chat with Apple Intelligence, Claude, or Gemini.",
     options: {
         model: {
             type: "dropdown",

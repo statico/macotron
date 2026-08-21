@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "CPU Graph",
-    description: "CPU usage sparkline in the menu bar.",
+    description: "Show CPU usage in the menu bar.",
 });
 
 const values = [];

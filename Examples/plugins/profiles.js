@@ -1,6 +1,6 @@
 const opts = macotron.plugin({
   title: "Profiles",
-  description: "Light mode at home, dark mode at work.",
+  description: "Use light appearance on your home Wi-Fi and dark appearance at work.",
   options: {
     homeSSID: { type: "string", label: "Home Wi-Fi name", default: "" },
     workSSID: { type: "string", label: "Work Wi-Fi name", default: "" },

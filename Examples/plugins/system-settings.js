@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "System Settings",
-  description: "Search System Settings panes from the launcher.",
+  description: "Open System Settings panes from the launcher.",
 });
 
 const APP = "com.apple.systempreferences";

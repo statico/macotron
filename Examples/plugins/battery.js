@@ -1,6 +1,6 @@
 const opts = macotron.plugin({
     title: "Battery",
-    description: "Charge level and time remaining in the menu bar.",
+    description: "Show charge level and time remaining in the menu bar.",
 });
 
 function minutesLabel(n) {

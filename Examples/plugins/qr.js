@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "QR Code",
-  description: "Scan a QR code from the screen or camera, or show one.",
+  description: "Scan a QR code from the screen or camera, or show a QR code for text.",
   permissions: ["screenRecording", "camera"],
 });
 

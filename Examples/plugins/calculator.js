@@ -2,7 +2,7 @@
 
 macotron.plugin({
   title: "Calculator",
-  description: "Evaluate an expression as you type.",
+  description: "Type an expression and see the result as you type.",
 });
 
 macotron.command("Calculator", "Evaluate an expression as you type", () => {

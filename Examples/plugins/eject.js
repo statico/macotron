@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Eject",
-  description: "Eject volumes from the menu bar.",
+  description: "Eject disks from the menu bar, and empty the Trash.",
 });
 
 function userVolumes(names) {

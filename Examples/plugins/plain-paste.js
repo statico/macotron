@@ -1,6 +1,6 @@
 const opts = macotron.plugin({
   title: "Plain Paste",
-  description: "Command-V pastes public.utf8-plain-text only.",
+  description: "Paste as plain text when you press Command-V.",
   options: {
     enabled: {
       type: "boolean",

@@ -1,11 +1,7 @@
 macotron.plugin({
     title: "Screen Effects",
-    description: "Control color, gamma, and system display effects.",
-    help: "This plugin replaces the old Night Vision, Gamma Black, and Display Modes plugins. "
-        + "Delete demo-night-vision.js, demo-gamma-black.js, and demo-display-modes.js from your "
-        + "plugins folder to remove the duplicate commands. "
-        + "The CRT effect draws over the desktop, so it dims and adds scanlines but cannot "
-        + "curve the picture. Toggle it again after attaching a display to cover the new screen.",
+    description: "Tint, dim, invert, or add a CRT overlay to the display. Toggle Night Shift, True Tone, and grayscale.",
+    help: "Use the launcher commands to tint the display red, dim it below the usual brightness limit, invert colors, or overlay a CRT look. You can also turn Night Shift, True Tone, and grayscale on or off.\n\nThe CRT overlay sits on top of the desktop. It adds scanlines and darkens the picture; it does not curve the image. Turn the overlay off and on again after you connect a display so the new screen is covered.",
 });
 
 const DIM = 0.35;

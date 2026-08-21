@@ -2,7 +2,7 @@
 
 macotron.plugin({
   title: "Stay Awake",
-  description: "Prevent sleep from the menu bar.",
+  description: "Keep this Mac awake from the menu bar.",
 });
 
 const DURATIONS = [

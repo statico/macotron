@@ -1,7 +1,7 @@
 // APIs: fs.list, ocr.recognize, fs.rename, command, notify
 macotron.plugin({
   title: "Screenshot Rename",
-  description: "Rename screenshots from OCR text.",
+  description: "Rename the latest screenshot from the text in the image.",
   permissions: ["screenRecording"],
 });
 

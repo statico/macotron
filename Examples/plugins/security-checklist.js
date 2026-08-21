@@ -2,7 +2,7 @@
 
 macotron.plugin({
   title: "Security Checklist",
-  description: "Check FileVault, firewall, and SIP.",
+  description: "Check FileVault, the firewall, and System Integrity Protection.",
 });
 
 async function run(cmd, args) {

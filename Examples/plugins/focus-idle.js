@@ -1,7 +1,7 @@
 // APIs: app:activated event, app.frontmost, command
 macotron.plugin({
   title: "Frontmost App",
-  description: "Track the last app that became active.",
+  description: "Show the app in front and the last app you switched to.",
 });
 
 let lastActivated = null;

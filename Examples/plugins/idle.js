@@ -3,7 +3,7 @@
 
 macotron.plugin({
   title: "Idle",
-  description: "Notify when the Mac goes idle or wakes.",
+  description: "Show how long this Mac has been idle, and notify when it goes idle or wakes.",
 });
 
 let lastTransition = "none";

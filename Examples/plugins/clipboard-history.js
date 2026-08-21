@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Clipboard History",
-  description: "Search recent clipboard items from the launcher.",
+  description: "Search recent clipboard items from the launcher and paste one.",
 });
 
 function clip(s, n) {

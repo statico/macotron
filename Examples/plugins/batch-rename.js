@@ -2,7 +2,7 @@
 
 macotron.plugin({
   title: "Batch Rename",
-  description: "Prefix today's Downloads files with the date.",
+  description: "Add today's date to the start of files you downloaded today.",
 });
 
 macotron.command("Prefix Downloads Today", "Prefix today's Downloads files with YYYY-MM-DD", () => {
