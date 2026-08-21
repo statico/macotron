@@ -19,6 +19,9 @@ struct ScreenEffectsTests {
         let harness = """
             var calls = [];
             var commands = {};
+            var toasts = [];
+            var crtOn = false;
+            var crtAvailable = true;
             var macotron = {
                 plugin: () => ({}),
                 display: {
@@ -29,10 +32,12 @@ struct ScreenEffectsTests {
                     trueTone: () => ({ available: true, on: false }),
                     setTrueTone: (v) => ({ available: true, ok: true, on: v }),
                     grayscale: () => ({ available: true, on: false }),
-                    setGrayscale: (v) => ({ available: true, ok: true, on: v })
+                    setGrayscale: (v) => ({ available: true, ok: true, on: v }),
+                    isCRTEnabled: () => crtOn,
+                    setCRTEnabled: (v) => { crtOn = v; calls.push({ op: "crt", on: v }); return crtAvailable; }
                 },
                 command: (name, desc, fn) => { commands[name] = fn; },
-                notify: { toast: () => {} }
+                notify: { toast: (title, body) => { toasts.push({ title: title, body: body }); } }
             };
             \(pluginSource)
             \(extra)
@@ -108,5 +113,28 @@ struct ScreenEffectsTests {
         #expect(result.contains("Night Shift 60%"))
         #expect(result.contains("Toggle True Tone"))
         #expect(result.contains("Toggle Grayscale"))
+        #expect(result.contains("Toggle CRT Effect"))
+    }
+
+    @Test("CRT toggles on then off")
+    func crtToggles() throws {
+        let result = try eval(#"""
+            commands["Toggle CRT Effect"]();
+            commands["Toggle CRT Effect"]();
+            JSON.stringify({ calls: calls, toasts: toasts.map(t => t.body) })
+            """#)
+        #expect(result.contains(#"{"op":"crt","on":true}"#))
+        #expect(result.contains(#"{"op":"crt","on":false}"#))
+        #expect(result.contains(#"["On","Off"]"#))
+    }
+
+    @Test("a Mac without Metal reports the effect unavailable")
+    func crtUnavailable() throws {
+        let result = try eval(#"""
+            crtAvailable = false;
+            commands["Toggle CRT Effect"]();
+            JSON.stringify(toasts)
+            """#)
+        #expect(result.contains("Unavailable"))
     }
 }

@@ -3,7 +3,9 @@ macotron.plugin({
     description: "Control color, gamma, and system display effects.",
     help: "This plugin replaces the old Night Vision, Gamma Black, and Display Modes plugins. "
         + "Delete demo-night-vision.js, demo-gamma-black.js, and demo-display-modes.js from your "
-        + "plugins folder to remove the duplicate commands.",
+        + "plugins folder to remove the duplicate commands. "
+        + "The CRT effect draws over the desktop, so it dims and adds scanlines but cannot "
+        + "curve the picture. Toggle it again after attaching a display to cover the new screen.",
 });
 
 const DIM = 0.35;
@@ -48,6 +50,15 @@ function report(name, result) {
 macotron.command("Toggle Night Vision", "Tint the display red", () => toggleGammaMode("night-vision"));
 macotron.command("Toggle Extra Dark", "Dim below the hardware brightness floor", () => toggleGammaMode("dim"));
 macotron.command("Toggle Invert Display", "Swap the gamma white and black points", () => toggleGammaMode("invert"));
+
+macotron.command("Toggle CRT Effect", "Overlay scanlines and a phosphor grille", () => {
+    const on = macotron.display.isCRTEnabled();
+    if (!macotron.display.setCRTEnabled(!on)) {
+        macotron.notify.toast("CRT effect", "Unavailable", { color: "failure" });
+        return;
+    }
+    macotron.notify.toast("CRT effect", on ? "Off" : "On", { color: on ? undefined : "success" });
+});
 
 macotron.command("Toggle Night Shift", "Enable or disable Night Shift", () => {
     const cur = macotron.display.nightShift();

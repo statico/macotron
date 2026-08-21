@@ -705,6 +705,14 @@ declare const macotron: {
         restoreGamma(): boolean;
         setXDREnabled(enabled: boolean): boolean;
         isXDREnabled(): boolean;
+        /**
+         * Draws a CRT mask (scanlines, phosphor grille, vignette, rolling bar) over
+         * every screen. It composites on top of the desktop, so it darkens and tints
+         * but cannot warp the pixels underneath. Returns false when Metal is
+         * unavailable. Covers the screens present when it is switched on.
+         */
+        setCRTEnabled(enabled: boolean): boolean;
+        isCRTEnabled(): boolean;
         nightShift(): { on: boolean; strength?: number; available: boolean };
         setNightShift(on: boolean | { strength?: number }): { ok: boolean; on: boolean; strength?: number; available: boolean; error?: string };
         trueTone(): { on: boolean; available: boolean };
