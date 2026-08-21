@@ -21,6 +21,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | clipboard-history.js | clipboard.history, launcher.set | (launcher rows) |
 | clipboard-image.js | clipboard.setImage/paste/remove | Clipboard Images |
 | color-picker.js | screen.pickColor | Pick Color |
+| contacts.js | contacts.list, launcher.set | (launcher rows) |
 | cpu-graph.js | system.cpu, menubar.status sparkline | (CPU menu bar graph) |
 | datetime.js | clipboard.set | Insert ISO Date |
 | devutils.js | clipboard | UUID, timestamp, Base64, JWT |
@@ -72,6 +73,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | url-router.js | url.on / open | Open YouTube in Safari |
 | usb.js | usb.list, usb:changed, /usr/bin/say | USB Devices |
 | weather.js | http + menubar.status | Refresh Weather |
+| web-search.js | url.open, /usr/bin/open dict:// | Search Google, Search Wikipedia, Search Maps, Search YouTube, Search GitHub, Define |
 | wifi.js | network.wifi / bluetooth / airDrop | Toggle Wi-Fi |
 | world-clock.js | menubar.status | (world clocks) |
 | window-grid.js | window.previewFraction / panel grid | Place Window |
