@@ -53,6 +53,7 @@ public final class OCRModule: NativeModule {
             let opaque = JS_GetContextOpaque(ctx)
             guard let opaque else { return promise }
             let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            let token = engine.registerPending(resolve: resolve, reject: reject)
             nonisolated(unsafe) let capturedCtx = ctx
 
             DispatchQueue.global(qos: .userInitiated).async {
@@ -73,20 +74,22 @@ public final class OCRModule: NativeModule {
                         .joined(separator: "\n")
 
                     DispatchQueue.main.async {
+                        guard let pending = engine.claimPending(token) else { return }
                         var value = JSBridge.newString(capturedCtx, text)
-                        _ = JS_Call(capturedCtx, resolve, QJS_Undefined(), 1, &value)
+                        _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
                         JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, resolve)
-                        JS_FreeValue(capturedCtx, reject)
+                        JS_FreeValue(capturedCtx, pending.resolve)
+                        JS_FreeValue(capturedCtx, pending.reject)
                         engine.drainJobQueue()
                     }
                 } catch {
                     DispatchQueue.main.async {
+                        guard let pending = engine.claimPending(token) else { return }
                         var value = JSBridge.newString(capturedCtx, error.localizedDescription)
-                        _ = JS_Call(capturedCtx, reject, QJS_Undefined(), 1, &value)
+                        _ = JS_Call(capturedCtx, pending.reject, QJS_Undefined(), 1, &value)
                         JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, resolve)
-                        JS_FreeValue(capturedCtx, reject)
+                        JS_FreeValue(capturedCtx, pending.resolve)
+                        JS_FreeValue(capturedCtx, pending.reject)
                         engine.drainJobQueue()
                     }
                 }

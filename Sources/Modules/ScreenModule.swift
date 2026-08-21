@@ -58,32 +58,36 @@ public final class ScreenModule: NativeModule {
 
                 guard let opaque else { return promise }
                 let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+                let token = engine.registerPending(resolve: resolve, reject: reject)
                 nonisolated(unsafe) let capturedCtx = ctx
 
                 Task { @MainActor in
                     let rect = await ScreenRegionPicker.shared.pick()
                     guard let rect else {
+                        guard let pending = engine.claimPending(token) else { return }
                         var value = JSBridge.newString(capturedCtx, "")
-                        _ = JS_Call(capturedCtx, resolve, QJS_Undefined(), 1, &value)
+                        _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
                         JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, resolve)
-                        JS_FreeValue(capturedCtx, reject)
+                        JS_FreeValue(capturedCtx, pending.resolve)
+                        JS_FreeValue(capturedCtx, pending.reject)
                         engine.drainJobQueue()
                         return
                     }
                     do {
                         let base64 = try await captureRegion(rect)
+                        guard let pending = engine.claimPending(token) else { return }
                         var value = JSBridge.newString(capturedCtx, base64)
-                        _ = JS_Call(capturedCtx, resolve, QJS_Undefined(), 1, &value)
+                        _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
                         JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, resolve)
-                        JS_FreeValue(capturedCtx, reject)
+                        JS_FreeValue(capturedCtx, pending.resolve)
+                        JS_FreeValue(capturedCtx, pending.reject)
                     } catch {
+                        guard let pending = engine.claimPending(token) else { return }
                         var value = JSBridge.newString(capturedCtx, error.localizedDescription)
-                        _ = JS_Call(capturedCtx, reject, QJS_Undefined(), 1, &value)
+                        _ = JS_Call(capturedCtx, pending.reject, QJS_Undefined(), 1, &value)
                         JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, resolve)
-                        JS_FreeValue(capturedCtx, reject)
+                        JS_FreeValue(capturedCtx, pending.resolve)
+                        JS_FreeValue(capturedCtx, pending.reject)
                     }
                     engine.drainJobQueue()
                 }
@@ -137,11 +141,13 @@ public final class ScreenModule: NativeModule {
 
             guard let opaque else { return promise }
             let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            let token = engine.registerPending(resolve: resolve, reject: reject)
             nonisolated(unsafe) let capturedCtx = ctx
 
             Task { @MainActor in
                 NSApp.activate(ignoringOtherApps: true)
                 let color = await NSColorSampler().sample()
+                guard let pending = engine.claimPending(token) else { return }
                 let point = NSEvent.mouseLocation
                 let value: JSValue
                 if let color, let rgb = color.usingColorSpace(.sRGB) {
@@ -160,10 +166,10 @@ public final class ScreenModule: NativeModule {
                     value = QJS_Null()
                 }
                 var arg = value
-                _ = JS_Call(capturedCtx, resolve, QJS_Undefined(), 1, &arg)
+                _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &arg)
                 JS_FreeValue(capturedCtx, arg)
-                JS_FreeValue(capturedCtx, resolve)
-                JS_FreeValue(capturedCtx, reject)
+                JS_FreeValue(capturedCtx, pending.resolve)
+                JS_FreeValue(capturedCtx, pending.reject)
                 engine.drainJobQueue()
             }
             return promise
