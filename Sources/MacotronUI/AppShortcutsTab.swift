@@ -47,7 +47,7 @@ struct AppShortcutsTab: View {
                 }
                 .width(ideal: 220, max: 280)
             }
-            .tableStyle(.inset)
+            .tableStyle(.inset(alternatesRowBackgrounds: false))
             .overlay {
                 if state.appShortcuts.isEmpty {
                     VStack(spacing: 4) {
