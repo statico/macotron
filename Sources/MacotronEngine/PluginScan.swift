@@ -125,7 +125,75 @@ public enum PluginScan {
         if source.contains("atob("), source.count > 2000 {
             flags.append("Decodes a large base64 blob")
         }
+        if source.contains("macotron.keychain."),
+           source.contains("macotron.http.post")
+            || source.contains("macotron.http.put")
+            || source.contains("macotron.http.delete") {
+            flags.append("Sends keychain data over the network")
+        }
+        let lower = source.lowercased()
+        if source.contains("macotron.shell.run"),
+           lower.contains("curl") || lower.contains("wget")
+            || lower.contains("/bin/sh") || lower.contains("/bin/bash") {
+            flags.append("Shell runs a download or interpreter")
+        }
+        if lower.contains("ignore previous") || lower.contains("ignore all rules")
+            || lower.contains("return approved true") {
+            flags.append("Prompt-injection comment")
+        }
+        if source.contains("</UNTRUSTED_PLUGIN_SOURCE>") || source.contains("<UNTRUSTED_PLUGIN_SOURCE>") {
+            flags.append("Fake scanner closer tag")
+        }
         return flags
+    }
+
+    /// Drop model noise: wrapper echoes, context errors, and ordinary host-API lists.
+    public static func keepFinding(_ message: String, source: String) -> Bool {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        let lower = trimmed.lowercased()
+        if lower.contains("exceeded model context") { return false }
+        if lower.hasPrefix("scan failed:") { return true }
+        if lower.contains("untrusted_plugin_source") || lower.contains("untrusted plugin source") {
+            return containsScannerTag(source)
+        }
+        return citesDanger(trimmed, source: source)
+    }
+
+    public static func keepFindings(_ findings: [PluginScanFinding], source: String) -> [PluginScanFinding] {
+        findings.filter { keepFinding($0.message, source: source) }
+    }
+
+    /// A finding counts only if it names a dangerous API that is actually in the source.
+    public static func citesDanger(_ message: String, source: String) -> Bool {
+        let hay = source.lowercased()
+        let msg = message.lowercased()
+        let markers = [
+            "eval(", "atob(", "keychain.", "http.post", "http.put", "http.delete",
+            "fs.write", "fs.rename",
+        ]
+        if markers.contains(where: { msg.contains($0) && hay.contains($0) }) {
+            return true
+        }
+        if msg.contains("shell.run"), hay.contains("shell.run") {
+            let remote = ["curl", "wget", "/bin/sh", "/bin/bash"]
+            if remote.contains(where: { msg.contains($0) && hay.contains($0) }) {
+                return true
+            }
+        }
+        if (msg.contains("ignore previous") || msg.contains("ignore rules"))
+            && (hay.contains("ignore previous") || hay.contains("ignore rules")) {
+            return true
+        }
+        if (msg.contains("untrusted_plugin_source") || msg.contains("untrusted plugin source")),
+           containsScannerTag(source) {
+            return true
+        }
+        return false
+    }
+
+    public static func containsScannerTag(_ source: String) -> Bool {
+        source.contains("</UNTRUSTED_PLUGIN_SOURCE>") || source.contains("<UNTRUSTED_PLUGIN_SOURCE>")
     }
 
     public static func failed(anyPassFails reports: [[PluginScanFinding]], staticFlags: [String]) -> PluginScanReport {
