@@ -82,6 +82,8 @@ public final class SnippetsModule: NativeModule {
         teardownEventTap()
     }
 
+    var hasEventTap: Bool { eventTap != nil }
+
     private func setExpansionEnabled(_ enabled: Bool) -> Bool {
         if enabled {
             setupEventTap()

@@ -53,21 +53,17 @@ public final class OCRModule: NativeModule {
             let opaque = JS_GetContextOpaque(ctx)
             guard let opaque else { return promise }
             let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            let token = engine.registerPending(resolve: resolve, reject: reject)
-            nonisolated(unsafe) let capturedCtx = ctx
-
             if engine.dryRun {
-                DispatchQueue.main.async {
-                    guard let pending = engine.claimPending(token) else { return }
-                    var value = JSBridge.newString(capturedCtx, "")
-                    _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
-                    JS_FreeValue(capturedCtx, value)
-                    JS_FreeValue(capturedCtx, pending.resolve)
-                    JS_FreeValue(capturedCtx, pending.reject)
-                    engine.drainJobQueue()
-                }
+                var value = JSBridge.newString(ctx, "")
+                _ = JS_Call(ctx, resolve, QJS_Undefined(), 1, &value)
+                JS_FreeValue(ctx, value)
+                JS_FreeValue(ctx, resolve)
+                JS_FreeValue(ctx, reject)
+                engine.drainJobQueue()
                 return promise
             }
+            let token = engine.registerPending(resolve: resolve, reject: reject)
+            nonisolated(unsafe) let capturedCtx = ctx
 
             DispatchQueue.global(qos: .userInitiated).async {
                 do {

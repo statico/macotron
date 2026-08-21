@@ -150,6 +150,15 @@ public final class QRModule: NativeModule {
         JS_FreeValue(ctx, resolving[1])
         guard let opaque = JS_GetContextOpaque(ctx) else { return promise }
         let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+        if engine.dryRun {
+            var value = QJS_Null()
+            _ = JS_Call(ctx, resolveFn, QJS_Undefined(), 1, &value)
+            JS_FreeValue(ctx, value)
+            JS_FreeValue(ctx, resolveFn)
+            JS_FreeValue(ctx, rejectFn)
+            engine.drainJobQueue()
+            return promise
+        }
         let token = engine.registerPending(resolve: resolveFn, reject: rejectFn)
         nonisolated(unsafe) let capturedCtx = ctx
         run { text in

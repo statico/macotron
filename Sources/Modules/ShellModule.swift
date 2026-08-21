@@ -69,29 +69,22 @@ public final class ShellModule: NativeModule {
             let opaque = JS_GetContextOpaque(ctx)
             guard let opaque else { return promise }
             let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            if engine.dryRun {
+                let resultObj = JS_NewObject(ctx)
+                JSBridge.setProperty(ctx, resultObj, "stdout", JSBridge.newString(ctx, ""))
+                JSBridge.setProperty(ctx, resultObj, "stderr", JSBridge.newString(ctx, ""))
+                JSBridge.setProperty(ctx, resultObj, "exitCode", JSBridge.newInt32(ctx, 0))
+                var resultArg = resultObj
+                _ = JS_Call(ctx, resolve, QJS_Undefined(), 1, &resultArg)
+                JS_FreeValue(ctx, resolve)
+                JS_FreeValue(ctx, reject)
+                JS_FreeValue(ctx, resultObj)
+                engine.drainJobQueue()
+                return promise
+            }
             let token = engine.registerPending(resolve: resolve, reject: reject)
             let capturedArgs = args
             nonisolated(unsafe) let capturedCtx = ctx
-
-            if engine.dryRun {
-                DispatchQueue.main.async {
-                    guard let pending = engine.claimPending(token) else { return }
-                    let resultObj = JS_NewObject(capturedCtx)
-                    JSBridge.setProperty(capturedCtx, resultObj, "stdout",
-                                         JSBridge.newString(capturedCtx, ""))
-                    JSBridge.setProperty(capturedCtx, resultObj, "stderr",
-                                         JSBridge.newString(capturedCtx, ""))
-                    JSBridge.setProperty(capturedCtx, resultObj, "exitCode",
-                                         JSBridge.newInt32(capturedCtx, 0))
-                    var resultArg = resultObj
-                    _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &resultArg)
-                    JS_FreeValue(capturedCtx, pending.resolve)
-                    JS_FreeValue(capturedCtx, pending.reject)
-                    JS_FreeValue(capturedCtx, resultObj)
-                    engine.drainJobQueue()
-                }
-                return promise
-            }
 
             DispatchQueue.global(qos: .userInitiated).async {
                 do {
