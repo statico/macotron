@@ -783,14 +783,12 @@ public struct SettingsView: View {
 
     private var pluginSidebarActions: some View {
         HStack(spacing: 8) {
-            Button {
+            Button("Catalog") {
                 showCatalog = true
-            } label: {
-                twoLineActionLabel("Add Plugin", "from Catalog")
             }
             .buttonStyle(.bordered)
-            .help("Install a plugin from the catalog")
-            .accessibilityLabel("Add Plugin from Catalog")
+            .frame(maxWidth: .infinity)
+            .help("Browse and add plugins from the catalog")
 
             Menu {
                 ForEach(PluginAuthoring.agents) { tool in
@@ -804,11 +802,12 @@ public struct SettingsView: View {
                 Button("Empty Plugin…") { showNewPlugin = true }
                 Button("Open Plugins Folder") { state.openPluginsFolder?() }
             } label: {
-                twoLineActionLabel("Build Plugin", "with Agent")
+                Text("Create")
+                    .frame(maxWidth: .infinity)
             }
             .menuStyle(.borderedButton)
+            .frame(maxWidth: .infinity)
             .help("Create a plugin with an editor or agent")
-            .accessibilityLabel("Build Plugin with Agent")
         }
         .controlSize(.small)
         .padding(8)
@@ -825,15 +824,6 @@ public struct SettingsView: View {
         if alert.runModal() == .alertSecondButtonReturn {
             state.openPluginsFolder?()
         }
-    }
-
-    private func twoLineActionLabel(_ top: String, _ bottom: String) -> some View {
-        VStack(spacing: 1) {
-            Text(top)
-            Text(bottom)
-        }
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: .infinity)
     }
 
     private var emptyPluginsPlaceholder: some View {
