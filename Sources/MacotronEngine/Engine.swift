@@ -5,6 +5,15 @@ import os
 
 private let logger = Logger(subsystem: "io.statico.macotron", category: "engine")
 
+/// Copy a C string with js_malloc — QuickJS frees module names with js_free,
+/// so plain strdup memory would crash the arena allocator.
+private func jsStrdup(_ ctx: OpaquePointer?, _ string: String) -> UnsafeMutablePointer<CChar>? {
+    let bytes = Array(string.utf8CString)
+    guard let buf = js_malloc(ctx, bytes.count) else { return nil }
+    bytes.withUnsafeBufferPointer { _ = memcpy(buf, $0.baseAddress!, bytes.count) }
+    return buf.assumingMemoryBound(to: CChar.self)
+}
+
 public struct RegisteredCommand {
     public let id: String
     public let name: String
@@ -87,6 +96,9 @@ public final class Engine {
     /// Base directory for resolving ES module imports (set by ModuleManager)
     public var moduleBaseDir: URL?
 
+    /// Session-only hot reload also skips the import hash gate (mirrors ModuleManager.hotReload).
+    public var bypassImportTrust = false
+
     public init() {
         runtime = JS_NewRuntime()
         context = JS_NewContext(runtime)
@@ -110,7 +122,7 @@ public final class Engine {
 
                 // Absolute paths pass through
                 if name.hasPrefix("/") {
-                    return strdup(moduleName)
+                    return jsStrdup(ctx, name)
                 }
 
                 // Resolve relative paths against the importing module's directory
@@ -119,7 +131,7 @@ public final class Engine {
                     let baseURL = URL(fileURLWithPath: base).deletingLastPathComponent()
                     var resolved = baseURL.appending(path: name).path()
                     if !resolved.hasSuffix(".js") { resolved += ".js" }
-                    return strdup(resolved)
+                    return jsStrdup(ctx, resolved)
                 }
 
                 // Non-relative names: resolve against moduleBaseDir
@@ -128,19 +140,30 @@ public final class Engine {
                     if let baseDir = engine.moduleBaseDir {
                         var resolved = baseDir.appending(path: name).path()
                         if !resolved.hasSuffix(".js") { resolved += ".js" }
-                        return strdup(resolved)
+                        return jsStrdup(ctx, resolved)
                     }
                 }
 
-                return strdup(moduleName)
+                return jsStrdup(ctx, name)
             },
             // Loader: read file and compile as ES module
             { ctx, moduleName, opaque -> OpaquePointer? in
-                guard let ctx, let moduleName else { return nil }
+                guard let ctx, let moduleName, let opaque else { return nil }
                 let filePath = String(cString: moduleName)
+                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
 
                 guard let source = try? String(contentsOfFile: filePath, encoding: .utf8) else {
                     logger.error("ES module not found: \(filePath)")
+                    return nil
+                }
+
+                // Files under the workdir must match the trust ledger; bundle
+                // files (macotron-runtime.js) live outside it and stay ungated.
+                if let baseDir = engine.moduleBaseDir,
+                   let key = PluginTrust.workdirKey(path: filePath, baseDir: baseDir),
+                   !engine.bypassImportTrust,
+                   !PluginTrust.matches(filename: key, source: source) {
+                    logger.error("ES module not approved: \(key)")
                     return nil
                 }
 

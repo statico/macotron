@@ -59,6 +59,59 @@ public enum PluginTrust {
         return approved == PluginHash.sha256(source: source)
     }
 
+    /// Approve every workdir file reachable through statically visible import
+    /// specifiers (`import … from "x"` and `import("x")` literals) in `source`,
+    /// keyed by workdir-relative path. Files outside `baseDir` are skipped —
+    /// the loader never gates them.
+    public static func approveImports(
+        in source: String,
+        importerDir: URL,
+        baseDir: URL,
+        store: PluginHashStore = store
+    ) {
+        var visited: Set<String> = []
+        var queue: [(source: String, dir: URL)] = [(source, importerDir)]
+        while let (src, dir) = queue.popLast() {
+            for spec in importSpecifiers(in: src) {
+                var path: String
+                if spec.hasPrefix("/") {
+                    path = spec
+                } else if spec.hasPrefix(".") {
+                    path = dir.appending(path: spec).path(percentEncoded: false)
+                } else {
+                    path = baseDir.appending(path: spec).path(percentEncoded: false)
+                }
+                if !path.hasSuffix(".js") { path += ".js" }
+                let file = URL(fileURLWithPath: path).standardizedFileURL
+                guard let key = workdirKey(path: path, baseDir: baseDir),
+                      visited.insert(key).inserted,
+                      let imported = try? String(contentsOf: file, encoding: .utf8)
+                else { continue }
+                store.write(filename: key, hash: PluginHash.sha256(source: imported))
+                queue.append((imported, file.deletingLastPathComponent()))
+            }
+        }
+    }
+
+    nonisolated private static func importSpecifiers(in source: String) -> [String] {
+        let patterns = [
+            /import\s*\(\s*["']([^"']+)["']\s*\)/,
+            /(?m)^\s*import\s+(?:[^"'\n]+\bfrom\s+)?["']([^"']+)["']/,
+        ]
+        return patterns.flatMap { pattern in
+            source.matches(of: pattern).map { String($0.output.1) }
+        }
+    }
+
+    /// Ledger key for a file under `baseDir` (workdir-relative path), nil if outside.
+    nonisolated static func workdirKey(path: String, baseDir: URL) -> String? {
+        var base = baseDir.standardizedFileURL.path(percentEncoded: false)
+        if !base.hasSuffix("/") { base += "/" }
+        let full = URL(fileURLWithPath: path).standardizedFileURL.path(percentEncoded: false)
+        guard full.hasPrefix(base) else { return nil }
+        return String(full.dropFirst(base.count))
+    }
+
     public static func migrateHash(
         from oldFilename: String,
         to newFilename: String,
