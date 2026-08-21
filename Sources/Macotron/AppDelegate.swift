@@ -755,6 +755,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             try plugin.source.write(to: dest, atomically: true, encoding: .utf8)
             PluginTrust.approve(filename: plugin.filename, source: plugin.source)
+            PluginTrust.approveImports(
+                in: plugin.source, importerDir: workspace.pluginsDir, baseDir: workspace.root)
             moduleManager.reloadAll()
             refreshIntegrity()
             if settingsState.isReviewing {
@@ -773,6 +775,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             try source.write(to: dest, atomically: true, encoding: .utf8)
             PluginTrust.approve(filename: filename, source: source)
+            PluginTrust.approveImports(
+                in: source, importerDir: workspace.pluginsDir, baseDir: workspace.root)
             moduleManager.reloadAll()
             refreshIntegrity()
             settingsState.refreshModules()

@@ -22,7 +22,9 @@ public final class ModuleManager {
     public private(set) var pendingReview: Set<String> = []
 
     /// When true, disk changes reload immediately with no hash gate.
-    public var hotReload = false
+    public var hotReload = false {
+        didSet { engine.bypassImportTrust = hotReload }
+    }
 
     /// Called after every reload, so the app can re-check plugin declarations.
     public var onDidReload: (() -> Void)?
