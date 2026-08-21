@@ -86,6 +86,39 @@ public enum PluginCatalog {
         if existingHash == bundledHash { return .unmodifiedStock }
         return .modified
     }
+
+    private static let consolidationLegacyNames: Set<String> = [
+        "demo-night-vision.js",
+        "demo-gamma-black.js",
+        "demo-display-modes.js",
+    ]
+
+    public static func legacyRenames(bundle: Bundle = .main) -> [String: String] {
+        legacyRenames(from: load(bundle: bundle))
+    }
+
+    public static func legacyRenames(jsonURL: URL) -> [String: String] {
+        legacyRenames(from: load(jsonURL: jsonURL))
+    }
+
+    private static func legacyRenames(from plugins: [CatalogPlugin]) -> [String: String] {
+        var renames: [String: String] = [:]
+        for plugin in plugins {
+            let filename = plugin.filename
+            let oldName: String
+            let newName: String
+            if filename.hasPrefix("demo-") {
+                oldName = filename
+                newName = String(filename.dropFirst(5))
+            } else {
+                newName = filename
+                oldName = "demo-" + newName
+            }
+            guard oldName != newName, !consolidationLegacyNames.contains(oldName) else { continue }
+            renames[oldName] = newName
+        }
+        return renames
+    }
 }
 
 public enum CatalogOverwrite: Equatable, Sendable {
