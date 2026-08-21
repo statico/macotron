@@ -12,7 +12,7 @@ struct EventLabelTests {
 
     @Test("keyboard events keep the shortcut label")
     func keyboard() {
-        #expect(EventLabel.displayName("keyboard:demo-windows.js/Tile Left") == "Tile Left")
+        #expect(EventLabel.displayName("keyboard:windows.js/Tile Left") == "Tile Left")
     }
 
     @Test("unknown events fall back to a spaced name")

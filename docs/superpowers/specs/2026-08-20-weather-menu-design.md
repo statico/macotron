@@ -2,7 +2,7 @@
 
 ## Goal
 
-The weather demo will show current conditions and forecasts in its status-item menu. The status item will remain compact.
+The weather plugin will show current conditions and forecasts in its status-item menu. The status item will remain compact.
 
 ## Data
 
@@ -36,4 +36,4 @@ Invalid or incomplete provider data will produce a controlled error. The menu wi
 
 Tests will cover JSON parsing, unit selection, weather symbols, and hourly forecast selection. `make build` and the full test suite must complete without errors.
 
-The final step will copy the updated demo plugin to `tmp/macotron/plugins/demo-weather.js`. A file comparison will make sure that both copies are identical.
+The final step will copy the updated plugin to `tmp/macotron/plugins/weather.js`. A file comparison will make sure that both copies are identical.

@@ -21,11 +21,11 @@ struct PluginEnableTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         try "// Huge weather plugin\nconst x = 1;\n"
-            .write(to: ws.pluginsDir.appending(path: "demo-weather.js"), atomically: true, encoding: .utf8)
+            .write(to: ws.pluginsDir.appending(path: "weather.js"), atomically: true, encoding: .utf8)
 
         let manager = ModuleManager(engine: Engine(), workspace: ws)
         let listed = manager.listModules()
-        #expect(listed.map(\.filename) == ["demo-weather.js"])
+        #expect(listed.map(\.filename) == ["weather.js"])
         #expect(listed.map(\.description) == [""])
     }
 

@@ -53,7 +53,7 @@ struct PluginHeaderTests {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
-        let file = dir.appending(path: "demo-weather.js")
+        let file = dir.appending(path: "weather.js")
         let prefix = "macotron.plugin({ title: \"Weather\", description: \"Current weather.\" });\n"
         let padding = String(repeating: "x", count: 200_000)
         try (prefix + padding).write(to: file, atomically: true, encoding: .utf8)

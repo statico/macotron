@@ -260,21 +260,21 @@ const APIS = [
 const FILES = [
   { id: "AGENTS.md", path: "workdir/AGENTS.md", label: "AGENTS.md", group: "root" },
   { id: "README.md", path: "workdir/README.md", label: "README.md", group: "root" },
-  { id: "demo-windows.js", path: "workdir/plugins/demo-windows.js", label: "demo-windows.js", group: "plugins" },
-  { id: "demo-ai-chat.js", path: "workdir/plugins/demo-ai-chat.js", label: "demo-ai-chat.js", group: "plugins" },
-  { id: "demo-weather.js", path: "workdir/plugins/demo-weather.js", label: "demo-weather.js", group: "plugins" },
-  { id: "demo-battery.js", path: "workdir/plugins/demo-battery.js", label: "demo-battery.js", group: "plugins" },
-  { id: "demo-fan.js", path: "workdir/plugins/demo-fan.js", label: "demo-fan.js", group: "plugins" },
-  { id: "demo-now-playing.js", path: "workdir/plugins/demo-now-playing.js", label: "demo-now-playing.js", group: "plugins" },
-  { id: "demo-meetings.js", path: "workdir/plugins/demo-meetings.js", label: "demo-meetings.js", group: "plugins" },
-  { id: "demo-screen-ai-summary.js", path: "workdir/plugins/demo-screen-ai-summary.js", label: "demo-screen-ai-summary.js", group: "plugins" },
-  { id: "demo-ocr.js", path: "workdir/plugins/demo-ocr.js", label: "demo-ocr.js", group: "plugins" },
-  { id: "demo-file-search.js", path: "workdir/plugins/demo-file-search.js", label: "demo-file-search.js", group: "plugins" },
-  { id: "demo-snippets.js", path: "workdir/plugins/demo-snippets.js", label: "demo-snippets.js", group: "plugins" },
-  { id: "demo-calculator.js", path: "workdir/plugins/demo-calculator.js", label: "demo-calculator.js", group: "plugins" },
-  { id: "demo-night-vision.js", path: "workdir/plugins/demo-night-vision.js", label: "demo-night-vision.js", group: "plugins" },
-  { id: "demo-pomodoro.js", path: "workdir/plugins/demo-pomodoro.js", label: "demo-pomodoro.js", group: "plugins" },
-  { id: "demo-clipboard-history.js", path: "workdir/plugins/demo-clipboard-history.js", label: "demo-clipboard-history.js", group: "plugins" },
+  { id: "windows.js", path: "workdir/plugins/windows.js", label: "windows.js", group: "plugins" },
+  { id: "ai-chat.js", path: "workdir/plugins/ai-chat.js", label: "ai-chat.js", group: "plugins" },
+  { id: "weather.js", path: "workdir/plugins/weather.js", label: "weather.js", group: "plugins" },
+  { id: "battery.js", path: "workdir/plugins/battery.js", label: "battery.js", group: "plugins" },
+  { id: "fan.js", path: "workdir/plugins/fan.js", label: "fan.js", group: "plugins" },
+  { id: "now-playing.js", path: "workdir/plugins/now-playing.js", label: "now-playing.js", group: "plugins" },
+  { id: "meetings.js", path: "workdir/plugins/meetings.js", label: "meetings.js", group: "plugins" },
+  { id: "screen-ai-summary.js", path: "workdir/plugins/screen-ai-summary.js", label: "screen-ai-summary.js", group: "plugins" },
+  { id: "ocr.js", path: "workdir/plugins/ocr.js", label: "ocr.js", group: "plugins" },
+  { id: "file-search.js", path: "workdir/plugins/file-search.js", label: "file-search.js", group: "plugins" },
+  { id: "snippets.js", path: "workdir/plugins/snippets.js", label: "snippets.js", group: "plugins" },
+  { id: "calculator.js", path: "workdir/plugins/calculator.js", label: "calculator.js", group: "plugins" },
+  { id: "screen-effects.js", path: "workdir/plugins/screen-effects.js", label: "screen-effects.js", group: "plugins" },
+  { id: "pomodoro.js", path: "workdir/plugins/pomodoro.js", label: "pomodoro.js", group: "plugins" },
+  { id: "clipboard-history.js", path: "workdir/plugins/clipboard-history.js", label: "clipboard-history.js", group: "plugins" },
 ];
 
 const cache = new Map();
@@ -406,7 +406,7 @@ function boot() {
   renderCards("");
   renderApis();
   document.getElementById("q").addEventListener("input", (e) => renderCards(e.target.value));
-  openFile("demo-windows.js");
+  openFile("windows.js");
 }
 
 boot();

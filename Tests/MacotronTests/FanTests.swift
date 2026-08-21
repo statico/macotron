@@ -3,15 +3,15 @@ import Testing
 @testable import MacotronEngine
 
 @MainActor
-@Suite("FanDemoTests")
-struct FanDemoTests {
+@Suite("Fan")
+struct FanTests {
     @Test("full blast toggle toasts on and off")
     func toggleToasts() throws {
         let demoURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/demo-fan.js")
+            .appending(path: "Examples/plugins/fan.js")
         let demo = try String(contentsOf: demoURL, encoding: .utf8)
         let source = """
             var statusConfig = null;

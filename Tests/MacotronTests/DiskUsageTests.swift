@@ -3,14 +3,14 @@ import Testing
 @testable import MacotronEngine
 
 @MainActor
-@Suite("DiskUsageDemoTests")
-struct DiskUsageDemoTests {
+@Suite("DiskUsage")
+struct DiskUsageTests {
     private func eval(_ js: String) throws -> String {
         let demoURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/demo-disk-usage.js")
+            .appending(path: "Examples/plugins/disk-usage.js")
         let demo = try String(contentsOf: demoURL, encoding: .utf8)
         let source = """
             var macotron = { plugin: () => ({}), command: () => {}, panel: {}, shell: {}, notify: {} };
