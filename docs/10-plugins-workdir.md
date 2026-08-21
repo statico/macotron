@@ -39,8 +39,7 @@ Example:
   "disabledPlugins": [],
   "commandShortcuts": {},
   "keyboardShortcuts": {},
-  "launcherFavorites": [],
-  "security": { "shell": { "allow": [], "strict": false } }
+  "launcherFavorites": []
 }
 ```
 Disabled plugins stay on disk but are not loaded; manage them in Settings → Plugins.

@@ -142,7 +142,7 @@ struct PluginCatalogTests {
         try "x".write(to: dir.appending(path: "brand-new.js"), atomically: true, encoding: .utf8)
         let json = dir.appending(path: "catalog.json")
         try """
-        {"plugins":[{"filename":"brand-new.js","highlighted":false,"category":"Tools"}]}
+        {"plugins":[{"filename":"brand-new.js","highlighted":false}]}
         """.write(to: json, atomically: true, encoding: .utf8)
         #expect(PluginCatalog.load(jsonURL: json).count == 1)
         #expect(PluginCatalog.legacyRenames["demo-brand-new.js"] == nil)
@@ -158,7 +158,7 @@ struct PluginCatalogTests {
         """.write(to: dir.appending(path: "weather.js"), atomically: true, encoding: .utf8)
         let json = dir.appending(path: "catalog.json")
         try """
-        {"plugins":[{"filename":"weather.js","highlighted":true,"category":"Menu bar"}]}
+        {"plugins":[{"filename":"weather.js","highlighted":true}]}
         """.write(to: json, atomically: true, encoding: .utf8)
         let plugins = PluginCatalog.load(jsonURL: json)
         #expect(plugins.count == 1)

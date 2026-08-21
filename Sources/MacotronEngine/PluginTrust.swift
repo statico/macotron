@@ -46,10 +46,6 @@ public final class KeychainHashStore: PluginHashStore {
 public enum PluginTrust {
     public static var store: PluginHashStore = KeychainHashStore()
 
-    public static func approvedHash(for filename: String) -> String? {
-        store.read(filename: filename)
-    }
-
     public static func approve(filename: String, hash: String) {
         store.write(filename: filename, hash: hash)
     }

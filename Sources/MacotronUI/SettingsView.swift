@@ -313,7 +313,6 @@ public final class SettingsState: ObservableObject {
         installTarget = CatalogPlugin(
             filename: filename,
             highlighted: false,
-            category: "Installed",
             title: header.title ?? filename,
             description: header.description ?? "",
             permissions: header.permissions.compactMap(Permission.init(rawValue:)),

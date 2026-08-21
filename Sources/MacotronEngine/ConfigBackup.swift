@@ -64,20 +64,6 @@ public final class ConfigBackup {
         }
     }
 
-    /// List available backups (newest first)
-    public func listBackups() -> [String] {
-        guard let contents = try? FileManager.default.contentsOfDirectory(
-            at: backupsDir, includingPropertiesForKeys: [.creationDateKey]
-        ) else { return [] }
-
-        return contents
-            .filter { $0.pathExtension == "gz" }
-            .map { $0.lastPathComponent }
-            .sorted()
-            .reversed()
-            .map { String($0) }
-    }
-
     /// Remove backups older than maxAgeDays or beyond maxBackups count
     private func pruneOldBackups() {
         let fm = FileManager.default

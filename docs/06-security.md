@@ -92,7 +92,7 @@ First call to shell run with an unapproved command prompts:
 - **Always Allow** — add to the allowlist in `settings.json`
 - **Deny** — block
 
-Shell allowlist settings live under `security.shell` in `settings.json`.
+Extra allowed commands live under `modules.shell.allowlist` in `settings.json`.
 
 ## Version Control
 
