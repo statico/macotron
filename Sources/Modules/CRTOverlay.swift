@@ -32,11 +32,15 @@ final class CRTOverlay {
     }
 
     func teardown() {
-        for window in windows {
-            (window.contentView as? CRTView)?.stop()
-            window.close()
-        }
+        let dying = windows
         windows.removeAll()
+        for window in dying {
+            (window.contentView as? CRTView)?.stop()
+            // orderOut + drop the view — close() starts _NSWindowTransformAnimation
+            // and crashes when CAMetalLayer is still presenting.
+            window.orderOut(nil)
+            window.contentView = nil
+        }
     }
 
     private static func makeWindow(screen: NSScreen, renderer: CRTRenderer) -> NSWindow {
@@ -47,6 +51,8 @@ final class CRTOverlay {
             defer: false,
             screen: screen
         )
+        window.animationBehavior = .none
+        window.isReleasedWhenClosed = false
         window.contentView = CRTView(
             frame: CGRect(origin: .zero, size: screen.frame.size),
             renderer: renderer

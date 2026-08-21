@@ -18,4 +18,13 @@ struct CRTOverlayTests {
         #expect(MemoryLayout<CRTUniforms>.stride == 16)
         #expect(MemoryLayout<CRTUniforms>.alignment == 8)
     }
+
+    @Test("teardown uses orderOut, not animated close")
+    @MainActor
+    func teardownQuietly() {
+        let overlay = CRTOverlay()
+        _ = overlay.setEnabled(true)
+        #expect(overlay.setEnabled(false))
+        #expect(!overlay.isOn)
+    }
 }
