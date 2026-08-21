@@ -140,17 +140,19 @@ public final class QRModule: NativeModule {
         let rejectFn = JS_DupValue(ctx, resolving[1])
         JS_FreeValue(ctx, resolving[0])
         JS_FreeValue(ctx, resolving[1])
-        let opaque = JS_GetContextOpaque(ctx)
-        let engine = opaque.map { Unmanaged<Engine>.fromOpaque($0).takeUnretainedValue() }
+        guard let opaque = JS_GetContextOpaque(ctx) else { return promise }
+        let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+        let token = engine.registerPending(resolve: resolveFn, reject: rejectFn)
         nonisolated(unsafe) let capturedCtx = ctx
         run { text in
             DispatchQueue.main.async {
+                guard let pending = engine.claimPending(token) else { return }
                 var value = text.map { JSBridge.newString(capturedCtx, $0) } ?? QJS_Null()
-                _ = JS_Call(capturedCtx, resolveFn, QJS_Undefined(), 1, &value)
+                _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
                 JS_FreeValue(capturedCtx, value)
-                JS_FreeValue(capturedCtx, resolveFn)
-                JS_FreeValue(capturedCtx, rejectFn)
-                engine?.drainJobQueue()
+                JS_FreeValue(capturedCtx, pending.resolve)
+                JS_FreeValue(capturedCtx, pending.reject)
+                engine.drainJobQueue()
             }
         }
         return promise
