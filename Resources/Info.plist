@@ -51,6 +51,8 @@
     <string>Macotron plugins can scan QR codes with the camera.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Macotron plugins can record audio.</string>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>Macotron plugins can read the Bluetooth radio, list paired devices, and turn Bluetooth on or off.</string>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Macotron plugins can find Apple TVs and other devices on your local network.</string>
     <key>NSBonjourServices</key>

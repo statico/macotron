@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Modules
 
@@ -75,6 +76,26 @@ struct BluetoothRadioTests {
         let result = BluetoothRadio.set(true, dryRun: true)
         #expect(result["ok"] as? Bool == true)
         #expect(result["on"] as? Bool == true)
+    }
+
+    /// Reading the radio goes through TCC, which aborts the whole process when the
+    /// bundle ships no usage string.
+    @Test("the bundle says why it uses Bluetooth")
+    func usageDescription() throws {
+        let plist = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "Resources/Info.plist")
+        let data = try Data(contentsOf: plist)
+        var format = PropertyListSerialization.PropertyListFormat.xml
+        let root = try PropertyListSerialization.propertyList(
+            from: data,
+            options: [],
+            format: &format
+        ) as? [String: Any]
+        let reason = root?["NSBluetoothAlwaysUsageDescription"] as? String
+        #expect(reason?.isEmpty == false)
     }
 }
 
