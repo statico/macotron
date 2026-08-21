@@ -1,6 +1,8 @@
 import Foundation
 import Testing
+import UserNotifications
 @testable import MacotronEngine
+@testable import Modules
 
 @Suite("Privacy metadata")
 struct PrivacyMetadataTests {
@@ -23,9 +25,21 @@ struct PrivacyMetadataTests {
 struct AutomationPermissionTests {
     @Test func parseAndLabel() {
         #expect(Permissions.parse("automation") == .automation)
+        #expect(Permissions.parse("applescript") == .automation)
         #expect(Permission.automation.title == "Automation")
         #expect(Permission.automation.isAutoRequestable == false)
         #expect(Permissions.baseline.contains(.automation))
+    }
+}
+
+@Suite("Notify authorization deferral")
+struct NotifyDeferralTests {
+    @Test("delivery is gated on authorization status")
+    func gating() {
+        #expect(NotifyModule.deliveryDecision(for: .notDetermined) == .askFirst)
+        #expect(NotifyModule.deliveryDecision(for: .denied) == .drop)
+        #expect(NotifyModule.deliveryDecision(for: .authorized) == .deliver)
+        #expect(NotifyModule.deliveryDecision(for: .provisional) == .deliver)
     }
 }
 

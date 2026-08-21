@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Testing
 @testable import MacotronEngine
@@ -28,6 +29,39 @@ struct QRCodesTests {
     func rejectsHugeText() {
         let text = String(repeating: "x", count: QRCodes.maxTextCount + 1)
         #expect(QRCodes.png(text: text) == nil)
+    }
+
+    @Test("generated size is clamped")
+    func pixelCap() throws {
+        let png = try #require(QRCodes.png(text: "hi", size: 1_000_000))
+        let rep = try #require(NSBitmapImageRep(data: png))
+        #expect(rep.pixelsWide <= Int(QRCodes.maxPixelSize))
+        #expect(rep.pixelsHigh <= Int(QRCodes.maxPixelSize))
+    }
+
+    @Test("images wider than the dimension cap are not scanned")
+    func dimensionCap() throws {
+        let payload = "https://macotron.example/wide"
+        let qr = try #require(QRCodes.png(text: payload, size: 96))
+        let small = try embed(qr, width: 512, height: 128)
+        #expect(QRCodes.detect(data: small) == payload)
+        let wide = try embed(qr, width: QRCodes.maxDimension + 8, height: 128)
+        #expect(QRCodes.detect(data: wide) == nil)
+    }
+
+    private func embed(_ qr: Data, width: Int, height: Int) throws -> Data {
+        let image = try #require(NSImage(data: qr))
+        let rep = try #require(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height,
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        NSColor.white.setFill()
+        NSRect(x: 0, y: 0, width: width, height: height).fill()
+        image.draw(in: NSRect(x: 16, y: 16, width: 96, height: 96))
+        NSGraphicsContext.restoreGraphicsState()
+        return try #require(rep.representation(using: .png, properties: [:]))
     }
 }
 

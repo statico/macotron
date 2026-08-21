@@ -14,9 +14,10 @@ private final class ClipboardPlainTapState: @unchecked Sendable {
 @MainActor
 public final class ClipboardModule: NativeModule {
     public let name = "clipboard"
-    public let moduleVersion = 3
+    public let moduleVersion = 4
 
-    private var history: [[String: Any]] = []
+    var history: [[String: Any]] = []
+    var historyOptIn = false
     private var lastChangeCount = NSPasteboard.general.changeCount
     private var timer: Timer?
     private weak var engine: Engine?
@@ -29,6 +30,7 @@ public final class ClipboardModule: NativeModule {
 
     public func register(in engine: Engine, options: [String: Any]) {
         self.engine = engine
+        historyOptIn = options["history"] as? Bool ?? false
         engine.configStore["__clipboardModule"] = self
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
@@ -68,6 +70,7 @@ public final class ClipboardModule: NativeModule {
             guard let module = engine.configStore["__clipboardModule"] as? ClipboardModule else {
                 return JSBridge.newArray(ctx, [])
             }
+            module.historyOptIn = true
             module.startPolling()
             return JSBridge.newArray(ctx, module.trimmedHistory())
         }, "history", 0))
@@ -153,11 +156,14 @@ public final class ClipboardModule: NativeModule {
         JS_SetPropertyStr(ctx, macotron, "clipboard", clipboard)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
+
+        guard !engine.dryRun else { return }
+        startPolling()
     }
 
     var isPolling: Bool { timer != nil }
 
-    fileprivate func startPolling() {
+    func startPolling() {
         guard timer == nil, engine?.dryRun != true else { return }
         lastChangeCount = NSPasteboard.general.changeCount
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
@@ -179,6 +185,7 @@ public final class ClipboardModule: NativeModule {
         timer = nil
         removePasteTap()
         pastePlain = false
+        historyOptIn = false
     }
 
     private func setPastePlain(_ on: Bool) -> Bool {
@@ -248,13 +255,15 @@ public final class ClipboardModule: NativeModule {
         ClipboardPlainTapState.shared.eventTap = nil
     }
 
-    private func poll() {
-        let pasteboard = NSPasteboard.general
+    private var historyEnabled: Bool {
+        historyOptIn || engine?.eventBus.hasListeners("clipboard:changed") == true
+    }
+
+    func poll(_ pasteboard: NSPasteboard = .general) {
         guard pasteboard.changeCount != lastChangeCount else { return }
         lastChangeCount = pasteboard.changeCount
-        let types = ClipboardPasteboard.types(pasteboard)
         emitChanged(pasteboard)
-        guard ClipboardHistoryPolicy.isRecordable(types) else { return }
+        guard historyEnabled, ClipboardHistoryPolicy.isRecordable(ClipboardPasteboard.types(pasteboard)) else { return }
 
         if let text = pasteboard.string(forType: .string), !text.isEmpty {
             push(kind: "text", text: text)

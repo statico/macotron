@@ -60,7 +60,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .helper:
             return Permissions.helperService.status == .enabled
         case .automation:
-            return true
+            return Permissions.isAutomationGranted
         }
     }
 
@@ -68,9 +68,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     /// asking macOS for access, so it does not read as granting anything.
     public var actionTitle: String {
         switch self {
-        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone: return "Grant…"
+        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation: return "Grant…"
         case .helper: return "Install…"
-        case .automation: return "Open Settings…"
         }
     }
 
@@ -120,6 +119,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .helper:
             openSettings = Permissions.registerHelper()
         case .automation:
+            Permissions.requestAutomation()
             openSettings = true
         }
         return openSettings
@@ -179,7 +179,7 @@ public enum Permissions {
             return .microphone
         case "helper":
             return .helper
-        case "automation", "appleevents", "apple-events":
+        case "automation", "appleevents", "apple-events", "applescript":
             return .automation
         default:
             return nil
@@ -244,6 +244,21 @@ public enum Permissions {
         } catch {
             logger.error("Helper removal failed: \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - Automation internals
+
+    static var isAutomationGranted: Bool {
+        let target = NSAppleEventDescriptor(bundleIdentifier: "com.apple.systemevents")
+        guard let desc = target.aeDesc else { return false }
+        return AEDeterminePermissionToAutomateTarget(desc, typeWildCard, typeWildCard, false) == noErr
+    }
+
+    static func requestAutomation() {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", "tell application \"System Events\" to count processes"]
+        try? process.run()
     }
 
     // MARK: - Input Monitoring internals
