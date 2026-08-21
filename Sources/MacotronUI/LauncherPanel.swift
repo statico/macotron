@@ -109,6 +109,9 @@ public final class LauncherPanel: NSPanel {
             visual.layer?.cornerRadius = cornerRadius
             visual.layer?.masksToBounds = true
             visual.autoresizingMask = [.width, .height]
+            let tint = LauncherTintView(frame: visual.bounds)
+            tint.autoresizingMask = [.width, .height]
+            visual.addSubview(tint)
             return visual
         case .opaque:
             let view = OpaqueLauncherChrome(frame: frame)
@@ -290,6 +293,38 @@ private final class HostPinView: NSView {
     override func layout() {
         super.layout()
         subviews.forEach { $0.frame = bounds }
+    }
+}
+
+/// Charcoal wash over the vibrancy.
+///
+/// Behind-window blur takes its color from whatever sits behind the panel, so
+/// the launcher turns pale gray over a light window. This tint is opaque enough
+/// to hold the background near the same dark tone everywhere while the blur
+/// still shows through. Light mode keeps plain vibrancy.
+private let launcherTint = NSColor(name: nil) { appearance in
+    appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        ? NSColor(white: 0.17, alpha: 0.88)
+        : .clear
+}
+
+private final class LauncherTintView: NSView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        paint()
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    override func viewDidChangeEffectiveAppearance() {
+        paint()
+    }
+
+    private func paint() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.backgroundColor = launcherTint.cgColor
+        }
     }
 }
 

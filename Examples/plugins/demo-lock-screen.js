@@ -4,5 +4,5 @@ macotron.plugin({
 });
 
 macotron.command("Lock Screen", "Lock this Mac", () => {
-  if (confirm("Lock the screen?")) macotron.power.lock();
+  macotron.power.lock();
 });

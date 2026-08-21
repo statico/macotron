@@ -17,12 +17,10 @@ public final class WizardState: ObservableObject {
     /// shows just the permissions step.
     @Published public var steps: [WizardStep] = WizardStep.allCases
     @Published public var stepIndex: Int = 0
-    @Published public var pluginsPath: String = ""
     @Published public var pluginsURL: URL?
 
     public var pickFolder: (() -> URL?)?
     public var initWorkspace: ((URL) -> Bool)?
-    public var openInFinder: ((URL) -> Void)?
     public var onComplete: (() -> Void)?
 
     public init() {}
@@ -49,14 +47,9 @@ public final class WizardState: ObservableObject {
     public func chooseFolder() {
         guard let url = pickFolder?() else { return }
         pluginsURL = url
-        pluginsPath = url.path(percentEncoded: false)
     }
 
     public func finish() {
-        // A permissions-only run has no folder to set up.
-        if steps.contains(.folder) {
-            guard let url = pluginsURL, initWorkspace?(url) == true else { return }
-        }
         onComplete?()
     }
 }
@@ -87,6 +80,7 @@ public struct WizardView: View {
 
             footer
         }
+        .catalogInstaller(state: permissions)
     }
 
     // MARK: - Footer
@@ -106,11 +100,10 @@ public struct WizardView: View {
                     state.finish()
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(!canFinish)
             } else {
                 Button("Next") {
                     if state.currentStep == .folder, let url = state.pluginsURL {
-                        _ = state.initWorkspace?(url)
+                        guard state.initWorkspace?(url) == true else { return }
                     }
                     withAnimation(.easeInOut(duration: 0.2)) {
                         state.stepIndex += 1
@@ -130,10 +123,6 @@ public struct WizardView: View {
 
     private var finishLabel: String {
         state.currentStep == .permissions ? "Done" : "Open Macotron"
-    }
-
-    private var canFinish: Bool {
-        state.steps.contains(.folder) ? state.pluginsURL != nil : true
     }
 
     private var stepDots: some View {
@@ -181,17 +170,17 @@ public struct WizardView: View {
                 subtitle: "Choose a directory Macotron will use for plugins. The app will create plugins/, settings.json, and agent docs there."
             )
 
-            if state.pluginsPath.isEmpty {
-                Text("No folder selected")
-                    .font(.callout)
-                    .foregroundStyle(.tertiary)
-            } else {
-                Text(state.pluginsPath)
+            if let url = state.pluginsURL {
+                Text(url.path(percentEncoded: false))
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .lineLimit(3)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 420)
+            } else {
+                Text("No folder selected")
+                    .font(.callout)
+                    .foregroundStyle(.tertiary)
             }
 
             HStack(spacing: 12) {
@@ -201,7 +190,7 @@ public struct WizardView: View {
 
                 if let url = state.pluginsURL {
                     Button("Open in Finder") {
-                        state.openInFinder?(url)
+                        NSWorkspace.shared.open(url)
                     }
                 }
             }
@@ -219,8 +208,7 @@ public struct WizardView: View {
             CatalogBrowser(
                 plugins: permissions.catalogPlugins,
                 installedNames: permissions.installedPluginNames,
-                onInstall: { permissions.beginInstall($0) },
-                onPreview: { permissions.beginInstall($0) }
+                onInstall: { permissions.beginInstall($0) }
             )
         }
         .padding(24)

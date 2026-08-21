@@ -1,6 +1,5 @@
 // AppDelegate.swift — NSApplicationDelegate, app lifecycle
 import AppKit
-import Combine
 import SwiftUI
 import MacotronEngine
 import MacotronUI
@@ -22,8 +21,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var keyboardModule: KeyboardModule?
     private var launcherModule: LauncherModule?
     private var wizardWindow: WizardWindow?
-    private var catalogInstallWindow: CatalogInstallWindow!
-    private var installTargetObserver: AnyCancellable?
     private let wizardState = WizardState()
     private var appSearchProvider: AppSearchProvider!
     private var didRegisterPermissions = false
@@ -42,8 +39,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.loadRequiredPermissions = { [weak self] in
             self?.requiredPermissions() ?? Permissions.baseline
         }
+        settingsState.onScanCatalog = { [weak self] plugin in
+            self?.scanCatalogPlugin(plugin)
+        }
         observePermissionTriggers()
-        observeCatalogInstallTarget()
 
         if let root = PluginWorkspace.resolveFromDefaults() {
             bootstrap(workspaceRoot: root)
@@ -279,9 +278,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         settingsState.onSetHotReload = { [weak self] value in
             self?.setHotReload(value)
-        }
-        settingsState.onScanCatalog = { [weak self] plugin in
-            self?.scanCatalogPlugin(plugin)
         }
         settingsState.onInstallCatalog = { [weak self] plugin, override in
             self?.installCatalogPlugin(plugin, override: override)
@@ -551,19 +547,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
-        wizardState.openInFinder = { url in
-            NSWorkspace.shared.open(url)
-        }
         wizardState.onComplete = { [weak self] in
             guard let self else { return }
-            let wasFullSetup = self.wizardState.steps.contains(.ready)
+            let openSettings = self.wizardState.currentStep == .ready
             self.wizardWindow?.close()
             self.wizardWindow = nil
             UserDefaults.standard.set(true, forKey: AppDelegate.wizardCompletedKey)
             self.installLauncherHotkey()
-            // "Open Macotron" ends first-run setup, so land the user in Settings.
-            // A permissions-only run just closes.
-            if wasFullSetup {
+            if openSettings {
                 self.settingsWindow?.show()
             }
         }
@@ -627,28 +618,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshPermissions() }
         }
-    }
-
-    /// The install and review dialog lives in its own resizable window, shared by
-    /// the wizard and Settings, so it follows the install target rather than being
-    /// presented as a fixed-size sheet.
-    private func observeCatalogInstallTarget() {
-        catalogInstallWindow = CatalogInstallWindow(state: settingsState)
-        settingsState.onScanCatalog = { [weak self] plugin in
-            self?.scanCatalogPlugin(plugin)
-        }
-        installTargetObserver = settingsState.$installTarget
-            .receive(on: RunLoop.main)
-            .sink { [weak self] target in
-                MainActor.assumeIsolated {
-                    guard let self else { return }
-                    if target == nil {
-                        self.catalogInstallWindow.close()
-                    } else {
-                        self.catalogInstallWindow.show()
-                    }
-                }
-            }
     }
 
     /// Re-check every required permission and update the menu bar and Settings.
@@ -755,7 +724,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private func scanCatalogPlugin(_ plugin: CatalogPlugin) {
         let filename = plugin.filename
         settingsState.scanning = true
-        settingsState.scanNote = nil
         settingsState.scanReport = nil
         Task { @MainActor in
             let report = await PluginScanner.scan(
@@ -765,7 +733,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             )
             guard settingsState.installTarget?.filename == filename else { return }
             settingsState.scanReport = report
-            settingsState.scanNote = report.unavailableReason
             settingsState.scanning = false
         }
     }
@@ -804,7 +771,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let file = workspace.pluginsDir.appending(path: name)
         guard let source = try? String(contentsOf: file, encoding: .utf8) else { return }
-        settingsState.beginReview(filename: name, source: source, destHash: PluginHash.sha256(file: file))
+        settingsState.beginReview(filename: name, source: source, destHash: PluginHash.sha256(file: file), fileURL: file)
     }
 
     private func setupMainMenu() {
@@ -959,16 +926,56 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         try? workspace.updateSettings { settings in
             var table = CommandShortcuts.load(from: settings[tableKey])
             table.assign(commandId: id, combo: stored)
+            let pluginDefaults = Dictionary(
+                uniqueKeysWithValues: engine.hotkeyRegistry.values.map { ($0.id, $0.defaultCombo) }
+            )
+            if tableKey == "keyboardShortcuts" {
+                table.unbindMatching(combo: stored, defaults: pluginDefaults, except: id)
+            }
             settings[tableKey] = table.jsonObject()
-            if !stored.isEmpty {
+            if !stored.isEmpty, stored != CommandShortcuts.unbound {
                 var other = CommandShortcuts.load(from: settings[otherKey])
                 other.removeCombo(stored)
+                if otherKey == "keyboardShortcuts" {
+                    other.unbindMatching(combo: stored, defaults: pluginDefaults)
+                }
                 settings[otherKey] = other.jsonObject()
+                stealKeybindingOptions(combo: stored, from: &settings)
             }
         }
         engine.configStore = workspace.readSettings()
         installCommandShortcuts()
         rebindPluginHotkeys()
+        settingsState.refreshModules()
+        settingsState.refreshAppShortcuts()
+    }
+
+    /// Plugin option hotkeys live in pluginSettings, not the shortcut tables.
+    private func stealKeybindingOptions(combo: String, from settings: inout [String: Any]) {
+        let wanted = combo.lowercased()
+        let metadata = engine.moduleMetadata
+        var pluginSettings = settings["pluginSettings"] as? [String: [String: Any]] ?? [:]
+        var changed = false
+        for (filename, defs) in metadata {
+            guard let options = defs["options"] as? [String: [String: Any]] else { continue }
+            var fileSettings = pluginSettings[filename] ?? [:]
+            var fileChanged = false
+            for (key, def) in options {
+                guard (def["type"] as? String) == "keybinding" else { continue }
+                let current = ((fileSettings[key] ?? def["default"]) as? String ?? "").lowercased()
+                if current == wanted {
+                    fileSettings[key] = ""
+                    fileChanged = true
+                }
+            }
+            if fileChanged {
+                pluginSettings[filename] = fileSettings
+                changed = true
+            }
+        }
+        if changed {
+            settings["pluginSettings"] = pluginSettings
+        }
     }
 
     private func installCommandShortcuts() {

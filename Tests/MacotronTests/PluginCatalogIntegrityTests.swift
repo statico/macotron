@@ -113,6 +113,7 @@ struct PluginCatalogTests {
         #expect(plugins[0].highlighted)
         #expect(plugins[0].isStock)
         #expect(plugins[0].permissions == [.accessibility])
+        #expect(plugins[0].fileURL.lastPathComponent == "demo-weather.js")
     }
 }
 
