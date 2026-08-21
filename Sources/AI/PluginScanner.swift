@@ -33,6 +33,12 @@ public enum PluginScanner {
         """
 
     public static func scan(source: String, title: String, permissions: [String]) async -> PluginScanReport {
+        var report = await rawScan(source: source, title: title, permissions: permissions)
+        report.sourceHash = PluginHash.sha256(source: source)
+        return report
+    }
+
+    private static func rawScan(source: String, title: String, permissions: [String]) async -> PluginScanReport {
         let flags = PluginScan.staticFlags(source)
         if #available(macOS 26.0, *) {
             #if canImport(FoundationModels)

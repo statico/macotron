@@ -25,17 +25,21 @@ public struct PluginScanReport: Equatable, Sendable {
     public var unavailableReason: String?
     public var findings: [PluginScanFinding]
     public var staticFlags: [String]
+    /// SHA-256 of the bytes the scan actually read. A verdict without it binds to nothing.
+    public var sourceHash: String?
 
     public init(
         modelAvailable: Bool = true,
         unavailableReason: String? = nil,
         findings: [PluginScanFinding] = [],
-        staticFlags: [String] = []
+        staticFlags: [String] = [],
+        sourceHash: String? = nil
     ) {
         self.modelAvailable = modelAvailable
         self.unavailableReason = unavailableReason
         self.findings = findings
         self.staticFlags = staticFlags
+        self.sourceHash = sourceHash
     }
 
     public var approved: Bool {
@@ -43,6 +47,10 @@ public struct PluginScanReport: Equatable, Sendable {
     }
 
     public var needsOverride: Bool { !approved }
+
+    public func matches(source: String) -> Bool {
+        sourceHash == PluginHash.sha256(source: source)
+    }
 }
 
 public enum PluginScan {

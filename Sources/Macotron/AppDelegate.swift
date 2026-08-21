@@ -26,6 +26,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var appSearchProvider: AppSearchProvider!
     private var didRegisterPermissions = false
     private var permissionTimer: Timer?
+    private var scanTask: Task<Void, Never>?
     private var didFinishLaunching = false
 
     private static let wizardCompletedKey = "wizardCompleted"
@@ -731,26 +732,23 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func scanCatalogPlugin(_ plugin: CatalogPlugin) {
-        let filename = plugin.filename
         settingsState.scanning = true
         settingsState.scanReport = nil
-        Task { @MainActor in
+        scanTask?.cancel()
+        scanTask = Task { @MainActor in
             let report = await PluginScanner.scan(
                 source: plugin.source,
                 title: plugin.title,
                 permissions: plugin.permissions.map(\.rawValue)
             )
-            guard settingsState.installTarget?.filename == filename else { return }
-            settingsState.scanReport = report
-            settingsState.scanning = false
+            guard !Task.isCancelled else { return }
+            settingsState.applyScanReport(report)
         }
     }
 
     private func installCatalogPlugin(_ plugin: CatalogPlugin, override: Bool) {
         guard let workspace else { return }
-        if let report = settingsState.scanReport, report.needsOverride, !override {
-            return
-        }
+        guard settingsState.allowsInstall(of: plugin, override: override) else { return }
         let dest = workspace.pluginsDir.appending(path: plugin.filename)
         do {
             try plugin.source.write(to: dest, atomically: true, encoding: .utf8)

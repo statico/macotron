@@ -343,6 +343,22 @@ public final class SettingsState: ObservableObject {
         onScanCatalog?(plugin)
     }
 
+    /// Only accept a report that binds to the bytes still up for install; a scan
+    /// that outlived a cancelled review is dropped.
+    public func applyScanReport(_ report: PluginScanReport) {
+        guard let target = installTarget, report.matches(source: target.source) else { return }
+        scanReport = report
+        scanning = false
+    }
+
+    /// A verdict approves only the exact bytes it scanned. No report is fine for
+    /// built-ins, whose bytes ship inside the signed bundle.
+    public func allowsInstall(of plugin: CatalogPlugin, override: Bool) -> Bool {
+        guard let report = scanReport else { return true }
+        guard report.matches(source: plugin.source) else { return false }
+        return !report.needsOverride || override
+    }
+
     public func beginReview(filename: String, source: String, destHash: String?, fileURL: URL) {
         scanReport = nil
         scanning = false
