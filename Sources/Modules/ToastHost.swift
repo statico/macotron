@@ -1,5 +1,6 @@
 // ToastHost.swift — HUD toast. Text wraps; the panel grows with the copy.
 import AppKit
+import MacotronEngine
 
 enum ToastPosition: Equatable {
     case top
@@ -57,25 +58,12 @@ enum ToastLayout {
         case "failure", "error", "red": return .error
         case "warning", "orange": return .warning
         default:
-            return hexColor(s).map { .custom($0) } ?? namedColor(s).map { .custom($0) } ?? .info
+            return HexColor.parse(s).map { .custom($0) } ?? namedColor(s).map { .custom($0) } ?? .info
         }
     }
 
     static func parseColor(_ raw: String?) -> NSColor? {
         kind(raw).tint
-    }
-
-    private static func hexColor(_ s: String) -> NSColor? {
-        guard s.hasPrefix("#") else { return nil }
-        var hex = String(s.dropFirst())
-        if hex.count == 3 { hex = hex.map { "\($0)\($0)" }.joined() }
-        guard hex.count == 6, let n = UInt32(hex, radix: 16) else { return nil }
-        return NSColor(
-            srgbRed: CGFloat((n >> 16) & 0xff) / 255,
-            green: CGFloat((n >> 8) & 0xff) / 255,
-            blue: CGFloat(n & 0xff) / 255,
-            alpha: 1
-        )
     }
 
     private static func namedColor(_ s: String) -> NSColor? {

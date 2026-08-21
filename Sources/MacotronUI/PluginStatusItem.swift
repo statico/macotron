@@ -238,19 +238,7 @@ final class PluginStatusItem: NSObject {
     static func parseColor(_ raw: String?) -> NSColor? {
         guard let raw else { return nil }
         let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if s.hasPrefix("#") {
-            var hex = String(s.dropFirst())
-            if hex.count == 3 {
-                hex = hex.map { "\($0)\($0)" }.joined()
-            }
-            guard hex.count == 6, let n = UInt32(hex, radix: 16) else { return nil }
-            return NSColor(
-                srgbRed: CGFloat((n >> 16) & 0xff) / 255,
-                green: CGFloat((n >> 8) & 0xff) / 255,
-                blue: CGFloat(n & 0xff) / 255,
-                alpha: 1
-            )
-        }
+        if s.hasPrefix("#") { return HexColor.parse(s) }
         switch s.lowercased() {
         case "red": return .systemRed
         case "orange": return .systemOrange
