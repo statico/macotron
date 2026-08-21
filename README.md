@@ -6,7 +6,7 @@
 
 Early, incomplete, and fun to poke at.
 
-Macotron is a native macOS host for JavaScript plugins — a thin app that lets a `.js` file drive the Mac. You pick a plugins folder. Cursor, Claude Code, or you write the files. Macotron loads them, hot-reloads on save, and bridges them to real macOS APIs.
+Macotron is a native macOS host for JavaScript plugins — a thin app that lets a `.js` file drive the Mac. You pick a plugins folder. [Claude Code](https://claude.com/claude-code), [Codex](https://openai.com/codex/), [Cursor](https://cursor.com), [pi.dev](https://pi.dev), or you write the files. Macotron loads them, hot-reloads on save, and bridges them to real macOS APIs.
 
 No in-app coding agent. The plugins on disk are the source of truth.
 

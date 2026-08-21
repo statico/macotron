@@ -2,7 +2,7 @@
 
 Macotron is a modern Hammerspoon: a thin native macOS host for JavaScript automation plugins.
 
-External coding agents edit plugins. The app does not ship an in-app coding agent. You open the plugins directory in Cursor or Claude Code. The agent writes `.js` files. Macotron loads and runs them.
+External coding agents edit plugins. The app does not ship an in-app coding agent. You open the plugins directory in Claude Code, Codex, Cursor, or pi.dev. The agent writes `.js` files. Macotron loads and runs them.
 
 **Core principle:** Everything is "listen for event -> run code."
 
@@ -12,7 +12,7 @@ Plugins are JavaScript files that register hotkeys, hooks, and UI at load time. 
 
 ```
 ┌─────────────────────────────────┐
-│  External agent                 │  Cursor / Claude Code edits plugins
+│  External agent                 │  Claude Code, Codex, Cursor, pi.dev
 ├─────────────────────────────────┤
 │  Plugins directory (git repo)   │  plugins/*.js + settings.json
 ├─────────────────────────────────┤
@@ -41,7 +41,7 @@ Plugin UI uses small WKWebView panels through `macotron.panel`.
 On first launch, the wizard guides the user:
 
 1. **Welcome** — Macotron hosts plugins that automate macOS.
-2. **Pick directory** — Choose the plugins workdir. Optionally open it in Finder or Cursor.
+2. **Pick directory** — Choose the plugins workdir. Optionally open it in Finder or your editor.
 3. **Choose plugins** — Install built-in plugins. You can skip this.
 4. **Permissions** — Grant what the installed plugins declared.
 5. **Ready** — The app seeds `README.md` once if missing. It writes `AGENTS.md` and `CLAUDE.md`.
