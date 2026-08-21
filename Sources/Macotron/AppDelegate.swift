@@ -434,6 +434,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     let defaultValue = def["default"] ?? ""
                     let currentValue = fileSettings[key] ?? defaultValue
                     let required = def["required"] as? Bool ?? false
+                    let placeholder = def["placeholder"] as? String ?? ""
 
                     let choices = ((def["choices"] as? [[String: Any]]) ?? []).compactMap { choice -> ModuleOptionChoice? in
                         guard let value = choice["value"] as? String,
@@ -457,7 +458,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     options.append(ModuleOption(
                         key: key, label: label, type: type,
                         defaultValue: defaultValue, currentValue: currentValue,
-                        required: required, isSet: isSet, choices: choices
+                        required: required, isSet: isSet, choices: choices,
+                        placeholder: placeholder
                     ))
                 }
             }

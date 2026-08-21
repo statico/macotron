@@ -592,6 +592,7 @@ public final class PluginWorkspace {
             openHotkey: { type: "keybinding", label: "Open chat", default: "cmd+shift+c" },
             notesFile: { type: "file", label: "Notes file" },
             workspace: { type: "directory", label: "Workspace folder" },
+            locale: { type: "string", label: "Locale", placeholder: macotron.system.locale().language },
           },
         });
         // opts.apiKey === resolved secret string (or "")
@@ -599,6 +600,11 @@ public final class PluginWorkspace {
 
         Option types: `string`, `boolean`, `number`, `keybinding`, `dropdown`
         (requires `choices: [{ value, label }]`), `password`, `file`, `directory`.
+
+        Text, number, password, file, and directory options accept `placeholder`,
+        the grey hint shown while the field is empty. It is read at plugin load,
+        so it can show live state such as the current system locale. Use it
+        instead of writing the fallback into the label.
         Every option takes `label`, optional `default`, and optional `required`
         (Settings shows a "Needs setup" hint while a required option is unset).
 
