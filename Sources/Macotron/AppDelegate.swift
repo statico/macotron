@@ -746,31 +746,30 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             PluginTrust.approve(filename: plugin.filename, source: plugin.source)
             moduleManager.reloadAll()
             refreshIntegrity()
+            if settingsState.isReviewing {
+                presentNextReview(workspace: workspace)
+            }
         } catch {
             NSLog("[Macotron] Catalog install failed: \(error)")
         }
     }
 
     private func reviewPendingPlugins() {
-        guard let workspace, let moduleManager else { return }
-        let names = Array(moduleManager.pendingReview)
-        Task { @MainActor in
-            for name in names {
-                let file = workspace.pluginsDir.appending(path: name)
-                guard let source = try? String(contentsOf: file, encoding: .utf8) else { continue }
-                let header = PluginHeader.parse(source)
-                let report = await PluginScanner.scan(
-                    source: source,
-                    title: header.title ?? name,
-                    permissions: header.permissions
-                )
-                if report.approved {
-                    PluginTrust.approve(filename: name, source: source)
-                }
-            }
-            moduleManager.reloadAll()
-            refreshIntegrity()
+        guard let workspace else { return }
+        settingsState.requestedTab = SettingsTab.plugins.rawValue
+        settingsWindow?.show()
+        presentNextReview(workspace: workspace)
+    }
+
+    private func presentNextReview(workspace: PluginWorkspace) {
+        guard let name = settingsState.pendingReview.first ?? moduleManager?.pendingReview.sorted().first else {
+            settingsState.installTarget = nil
+            settingsState.isReviewing = false
+            return
         }
+        let file = workspace.pluginsDir.appending(path: name)
+        guard let source = try? String(contentsOf: file, encoding: .utf8) else { return }
+        settingsState.beginReview(filename: name, source: source, destHash: PluginHash.sha256(file: file))
     }
 
     private func setupMainMenu() {

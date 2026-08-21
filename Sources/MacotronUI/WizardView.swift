@@ -231,12 +231,19 @@ public struct WizardView: View {
                 modelNote: permissions.scanNote,
                 report: permissions.scanReport,
                 scanning: permissions.scanning,
+                isReview: permissions.isReviewing,
+                grantedPermissions: permissions.grantedPermissions,
+                onPermissionChange: { permissions.refreshPermissions() },
                 onScan: { permissions.onScanCatalog?(plugin) },
                 onInstall: { override in
                     permissions.onInstallCatalog?(plugin, override)
                     permissions.installTarget = nil
+                    permissions.isReviewing = false
                 },
-                onCancel: { permissions.installTarget = nil }
+                onCancel: {
+                    permissions.installTarget = nil
+                    permissions.isReviewing = false
+                }
             )
         }
     }

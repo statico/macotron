@@ -95,6 +95,9 @@ public struct CatalogInstallSheet: View {
     var modelNote: String?
     var report: PluginScanReport?
     var scanning: Bool
+    var isReview: Bool
+    var grantedPermissions: Set<Permission>
+    var onPermissionChange: () -> Void
     var onScan: () -> Void
     var onInstall: (Bool) -> Void
     var onCancel: () -> Void
@@ -114,12 +117,15 @@ public struct CatalogInstallSheet: View {
                     .font(.callout)
             }
             if !plugin.permissions.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Permissions")
                         .font(.headline)
                     ForEach(plugin.permissions) { permission in
-                        Text("• \(permission.title) — \(permission.reason)")
-                            .font(.system(size: 12))
+                        PermissionRow(
+                            permission: permission,
+                            granted: grantedPermissions.contains(permission),
+                            onChange: onPermissionChange
+                        )
                     }
                 }
             }
@@ -165,15 +171,15 @@ public struct CatalogInstallSheet: View {
                     Button("Scan & Continue") { onScan() }
                         .keyboardShortcut(.defaultAction)
                 } else if let report, report.needsOverride {
-                    Button("Install Anyway") { onInstall(true) }
+                    Button(isReview ? "Run Anyway" : "Install Anyway") { onInstall(true) }
                         .keyboardShortcut(.defaultAction)
                 } else if report?.approved == true {
-                    Button("Install") { onInstall(false) }
+                    Button(isReview ? "Reload" : "Install") { onInstall(false) }
                         .keyboardShortcut(.defaultAction)
                 }
             }
         }
         .padding(20)
-        .frame(width: 520)
+        .frame(width: 560)
     }
 }
