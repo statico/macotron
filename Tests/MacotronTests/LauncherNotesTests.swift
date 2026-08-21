@@ -33,6 +33,13 @@ struct NotesListTests {
         #expect(NotesList.escape("a\"b\\c") == "a\\\"b\\\\c")
     }
 
+    @Test("newlines cannot break out of AppleScript string literals")
+    func escapeNewlines() {
+        #expect(NotesList.escape("a\nb") == "a\" & return & \"b")
+        #expect(NotesList.escape("a\rb") == "a\" & return & \"b")
+        #expect(NotesList.escape("a\r\nb") == "a\" & return & \"b")
+    }
+
     @Test("hides Recently Deleted")
     func hidesDeleted() {
         let rows = NotesList.parse("id-1\tKeep\tNotes\nid-2\tGone\tRecently Deleted\n")
