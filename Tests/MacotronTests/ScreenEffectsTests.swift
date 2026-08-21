@@ -85,6 +85,20 @@ struct ScreenEffectsTests {
         #expect(result.contains(#""restore""#))
     }
 
+    @Test("switching from night vision to extra dark to night vision applies red")
+    func gammaModesAreMutuallyExclusive() throws {
+        let result = try eval(#"""
+            commands["Toggle Night Vision"]();
+            commands["Toggle Extra Dark"]();
+            commands["Toggle Night Vision"]();
+            var last = calls[calls.length - 1];
+            JSON.stringify({ op: last.op, red: last.white && last.white.red, green: last.white && last.white.green })
+            """#)
+        #expect(result.contains(#""op":"set""#))
+        #expect(result.contains(#""red":1"#))
+        #expect(result.contains(#""green":0"#))
+    }
+
     @Test("registers all display mode commands")
     func displayModeCommands() throws {
         let result = try eval(#"""

@@ -81,10 +81,11 @@ public enum PluginCatalog {
         return .modified
     }
 
-    private static let consolidationLegacyNames: Set<String> = [
+    private static let nonMigratableLegacyNames: Set<String> = [
         "demo-night-vision.js",
         "demo-gamma-black.js",
         "demo-display-modes.js",
+        "demo-screen-effects.js",
     ]
 
     public static func legacyRenames(bundle: Bundle = .main) -> [String: String] {
@@ -98,18 +99,10 @@ public enum PluginCatalog {
     private static func legacyRenames(from plugins: [CatalogPlugin]) -> [String: String] {
         var renames: [String: String] = [:]
         for plugin in plugins {
-            let filename = plugin.filename
-            let oldName: String
-            let newName: String
-            if filename.hasPrefix("demo-") {
-                oldName = filename
-                newName = String(filename.dropFirst(5))
-            } else {
-                newName = filename
-                oldName = "demo-" + newName
-            }
-            guard oldName != newName, !consolidationLegacyNames.contains(oldName) else { continue }
-            renames[oldName] = newName
+            guard !plugin.filename.hasPrefix("demo-") else { continue }
+            let oldName = "demo-" + plugin.filename
+            guard oldName != plugin.filename, !nonMigratableLegacyNames.contains(oldName) else { continue }
+            renames[oldName] = plugin.filename
         }
         return renames
     }
