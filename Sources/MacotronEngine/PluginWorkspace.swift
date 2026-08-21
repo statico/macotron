@@ -120,7 +120,6 @@ public final class PluginWorkspace {
     ) {
         let fm = FileManager.default
         var settings = readSettings()
-        var changedSettings = false
 
         for (oldName, newName) in renames.sorted(by: { $0.key < $1.key }) {
             let src = pluginsDir.appending(path: oldName)
@@ -134,22 +133,46 @@ public final class PluginWorkspace {
                 continue
             }
 
-            changedSettings = migratePluginSettings(&settings, oldName: oldName, newName: newName)
-                || changedSettings
-            changedSettings = migrateDisabledPlugins(&settings, oldName: oldName, newName: newName)
-                || changedSettings
-            changedSettings = migrateShortcutTable(&settings, key: "commandShortcuts", oldName: oldName, newName: newName)
-                || changedSettings
-            changedSettings = migrateShortcutTable(&settings, key: "keyboardShortcuts", oldName: oldName, newName: newName)
-                || changedSettings
-            changedSettings = migrateFavoriteIDs(&settings, oldName: oldName, newName: newName)
-                || changedSettings
+            let settingsBefore = settings
+            let changedSettings = applySettingsMigration(&settings, oldName: oldName, newName: newName)
+
+            if changedSettings {
+                do {
+                    try writeSettings(settings)
+                } catch {
+                    logger.error(
+                        "Failed to save settings after migrating \(oldName): \(error.localizedDescription)"
+                    )
+                    settings = settingsBefore
+                    do {
+                        try fm.moveItem(at: dest, to: src)
+                    } catch {
+                        logger.error(
+                            "Failed to roll back \(newName) to \(oldName): \(error.localizedDescription)"
+                        )
+                    }
+                    continue
+                }
+            }
+
             PluginTrust.migrateHash(from: oldName, to: newName, store: hashStore)
         }
+    }
 
-        if changedSettings {
-            try? writeSettings(settings)
-        }
+    private func applySettingsMigration(
+        _ settings: inout [String: Any],
+        oldName: String,
+        newName: String
+    ) -> Bool {
+        var changed = false
+        changed = migratePluginSettings(&settings, oldName: oldName, newName: newName) || changed
+        changed = migrateDisabledPlugins(&settings, oldName: oldName, newName: newName) || changed
+        changed = migrateShortcutTable(&settings, key: "commandShortcuts", oldName: oldName, newName: newName)
+            || changed
+        changed = migrateShortcutTable(&settings, key: "keyboardShortcuts", oldName: oldName, newName: newName)
+            || changed
+        changed = migrateFavoriteIDs(&settings, oldName: oldName, newName: newName) || changed
+        return changed
     }
 
     private func migratePluginSettings(
