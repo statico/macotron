@@ -72,9 +72,10 @@ enum DisplayChange {
 @MainActor
 public final class DisplayModule: NativeModule {
     public let name = "display"
-    public let moduleVersion = 4
+    public let moduleVersion = 5
 
     private var xdrWindow: NSWindow?
+    private let crt = CRTOverlay()
 
     public init() {}
 
@@ -127,6 +128,21 @@ public final class DisplayModule: NativeModule {
             guard let ctx, let module = displayModule(ctx) else { return JSBridge.newBool(ctx!, false) }
             return JSBridge.newBool(ctx, module.xdrWindow != nil)
         }, "isXDREnabled", 0))
+
+        JS_SetPropertyStr(ctx, displayObj, "setCRTEnabled",
+                          JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc > 0, let module = displayModule(ctx) else {
+                return JSBridge.newBool(ctx!, false)
+            }
+            if DisplayModule.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
+            return JSBridge.newBool(ctx, module.crt.setEnabled(JSBridge.toBool(ctx, argv[0])))
+        }, "setCRTEnabled", 1))
+
+        JS_SetPropertyStr(ctx, displayObj, "isCRTEnabled",
+                          JS_NewCFunction(ctx, { ctx, _, _, _ in
+            guard let ctx, let module = displayModule(ctx) else { return JSBridge.newBool(ctx!, false) }
+            return JSBridge.newBool(ctx, module.crt.isOn)
+        }, "isCRTEnabled", 0))
 
         JS_SetPropertyStr(ctx, displayObj, "setGamma",
                           JS_NewCFunction(ctx, { ctx, _, argc, argv in
@@ -239,6 +255,7 @@ public final class DisplayModule: NativeModule {
     public func cleanup() {
         xdrWindow?.close()
         xdrWindow = nil
+        crt.teardown()
         DisplayChange.stop()
         CGDisplayRestoreColorSyncSettings()
     }
