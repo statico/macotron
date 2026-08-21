@@ -4,7 +4,7 @@ This directory is the public site for Macotron, a native macOS host for JavaScri
 
 ## What this is
 
-A static homepage. No build step. GitHub Pages serves the `site/` folder as the domain root.
+A static homepage. No build step. Vercel serves the `site/` folder as the domain root.
 
 - `index.html` / `index.md` — product page
 - `site.js` / `site.css` — capabilities, API cards, plugin finder
