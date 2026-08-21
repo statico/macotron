@@ -2,26 +2,27 @@ import Foundation
 import MacotronEngine
 import SwiftUI
 
-enum ShortcutConflicts {
-    static let launcherID = "launcher"
+public enum ShortcutConflicts {
+    public static let launcherID = "launcher"
 
-    struct Claim: Equatable {
-        let id: String
-        let combo: String
-        let label: String
-        let pluginFile: String?
+    public struct Claim: Equatable {
+        public let id: String
+        public let combo: String
+        public let label: String
+        public let pluginFile: String?
     }
 
-    static func normalize(_ combo: String) -> String? {
+    public static func normalize(_ combo: String) -> String? {
         let s = combo.lowercased().trimmingCharacters(in: .whitespaces)
         if s.isEmpty || s == CommandShortcuts.unbound { return nil }
         return s
     }
 
-    static func claims(
+    public static func claims(
         launcher: String,
         apps: [AppShortcutSummary],
-        modules: [ModuleSummary]
+        modules: [ModuleSummary],
+        commandShortcuts: CommandShortcuts = CommandShortcuts()
     ) -> [Claim] {
         var out: [Claim] = []
         if let combo = normalize(launcher) {
@@ -64,29 +65,49 @@ enum ShortcutConflicts {
                 }
             }
         }
+        for host in HostCommands.all {
+            if let combo = normalize(commandShortcuts.combo(for: host.id)) {
+                out.append(Claim(id: host.id, combo: combo, label: host.name, pluginFile: nil))
+            }
+        }
         return out
     }
 
-    static func warning(for id: String, combo: String, in claims: [Claim]) -> String? {
+    public static func warning(for id: String, combo: String, in claims: [Claim]) -> String? {
         guard let normalized = normalize(combo) else { return nil }
         let others = claims.filter { $0.combo == normalized && $0.id != id }.map(\.label)
         guard !others.isEmpty else { return nil }
         return "Also used by " + others.joined(separator: ", ")
     }
 
-    static func pluginHasConflict(_ filename: String, in claims: [Claim]) -> Bool {
+    public static func pluginHasConflict(_ filename: String, in claims: [Claim]) -> Bool {
         Dictionary(grouping: claims, by: \.combo).values.contains { group in
             group.count > 1 && group.contains { $0.pluginFile == filename }
         }
+    }
+
+    public static func hotkeyRows(from claims: [Claim]) -> [ShowHotkeysRow] {
+        claims
+            .sorted { lhs, rhs in
+                let label = lhs.label.localizedCaseInsensitiveCompare(rhs.label)
+                if label != .orderedSame { return label == .orderedAscending }
+                let combo = lhs.combo.localizedCaseInsensitiveCompare(rhs.combo)
+                if combo != .orderedSame { return combo == .orderedAscending }
+                return lhs.id.localizedCaseInsensitiveCompare(rhs.id) == .orderedAscending
+            }
+            .map { ShowHotkeysRow(id: $0.id, combo: $0.combo, label: $0.label) }
     }
 }
 
 extension SettingsState {
     var shortcutClaims: [ShortcutConflicts.Claim] {
-        ShortcutConflicts.claims(
+        var table = CommandShortcuts()
+        table.assign(commandId: HostCommands.showHotkeysID, combo: showHotkeysHotkey)
+        return ShortcutConflicts.claims(
             launcher: launcherHotkey,
             apps: appShortcuts,
-            modules: moduleSummaries
+            modules: moduleSummaries,
+            commandShortcuts: table
         )
     }
 
