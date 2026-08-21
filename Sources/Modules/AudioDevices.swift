@@ -77,13 +77,20 @@ enum AudioDevices {
         return setScalar(id, kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyScopeOutput, &v)
     }
 
-    static func isMuted(id: AudioDeviceID) -> Bool {
-        muteValue(id) ?? false
+    static func muteScope(input: Bool, output: Bool) -> AudioObjectPropertyScope {
+        switch (input, output) {
+        case (true, _): return kAudioObjectPropertyScopeInput
+        default: return kAudioObjectPropertyScopeOutput
+        }
     }
 
-    static func setMuted(id: AudioDeviceID, _ on: Bool) -> Bool {
+    static func isMuted(id: AudioDeviceID, preferInput: Bool = false) -> Bool {
+        muteValue(id, preferInput: preferInput) ?? false
+    }
+
+    static func setMuted(id: AudioDeviceID, _ on: Bool, preferInput: Bool = false) -> Bool {
         var value: UInt32 = on ? 1 : 0
-        var addr = muteAddress(id)
+        var addr = muteAddress(id, preferInput: preferInput)
         let size = UInt32(MemoryLayout<UInt32>.size)
         return AudioObjectSetPropertyData(id, &addr, 0, nil, size, &value) == noErr
     }
@@ -191,19 +198,29 @@ enum AudioDevices {
         return ok
     }
 
-    private static func muteAddress(_ id: AudioDeviceID) -> AudioObjectPropertyAddress {
+    private static func muteAddress(_ id: AudioDeviceID, preferInput: Bool) -> AudioObjectPropertyAddress {
+        let hasInput = hasStreams(id, kAudioDevicePropertyScopeInput)
+        let hasOutput = hasStreams(id, kAudioDevicePropertyScopeOutput)
+        let scope = muteScope(input: preferInput && hasInput, output: hasOutput)
         var addr = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyMute,
-            mScope: kAudioObjectPropertyScopeOutput,
+            mScope: scope,
             mElement: kAudioObjectPropertyElementMain
         )
+        if AudioObjectHasProperty(id, &addr) { return addr }
+        addr.mElement = 1
+        if AudioObjectHasProperty(id, &addr) { return addr }
+        addr.mScope = scope == kAudioObjectPropertyScopeInput
+            ? kAudioObjectPropertyScopeOutput
+            : kAudioObjectPropertyScopeInput
+        addr.mElement = kAudioObjectPropertyElementMain
         if AudioObjectHasProperty(id, &addr) { return addr }
         addr.mElement = 1
         return addr
     }
 
-    private static func muteValue(_ id: AudioDeviceID) -> Bool? {
-        var addr = muteAddress(id)
+    private static func muteValue(_ id: AudioDeviceID, preferInput: Bool) -> Bool? {
+        var addr = muteAddress(id, preferInput: preferInput)
         var value: UInt32 = 0
         var size = UInt32(MemoryLayout<UInt32>.size)
         guard AudioObjectHasProperty(id, &addr),

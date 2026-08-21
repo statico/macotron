@@ -65,6 +65,10 @@
       "highlighted": false
     },
     {
+      "filename": "bluetooth.js",
+      "highlighted": false
+    },
+    {
       "filename": "brightness.js",
       "highlighted": false
     },
@@ -142,6 +146,10 @@
     },
     {
       "filename": "meeting-overlay.js",
+      "highlighted": false
+    },
+    {
+      "filename": "network-path.js",
       "highlighted": false
     },
     {

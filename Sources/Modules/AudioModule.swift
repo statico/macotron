@@ -67,19 +67,29 @@ public final class AudioModule: NativeModule {
 
         JS_SetPropertyStr(ctx, audio, "isMuted", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
-            let id = AudioModule.deviceID(ctx, argc > 0 ? argv?[0] : nil)
-                ?? AudioDevices.output().map { AudioDeviceID($0.id) }
-            guard let id else { return JSBridge.newBool(ctx, false) }
-            return JSBridge.newBool(ctx, AudioDevices.isMuted(id: id))
+            let explicit = argc > 0 ? AudioModule.deviceID(ctx, argv?[0]) : nil
+            if let id = explicit {
+                let preferInput = AudioDevices.find(id: id)?.input == true
+                return JSBridge.newBool(ctx, AudioDevices.isMuted(id: id, preferInput: preferInput))
+            }
+            guard let id = AudioDevices.output().map({ AudioDeviceID($0.id) }) else {
+                return JSBridge.newBool(ctx, false)
+            }
+            return JSBridge.newBool(ctx, AudioDevices.isMuted(id: id, preferInput: false))
         }, "isMuted", 1))
 
         JS_SetPropertyStr(ctx, audio, "setMuted", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
             let on = JSBridge.toBool(ctx, argv[0])
-            let id = (argc > 1 ? AudioModule.deviceID(ctx, argv[1]) : nil)
-                ?? AudioDevices.output().map { AudioDeviceID($0.id) }
-            guard let id else { return JSBridge.newBool(ctx, false) }
-            return JSBridge.newBool(ctx, AudioDevices.setMuted(id: id, on))
+            let explicit = argc > 1 ? AudioModule.deviceID(ctx, argv[1]) : nil
+            if let id = explicit {
+                let preferInput = AudioDevices.find(id: id)?.input == true
+                return JSBridge.newBool(ctx, AudioDevices.setMuted(id: id, on, preferInput: preferInput))
+            }
+            guard let id = AudioDevices.output().map({ AudioDeviceID($0.id) }) else {
+                return JSBridge.newBool(ctx, false)
+            }
+            return JSBridge.newBool(ctx, AudioDevices.setMuted(id: id, on, preferInput: false))
         }, "setMuted", 2))
 
         JS_SetPropertyStr(ctx, audio, "record", JS_NewCFunction(ctx, { ctx, _, argc, argv in

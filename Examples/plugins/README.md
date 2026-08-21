@@ -12,6 +12,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | audio.js | audio.devices / setOutput / setMuted | Cycle Output, Mute |
 | batch-rename.js | fs.rename | Prefix Downloads Today |
 | battery.js | system.battery | Battery |
+| bluetooth.js | network.bluetooth | (menu bar batteries) |
 | brightness.js | display brightness/XDR | Toggle XDR |
 | browser-picker.js | url.setDefaultHandler / on / onFallback | (URL routing, browser picker) |
 | browser-profiles.js | url.open | Open GitHub in Safari |
@@ -39,6 +40,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | lorem.js | command arguments | Generate Lorem Ipsum |
 | meeting-overlay.js | calendar.upcoming, panel fullscreen | (pre-meeting overlay) |
 | meetings.js | calendar.upcoming | Next Meeting |
+| network-path.js | network.counters / ping | (menu bar throughput + ping) |
 | notes.js | notes.list, launcher.set | (launcher rows) |
 | now-playing.js | media.nowPlaying, media:changed | Play/Pause, Next Track |
 | ocr.js | ocr.recognize, screen.capture | OCR Selection |

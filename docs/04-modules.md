@@ -64,9 +64,9 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **App:** `macotron.app.launch(bundleID)` and `.switch(bundleID)` both open via Launch Services (`activates: true`), so a running app comes forward. `.list()`, `.frontmost()`, `.hide(bundleID?)`, `.quit(bundleID?)`, `.menu(["File", "New"], bundleID?)`. Events: `app:activated`, `app:launched`, `app:terminated`.
 
-**Audio:** `devices()`, `input()`, `output()`, `setInput` / `setOutput` (id or name), `volume` / `setVolume` (0…1), `isMuted` / `setMuted`. `audio:changed` is `{ flags: ["input"|"output"|"devices"] }`. System output volume is this same `volume` / `setVolume` / `setMuted` with no device id.
+**Audio:** `devices()`, `input()`, `output()`, `setInput` / `setOutput` (id or name), `volume` / `setVolume` (0…1), `isMuted` / `setMuted`. No-id mute is the default output. Pass the input device id to mute that input. `audio:changed` is `{ flags: ["input"|"output"|"devices"] }`. System output volume is this same `volume` / `setVolume` / `setMuted` with no device id.
 
-**Network:** `wifi()` is `{ available, on, ssid? }`. `setWifi(on)` uses `networksetup`. `wifiSSID()` is the SSID or `null`. `bluetooth()` is `{ on, devices: [{ name, address, connected }] }`. `setBluetooth(on)` toggles the radio. `airDrop()` / `setAirDrop("off"|"contacts"|"everyone")` is sharingd Discoverable Mode. `interfaces()` is IPv4 `{ name, ip }[]`. `wifi:changed` is `{ on, ssid }`.
+**Network:** `wifi()` is `{ available, on, ssid? }`. `setWifi(on)` uses `networksetup`. `wifiSSID()` is the SSID or `null`. `bluetooth()` is `{ on, devices: [{ name, address, connected, battery? }] }`. `battery` is 0–100 when known. `setBluetooth(on)` toggles the radio. `airDrop()` / `setAirDrop("off"|"contacts"|"everyone")` is sharingd Discoverable Mode. `interfaces()` is IPv4 `{ name, ip }[]`. `counters()` is `{ name, ip?, bytesIn, bytesOut }[]` (no loopback). `ping(host?)` is `{ ms, host, error? }` via `/sbin/ping` (default `1.1.1.1`). `wifi:changed` is `{ on, ssid }`.
 
 **Bonjour:** `bonjour.browse(type, { timeout })` is `{ name, type, host, port, txt }[]`. `type` is `_airplay._tcp` or `_companion-link._tcp` (with or without `local.`). `timeout` is seconds, default 1.5. Dry-run returns `[]`.
 

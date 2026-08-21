@@ -129,6 +129,21 @@ enum NetworkControl {
         return line[range.upperBound...].trimmingCharacters(in: .whitespaces)
     }
 
+    static func ping(_ host: String = "1.1.1.1") -> [String: Any] {
+        let target = host.trimmingCharacters(in: .whitespacesAndNewlines)
+        let dest = target.isEmpty ? "1.1.1.1" : target
+        let result = run("/sbin/ping", ["-c", "1", "-t", "2", dest])
+        if let ms = NetworkPing.parse(result.out) {
+            return ["ms": ms, "host": dest]
+        }
+        let line = result.out.split(separator: "\n").first.map(String.init) ?? ""
+        return [
+            "ms": NSNull(),
+            "host": dest,
+            "error": line.isEmpty ? "ping failed" : line,
+        ]
+    }
+
     private static func run(_ path: String, _ args: [String]) -> (out: String, ok: Bool) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: path)
@@ -145,6 +160,30 @@ enum NetworkControl {
         let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return (out, process.terminationStatus == 0)
+    }
+}
+
+enum NetworkPing {
+    static func parse(_ stdout: String) -> Double? {
+        guard let range = stdout.range(of: "time=") else { return nil }
+        let num = stdout[range.upperBound...].prefix(while: { $0.isNumber || $0 == "." })
+        return Double(num)
+    }
+}
+
+enum NetworkRate {
+    static func format(_ bps: Double) -> String {
+        let n = abs(bps)
+        if n < 1_000 { return String(Int(n.rounded())) }
+        let (div, suffix): (Double, String) =
+            n < 1_000_000 ? (1_000, "K")
+            : n < 1_000_000_000 ? (1_000_000, "M")
+            : (1_000_000_000, "G")
+        let scaled = n / div
+        if scaled >= 10 || abs(scaled - scaled.rounded()) < 0.05 {
+            return String(Int(scaled.rounded())) + suffix
+        }
+        return String(format: "%.1f", scaled) + suffix
     }
 }
 
@@ -172,12 +211,21 @@ enum BluetoothRadio {
         guard let paired = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice] else {
             return []
         }
+        let batteries = BluetoothBattery.cached()
         return paired.map { device -> [String: Any] in
-            [
-                "name": device.name ?? device.addressString ?? "",
-                "address": device.addressString ?? "",
+            let name = device.name ?? device.addressString ?? ""
+            let address = device.addressString ?? ""
+            var row: [String: Any] = [
+                "name": name,
+                "address": address,
                 "connected": device.isConnected(),
             ]
+            if let pct = batteries[name] ?? batteries[BluetoothBattery.normalize(address)] {
+                row["battery"] = pct
+            } else {
+                row["battery"] = NSNull()
+            }
+            return row
         }
     }
 
@@ -200,6 +248,86 @@ enum BluetoothRadio {
         }
         return unsafeBitCast(sym, to: (@convention(c) (Int32) -> Void).self)
     }()
+}
+
+enum BluetoothBattery {
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var cache: (at: Date, map: [String: Int])?
+
+    static func cached() -> [String: Int] {
+        lock.lock()
+        defer { lock.unlock() }
+        if let cache, Date().timeIntervalSince(cache.at) < 30 { return cache.map }
+        let map = parse(profilerJSON())
+        self.cache = (Date(), map)
+        return map
+    }
+
+    static func parse(_ json: Data) -> [String: Int] {
+        guard let root = try? JSONSerialization.jsonObject(with: json) as? [String: Any],
+              let list = root["SPBluetoothDataType"] as? [[String: Any]] else {
+            return [:]
+        }
+        var map: [String: Int] = [:]
+        for controller in list {
+            ingest(controller["device_connected"], into: &map)
+            ingest(controller["device_not_connected"], into: &map)
+        }
+        return map
+    }
+
+    static func normalize(_ address: String) -> String {
+        address.replacingOccurrences(of: ":", with: "-").lowercased()
+    }
+
+    private static func ingest(_ raw: Any?, into map: inout [String: Int]) {
+        guard let rows = raw as? [[String: Any]] else { return }
+        for row in rows {
+            for (name, value) in row {
+                guard let props = value as? [String: Any], let pct = percent(props) else { continue }
+                map[name] = pct
+                if let addr = props["device_address"] as? String {
+                    map[normalize(addr)] = pct
+                }
+            }
+        }
+    }
+
+    private static func percent(_ props: [String: Any]) -> Int? {
+        var levels: [Int] = []
+        for (key, value) in props {
+            let k = key.lowercased()
+            guard k.contains("batterylevel") || k.contains("batterypercent") else { continue }
+            if let n = parsePercent(value) { levels.append(n) }
+        }
+        return levels.min()
+    }
+
+    private static func parsePercent(_ value: Any) -> Int? {
+        if let n = value as? Int { return min(100, max(0, n)) }
+        if let n = value as? Double { return min(100, max(0, Int(n.rounded()))) }
+        let text = String(describing: value)
+            .replacingOccurrences(of: "%", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let n = Double(text) else { return nil }
+        return min(100, max(0, Int(n.rounded())))
+    }
+
+    private static func profilerJSON() -> Data {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
+        process.arguments = ["SPBluetoothDataType", "-json"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            return Data()
+        }
+        return pipe.fileHandleForReading.readDataToEndOfFile()
+    }
 }
 
 enum DarkMode {
