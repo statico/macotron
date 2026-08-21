@@ -59,6 +59,10 @@ struct HotReloadSessionTests {
         try "$$__registerCommand('evil-cmd', 'evil', function(){});"
             .write(to: ws.pluginsDir.appending(path: "evil.js"), atomically: true, encoding: .utf8)
 
+        let previous = PluginTrust.store
+        PluginTrust.store = MemoryHashStore()
+        defer { PluginTrust.store = previous }
+
         let engine = Engine()
         let manager = ModuleManager(engine: engine, workspace: ws)
         manager.hotReload = true

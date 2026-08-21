@@ -23,6 +23,10 @@ struct PluginEnableTests {
         try "// Huge weather plugin\nconst x = 1;\n"
             .write(to: ws.pluginsDir.appending(path: "weather.js"), atomically: true, encoding: .utf8)
 
+        let previous = PluginTrust.store
+        PluginTrust.store = MemoryHashStore()
+        defer { PluginTrust.store = previous }
+
         let manager = ModuleManager(engine: Engine(), workspace: ws)
         let listed = manager.listModules()
         #expect(listed.map(\.filename) == ["weather.js"])
@@ -58,6 +62,10 @@ struct PluginEnableTests {
         try "$$__registerCommand('disabled-cmd', 'off', function(){});"
             .write(to: ws.pluginsDir.appending(path: "b-disabled.js"), atomically: true, encoding: .utf8)
 
+        let previous = PluginTrust.store
+        PluginTrust.store = MemoryHashStore()
+        defer { PluginTrust.store = previous }
+
         let engine = Engine()
         let manager = ModuleManager(engine: engine, workspace: ws)
         manager.setModuleEnabled(filename: "b-disabled.js", enabled: false)
@@ -86,6 +94,10 @@ struct PluginEnableTests {
         let pluginFile = ws.pluginsDir.appending(path: "regression.js")
         try "$$__registerCommand('regression-cmd', 'regression', function(){});"
             .write(to: pluginFile, atomically: true, encoding: .utf8)
+
+        let previous = PluginTrust.store
+        PluginTrust.store = MemoryHashStore()
+        defer { PluginTrust.store = previous }
 
         let engine = Engine()
         let manager = ModuleManager(engine: engine, workspace: ws)
