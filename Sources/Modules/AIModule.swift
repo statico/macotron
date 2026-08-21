@@ -227,26 +227,29 @@ public final class AIModule: NativeModule {
             let opaque = JS_GetContextOpaque(ctx)
             guard let opaque else { return promise }
             let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            let token = engine.registerPending(resolve: resolve, reject: reject)
             nonisolated(unsafe) let capturedCtx = ctx
 
             Task.detached {
                 do {
                     let text = try await provider.chat(messages: messages, options: options)
                     DispatchQueue.main.async {
+                        guard let pending = engine.claimPending(token) else { return }
                         var value = JSBridge.newString(capturedCtx, text)
-                        _ = JS_Call(capturedCtx, resolve, QJS_Undefined(), 1, &value)
+                        _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
                         JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, resolve)
-                        JS_FreeValue(capturedCtx, reject)
+                        JS_FreeValue(capturedCtx, pending.resolve)
+                        JS_FreeValue(capturedCtx, pending.reject)
                         engine.drainJobQueue()
                     }
                 } catch {
                     DispatchQueue.main.async {
+                        guard let pending = engine.claimPending(token) else { return }
                         var value = JSBridge.newString(capturedCtx, error.localizedDescription)
-                        _ = JS_Call(capturedCtx, reject, QJS_Undefined(), 1, &value)
+                        _ = JS_Call(capturedCtx, pending.reject, QJS_Undefined(), 1, &value)
                         JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, resolve)
-                        JS_FreeValue(capturedCtx, reject)
+                        JS_FreeValue(capturedCtx, pending.resolve)
+                        JS_FreeValue(capturedCtx, pending.reject)
                         engine.drainJobQueue()
                     }
                 }
@@ -338,6 +341,11 @@ public final class AIModule: NativeModule {
             let opaque = JS_GetContextOpaque(ctx)
             guard let opaque else { return promise }
             let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            let token = engine.registerPending(
+                resolve: resolve,
+                reject: reject,
+                extras: jsOnChunk.map { [$0] } ?? []
+            )
             nonisolated(unsafe) let capturedCtx = ctx
             let capturedOnChunk = jsOnChunk
 
@@ -348,34 +356,36 @@ public final class AIModule: NativeModule {
                         options: options,
                         onChunk: { chunk in
                             DispatchQueue.main.async {
-                                guard let ctx = engine.context, let capturedOnChunk else { return }
-                                var arg = JSBridge.newString(ctx, chunk)
-                                _ = JS_Call(ctx, capturedOnChunk, QJS_Undefined(), 1, &arg)
-                                JS_FreeValue(ctx, arg)
+                                guard engine.isPending(token), let capturedOnChunk else { return }
+                                var arg = JSBridge.newString(capturedCtx, chunk)
+                                _ = JS_Call(capturedCtx, capturedOnChunk, QJS_Undefined(), 1, &arg)
+                                JS_FreeValue(capturedCtx, arg)
                                 engine.drainJobQueue()
                             }
                         }
                     )
                     DispatchQueue.main.async {
+                        guard let pending = engine.claimPending(token) else { return }
                         var value = JSBridge.newString(capturedCtx, text)
-                        _ = JS_Call(capturedCtx, resolve, QJS_Undefined(), 1, &value)
+                        _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
                         JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, resolve)
-                        JS_FreeValue(capturedCtx, reject)
-                        if let capturedOnChunk {
-                            JS_FreeValue(capturedCtx, capturedOnChunk)
+                        JS_FreeValue(capturedCtx, pending.resolve)
+                        JS_FreeValue(capturedCtx, pending.reject)
+                        for extra in pending.extras {
+                            JS_FreeValue(capturedCtx, extra)
                         }
                         engine.drainJobQueue()
                     }
                 } catch {
                     DispatchQueue.main.async {
+                        guard let pending = engine.claimPending(token) else { return }
                         var value = JSBridge.newString(capturedCtx, error.localizedDescription)
-                        _ = JS_Call(capturedCtx, reject, QJS_Undefined(), 1, &value)
+                        _ = JS_Call(capturedCtx, pending.reject, QJS_Undefined(), 1, &value)
                         JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, resolve)
-                        JS_FreeValue(capturedCtx, reject)
-                        if let capturedOnChunk {
-                            JS_FreeValue(capturedCtx, capturedOnChunk)
+                        JS_FreeValue(capturedCtx, pending.resolve)
+                        JS_FreeValue(capturedCtx, pending.reject)
+                        for extra in pending.extras {
+                            JS_FreeValue(capturedCtx, extra)
                         }
                         engine.drainJobQueue()
                     }

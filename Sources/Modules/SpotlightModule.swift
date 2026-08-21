@@ -119,14 +119,16 @@ public final class SpotlightModule: NativeModule {
 
             let searchFolder = folder
             let searchKind = kind
+            let token = engine.registerPending(resolve: resolve, reject: reject)
             DispatchQueue.global(qos: .userInitiated).async {
                 let rows = SpotlightSearch.run(queryString, folder: searchFolder, kind: searchKind)
                 DispatchQueue.main.async {
+                    guard let pending = engine.claimPending(token) else { return }
                     var value = JSBridge.newArray(capturedCtx, rows.map { $0 as Any })
-                    _ = JS_Call(capturedCtx, resolve, QJS_Undefined(), 1, &value)
+                    _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
                     JS_FreeValue(capturedCtx, value)
-                    JS_FreeValue(capturedCtx, resolve)
-                    JS_FreeValue(capturedCtx, reject)
+                    JS_FreeValue(capturedCtx, pending.resolve)
+                    JS_FreeValue(capturedCtx, pending.reject)
                     engine.drainJobQueue()
                 }
             }

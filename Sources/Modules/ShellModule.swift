@@ -69,6 +69,7 @@ public final class ShellModule: NativeModule {
             let opaque = JS_GetContextOpaque(ctx)
             guard let opaque else { return promise }
             let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            let token = engine.registerPending(resolve: resolve, reject: reject)
 
             // Run process on a background queue, resolve/reject on main
             let capturedArgs = args
@@ -101,6 +102,7 @@ public final class ShellModule: NativeModule {
                     let exitCode = process.terminationStatus
 
                     DispatchQueue.main.async {
+                        guard let pending = engine.claimPending(token) else { return }
                         let resultObj = JS_NewObject(capturedCtx)
                         JSBridge.setProperty(capturedCtx, resultObj, "stdout",
                                              JSBridge.newString(capturedCtx, stdoutStr))
@@ -110,18 +112,19 @@ public final class ShellModule: NativeModule {
                                              JSBridge.newInt32(capturedCtx, exitCode))
 
                         var resultArg = resultObj
-                        _ = JS_Call(capturedCtx, resolve, QJS_Undefined(), 1, &resultArg)
-                        JS_FreeValue(capturedCtx, resolve)
-                        JS_FreeValue(capturedCtx, reject)
+                        _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &resultArg)
+                        JS_FreeValue(capturedCtx, pending.resolve)
+                        JS_FreeValue(capturedCtx, pending.reject)
                         JS_FreeValue(capturedCtx, resultObj)
                         engine.drainJobQueue()
                     }
                 } catch {
                     DispatchQueue.main.async {
+                        guard let pending = engine.claimPending(token) else { return }
                         var errArg = JSBridge.newString(capturedCtx, "shell.run failed: \(error.localizedDescription)")
-                        _ = JS_Call(capturedCtx, reject, QJS_Undefined(), 1, &errArg)
-                        JS_FreeValue(capturedCtx, resolve)
-                        JS_FreeValue(capturedCtx, reject)
+                        _ = JS_Call(capturedCtx, pending.reject, QJS_Undefined(), 1, &errArg)
+                        JS_FreeValue(capturedCtx, pending.resolve)
+                        JS_FreeValue(capturedCtx, pending.reject)
                         JS_FreeValue(capturedCtx, errArg)
                         engine.drainJobQueue()
                     }

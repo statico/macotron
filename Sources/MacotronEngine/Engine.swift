@@ -51,6 +51,17 @@ public final class Engine {
     private var nextTimerID: UInt32 = 1
     private var interruptDeadline: Date?
 
+    /// A native async promise in flight: resolve/reject plus any extra values
+    /// (e.g. stream callbacks) that must be freed with the owning context.
+    public struct PendingCompletion {
+        public let resolve: JSValue
+        public let reject: JSValue
+        public let extras: [JSValue]
+    }
+
+    private var pendingCompletions: [UInt64: PendingCompletion] = [:]
+    private var nextPendingToken: UInt64 = 1
+
     /// Registered commands keyed by stable id
     public var commandRegistry: [String: RegisteredCommand] = [:]
 
@@ -498,6 +509,45 @@ public final class Engine {
         timers.removeAll()
     }
 
+    // MARK: - Pending Completions
+
+    /// Track an in-flight native promise so `reset()` can reject it before
+    /// freeing the context. Takes ownership of the passed (dup'd) values.
+    public func registerPending(resolve: JSValue, reject: JSValue, extras: [JSValue] = []) -> UInt64 {
+        let token = nextPendingToken
+        nextPendingToken += 1
+        pendingCompletions[token] = PendingCompletion(resolve: resolve, reject: reject, extras: extras)
+        return token
+    }
+
+    /// Claim a completion when native work finishes. Returns nil if `reset()`
+    /// already rejected it — drop the stale result without touching the context.
+    public func claimPending(_ token: UInt64) -> PendingCompletion? {
+        pendingCompletions.removeValue(forKey: token)
+    }
+
+    /// True while the operation is still in flight (for progress callbacks).
+    public func isPending(_ token: UInt64) -> Bool {
+        pendingCompletions[token] != nil
+    }
+
+    /// Reject and free every in-flight promise. Must run while the old context is alive.
+    private func rejectAllPending(_ reason: String) {
+        guard !pendingCompletions.isEmpty else { return }
+        for pending in pendingCompletions.values {
+            var err = JSBridge.newString(context, reason)
+            _ = JS_Call(context, pending.reject, QJS_Undefined(), 1, &err)
+            JS_FreeValue(context, err)
+            JS_FreeValue(context, pending.resolve)
+            JS_FreeValue(context, pending.reject)
+            for extra in pending.extras {
+                JS_FreeValue(context, extra)
+            }
+        }
+        pendingCompletions.removeAll()
+        drainJobQueue()
+    }
+
     // MARK: - Job Queue
 
     /// Drain the QuickJS microtask/Promise queue
@@ -647,6 +697,10 @@ public final class Engine {
 
     /// Full reset for reload
     public func reset() {
+        // Settle in-flight native promises while their context still exists;
+        // late completions find their token claimed and drop silently.
+        rejectAllPending("Engine reset: operation cancelled")
+
         // Cleanup modules
         for module in modules {
             module.cleanup()
