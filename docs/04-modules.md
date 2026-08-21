@@ -37,6 +37,9 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | NotesModule | `macotron.notes` | List and open Apple Notes |
 | ContactsModule | `macotron.contacts` | List and search Contacts |
 | PowerModule | `macotron.power` | Prevent sleep, lock, sleep, display sleep, screensaver, log out, restart, shutdown |
+| BonjourModule | `macotron.bonjour` | Browse Bonjour / mDNS services |
+| UDPModule | `macotron.udp` | IPv4 UDP send and listen |
+| AppleTVModule | `macotron.appletv` | List Apple TVs on the LAN; send needs Companion pairing |
 | AXModule | `macotron.ax` | Accessibility tree: focused element, selected text, children, press |
 | CameraModule | `macotron.camera` | Camera list, preview panel, snapshot |
 | ShareModule | `macotron.share` | Share sheet and AirDrop |
@@ -61,6 +64,12 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 **Audio:** `devices()`, `input()`, `output()`, `setInput` / `setOutput` (id or name), `volume` / `setVolume` (0…1), `isMuted` / `setMuted`. `audio:changed` is `{ flags: ["input"|"output"|"devices"] }`. System output volume is this same `volume` / `setVolume` / `setMuted` with no device id.
 
 **Network:** `wifi()` is `{ available, on, ssid? }`. `setWifi(on)` uses `networksetup`. `wifiSSID()` is the SSID or `null`. `bluetooth()` is `{ on, devices: [{ name, address, connected }] }`. `setBluetooth(on)` toggles the radio. `airDrop()` / `setAirDrop("off"|"contacts"|"everyone")` is sharingd Discoverable Mode. `interfaces()` is IPv4 `{ name, ip }[]`. `wifi:changed` is `{ on, ssid }`.
+
+**Bonjour:** `bonjour.browse(type, { timeout })` is `{ name, type, host, port, txt }[]`. `type` is `_airplay._tcp` or `_companion-link._tcp` (with or without `local.`). `timeout` is seconds, default 1.5. Dry-run returns `[]`.
+
+**UDP:** `udp.send(host, port, data)` sends utf8 or a byte array. `listen(port)` emits `udp:message` as `{ host, port, data }` (`data` is utf8 or base64). `unlisten(port)`. Dry-run send is `{ ok: true }`.
+
+**Apple TV:** `appletv.list()` browses companion-link and AirPlay. `id` is `host:port`. `send(id, command)` is `up|down|left|right|select|menu|home|play|pause|playpause`. Missing device is `{ ok: false, error: "No Apple TV" }`. Found but unpaired is `{ ok: false, error: "not paired" }`. The tvOS Simulator does not advertise these services and cannot be controlled. Dry-run send is `{ ok: true }`.
 
 **Spaces:** `list()` is `{ id, index, desktop, display, current, type }[]`. `current()`, `go(2)` (Mission Control desktop number) or `go({ id })` / `go({ index, display })`. `moveWindow(windowId, spec)` tries SkyLight and returns false when SIP blocks it. `space:changed` fires on a desktop switch.
 

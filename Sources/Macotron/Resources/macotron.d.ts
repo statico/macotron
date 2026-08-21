@@ -323,6 +323,31 @@ declare const macotron: {
         interfaces(): Array<{ name: string; ip: string }>;
     };
 
+    /** `timeout` is seconds (default 1.5). Types may omit `local.` */
+    bonjour: {
+        browse(type: string, opts?: { timeout?: number }): Array<{
+            name: string;
+            type: string;
+            host: string;
+            port: number;
+            txt: Record<string, string>;
+        }>;
+    };
+
+    udp: {
+        send(host: string, port: number, data: string | number[]): { ok: boolean; error?: string };
+        listen(port: number): { ok: boolean; error?: string };
+        unlisten(port: number): void;
+    };
+
+    appletv: {
+        list(): Array<{ id: string; name: string; host: string; port: number; type: string }>;
+        send(
+            id: string,
+            command: "up" | "down" | "left" | "right" | "select" | "menu" | "home" | "play" | "pause" | "playpause"
+        ): { ok: boolean; error?: string };
+    };
+
     idle: {
         seconds(): number;
         setThreshold(seconds: number): void;

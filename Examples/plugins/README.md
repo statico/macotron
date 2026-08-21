@@ -8,6 +8,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 |---|---|---|
 | ai-chat.js | panel + ai.local/claude/gemini | AI Chat |
 | appearance.js | system.darkMode | Toggle Dark Mode |
+| apple-tv.js | appletv.list / send, panel | Apple TV Remote |
 | audio.js | audio.devices / setOutput / setMuted | Cycle Output, Mute |
 | batch-rename.js | fs.rename | Prefix Downloads Today |
 | battery.js | system.battery | Battery |

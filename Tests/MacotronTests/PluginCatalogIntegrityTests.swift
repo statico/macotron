@@ -131,7 +131,7 @@ struct PluginCatalogTests {
         let targets = Set(PluginCatalog.legacyRenames.values)
         #expect(targets.count == 57)
         #expect(targets.subtracting(catalog).isEmpty)
-        #expect(catalog.subtracting(targets) == ["screen-effects.js"])
+        #expect(catalog.subtracting(targets) == ["apple-tv.js", "screen-effects.js"])
     }
 
     @Test func legacyRenamesIgnoreNewCatalogEntries() throws {
