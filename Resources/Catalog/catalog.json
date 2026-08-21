@@ -89,6 +89,10 @@
       "highlighted": false
     },
     {
+      "filename": "contacts.js",
+      "highlighted": false
+    },
+    {
       "filename": "cpu-graph.js",
       "highlighted": false
     },
@@ -270,6 +274,10 @@
     },
     {
       "filename": "usb.js",
+      "highlighted": false
+    },
+    {
+      "filename": "web-search.js",
       "highlighted": false
     },
     {
