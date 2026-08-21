@@ -44,6 +44,7 @@ public final class ClipboardModule: NativeModule {
             guard let ctx, let argv, argc >= 1, let text = JSBridge.toString(ctx, argv[0]) else {
                 return QJS_Undefined()
             }
+            if Engine.isDryRun(ctx) { return QJS_Undefined() }
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(text, forType: .string)
             return QJS_Undefined()
@@ -53,6 +54,7 @@ public final class ClipboardModule: NativeModule {
             guard let ctx, let argv, argc >= 1, let raw = JSBridge.toString(ctx, argv[0]) else {
                 return JSBridge.newBool(ctx!, false)
             }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             let b64 = String(raw.split(separator: ",", maxSplits: 1).last ?? Substring(raw))
             guard let data = Data(base64Encoded: b64) else { return JSBridge.newBool(ctx, false) }
             NSPasteboard.general.clearContents()
@@ -63,8 +65,11 @@ public final class ClipboardModule: NativeModule {
         JS_SetPropertyStr(ctx, clipboard, "history", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx, let opaque = JS_GetContextOpaque(ctx) else { return QJS_Undefined() }
             let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            let items = (engine.configStore["__clipboardModule"] as? ClipboardModule)?.history ?? []
-            return JSBridge.newArray(ctx, items)
+            guard let module = engine.configStore["__clipboardModule"] as? ClipboardModule else {
+                return JSBridge.newArray(ctx, [])
+            }
+            module.startPolling()
+            return JSBridge.newArray(ctx, module.trimmedHistory())
         }, "history", 0))
 
         JS_SetPropertyStr(ctx, clipboard, "paste", JS_NewCFunction(ctx, { ctx, _, argc, argv in
@@ -79,6 +84,7 @@ public final class ClipboardModule: NativeModule {
                   let text = item["text"] as? String else {
                 return JSBridge.newBool(ctx, false)
             }
+            if engine.dryRun { return JSBridge.newBool(ctx, true) }
             let pb = NSPasteboard.general
             pb.clearContents()
             if kind == "image" {
@@ -112,6 +118,7 @@ public final class ClipboardModule: NativeModule {
         }, "clearHistory", 0))
 
         JS_SetPropertyStr(ctx, clipboard, "clear", JS_NewCFunction(ctx, { ctx, _, _, _ in
+            if Engine.isDryRun(ctx) { return QJS_Undefined() }
             NSPasteboard.general.clearContents()
             return QJS_Undefined()
         }, "clear", 0))
@@ -146,11 +153,25 @@ public final class ClipboardModule: NativeModule {
         JS_SetPropertyStr(ctx, macotron, "clipboard", clipboard)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
+    }
 
-        guard !engine.dryRun else { return }
+    var isPolling: Bool { timer != nil }
+
+    fileprivate func startPolling() {
+        guard timer == nil, engine?.dryRun != true else { return }
+        lastChangeCount = NSPasteboard.general.changeCount
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.poll() }
         }
+    }
+
+    fileprivate func trimmedHistory() -> [[String: Any]] {
+        let cutoff = Date().timeIntervalSince1970 * 1000 - ClipboardHistoryPolicy.maxAgeMs
+        history = history.filter { ($0["ts"] as? Double ?? 0) >= cutoff }
+        if history.count > ClipboardHistoryPolicy.maxCount {
+            history = Array(history.prefix(ClipboardHistoryPolicy.maxCount))
+        }
+        return history
     }
 
     public func cleanup() {
@@ -231,7 +252,9 @@ public final class ClipboardModule: NativeModule {
         let pasteboard = NSPasteboard.general
         guard pasteboard.changeCount != lastChangeCount else { return }
         lastChangeCount = pasteboard.changeCount
+        let types = ClipboardPasteboard.types(pasteboard)
         emitChanged(pasteboard)
+        guard ClipboardHistoryPolicy.isRecordable(types) else { return }
 
         if let text = pasteboard.string(forType: .string), !text.isEmpty {
             push(kind: "text", text: text)
@@ -266,7 +289,7 @@ public final class ClipboardModule: NativeModule {
             "kind": kind,
             "ts": Date().timeIntervalSince1970 * 1000,
         ], at: 0)
-        history = Array(history.prefix(50))
+        _ = trimmedHistory()
     }
 }
 
@@ -275,6 +298,20 @@ private func clipboardModule(_ ctx: OpaquePointer) -> ClipboardModule? {
     guard let opaque = JS_GetContextOpaque(ctx) else { return nil }
     let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
     return engine.configStore["__clipboardModule"] as? ClipboardModule
+}
+
+enum ClipboardHistoryPolicy {
+    static let skipTypes: Set<String> = [
+        "org.nspasteboard.ConcealedType",
+        "org.nspasteboard.TransientType",
+        "org.nspasteboard.AutoGeneratedType",
+    ]
+    static let maxCount = 50
+    static let maxAgeMs = 24 * 60 * 60 * 1000.0
+
+    static func isRecordable(_ types: [String]) -> Bool {
+        !types.contains { skipTypes.contains($0) }
+    }
 }
 
 enum ClipboardPasteboard {

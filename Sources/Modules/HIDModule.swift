@@ -27,6 +27,7 @@ public final class HIDModule: NativeModule {
 
         JS_SetPropertyStr(ctx, hid, "open", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
+            if Engine.isDryRun(ctx) { return QJS_Null() }
             guard let hub = HIDModule.hub(ctx),
                   let row = hub.open(HIDModule.filter(ctx, argc: argc, argv: argv, at: 0)) else {
                 return QJS_Null()
@@ -120,6 +121,7 @@ public final class HIDModule: NativeModule {
         guard let ctx, let argv, argc >= 2, let id = JSBridge.toString(ctx, argv[0]) else {
             return JSBridge.newObject(ctx!, ["ok": false, "error": "missing id"])
         }
+        if Engine.isDryRun(ctx) { return JSBridge.newObject(ctx, ["ok": true, "written": 0]) }
         guard let bytes = HIDBytes.parse(JSBridge.jsToSwift(ctx, argv[1])) else {
             return JSBridge.newObject(ctx, ["ok": false, "error": "bad data"])
         }

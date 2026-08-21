@@ -56,6 +56,7 @@ public final class SnippetsModule: NativeModule {
             guard let ctx, let argv, argc >= 1, let module = module(ctx),
                   let abbr = JSBridge.toString(ctx, argv[0]),
                   let body = module.snippets[abbr] else { return QJS_Undefined() }
+            if Engine.isDryRun(ctx) { return QJS_Undefined() }
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(body, forType: .string)
             return QJS_Undefined()
@@ -63,6 +64,7 @@ public final class SnippetsModule: NativeModule {
 
         JS_SetPropertyStr(ctx, snippets, "setExpansionEnabled", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let module = module(ctx) else { return JS_NewBool(ctx, false) }
+            if Engine.isDryRun(ctx) { return JS_NewBool(ctx, true) }
             return JS_NewBool(ctx, module.setExpansionEnabled(JS_ToBool(ctx, argv[0]) != 0))
         }, "setExpansionEnabled", 1))
 

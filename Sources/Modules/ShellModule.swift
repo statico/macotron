@@ -70,10 +70,29 @@ public final class ShellModule: NativeModule {
             guard let opaque else { return promise }
             let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
             let token = engine.registerPending(resolve: resolve, reject: reject)
-
-            // Run process on a background queue, resolve/reject on main
             let capturedArgs = args
             nonisolated(unsafe) let capturedCtx = ctx
+
+            if engine.dryRun {
+                DispatchQueue.main.async {
+                    guard let pending = engine.claimPending(token) else { return }
+                    let resultObj = JS_NewObject(capturedCtx)
+                    JSBridge.setProperty(capturedCtx, resultObj, "stdout",
+                                         JSBridge.newString(capturedCtx, ""))
+                    JSBridge.setProperty(capturedCtx, resultObj, "stderr",
+                                         JSBridge.newString(capturedCtx, ""))
+                    JSBridge.setProperty(capturedCtx, resultObj, "exitCode",
+                                         JSBridge.newInt32(capturedCtx, 0))
+                    var resultArg = resultObj
+                    _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &resultArg)
+                    JS_FreeValue(capturedCtx, pending.resolve)
+                    JS_FreeValue(capturedCtx, pending.reject)
+                    JS_FreeValue(capturedCtx, resultObj)
+                    engine.drainJobQueue()
+                }
+                return promise
+            }
+
             DispatchQueue.global(qos: .userInitiated).async {
                 do {
                     let process = Process()

@@ -2,22 +2,37 @@ import AppKit
 import CoreImage
 import CoreImage.CIFilterBuiltins
 import Foundation
+import ImageIO
 import Vision
 
 enum QRCodes {
+    static let maxEncodedBytes = 8 * 1024 * 1024
+    static let maxDecodedBytes = 8 * 1024 * 1024
+    static let maxDimension = 8192
+    static let maxTextCount = 4096
+    static let maxPixelSize: CGFloat = 2048
+
     static func detect(data: Data) -> String? {
-        detect(handler: VNImageRequestHandler(data: data))
+        guard data.count <= maxDecodedBytes, withinPixelCap(data) else { return nil }
+        return detect(handler: VNImageRequestHandler(data: data))
     }
 
     static func detect(url: URL) -> String? {
-        detect(handler: VNImageRequestHandler(url: url))
+        guard let n = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber,
+              n.intValue <= maxDecodedBytes else { return nil }
+        return detect(handler: VNImageRequestHandler(url: url))
     }
 
     static func detect(pixelBuffer: CVPixelBuffer) -> String? {
-        detect(handler: VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up))
+        let w = CVPixelBufferGetWidth(pixelBuffer)
+        let h = CVPixelBufferGetHeight(pixelBuffer)
+        guard w <= maxDimension, h <= maxDimension else { return nil }
+        return detect(handler: VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up))
     }
 
     static func png(text: String, size: CGFloat = 256) -> Data? {
+        guard text.count <= maxTextCount else { return nil }
+        let size = min(max(size, 32), maxPixelSize)
         let filter = CIFilter.qrCodeGenerator()
         filter.message = Data(text.utf8)
         filter.correctionLevel = "M"
@@ -33,7 +48,22 @@ enum QRCodes {
         let encoded = value.hasPrefix("data:")
             ? value.split(separator: ",", maxSplits: 1).last.map(String.init) ?? ""
             : value
-        return Data(base64Encoded: encoded, options: .ignoreUnknownCharacters)
+        guard encoded.utf8.count <= maxEncodedBytes else { return nil }
+        guard let data = Data(base64Encoded: encoded, options: .ignoreUnknownCharacters),
+              data.count <= maxDecodedBytes else { return nil }
+        return data
+    }
+
+    private static func withinPixelCap(_ data: Data) -> Bool {
+        guard let src = CGImageSourceCreateWithData(
+            data as CFData,
+            [kCGImageSourceShouldCache: false] as CFDictionary
+        ),
+            let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any],
+            let w = props[kCGImagePropertyPixelWidth] as? Int,
+            let h = props[kCGImagePropertyPixelHeight] as? Int
+        else { return false }
+        return w <= maxDimension && h <= maxDimension
     }
 
     private static func detect(handler: VNImageRequestHandler) -> String? {

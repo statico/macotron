@@ -25,6 +25,7 @@ public final class ShortcutsModule: NativeModule {
             guard let ctx, let argv, argc >= 1, let name = JSBridge.toString(ctx, argv[0]) else {
                 return JSBridge.newBool(ctx!, false)
             }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             return JSBridge.newBool(ctx, ShortcutsCLI.runShortcut(name).ok)
         }, "run", 1))
 

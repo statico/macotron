@@ -23,7 +23,7 @@ public final class NotifyModule: NativeModule {
     public let moduleVersion = 1
 
     private var notificationCenter: UNUserNotificationCenter?
-    private var authorizationGranted = false
+    private var askedForAuthorization = false
     private let presenter = NotifyPresenter()
 
     public init() {}
@@ -36,19 +36,7 @@ public final class NotifyModule: NativeModule {
     }
 
     public func register(in engine: Engine, options: [String: Any]) {
-        let dryRun = engine.dryRun
-
-        if !dryRun {
-            center.delegate = presenter
-            center.requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
-                DispatchQueue.main.async {
-                    self?.authorizationGranted = granted
-                    if let error {
-                        logger.error("Notification authorization failed: \(error.localizedDescription)")
-                    }
-                }
-            }
-        }
+        engine.configStore["__notifyModule"] = self
 
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
@@ -80,6 +68,7 @@ public final class NotifyModule: NativeModule {
                 if engine.dryRun {
                     return QJS_Undefined()
                 }
+                (engine.configStore["__notifyModule"] as? NotifyModule)?.ensureAuthorized()
             }
 
             // Parse optional opts object
@@ -124,8 +113,7 @@ public final class NotifyModule: NativeModule {
                 trigger: nil // deliver immediately
             )
 
-            let center = UNUserNotificationCenter.current()
-            center.add(request) { error in
+            UNUserNotificationCenter.current().add(request) { error in
                 if let error {
                     logger.error("Failed to deliver notification: \(error.localizedDescription)")
                 }
@@ -213,6 +201,17 @@ public final class NotifyModule: NativeModule {
 
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
+    }
+
+    private func ensureAuthorized() {
+        guard !askedForAuthorization else { return }
+        askedForAuthorization = true
+        center.delegate = presenter
+        center.requestAuthorization(options: [.alert, .sound, .badge]) { _, error in
+            if let error {
+                logger.error("Notification authorization failed: \(error.localizedDescription)")
+            }
+        }
     }
 
     public func cleanup() {

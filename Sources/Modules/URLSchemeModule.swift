@@ -76,6 +76,7 @@ public final class URLSchemeModule: NativeModule {
             guard let url = URL(string: urlString) else {
                 return JSBridge.newBool(ctx, false)
             }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             return JSBridge.newBool(ctx, URLOpen.open(url, bundleID: bundleID, profile: profile))
         }, "open", 3))
 

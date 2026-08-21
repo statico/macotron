@@ -56,6 +56,19 @@ public final class OCRModule: NativeModule {
             let token = engine.registerPending(resolve: resolve, reject: reject)
             nonisolated(unsafe) let capturedCtx = ctx
 
+            if engine.dryRun {
+                DispatchQueue.main.async {
+                    guard let pending = engine.claimPending(token) else { return }
+                    var value = JSBridge.newString(capturedCtx, "")
+                    _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
+                    JS_FreeValue(capturedCtx, value)
+                    JS_FreeValue(capturedCtx, pending.resolve)
+                    JS_FreeValue(capturedCtx, pending.reject)
+                    engine.drainJobQueue()
+                }
+                return promise
+            }
+
             DispatchQueue.global(qos: .userInitiated).async {
                 do {
                     let request = VNRecognizeTextRequest()

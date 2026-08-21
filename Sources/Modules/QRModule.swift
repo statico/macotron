@@ -25,6 +25,7 @@ public final class QRModule: NativeModule {
         }, "scan", 1))
 
         JS_SetPropertyStr(ctx, qr, "image", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            if Engine.isDryRun(ctx) { return QJS_Null() }
             guard let ctx, let argv, argc >= 1, let text = JSBridge.toString(ctx, argv[0]), !text.isEmpty,
                   let png = QRCodes.png(text: text, size: QRModule.size(ctx, argc: argc, argv: argv)) else {
                 return QJS_Null()
@@ -33,6 +34,7 @@ public final class QRModule: NativeModule {
         }, "image", 2))
 
         JS_SetPropertyStr(ctx, qr, "show", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            if Engine.isDryRun(ctx) { return QJS_Undefined() }
             guard let ctx, let argv, argc >= 1, let text = JSBridge.toString(ctx, argv[0]), !text.isEmpty,
                   let png = QRCodes.png(text: text, size: QRModule.size(ctx, argc: argc, argv: argv)),
                   let image = NSImage(data: png) else {
@@ -52,12 +54,15 @@ public final class QRModule: NativeModule {
         let val = JSBridge.getProperty(ctx, argv[1], "size")
         defer { JS_FreeValue(ctx, val) }
         if JSBridge.isUndefined(val) || JSBridge.isNull(val) { return 256 }
-        return CGFloat(max(JSBridge.toInt32(ctx, val), 32))
+        return CGFloat(min(max(JSBridge.toInt32(ctx, val), 32), Int32(QRCodes.maxPixelSize)))
     }
 
     fileprivate static func detect(_ ctx: OpaquePointer?, argc: Int32, argv: UnsafePointer<JSValue>?) -> JSValue {
         guard let ctx, let argv, argc >= 1 else {
             return QJS_ThrowTypeError(ctx, "qr.detect requires { path } or { image }")
+        }
+        if Engine.isDryRun(ctx) {
+            return promise(ctx) { $0(nil) }
         }
         let opts = argv[0]
         let pathVal = JSBridge.getProperty(ctx, opts, "path")
@@ -93,6 +98,9 @@ public final class QRModule: NativeModule {
 
     fileprivate static func scan(_ ctx: OpaquePointer?, argc: Int32, argv: UnsafePointer<JSValue>?) -> JSValue {
         guard let ctx else { return QJS_Undefined() }
+        if Engine.isDryRun(ctx) {
+            return promise(ctx) { $0(nil) }
+        }
         var camera = false
         var screenshot = true
         var selection = true
