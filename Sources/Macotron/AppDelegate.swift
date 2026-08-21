@@ -4,6 +4,7 @@ import SwiftUI
 import MacotronEngine
 import MacotronUI
 import Modules
+import AI
 
 @MainActor
 public final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -110,6 +111,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBarManager.onMenuWillOpen = { [weak self] in
             self?.refreshPermissions()
         }
+        menuBarManager.onToggleHotReload = { [weak self] value in
+            self?.setHotReload(value)
+        }
+        menuBarManager.onReviewPending = { [weak self] in
+            self?.reviewPendingPlugins()
+        }
         menuBarManager.updateLauncherShortcut(resolveHotkey())
         menuBarManager.setVisible(readUIValue("showMenuBarIcon") as? Bool ?? true)
 
@@ -196,6 +203,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.installCommandShortcuts()
             self?.rebindPluginHotkeys()
             self?.settingsState.refreshModules()
+            self?.refreshIntegrity()
+        }
+        moduleManager.onPendingReviewChange = { [weak self] in
+            self?.refreshIntegrity()
         }
     }
 
@@ -261,6 +272,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self.writeUIValue("launcherBackground", value.rawValue)
             self.launcherPrefs.background = value
             self.launcherPanel?.applyBackground(value)
+        }
+        settingsState.onSetHotReload = { [weak self] value in
+            self?.setHotReload(value)
+        }
+        settingsState.onScanCatalog = { [weak self] plugin in
+            self?.scanCatalogPlugin(plugin)
+        }
+        settingsState.onInstallCatalog = { [weak self] plugin, override in
+            self?.installCatalogPlugin(plugin, override: override)
+        }
+        settingsState.onReviewPending = { [weak self] in
+            self?.reviewPendingPlugins()
         }
 
         settingsState.loadModuleSummaries = { [weak self] in
@@ -490,6 +513,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func presentWizard() {
+        settingsState.catalogPlugins = PluginCatalog.load()
         settingsState.refreshPermissions()
         wizardWindow = WizardWindow(state: wizardState, permissions: settingsState)
         wizardWindow?.show()
@@ -670,6 +694,83 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let background = LauncherBackground.parse(readUIValue("launcherBackground"))
         launcherPrefs.background = background
         launcherPanel?.applyBackground(background)
+        let hotReload = readUIValue("hotReload") as? Bool ?? false
+        moduleManager?.hotReload = hotReload
+        settingsState.hotReload = hotReload
+        refreshIntegrity()
+    }
+
+    private func setHotReload(_ value: Bool) {
+        writeUIValue("hotReload", value)
+        moduleManager?.hotReload = value
+        settingsState.hotReload = value
+        refreshIntegrity()
+    }
+
+    private func refreshIntegrity() {
+        let pending = moduleManager?.pendingReview ?? []
+        settingsState.pendingReview = pending.sorted()
+        if let dir = workspace?.pluginsDir,
+           let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
+            settingsState.installedPluginNames = Set(files.filter { $0.pathExtension == "js" }.map(\.lastPathComponent))
+        }
+        menuBarManager?.setIntegrityState(
+            hotReload: moduleManager?.hotReload ?? false,
+            pendingCount: pending.count
+        )
+    }
+
+    private func scanCatalogPlugin(_ plugin: CatalogPlugin) {
+        settingsState.scanning = true
+        settingsState.scanNote = nil
+        Task { @MainActor in
+            let report = await PluginScanner.scan(
+                source: plugin.source,
+                title: plugin.title,
+                permissions: plugin.permissions.map(\.rawValue)
+            )
+            settingsState.scanReport = report
+            settingsState.scanNote = report.unavailableReason
+            settingsState.scanning = false
+        }
+    }
+
+    private func installCatalogPlugin(_ plugin: CatalogPlugin, override: Bool) {
+        guard let workspace else { return }
+        if let report = settingsState.scanReport, report.needsOverride, !override {
+            return
+        }
+        let dest = workspace.pluginsDir.appending(path: plugin.filename)
+        do {
+            try plugin.source.write(to: dest, atomically: true, encoding: .utf8)
+            PluginTrust.approve(filename: plugin.filename, source: plugin.source)
+            moduleManager.reloadAll()
+            refreshIntegrity()
+        } catch {
+            NSLog("[Macotron] Catalog install failed: \(error)")
+        }
+    }
+
+    private func reviewPendingPlugins() {
+        guard let workspace, let moduleManager else { return }
+        let names = Array(moduleManager.pendingReview)
+        Task { @MainActor in
+            for name in names {
+                let file = workspace.pluginsDir.appending(path: name)
+                guard let source = try? String(contentsOf: file, encoding: .utf8) else { continue }
+                let header = PluginHeader.parse(source)
+                let report = await PluginScanner.scan(
+                    source: source,
+                    title: header.title ?? name,
+                    permissions: header.permissions
+                )
+                if report.approved {
+                    PluginTrust.approve(filename: name, source: source)
+                }
+            }
+            moduleManager.reloadAll()
+            refreshIntegrity()
+        }
     }
 
     private func setupMainMenu() {

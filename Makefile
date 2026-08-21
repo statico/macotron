@@ -63,6 +63,9 @@ bundle: build ## Create ~/Applications/Macotron.app
 		--app-icon $(APP_NAME) --output-partial-info-plist $(BUILD_DIR)/icon-partial.plist \
 		--platform macosx --minimum-deployment-target 15.0 --errors --warnings >/dev/null
 	@cp Resources/banner.png "$(BUNDLE)/Contents/Resources/"
+	@mkdir -p "$(BUNDLE)/Contents/Resources/Catalog"
+	@cp Resources/Catalog/catalog.json "$(BUNDLE)/Contents/Resources/Catalog/"
+	@cp Examples/plugins/*.js "$(BUNDLE)/Contents/Resources/Catalog/"
 	@if [ -n "$(SIGN_IDENTITY)" ]; then \
 		codesign --force --sign "$(SIGN_IDENTITY)" $(SIGN_FLAGS) \
 			"$(BUNDLE)/Contents/MacOS/$(HELPER_NAME)"; \

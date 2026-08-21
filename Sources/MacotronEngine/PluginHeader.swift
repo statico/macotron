@@ -5,10 +5,12 @@ public enum PluginHeader {
     public struct Info: Equatable, Sendable {
         public var title: String?
         public var description: String?
+        public var permissions: [String]
 
-        public init(title: String? = nil, description: String? = nil) {
+        public init(title: String? = nil, description: String? = nil, permissions: [String] = []) {
             self.title = title
             self.description = description
+            self.permissions = permissions
         }
     }
 
@@ -22,7 +24,8 @@ public enum PluginHeader {
         let window = source[start.lowerBound...].prefix(prefixBytes)
         return Info(
             title: stringValue("title", in: window),
-            description: stringValue("description", in: window)
+            description: stringValue("description", in: window),
+            permissions: stringArray("permissions", in: window)
         )
     }
 
@@ -46,5 +49,22 @@ public enum PluginHeader {
               match.numberOfRanges > 1 else { return nil }
         let value = ns.substring(with: match.range(at: 1))
         return value.isEmpty ? nil : value
+    }
+
+    private static func stringArray(_ key: String, in text: Substring) -> [String] {
+        let pattern = "\(key)\\s*:\\s*\\[([^\\]]*)\\]"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        let raw = String(text)
+        let ns = NSString(string: raw)
+        guard let match = regex.firstMatch(in: raw, range: NSRange(location: 0, length: ns.length)),
+              match.numberOfRanges > 1 else { return [] }
+        let inner = ns.substring(with: match.range(at: 1))
+        let item = try? NSRegularExpression(pattern: "[\"']([^\"']+)[\"']")
+        let nsInner = NSString(string: inner)
+        let matches = item?.matches(in: inner, range: NSRange(location: 0, length: nsInner.length)) ?? []
+        return matches.compactMap { m in
+            guard m.numberOfRanges > 1 else { return nil }
+            return nsInner.substring(with: m.range(at: 1))
+        }
     }
 }

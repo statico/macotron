@@ -42,19 +42,25 @@ On first launch, the wizard guides the user:
 
 1. **Welcome** — Macotron hosts plugins that automate macOS.
 2. **Pick directory** — Choose the plugins workdir. Optionally open it in Finder or Cursor.
-3. **Ready** — The app seeds `README.md` once if missing. It writes `AGENTS.md` and `CLAUDE.md`.
+3. **Choose plugins** — Install bundled stock and demo plugins. You can skip this.
+4. **Permissions** — Grant what the installed plugins declared.
+5. **Ready** — The app seeds `README.md` once if missing. It writes `AGENTS.md` and `CLAUDE.md`.
 
 The wizard does not demand Accessibility up front. Permissions arrive when a feature needs them.
 
+The first-run catalog lists bundled stock and demo plugins after the folder step and before permissions. Featured stock plugins are highlighted. You can skip the catalog and install later from Settings → Plugins.
+
 ## How Plugins Work
 
-Each `.js` file under `plugins/` runs once at load. Side effects register hotkeys, timers, menu items, and panels. A file change triggers a full reload.
+Each `.js` file under `plugins/` runs once at load if its SHA-256 matches the last approved hash in the Keychain, or if Hot Reload is on. Side effects register hotkeys, timers, menu items, and panels.
+
+With Hot Reload off, a disk change does not replace a running plugin. The menu bar shows an orange dot and **Review & Reload**. Cold start does not execute a file whose hash does not match.
 
 Plugins can call `macotron.ai` for Claude, OpenAI, Gemini, or on-device Foundation Models. That API is for plugin code. It is not an in-app agent session.
 
 ## Marketplace
 
-Settings link to the GitHub topic search `topic:macotron-plugin`. v1 has no custom store backend.
+The in-app catalog installs bundled stock and demo plugins. Settings also links to the GitHub topic search `topic:macotron-plugin`. Community listings are later.
 
 https://github.com/topics/macotron-plugin
 

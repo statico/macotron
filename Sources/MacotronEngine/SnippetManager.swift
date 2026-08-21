@@ -18,8 +18,17 @@ public final class ModuleManager {
     /// Errors encountered during the last reload cycle.
     public private(set) var lastReloadErrors: [(filename: String, error: String)] = []
 
+    /// Plugin filenames whose on-disk bytes are not the last approved hash.
+    public private(set) var pendingReview: Set<String> = []
+
+    /// When true, disk changes reload immediately with no hash gate.
+    public var hotReload = false
+
     /// Called after every reload, so the app can re-check plugin declarations.
     public var onDidReload: (() -> Void)?
+
+    /// Called when pendingReview changes without a full reload.
+    public var onPendingReviewChange: (() -> Void)?
 
     private let cacheDir: URL
 
@@ -30,6 +39,7 @@ public final class ModuleManager {
         self.backup = ConfigBackup(configDir: workspace.root)
         self.cacheDir = workspace.cacheDir
         engine.moduleBaseDir = workspace.root
+        PluginTrust.grandfatherIfEmpty(pluginsDir: workspace.pluginsDir)
     }
 
     // MARK: - Settings
@@ -127,6 +137,7 @@ public final class ModuleManager {
             .filter { !disabled.contains($0.lastPathComponent) }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
 
+        pendingReview.removeAll()
         for file in pluginFiles {
             executeFile(file)
         }
@@ -134,6 +145,7 @@ public final class ModuleManager {
         engine.notifyModulesDidReload()
         logger.info("Loaded \(pluginFiles.count) plugins. Ready.")
         onDidReload?()
+        onPendingReviewChange?()
     }
 
     private func executeFile(_ file: URL) {
@@ -143,6 +155,13 @@ public final class ModuleManager {
         }
 
         let filename = file.lastPathComponent
+        if !hotReload, !PluginTrust.matches(filename: filename, source: source) {
+            pendingReview.insert(filename)
+            logger.error("\(filename): on-disk source is not approved")
+            return
+        }
+        pendingReview.remove(filename)
+
         let cachePath = cacheDir.appending(path: filename + ".iife.bc")
 
         switch PluginNeeds.parse(source) {
@@ -235,11 +254,17 @@ public final class ModuleManager {
             { _, info, numEvents, eventPaths, _, _ in
                 guard let info else { return }
                 let manager = Unmanaged<ModuleManager>.fromOpaque(info).takeUnretainedValue()
+                let paths: [String]
+                if let array = unsafeBitCast(eventPaths, to: NSArray.self) as? [String] {
+                    paths = array
+                } else {
+                    paths = []
+                }
                 manager.reloadDebounceTask?.cancel()
                 manager.reloadDebounceTask = Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(300))
                     guard !Task.isCancelled else { return }
-                    manager.reloadAll()
+                    manager.handleDiskChange(paths)
                 }
             },
             &context,
@@ -253,6 +278,32 @@ public final class ModuleManager {
         FSEventStreamSetDispatchQueue(stream, .main)
         FSEventStreamStart(stream)
         logger.info("Watching \(path) for changes")
+    }
+
+    public func handleDiskChange(_ paths: [String]) {
+        if hotReload {
+            reloadAll()
+            return
+        }
+        let pluginChanges = paths.filter {
+            $0.hasSuffix(".js") && $0.contains("/plugins/")
+        }
+        if !pluginChanges.isEmpty {
+            var added = false
+            for path in pluginChanges {
+                let name = URL(fileURLWithPath: path).lastPathComponent
+                if pendingReview.insert(name).inserted { added = true }
+            }
+            if added { onPendingReviewChange?() }
+        }
+        let settingsChanged = paths.contains { $0.hasSuffix("settings.json") }
+        if settingsChanged {
+            engine.configStore = workspace.readSettings()
+            onDidReload?()
+        }
+        if pluginChanges.isEmpty, !settingsChanged, !paths.isEmpty {
+            reloadAll()
+        }
     }
 
     public func stopWatching() {
