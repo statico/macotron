@@ -16,7 +16,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | browser-profiles.js | url.open | Open GitHub in Safari |
 | calculator.js | panel | Calculator |
 | calendar.js | calendar.upcoming | Upcoming Events |
-| clipboard-history.js | clipboard.history | Clipboard History |
+| clipboard-history.js | clipboard.history, launcher.set | (launcher rows) |
 | clipboard-image.js | clipboard.setImage/paste/remove | Clipboard Images |
 | color-picker.js | screen.pickColor | Pick Color |
 | cpu-graph.js | system.cpu, menubar.status sparkline | (CPU menu bar graph) |
@@ -29,7 +29,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | gestures.js | event.tap swipe, window.moveToFraction | (3-finger swipe tiles) |
 | heic-to-jpeg.js | sips + fs | Convert Downloads HEIC |
 | hid.js | hid.list | HID Devices |
-| hyper.js | keyboard.setHyperKey | Hyper H |
+| hyper.js | keyboard.setHyperKey, keyboard.on | (Caps Lock as Hyper) |
 | icon-rainbow.js | menubar.setIconColor |  |
 | idle.js | idle.*, system:idle/active | Idle Seconds |
 | layouts.js | window.restore, localStorage | Save Work, Restore Work |
@@ -40,7 +40,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | notes.js | notes.list, launcher.set | (launcher rows) |
 | now-playing.js | media.nowPlaying, media:changed | Play/Pause, Next Track |
 | ocr.js | ocr.recognize, screen.capture | OCR Selection |
-| plain-paste.js | clipboard.setPastePlain | Plain Paste |
+| plain-paste.js | clipboard.setPastePlain | (plain-text Command-V) |
 | pomodoro.js | timer + menubar.status | Start Pomodoro |
 | power.js | power.* | Toggle Keep Awake |
 | present-mode.js | defaults + Finder | Toggle Present Mode |
@@ -62,5 +62,5 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | weather.js | http + menubar.status | Refresh Weather |
 | wifi.js | network.wifi / bluetooth / airDrop | Toggle Wi-Fi |
 | window-grid.js | window.previewFraction / panel grid | Place Window |
-| window-switcher.js | event.tap, window.focus, panel | Option-Tab switcher |
+| window-switcher.js | event.tap, window.focus, panel | (Option-Tab switcher) |
 | windows.js | window.moveToFraction / snap / focus | Tile Left/Right/Full, Switch Window |

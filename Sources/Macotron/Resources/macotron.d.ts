@@ -563,7 +563,7 @@ declare const macotron: {
             error?: string;
             fans: Array<{ index: number; rpm: number; min: number; max: number }>;
         };
-        /** `null` restores system default. Left-click demo uses 100. Returns `error` when not `controllable`. */
+        /** `null` restores system default. Built-in fan plugin left-click uses 100. Returns `error` when not `controllable`. */
         setFanFloor(percent: number | null): {
             available: boolean;
             controllable: boolean;
