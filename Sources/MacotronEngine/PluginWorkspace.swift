@@ -439,6 +439,14 @@ public final class PluginWorkspace {
         - `.cache/` — bytecode cache and typecheck config. Gitignored. Do not edit.
         - `AGENTS.md` / `CLAUDE.md` — owned by Macotron. Overwritten on every launch.
 
+        ## Example plugins
+
+        Browse the built-in examples at
+        https://github.com/statico/macotron/tree/main/Examples/plugins
+        or inside the installed app at
+        `/Applications/Macotron.app/Contents/Resources/Catalog/`
+        (or `~/Applications/Macotron.app/…` after `make bundle`).
+
         ## API version
 
         Current plugin API version is `\(Engine.apiVersion)` (`macotron.version.api`).
@@ -679,6 +687,12 @@ public final class PluginWorkspace {
     This folder is your Macotron workdir. Add JavaScript plugins under `plugins/`.
 
     Open this folder in Cursor or Claude Code to edit plugins. Macotron reloads on save.
+
+    Example plugins live at
+    https://github.com/statico/macotron/tree/main/Examples/plugins
+    and ship inside the app at
+    `/Applications/Macotron.app/Contents/Resources/Catalog/`
+    (or `~/Applications/Macotron.app/…` after `make bundle`).
 
     See `AGENTS.md` for API notes (that file is rewritten by the app — do not edit it).
     """

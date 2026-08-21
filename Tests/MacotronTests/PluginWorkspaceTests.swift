@@ -45,6 +45,12 @@ struct PluginWorkspaceTests {
         #expect(agents.hasPrefix(PluginWorkspace.agentsBanner))
         #expect(agents.contains("plugins/*.js"))
         #expect(agents.contains("settings.json"))
+        #expect(agents.contains("https://github.com/statico/macotron/tree/main/Examples/plugins"))
+        #expect(agents.contains("/Applications/Macotron.app/Contents/Resources/Catalog/"))
+
+        let readme = try String(contentsOf: dir.appending(path: "README.md"), encoding: .utf8)
+        #expect(readme.contains("https://github.com/statico/macotron/tree/main/Examples/plugins"))
+        #expect(readme.contains("/Applications/Macotron.app/Contents/Resources/Catalog/"))
 
         #expect(FileManager.default.fileExists(atPath: dir.appending(path: "plugins").path(percentEncoded: false)))
         #expect(FileManager.default.fileExists(atPath: dir.appending(path: ".cache").path(percentEncoded: false)))
