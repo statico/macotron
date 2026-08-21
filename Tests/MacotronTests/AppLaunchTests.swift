@@ -27,6 +27,14 @@ struct AppLaunchTests {
         ))
     }
 
+    @Test("the scan finds Safari, a hidden symlink into the Cryptexes volume")
+    func scanFindsSafari() {
+        let apps = AppCatalog.appBundles(in: URL(fileURLWithPath: "/Applications"))
+        #expect(apps.contains { $0.lastPathComponent == "Safari.app" })
+        #expect(Bundle(url: URL(fileURLWithPath: "/Applications/Safari.app"))?
+            .bundleIdentifier == "com.apple.Safari")
+    }
+
     @Test("shortcut hides when the app is already frontmost")
     func hideIfFrontmost() {
         #expect(AppLaunch.shouldHide(bundleID: "com.apple.Safari", frontmost: "com.apple.Safari"))
