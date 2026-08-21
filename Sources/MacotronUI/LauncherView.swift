@@ -1,10 +1,7 @@
 // LauncherView.swift — SwiftUI root view for the launcher (command / app search)
 import SwiftUI
 import AppKit
-import os
 import MacotronEngine
-
-private let launcherLog = Logger(subsystem: "io.statico.macotron", category: "launcher")
 
 @MainActor
 public final class LauncherFrame: ObservableObject {
@@ -161,13 +158,6 @@ public struct LauncherView: View {
         }
         .onAppear {
             applySearch(session.query)
-            launcherLog.notice("""
-                appear n=\(self.results.count, privacy: .public) \
-                size=\(self.windowFrame.size.width, format: .fixed(precision: 0), privacy: .public)x\
-                \(self.windowFrame.size.height, format: .fixed(precision: 0), privacy: .public) \
-                wantH=\(self.desiredHeight, format: .fixed(precision: 1), privacy: .public) \
-                queryLen=\(self.session.query.count, privacy: .public)
-                """)
             onHeightChange?(desiredHeight)
         }
         .onChange(of: session.pendingArgs?.commandId) { _, _ in
@@ -197,12 +187,6 @@ public struct LauncherView: View {
             .frame(width: 0, height: 0)
         }
         .onChange(of: desiredHeight) { _, height in
-            launcherLog.notice("""
-                content n=\(self.results.count, privacy: .public) \
-                wantH=\(height, format: .fixed(precision: 1), privacy: .public) \
-                windowH=\(self.windowFrame.size.height, format: .fixed(precision: 1), privacy: .public) \
-                queryLen=\(self.session.query.count, privacy: .public)
-                """)
             onHeightChange?(height)
         }
     }

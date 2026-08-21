@@ -1,8 +1,5 @@
 // ClaudeProvider.swift — Anthropic Claude API implementation
 import Foundation
-import os
-
-private let logger = Logger(subsystem: "io.statico.macotron", category: "ai.claude")
 
 public final class ClaudeProvider: AIProvider, @unchecked Sendable {
     public let providerName = "claude"

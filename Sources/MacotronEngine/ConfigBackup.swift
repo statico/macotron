@@ -52,7 +52,6 @@ public final class ConfigBackup {
             try process.run()
             process.waitUntilExit()
             if process.terminationStatus == 0 {
-                logger.info("Created backup: \(backupName)")
                 pruneOldBackups()
                 return backupPath
             } else {
@@ -94,7 +93,6 @@ public final class ConfigBackup {
         if backups.count > maxBackups {
             for backup in backups.dropFirst(maxBackups) {
                 try? fm.removeItem(at: backup)
-                logger.info("Pruned old backup: \(backup.lastPathComponent)")
             }
         }
 
@@ -105,7 +103,6 @@ public final class ConfigBackup {
                let created = attrs[.creationDate] as? Date,
                created < cutoff {
                 try? fm.removeItem(at: backup)
-                logger.info("Pruned expired backup: \(backup.lastPathComponent)")
             }
         }
     }

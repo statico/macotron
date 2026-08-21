@@ -114,7 +114,6 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .helper:
             openSettings = Permissions.registerHelper()
         }
-        logger.info("Requested \(self.rawValue) permission")
         return openSettings
     }
 
@@ -230,7 +229,6 @@ public enum Permissions {
         beforeHelperUnregister?()
         do {
             try helperService.unregister()
-            logger.info("Removed the helper")
         } catch {
             logger.error("Helper removal failed: \(error.localizedDescription)")
         }

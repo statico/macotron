@@ -514,7 +514,6 @@ public final class WindowModule: NativeModule {
             CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
         }
         CGEvent.tapEnable(tap: eventTap, enable: true)
-        logger.info("Window snap event tap installed")
         return true
     }
 

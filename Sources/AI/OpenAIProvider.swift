@@ -1,8 +1,5 @@
 // OpenAIProvider.swift — OpenAI API implementation (GPT-4, etc.)
 import Foundation
-import os
-
-private let logger = Logger(subsystem: "io.statico.macotron", category: "ai.openai")
 
 public final class OpenAIProvider: AIProvider, @unchecked Sendable {
     public let providerName = "openai"
