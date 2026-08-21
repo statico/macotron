@@ -207,6 +207,12 @@ final class URLSchemeEventReceiver: NSObject {
 
         let scheme = url.scheme ?? ""
         let host = url.host ?? ""
+        let source = sourceBundle(from: event)
+
+        if URLEventGate.needsConfirmation(scheme: scheme), !confirmEvent(url: url, source: source) {
+            return
+        }
+
         var payload: [String: Any] = [
             "url": urlString,
             "scheme": scheme,
@@ -214,7 +220,7 @@ final class URLSchemeEventReceiver: NSObject {
             "path": url.path,
             "query": url.query ?? ""
         ]
-        if let source = sourceBundle(from: event) {
+        if let source {
             payload["sourceBundle"] = source
         }
 
@@ -244,6 +250,22 @@ final class URLSchemeEventReceiver: NSObject {
             }
         }
         JS_FreeValue(ctx, data)
+    }
+
+    private func confirmEvent(url: URL, source: String?) -> Bool {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Allow URL Event?"
+        var info = url.absoluteString
+        if let source {
+            info += "\n\nSent by \(source)"
+        }
+        info += "\n\nThis link can trigger plugin actions. Only allow it if you expected it."
+        alert.informativeText = info
+        alert.addButton(withTitle: "Allow")
+        alert.addButton(withTitle: "Cancel")
+        NSApp.activate(ignoringOtherApps: true)
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     private func sourceBundle(from event: NSAppleEventDescriptor) -> String? {
