@@ -14,18 +14,12 @@ struct LockScreenDemoTests {
         let demo = try String(contentsOf: demoURL, encoding: .utf8)
         let source = """
             var locked = 0;
-            var confirms = [];
-            var confirmResult = true;
             var commands = {};
             var macotron = {
                 plugin: () => ({}),
                 command: (name, desc, fn) => { commands[name] = fn; },
                 power: { lock: () => { locked++; return true; } }
             };
-            function confirm(message) {
-                confirms.push(message);
-                return confirmResult;
-            }
             \(demo)
             \(extra)
             """
@@ -35,24 +29,12 @@ struct LockScreenDemoTests {
         return result ?? ""
     }
 
-    @Test("lock screen command asks first")
-    func confirmsThenLocks() throws {
+    @Test("lock screen command locks right away")
+    func locks() throws {
         let result = try eval(#"""
             commands["Lock Screen"]();
-            JSON.stringify({ locked: locked, message: confirms[0] })
+            JSON.stringify({ locked: locked })
             """#)
         #expect(result.contains(#""locked":1"#))
-        #expect(result.lowercased().contains("lock"))
-    }
-
-    @Test("cancel skips lock")
-    func cancel() throws {
-        let result = try eval(#"""
-            confirmResult = false;
-            commands["Lock Screen"]();
-            JSON.stringify({ locked: locked, confirms: confirms.length })
-            """#)
-        #expect(result.contains(#""locked":0"#))
-        #expect(result.contains(#""confirms":1"#))
     }
 }

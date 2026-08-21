@@ -147,7 +147,6 @@ public final class SettingsState: ObservableObject {
     @Published public var launcherBackground: LauncherBackground = .translucent
     @Published public var moduleSummaries: [ModuleSummary] = []
     @Published public var appShortcuts: [AppShortcutSummary] = []
-    @Published public var pluginsPath: String = ""
     @Published public var requestedTab: Int?
     @Published public var requestedPlugin: String?
     @Published public var catalogPlugins: [CatalogPlugin] = []
@@ -157,7 +156,6 @@ public final class SettingsState: ObservableObject {
     @Published public var installTarget: CatalogPlugin?
     @Published public var scanReport: PluginScanReport?
     @Published public var scanning = false
-    @Published public var scanNote: String?
     @Published public var overwrite: CatalogOverwrite?
     @Published public var isReviewing = false
 
@@ -200,6 +198,7 @@ public final class SettingsState: ObservableObject {
     public var openPluginsFolder: (() -> Void)?
     public var loadRequiredPermissions: (() -> [Permission])?
     public var configDirURL: URL?
+    public var pluginsPath: String { configDirURL?.path(percentEncoded: false) ?? "" }
 
     public init() {}
 
@@ -212,7 +211,6 @@ public final class SettingsState: ObservableObject {
         textScale = readTextScale?() ?? 1.0
         launcherBackground = readLauncherBackground?() ?? .translucent
         catalogPlugins = PluginCatalog.load()
-        pluginsPath = configDirURL?.path(percentEncoded: false) ?? ""
         refreshModules()
         refreshAppShortcuts()
         refreshPermissions()
@@ -291,7 +289,6 @@ public final class SettingsState: ObservableObject {
 
     public func beginInstall(_ plugin: CatalogPlugin) {
         scanReport = nil
-        scanNote = nil
         scanning = false
         isReviewing = false
         let dest = configDirURL?
@@ -307,9 +304,8 @@ public final class SettingsState: ObservableObject {
         onScanCatalog?(plugin)
     }
 
-    public func beginReview(filename: String, source: String, destHash: String?) {
+    public func beginReview(filename: String, source: String, destHash: String?, fileURL: URL) {
         scanReport = nil
-        scanNote = nil
         scanning = false
         isReviewing = true
         overwrite = nil
@@ -323,7 +319,8 @@ public final class SettingsState: ObservableObject {
             description: header.description ?? "",
             permissions: header.permissions.compactMap(Permission.init(rawValue:)),
             source: source,
-            bundleHash: destHash ?? PluginHash.sha256(source: source)
+            bundleHash: destHash ?? PluginHash.sha256(source: source),
+            fileURL: fileURL
         )
         if let plugin = installTarget {
             onScanCatalog?(plugin)
@@ -377,13 +374,14 @@ public struct SettingsView: View {
                 CatalogBrowser(
                     plugins: state.catalogPlugins,
                     installedNames: state.installedPluginNames,
-                    onInstall: { state.beginInstall($0) },
-                    onPreview: { state.beginInstall($0) }
+                    onInstall: { state.beginInstall($0) }
                 )
             }
             .padding(16)
             .frame(width: 560, height: 480)
+            .catalogInstaller(state: state)
         }
+        .catalogInstaller(state: state, enabled: !showCatalog)
     }
 
     private var tabBar: some View {

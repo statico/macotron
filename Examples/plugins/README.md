@@ -24,7 +24,7 @@ Demos use only `macotron.*` and Apple-shipped tools. They do not need Homebrew o
 | demo-browser-profiles.js | url.open | Open GitHub in Safari |
 | demo-url-router.js | url.on / open | Open YouTube in Safari |
 | demo-power.js | power.* | Toggle Keep Awake |
-| demo-lock-screen.js | power.lock, confirm | Lock Screen |
+| demo-lock-screen.js | power.lock | Lock Screen |
 | demo-fan.js | system.fans / setFanFloor | Toggle Fan 100% |
 | demo-now-playing.js | media.nowPlaying, media:changed | Play/Pause, Next Track |
 | demo-audio.js | audio.devices / setOutput / setMuted | Cycle Output, Mute |

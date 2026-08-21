@@ -53,6 +53,31 @@ struct CommandShortcutsTests {
         #expect(table.bindings.isEmpty)
     }
 
+    @Test("unbindMatching writes none for defaults that still own the combo")
+    func unbindMatchingDefaults() {
+        var table = CommandShortcuts()
+        table.unbindMatching(
+            combo: "ctrl+opt+left",
+            defaults: ["win/left": "ctrl+opt+left", "win/right": "ctrl+opt+right"],
+            except: nil
+        )
+        #expect(table.resolved("win/left", default: "ctrl+opt+left") == "")
+        #expect(table.resolved("win/right", default: "ctrl+opt+right") == "ctrl+opt+right")
+    }
+
+    @Test("unbindMatching skips the id that is keeping the combo")
+    func unbindMatchingKeepsAssignee() {
+        var table = CommandShortcuts()
+        table.assign(commandId: "win/left", combo: "ctrl+opt+left")
+        table.unbindMatching(
+            combo: "ctrl+opt+left",
+            defaults: ["win/left": "ctrl+opt+left", "grid/left": "ctrl+opt+left"],
+            except: "win/left"
+        )
+        #expect(table.combo(for: "win/left") == "ctrl+opt+left")
+        #expect(table.resolved("grid/left", default: "ctrl+opt+left") == "")
+    }
+
     @Test("app bundle ids store like command ids")
     func appIds() {
         var table = CommandShortcuts()

@@ -10,6 +10,7 @@ public struct CatalogPlugin: Equatable, Identifiable, Sendable {
     public var permissions: [Permission]
     public var source: String
     public var bundleHash: String
+    public var fileURL: URL
 
     public var id: String { filename }
     public var isStock: Bool { kind == "stock" }
@@ -23,7 +24,8 @@ public struct CatalogPlugin: Equatable, Identifiable, Sendable {
         description: String,
         permissions: [Permission],
         source: String,
-        bundleHash: String
+        bundleHash: String,
+        fileURL: URL
     ) {
         self.filename = filename
         self.kind = kind
@@ -34,6 +36,7 @@ public struct CatalogPlugin: Equatable, Identifiable, Sendable {
         self.permissions = permissions
         self.source = source
         self.bundleHash = bundleHash
+        self.fileURL = fileURL
     }
 }
 
@@ -67,7 +70,8 @@ public enum PluginCatalog {
                 description: header.description ?? "",
                 permissions: perms,
                 source: source,
-                bundleHash: PluginHash.sha256(source: source)
+                bundleHash: PluginHash.sha256(source: source),
+                fileURL: fileURL
             )
         }
         .sorted { lhs, rhs in

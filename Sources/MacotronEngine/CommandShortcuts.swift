@@ -28,6 +28,19 @@ public struct CommandShortcuts: Equatable, Sendable {
         bindings = bindings.filter { $0.value != normalized }
     }
 
+    /// Plugin hotkeys with no stored override still fire their default. Write
+    /// `none` for every other id whose resolved combo matches, so a new assignment
+    /// actually steals the key.
+    public mutating func unbindMatching(combo: String, defaults: [String: String], except keep: String? = nil) {
+        let normalized = combo.lowercased().trimmingCharacters(in: .whitespaces)
+        guard !normalized.isEmpty, normalized != Self.unbound else { return }
+        for (id, defaultCombo) in defaults where id != keep {
+            if resolved(id, default: defaultCombo).lowercased() == normalized {
+                assign(commandId: id, combo: Self.unbound)
+            }
+        }
+    }
+
     public func combo(for commandId: String) -> String {
         bindings[commandId] ?? ""
     }

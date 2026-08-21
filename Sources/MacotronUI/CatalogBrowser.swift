@@ -6,22 +6,8 @@ public struct CatalogBrowser: View {
     let plugins: [CatalogPlugin]
     var installedNames: Set<String>
     var onInstall: (CatalogPlugin) -> Void
-    var onPreview: (CatalogPlugin) -> Void
-
     @State private var query = ""
     @StateObject private var command = CommandHeld()
-
-    public init(
-        plugins: [CatalogPlugin],
-        installedNames: Set<String>,
-        onInstall: @escaping (CatalogPlugin) -> Void,
-        onPreview: @escaping (CatalogPlugin) -> Void
-    ) {
-        self.plugins = plugins
-        self.installedNames = installedNames
-        self.onInstall = onInstall
-        self.onPreview = onPreview
-    }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -34,8 +20,7 @@ public struct CatalogBrowser: View {
                             plugin: plugin,
                             installed: installedNames.contains(plugin.filename),
                             commandHeld: command.isHeld,
-                            onInstall: { onInstall(plugin) },
-                            onPreview: { onPreview(plugin) }
+                            onInstall: { onInstall(plugin) }
                         )
                     }
                 }
@@ -59,7 +44,6 @@ private struct CatalogRow: View {
     let installed: Bool
     let commandHeld: Bool
     var onInstall: () -> Void
-    var onPreview: () -> Void
 
     private var canReinstall: Bool { installed && commandHeld }
 
@@ -82,8 +66,10 @@ private struct CatalogRow: View {
                     .lineLimit(2)
             }
             Spacer(minLength: 8)
-            Button("View Source") { onPreview() }
-                .controlSize(.small)
+            Button("View Source…") {
+                NSWorkspace.shared.open(plugin.fileURL)
+            }
+            .controlSize(.small)
             Button(canReinstall ? "Reinstall…" : installed ? "Installed" : "Install…") {
                 onInstall()
             }
@@ -95,25 +81,17 @@ private struct CatalogRow: View {
     }
 }
 
-public struct CatalogInstallSheet: View {
+private struct CatalogInstallSheet: View {
+    @ObservedObject var state: SettingsState
     let plugin: CatalogPlugin
-    var overwrite: CatalogOverwrite?
-    var report: PluginScanReport?
-    var scanning: Bool
-    var isReview: Bool
-    var grantedPermissions: Set<Permission>
-    var onPermissionChange: () -> Void
-    var onInstall: (Bool) -> Void
-    var onCancel: () -> Void
-    @State private var showSource = false
 
-    public var body: some View {
+    var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(plugin.title)
                 .font(.title3.weight(.semibold))
             Text(plugin.description)
                 .foregroundStyle(.secondary)
-            if let overwrite {
+            if let overwrite = state.overwrite {
                 Text(overwrite == .modified
                      ? "This replaces a plugin you already edited."
                      : "This replaces the installed copy of this stock plugin.")
@@ -127,48 +105,50 @@ public struct CatalogInstallSheet: View {
                     ForEach(plugin.permissions) { permission in
                         PermissionRow(
                             permission: permission,
-                            granted: grantedPermissions.contains(permission),
-                            onChange: onPermissionChange
+                            granted: state.grantedPermissions.contains(permission),
+                            onChange: state.refreshPermissions
                         )
                     }
                 }
             }
             scanStatus
-            if showSource {
-                ScrollView {
-                    Text(plugin.source)
-                        .font(.system(size: 11, design: .monospaced))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                Spacer(minLength: 0)
-            }
             HStack {
-                Button(showSource ? "Hide Source Code" : "Show Source Code") {
-                    showSource.toggle()
+                Button("View Source…") {
+                    NSWorkspace.shared.open(plugin.fileURL)
                 }
                 Spacer()
-                Button("Cancel", action: onCancel)
-                if let report, report.needsOverride {
-                    Button(isReview ? "Run Anyway" : "Install Anyway") { onInstall(true) }
+                Button("Cancel") {
+                    state.installTarget = nil
+                    state.isReviewing = false
+                }
+                if let report = state.scanReport, report.needsOverride {
+                    Button(state.isReviewing ? "Run Anyway" : "Install Anyway") {
+                        install(override: true)
+                    }
                         .keyboardShortcut(.defaultAction)
-                } else if report?.approved == true {
-                    Button(isReview ? "Reload" : "Install") { onInstall(false) }
+                } else if state.scanReport?.approved == true {
+                    Button(state.isReviewing ? "Reload" : "Install") {
+                        install(override: false)
+                    }
                         .keyboardShortcut(.defaultAction)
                 }
             }
+            .padding(.top, 4)
         }
         .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.bottom, 6)
+        .frame(width: 540)
     }
 
     @ViewBuilder
     private var scanStatus: some View {
-        if scanning {
-            ProgressView("Scanning with Apple Intelligence…")
-        } else if let report {
+        if state.scanning {
+            HStack(alignment: .center, spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Scanning with Apple Intelligence…")
+            }
+        } else if let report = state.scanReport {
             VStack(alignment: .leading, spacing: 8) {
                 if report.approved {
                     scanBanner(
@@ -191,9 +171,13 @@ public struct CatalogInstallSheet: View {
                                 "Automated checks failed.",
                                 .red
                             )
-                            ForEach(report.staticFlags, id: \.self) { Text("• \($0)") }
+                            ForEach(report.staticFlags, id: \.self) { flag in
+                                Text("• \(flag)")
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                             ForEach(Array(report.findings.enumerated()), id: \.offset) { _, finding in
                                 Text("• Pass \(finding.pass): \(finding.message)")
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                         }
                         .font(.callout)
@@ -201,6 +185,7 @@ public struct CatalogInstallSheet: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -212,5 +197,37 @@ public struct CatalogInstallSheet: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .foregroundStyle(color)
+    }
+
+    private func install(override: Bool) {
+        state.onInstallCatalog?(plugin, override)
+        if !state.isReviewing {
+            state.installTarget = nil
+        }
+    }
+}
+
+private struct CatalogInstaller: ViewModifier {
+    @ObservedObject var state: SettingsState
+    let enabled: Bool
+
+    func body(content: Content) -> some View {
+        content.sheet(item: Binding(
+            get: { enabled ? state.installTarget : nil },
+            set: { state.installTarget = $0 }
+        ), onDismiss: {
+            state.isReviewing = false
+        }) { plugin in
+            CatalogInstallSheet(
+                state: state,
+                plugin: plugin
+            )
+        }
+    }
+}
+
+extension View {
+    func catalogInstaller(state: SettingsState, enabled: Bool = true) -> some View {
+        modifier(CatalogInstaller(state: state, enabled: enabled))
     }
 }
