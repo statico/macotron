@@ -23,7 +23,6 @@ public final class NotifyModule: NativeModule {
     public let moduleVersion = 1
 
     private var notificationCenter: UNUserNotificationCenter?
-    private var askedForAuthorization = false
     private let presenter = NotifyPresenter()
 
     public init() {}
@@ -35,8 +34,52 @@ public final class NotifyModule: NativeModule {
         return c
     }
 
+    public enum Delivery: Equatable {
+        case deliver
+        case askFirst
+        case drop
+    }
+
+    nonisolated static func deliveryDecision(for status: UNAuthorizationStatus) -> Delivery {
+        switch status {
+        case .notDetermined: return .askFirst
+        case .denied: return .drop
+        default: return .deliver
+        }
+    }
+
+    nonisolated private static func deliver(_ request: UNNotificationRequest) {
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+            switch deliveryDecision(for: settings.authorizationStatus) {
+            case .deliver:
+                add(request, to: center)
+            case .askFirst:
+                center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                    if let error {
+                        logger.error("Notification authorization failed: \(error.localizedDescription)")
+                    }
+                    if granted { add(request, to: center) }
+                }
+            case .drop:
+                break
+            }
+        }
+    }
+
+    nonisolated private static func add(_ request: UNNotificationRequest, to center: UNUserNotificationCenter) {
+        center.add(request) { error in
+            if let error {
+                logger.error("Failed to deliver notification: \(error.localizedDescription)")
+            }
+        }
+    }
+
     public func register(in engine: Engine, options: [String: Any]) {
         engine.configStore["__notifyModule"] = self
+        if !engine.dryRun {
+            center.delegate = presenter
+        }
 
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
@@ -68,7 +111,6 @@ public final class NotifyModule: NativeModule {
                 if engine.dryRun {
                     return QJS_Undefined()
                 }
-                (engine.configStore["__notifyModule"] as? NotifyModule)?.ensureAuthorized()
             }
 
             // Parse optional opts object
@@ -113,11 +155,7 @@ public final class NotifyModule: NativeModule {
                 trigger: nil // deliver immediately
             )
 
-            UNUserNotificationCenter.current().add(request) { error in
-                if let error {
-                    logger.error("Failed to deliver notification: \(error.localizedDescription)")
-                }
-            }
+            NotifyModule.deliver(request)
 
             return QJS_Undefined()
         }, "show", 3))
@@ -201,17 +239,6 @@ public final class NotifyModule: NativeModule {
 
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
-    }
-
-    private func ensureAuthorized() {
-        guard !askedForAuthorization else { return }
-        askedForAuthorization = true
-        center.delegate = presenter
-        center.requestAuthorization(options: [.alert, .sound, .badge]) { _, error in
-            if let error {
-                logger.error("Notification authorization failed: \(error.localizedDescription)")
-            }
-        }
     }
 
     public func cleanup() {

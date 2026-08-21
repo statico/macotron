@@ -47,6 +47,11 @@ public final class EventBus {
         engine.drainJobQueue()
     }
 
+    /// Whether any callback is registered for an event
+    public func hasListeners(_ event: String) -> Bool {
+        listeners[event]?.isEmpty == false
+    }
+
     /// Remove all listeners (called on reload)
     public func removeAllListeners() {
         for (_, list) in listeners {

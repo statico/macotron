@@ -13,13 +13,12 @@ enum QRCodes {
     static let maxPixelSize: CGFloat = 2048
 
     static func detect(data: Data) -> String? {
-        guard data.count <= maxDecodedBytes, withinPixelCap(data) else { return nil }
+        guard data.count <= maxDecodedBytes, withinPixelCap(CGImageSourceCreateWithData(data as CFData, nil)) else { return nil }
         return detect(handler: VNImageRequestHandler(data: data))
     }
 
     static func detect(url: URL) -> String? {
-        guard let n = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber,
-              n.intValue <= maxDecodedBytes else { return nil }
+        guard withinPixelCap(CGImageSourceCreateWithURL(url as CFURL, nil)) else { return nil }
         return detect(handler: VNImageRequestHandler(url: url))
     }
 
@@ -54,12 +53,9 @@ enum QRCodes {
         return data
     }
 
-    private static func withinPixelCap(_ data: Data) -> Bool {
-        guard let src = CGImageSourceCreateWithData(
-            data as CFData,
-            [kCGImageSourceShouldCache: false] as CFDictionary
-        ),
-            let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any],
+    private static func withinPixelCap(_ source: CGImageSource?) -> Bool {
+        guard let source,
+            let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
             let w = props[kCGImagePropertyPixelWidth] as? Int,
             let h = props[kCGImagePropertyPixelHeight] as? Int
         else { return false }
