@@ -36,6 +36,15 @@ struct CommandShortcutsTests {
         #expect(table.resolved("b", default: "ctrl+opt+k") == "ctrl+opt+k")
     }
 
+    @Test("clearing a second hotkey leaves the first one cleared")
+    func clearingTwoStaysCleared() {
+        var table = CommandShortcuts()
+        table.assign(commandId: "a", combo: CommandShortcuts.unbound)
+        table.assign(commandId: "b", combo: CommandShortcuts.unbound)
+        #expect(table.resolved("a", default: "ctrl+opt+a") == "")
+        #expect(table.resolved("b", default: "ctrl+opt+b") == "")
+    }
+
     @Test("removeCombo drops every id using that combo")
     func removeCombo() {
         var table = CommandShortcuts()

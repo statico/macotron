@@ -20,9 +20,11 @@ public struct CommandShortcuts: Equatable, Sendable {
         bindings[commandId] = normalized
     }
 
+    /// Combos are unique, so assigning one steals it from any other id. The
+    /// unbound marker is not a combo: every cleared id keeps its own.
     public mutating func removeCombo(_ combo: String) {
         let normalized = combo.lowercased().trimmingCharacters(in: .whitespaces)
-        guard !normalized.isEmpty else { return }
+        guard !normalized.isEmpty, normalized != Self.unbound else { return }
         bindings = bindings.filter { $0.value != normalized }
     }
 
