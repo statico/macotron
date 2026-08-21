@@ -16,7 +16,7 @@ struct PermissionRow: View {
     static let actionWidth: CGFloat = 104
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(alignment: .center, spacing: 8) {
             Image(systemName: granted ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                 .foregroundStyle(granted ? Color.green : Color.orange)
                 .frame(width: 14)

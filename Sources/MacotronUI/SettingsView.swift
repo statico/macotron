@@ -304,6 +304,7 @@ public final class SettingsState: ObservableObject {
             overwrite = nil
         }
         installTarget = plugin
+        onScanCatalog?(plugin)
     }
 
     public func beginReview(filename: String, source: String, destHash: String?) {
@@ -324,6 +325,9 @@ public final class SettingsState: ObservableObject {
             source: source,
             bundleHash: destHash ?? PluginHash.sha256(source: source)
         )
+        if let plugin = installTarget {
+            onScanCatalog?(plugin)
+        }
     }
 }
 
@@ -379,30 +383,6 @@ public struct SettingsView: View {
             }
             .padding(16)
             .frame(width: 560, height: 480)
-        }
-        .sheet(item: $state.installTarget) { plugin in
-            CatalogInstallSheet(
-                plugin: plugin,
-                overwrite: state.overwrite,
-                modelNote: state.scanNote,
-                report: state.scanReport,
-                scanning: state.scanning,
-                isReview: state.isReviewing,
-                grantedPermissions: state.grantedPermissions,
-                onPermissionChange: { state.refreshPermissions() },
-                onScan: { state.onScanCatalog?(plugin) },
-                onInstall: { override in
-                    state.onInstallCatalog?(plugin, override)
-                    if !state.isReviewing {
-                        state.installTarget = nil
-                        showCatalog = false
-                    }
-                },
-                onCancel: {
-                    state.installTarget = nil
-                    state.isReviewing = false
-                }
-            )
         }
     }
 
@@ -876,7 +856,7 @@ struct PluginListRow: View {
     }
 }
 
-private final class CommandHeld: ObservableObject, @unchecked Sendable {
+final class CommandHeld: ObservableObject, @unchecked Sendable {
     @Published private(set) var isHeld = false
     private var monitor: Any?
     private var observers: [NSObjectProtocol] = []
