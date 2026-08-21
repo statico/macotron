@@ -43,12 +43,7 @@ final class AppSearchProvider {
         }
 
         for dir in AppCatalog.searchDirectories() {
-            guard let contents = try? fm.contentsOfDirectory(
-                at: dir,
-                includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles]
-            ) else { continue }
-            contents.forEach(add)
+            AppCatalog.appBundles(in: dir).forEach(add)
         }
         AppCatalog.extraApps.forEach(add)
 

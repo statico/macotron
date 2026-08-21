@@ -219,6 +219,16 @@ public enum AppCatalog {
     public static let extraApps = [
         URL(fileURLWithPath: "/System/Library/CoreServices/Finder.app"),
     ]
+
+    /// `/Applications/Safari.app` is a hidden symlink into the Cryptexes volume, so
+    /// skipping hidden entries would drop Safari from the launcher.
+    public static func appBundles(in directory: URL) -> [URL] {
+        let contents = (try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        )) ?? []
+        return contents.filter { $0.pathExtension == "app" }
+    }
 }
 
 /// Launch or activate via Launch Services. `NSRunningApplication.activate()` from a
