@@ -42,9 +42,13 @@ public struct ModuleOption: Identifiable {
     /// Whether the option currently has a usable value (Keychain secret for passwords).
     public let isSet: Bool
     public let choices: [ModuleOptionChoice]
+    /// Grey hint shown in an empty field. Plugins compute it at load, so it can
+    /// describe live state such as the current system locale.
+    public let placeholder: String
 
     public init(key: String, label: String, type: String, defaultValue: Any, currentValue: Any,
-                required: Bool = false, isSet: Bool = true, choices: [ModuleOptionChoice] = []) {
+                required: Bool = false, isSet: Bool = true, choices: [ModuleOptionChoice] = [],
+                placeholder: String = "") {
         self.id = key
         self.key = key
         self.label = label
@@ -54,6 +58,7 @@ public struct ModuleOption: Identifiable {
         self.required = required
         self.isSet = isSet
         self.choices = choices
+        self.placeholder = placeholder
     }
 
     /// Required but without a value — Settings surfaces a needs-setup hint.
@@ -759,31 +764,39 @@ public struct SettingsView: View {
         }
     }
 
-    /// Add pulls from the catalog, which is how most people get a plugin, so it
-    /// takes the sidebar width. Authoring lives behind the New menu.
     private var pluginSidebarActions: some View {
         HStack(spacing: 8) {
             Button {
                 showCatalog = true
             } label: {
-                Label("Add", systemImage: "plus")
-                    .frame(maxWidth: .infinity)
+                twoLineActionLabel("Add Plugin", "from Catalog")
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.bordered)
             .help("Install a plugin from the catalog")
+            .accessibilityLabel("Add Plugin from Catalog")
 
             Menu {
                 Button("Empty Plugin…") { showNewPlugin = true }
                 Divider()
                 Button("Open Plugins Folder") { state.openPluginsFolder?() }
             } label: {
-                Text("New")
+                twoLineActionLabel("Build Plugin", "with Agent")
             }
-            .menuStyle(.button)
-            .fixedSize()
-            .help("Write a plugin yourself")
+            .menuStyle(.borderedButton)
+            .help("Create a plugin with an editor or agent")
+            .accessibilityLabel("Build Plugin with Agent")
         }
+        .controlSize(.small)
         .padding(8)
+    }
+
+    private func twoLineActionLabel(_ top: String, _ bottom: String) -> some View {
+        VStack(spacing: 1) {
+            Text(top)
+            Text(bottom)
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
     }
 
     private var emptyPluginsPlaceholder: some View {
@@ -1222,7 +1235,7 @@ struct ModuleOptionRow: View {
                     state.refreshModules()
                 }
         case "number":
-            TextField("", text: $numberValue)
+            TextField("", text: $numberValue, prompt: promptText)
                 .font(.system(size: 12, design: .monospaced))
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 80)
@@ -1272,7 +1285,7 @@ struct ModuleOptionRow: View {
             }
         case "password":
             HStack(spacing: 8) {
-                SecureField("Enter value", text: $passwordValue)
+                SecureField(option.placeholder.isEmpty ? "Enter value" : option.placeholder, text: $passwordValue)
                     .font(.system(size: 12, design: .monospaced))
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 180)
@@ -1297,7 +1310,8 @@ struct ModuleOptionRow: View {
         case "file", "directory":
             HStack(spacing: 8) {
                 let path = (option.currentValue as? String) ?? ""
-                Text(path.isEmpty ? "Not set" : path)
+                let empty = option.placeholder.isEmpty ? "Not set" : option.placeholder
+                Text(path.isEmpty ? empty : path)
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(path.isEmpty ? .tertiary : .secondary)
                     .lineLimit(1)
@@ -1310,7 +1324,7 @@ struct ModuleOptionRow: View {
                 .controlSize(.small)
             }
         default:
-            TextField("", text: $stringValue)
+            TextField("", text: $stringValue, prompt: promptText)
                 .font(.system(size: 12, design: .monospaced))
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: PluginForm.fieldMaxWidth)
@@ -1320,6 +1334,10 @@ struct ModuleOptionRow: View {
                     state.refreshModules()
                 }
         }
+    }
+
+    private var promptText: Text? {
+        option.placeholder.isEmpty ? nil : Text(option.placeholder)
     }
 
     private var labelText: some View {

@@ -810,15 +810,19 @@ declare const macotron: {
     requirePermissions(list: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "camera" | "microphone">): void;
 };
 
+/**
+ * `placeholder` is the grey hint shown in an empty field. It is read when the
+ * plugin loads, so it can describe live state — e.g. `macotron.system.locale().language`.
+ */
 type MacotronPluginOption =
-    | { type: "string"; label: string; default?: string; required?: boolean }
+    | { type: "string"; label: string; default?: string; required?: boolean; placeholder?: string }
     | { type: "boolean"; label: string; default?: boolean; required?: boolean }
-    | { type: "number"; label: string; default?: number; required?: boolean }
+    | { type: "number"; label: string; default?: number; required?: boolean; placeholder?: string }
     | { type: "keybinding"; label: string; default?: string; required?: boolean }
     | { type: "dropdown"; label: string; default?: string; required?: boolean; choices: Array<{ value: string; label: string }> }
-    | { type: "password"; label: string; required?: boolean }
-    | { type: "file"; label: string; default?: string; required?: boolean }
-    | { type: "directory"; label: string; default?: string; required?: boolean };
+    | { type: "password"; label: string; required?: boolean; placeholder?: string }
+    | { type: "file"; label: string; default?: string; required?: boolean; placeholder?: string }
+    | { type: "directory"; label: string; default?: string; required?: boolean; placeholder?: string };
 
 interface AIChatMessage {
     role: "user" | "assistant";
