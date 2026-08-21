@@ -388,6 +388,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let root = self?.workspace.root else { return }
             NSWorkspace.shared.open(root)
         }
+        settingsState.createPlugin = { [weak self] filename, source in
+            self?.createPlugin(filename: filename, source: source)
+        }
         settingsWindow = SettingsWindow(state: settingsState)
     }
 
@@ -761,6 +764,23 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         } catch {
             NSLog("[Macotron] Catalog install failed: \(error)")
+        }
+    }
+
+    /// The user authored these bytes here, so trust them straight away instead of
+    /// sending the new file to Review & Reload.
+    private func createPlugin(filename: String, source: String) {
+        guard let workspace else { return }
+        let dest = workspace.pluginsDir.appending(path: filename)
+        do {
+            try source.write(to: dest, atomically: true, encoding: .utf8)
+            PluginTrust.approve(filename: filename, source: source)
+            moduleManager.reloadAll()
+            refreshIntegrity()
+            settingsState.refreshModules()
+            NSWorkspace.shared.open(dest)
+        } catch {
+            NSLog("[Macotron] Could not create \(filename): \(error)")
         }
     }
 

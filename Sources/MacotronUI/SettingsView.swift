@@ -198,6 +198,7 @@ public final class SettingsState: ObservableObject {
     public var revealModuleFile: ((_ filename: String) -> Void)?
     public var changePluginsFolder: (() -> Void)?
     public var openPluginsFolder: (() -> Void)?
+    public var createPlugin: ((_ filename: String, _ source: String) -> Void)?
     public var loadRequiredPermissions: (() -> [Permission])?
     public var configDirURL: URL?
     public var pluginsPath: String { configDirURL?.path(percentEncoded: false) ?? "" }
@@ -346,14 +347,13 @@ public struct SettingsView: View {
     @State private var selectedTab: SettingsTab
     @State private var selectedPlugin: String?
     @State private var showCatalog = false
+    @State private var showNewPlugin = false
     @FocusState private var pluginListFocused: Bool
 
     public init(state: SettingsState, initialTab: Int = 0) {
         self.state = state
         self._selectedTab = State(initialValue: SettingsTab(rawValue: initialTab) ?? .general)
     }
-
-    private let githubPluginsURL = URL(string: "https://github.com/search?q=topic%3Amacotron-plugin&type=repositories")!
 
     public var body: some View {
         VStack(spacing: 0) {
@@ -401,7 +401,18 @@ public struct SettingsView: View {
             .frame(width: 560, height: 480)
             .catalogInstaller(state: state)
         }
+        .sheet(isPresented: $showNewPlugin) {
+            NewPluginSheet(existing: existingPluginNames) { filename, source in
+                state.createPlugin?(filename, source)
+                selectedPlugin = filename
+                showNewPlugin = false
+            }
+        }
         .catalogInstaller(state: state, enabled: !showCatalog)
+    }
+
+    private var existingPluginNames: Set<String> {
+        state.installedPluginNames.union(state.moduleSummaries.map(\.filename))
     }
 
     private var tabBar: some View {
@@ -665,6 +676,10 @@ public struct SettingsView: View {
     private var pluginsTab: some View {
         HStack(spacing: 0) {
             VStack(spacing: 0) {
+                pluginSidebarActions
+
+                Divider()
+
                 if state.moduleSummaries.isEmpty {
                     emptyPluginsPlaceholder
                 } else {
@@ -703,26 +718,15 @@ public struct SettingsView: View {
                     .frame(maxHeight: .infinity)
                 }
 
-                Divider()
+                if !state.pendingReview.isEmpty {
+                    Divider()
 
-                HStack {
-                    Button("Browse Catalog…") {
-                        showCatalog = true
+                    Button("Review & Reload") {
+                        state.onReviewPending?()
                     }
                     .controlSize(.small)
-                    if !state.pendingReview.isEmpty {
-                        Button("Review & Reload") {
-                            state.onReviewPending?()
-                        }
-                        .controlSize(.small)
-                    }
-                    Spacer()
-                    Button("GitHub") {
-                        NSWorkspace.shared.open(githubPluginsURL)
-                    }
-                    .controlSize(.small)
+                    .padding(8)
                 }
-                .padding(8)
             }
             .frame(width: 240)
             .frame(maxHeight: .infinity)
@@ -753,6 +757,33 @@ public struct SettingsView: View {
         .onChange(of: state.moduleSummaries.map(\.filename)) {
             selectInitialPlugin()
         }
+    }
+
+    /// Add pulls from the catalog, which is how most people get a plugin, so it
+    /// takes the sidebar width. Authoring lives behind the New menu.
+    private var pluginSidebarActions: some View {
+        HStack(spacing: 8) {
+            Button {
+                showCatalog = true
+            } label: {
+                Label("Add", systemImage: "plus")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .help("Install a plugin from the catalog")
+
+            Menu {
+                Button("Empty Plugin…") { showNewPlugin = true }
+                Divider()
+                Button("Open Plugins Folder") { state.openPluginsFolder?() }
+            } label: {
+                Text("New")
+            }
+            .menuStyle(.button)
+            .fixedSize()
+            .help("Write a plugin yourself")
+        }
+        .padding(8)
     }
 
     private var emptyPluginsPlaceholder: some View {
