@@ -121,6 +121,10 @@
       "highlighted": false
     },
     {
+      "filename": "headphone-pause.js",
+      "highlighted": false
+    },
+    {
       "filename": "homekit.js",
       "highlighted": false
     },
@@ -145,7 +149,15 @@
       "highlighted": false
     },
     {
+      "filename": "markdown.js",
+      "highlighted": false
+    },
+    {
       "filename": "meeting-overlay.js",
+      "highlighted": false
+    },
+    {
+      "filename": "mic-mute.js",
       "highlighted": false
     },
     {
@@ -170,6 +182,10 @@
     },
     {
       "filename": "present-mode.js",
+      "highlighted": false
+    },
+    {
+      "filename": "profiles.js",
       "highlighted": false
     },
     {
@@ -229,11 +245,23 @@
       "highlighted": false
     },
     {
+      "filename": "eject.js",
+      "highlighted": false
+    },
+    {
       "filename": "system-metrics.js",
       "highlighted": false
     },
     {
       "filename": "system-settings.js",
+      "highlighted": false
+    },
+    {
+      "filename": "time-machine.js",
+      "highlighted": false
+    },
+    {
+      "filename": "translate.js",
       "highlighted": false
     },
     {
@@ -246,6 +274,10 @@
     },
     {
       "filename": "wifi.js",
+      "highlighted": false
+    },
+    {
+      "filename": "world-clock.js",
       "highlighted": false
     },
     {
