@@ -6,6 +6,8 @@ import Testing
 @MainActor
 @Suite("Plugin Settings")
 struct PluginSettingsTests {
+    init() { KeychainStore.serviceName = "io.statico.macotron.tests" }
+
     // MARK: - KeychainStore
 
     @Test("KeychainStore write/read/delete roundtrip")

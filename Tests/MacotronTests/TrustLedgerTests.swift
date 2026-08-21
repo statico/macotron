@@ -7,6 +7,8 @@ import Testing
 @MainActor
 @Suite("TrustLedger")
 struct TrustLedgerTests {
+    init() { KeychainStore.serviceName = "io.statico.macotron.tests" }
+
     @Test("KeychainHashStore keeps hashes out of the plugin-visible keychain service")
     func hashStoreUsesTrustService() {
         let store = KeychainHashStore()
