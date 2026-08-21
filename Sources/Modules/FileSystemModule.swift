@@ -81,10 +81,6 @@ public final class FileSystemModule: NativeModule {
     public let name = "fs"
     public let moduleVersion = 2
 
-    public var defaultOptions: [String: Any] {
-        ["sandboxRoot": NSHomeDirectory()]
-    }
-
     /// Active fs.watch watchers, keyed by watcher ID.
     private var activeWatchers: [UInt64: ActiveWatcher] = [:]
 
