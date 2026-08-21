@@ -107,10 +107,40 @@ enum AXTree {
     }
 
     static func selectedText() -> String? {
+        if let text = focusedSelectedText() { return text }
+        guard enableWebContentAccessibility() else { return nil }
+        // Chromium builds the tree on a background thread once asked, so the
+        // first read after enabling usually still comes back empty.
+        for _ in 0..<6 {
+            Thread.sleep(forTimeInterval: 0.05)
+            if let text = focusedSelectedText() { return text }
+        }
+        return nil
+    }
+
+    private static func focusedSelectedText() -> String? {
         guard let el = focused() else { return nil }
         let text = string(el, kAXSelectedTextAttribute as CFString)
         return text.isEmpty ? nil : text
     }
+
+    /// Chromium apps (Chrome, Edge, Electron) keep web-content accessibility off
+    /// until a client asks for it, so a selection in a page reads as empty. Ask
+    /// once per process; apps that do not support the attribute just say no.
+    /// Reports whether this call was the one that turned the tree on.
+    private static func enableWebContentAccessibility() -> Bool {
+        guard let app = NSWorkspace.shared.frontmostApplication else { return false }
+        let pid = app.processIdentifier
+        guard !manualAccessibilityPIDs.contains(pid) else { return false }
+        manualAccessibilityPIDs.insert(pid)
+        let el = AXUIElementCreateApplication(pid)
+        let result = AXUIElementSetAttributeValue(el, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+        return result == .success
+    }
+
+    // ponytail: no AXEnhancedUserInterface fallback for older Electron builds —
+    // that flag breaks window resizing in native apps that also accept it.
+    nonisolated(unsafe) private static var manualAccessibilityPIDs: Set<pid_t> = []
 
     static func press(_ el: AXUIElement) -> Bool {
         AXUIElementPerformAction(el, kAXPressAction as CFString) == .success

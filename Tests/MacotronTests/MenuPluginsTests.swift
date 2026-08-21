@@ -158,7 +158,7 @@ struct MenuPluginsTests {
             var macotron = {
                 plugin: () => ({ locale: "" }),
                 ax: { selectedText: () => "" },
-                notify: { toast: (title, body) => { toast = { title: title, body: body }; } },
+                notify: { toast: (title, body, opts) => { toast = { title: title, body: body, opts: opts }; } },
                 panel: { open: (opts) => { panels.push(opts); } },
                 system: { locale: () => ({ language: "es" }) },
                 ai: { local: () => ({ chat: () => Promise.resolve("hola") }) },
@@ -168,15 +168,16 @@ struct MenuPluginsTests {
             macotron._cmd();
             JSON.stringify({ toast: toast, panels: panels.length })
             """#)
-        #expect(empty.contains(#""title":"Translate""#))
+        #expect(empty.contains(#""title":"Cannot translate""#))
         #expect(empty.contains("No selected text"))
+        #expect(empty.contains(#""color":"error""#))
         #expect(empty.contains(#""panels":0"#))
 
         let engine = try load(plugin: "translate.js", mock: #"""
             var toast = null;
             var panels = [];
             var macotron = {
-                plugin: () => ({ locale: "fr" }),
+                plugin: (def) => { macotron._def = def; return { locale: "fr" }; },
                 ax: { selectedText: () => "hello" },
                 notify: { toast: (title, body) => { toast = { title: title, body: body }; } },
                 panel: { open: (opts) => { panels.push(opts); } },
@@ -190,6 +191,11 @@ struct MenuPluginsTests {
         #expect(ok.contains("hello"))
         #expect(ok.contains("bonjour"))
         #expect(ok.contains(#""title":"Translate""#))
+        #expect(ok.contains("Translation to fr:"))
+
+        // The empty locale field hints the system locale instead of saying so in the label.
+        let placeholder = run(engine, "macotron._def.options.locale.placeholder")
+        #expect(placeholder == "es")
     }
 
     @Test("world clock paints each zone every 30s")
