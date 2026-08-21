@@ -330,9 +330,13 @@ public final class MenuBarManager: NSObject {
         reload.image = Self.menuSymbol("arrow.clockwise")
         menu.addItem(reload)
 
-        let hotReloadItem = NSMenuItem(title: "Hot Reload", action: #selector(toggleHotReloadAction), keyEquivalent: "")
+        let hotReloadItem = NSMenuItem(
+            title: hotReload ? "Disable Hot Reloading" : "Enable Hot Reloading",
+            action: #selector(toggleHotReloadAction),
+            keyEquivalent: ""
+        )
         hotReloadItem.target = self
-        hotReloadItem.state = hotReload ? .on : .off
+        hotReloadItem.image = Self.menuSymbol(hotReload ? "bolt.slash" : "bolt")
         menu.addItem(hotReloadItem)
 
         if pendingReviewCount > 0 {
@@ -342,6 +346,7 @@ public final class MenuBarManager: NSObject {
                 keyEquivalent: ""
             )
             review.target = self
+            review.image = Self.menuSymbol("exclamationmark.triangle")
             menu.addItem(review)
         }
 
