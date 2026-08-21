@@ -1,4 +1,4 @@
-// demo-weather.js
+// weather.js
 // APIs: macotron.plugin, macotron.http.get, macotron.menubar.status, macotron.system.locale, macotron.every, macotron.notify, macotron.command
 
 const opts = macotron.plugin({
