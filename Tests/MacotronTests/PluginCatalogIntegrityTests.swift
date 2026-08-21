@@ -675,6 +675,23 @@ struct PluginCatalogTests {
     }
 }
 
+@Suite("PluginDraft")
+struct PluginDraftTests {
+    @Test func slugifiesTitles() {
+        #expect(PluginDraft.filename(for: "  Window Grid 2!  ") == "window-grid-2.js")
+        #expect(PluginDraft.filename(for: "Wi-Fi / VPN") == "wi-fi-vpn.js")
+        #expect(PluginDraft.filename(for: "!!!") == nil)
+        #expect(PluginDraft.filename(for: "") == nil)
+    }
+
+    @Test func starterSourceDeclaresTheTitle() {
+        let source = PluginDraft.source(title: #"Say "Hi""#)
+        #expect(source.contains(#"title: "Say \"Hi\"","#))
+        #expect(source.hasPrefix("macotron.plugin({"))
+        #expect(PluginScan.staticFlags(source).isEmpty)
+    }
+}
+
 @MainActor
 @Suite("CatalogInstallScan")
 struct CatalogInstallScanTests {
