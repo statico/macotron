@@ -6,11 +6,17 @@ import MacotronEngine
 enum SpotlightSearch {
     static let limit = 50
 
-    static func queryString(_ raw: String) -> String? {
+    static func queryString(_ raw: String, kind: String? = nil) -> String? {
         let q = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return nil }
         let e = escape(q)
-        return "(kMDItemDisplayName == '*\(e)*'cd || kMDItemFSName == '*\(e)*'cd)"
+        var query = "(kMDItemDisplayName == '*\(e)*'cd || kMDItemFSName == '*\(e)*'cd)"
+        var ext = kind?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        while ext.hasPrefix(".") { ext.removeFirst() }
+        if !ext.isEmpty {
+            query += " && kMDItemFSName == '*.\(escape(ext))'cd"
+        }
+        return query
     }
 
     static func escape(_ raw: String) -> String {
@@ -38,10 +44,17 @@ enum SpotlightSearch {
     }
 
     static func run(_ raw: String) -> [[String: Any]] {
-        guard let query = queryString(raw) else { return [] }
+        run(raw, folder: nil, kind: nil)
+    }
+
+    static func run(_ raw: String, folder: String?, kind: String?) -> [[String: Any]] {
+        guard let query = queryString(raw, kind: kind) else { return [] }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/mdfind")
-        process.arguments = [query]
+        let dir = folder?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        process.arguments = dir.isEmpty
+            ? [query]
+            : ["-onlyin", (dir as NSString).expandingTildeInPath, query]
         let out = Pipe()
         process.standardOutput = out
         process.standardError = FileHandle.nullDevice
@@ -74,6 +87,13 @@ public final class SpotlightModule: NativeModule {
                           JS_NewCFunction(ctx, { ctx, _, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let queryString = JSBridge.toString(ctx, argv[0]) ?? ""
+            var folder: String?
+            var kind: String?
+            if argc >= 2, JS_IsObject(argv[1]), !JS_IsString(argv[1]) {
+                let opts = JSBridge.jsToSwift(ctx, argv[1]) as? [String: Any] ?? [:]
+                folder = opts["folder"] as? String
+                kind = opts["kind"] as? String
+            }
 
             var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
             let promise = JS_NewPromiseCapability(ctx, &resolving)
@@ -87,7 +107,7 @@ public final class SpotlightModule: NativeModule {
             let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
             nonisolated(unsafe) let capturedCtx = ctx
 
-            if engine.dryRun || SpotlightSearch.queryString(queryString) == nil {
+            if engine.dryRun || SpotlightSearch.queryString(queryString, kind: kind) == nil {
                 var value = JSBridge.newArray(ctx, [])
                 _ = JS_Call(ctx, resolve, QJS_Undefined(), 1, &value)
                 JS_FreeValue(ctx, value)
@@ -97,8 +117,10 @@ public final class SpotlightModule: NativeModule {
                 return promise
             }
 
+            let searchFolder = folder
+            let searchKind = kind
             DispatchQueue.global(qos: .userInitiated).async {
-                let rows = SpotlightSearch.run(queryString)
+                let rows = SpotlightSearch.run(queryString, folder: searchFolder, kind: searchKind)
                 DispatchQueue.main.async {
                     var value = JSBridge.newArray(capturedCtx, rows.map { $0 as Any })
                     _ = JS_Call(capturedCtx, resolve, QJS_Undefined(), 1, &value)
@@ -109,7 +131,7 @@ public final class SpotlightModule: NativeModule {
                 }
             }
             return promise
-        }, "search", 1))
+        }, "search", 2))
 
         JS_SetPropertyStr(ctx, macotronObj, "spotlight", spotlightObj)
         JS_FreeValue(ctx, macotronObj)

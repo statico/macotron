@@ -35,7 +35,18 @@ macotron.command("Search Files", "Spotlight search and reveal the selected path"
   background: light-dark(rgba(0,0,0,0.06), rgba(255,255,255,0.12));
 }
 </style>
-<input id="q" autofocus placeholder="Search files…">
+<div style="display:flex;gap:8px;align-items:center">
+<input id="q" autofocus placeholder="Search files…" style="flex:1">
+<select id="kind">
+<option value="">All</option>
+<option value="pdf">pdf</option>
+<option value="png">png</option>
+<option value="jpg">jpg</option>
+<option value="jpeg">jpeg</option>
+<option value="md">md</option>
+<option value="txt">txt</option>
+</select>
+</div>
 <div id="status" class="muted gone"><span class="spinner"></span><span id="msg"></span></div>
 <div id="list" class="grow scroll"></div>
 <script>
@@ -62,6 +73,7 @@ function idle(text) {
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;" }[c]));
 }
+function kind() { return document.getElementById("kind").value; }
 function rows() { return [...list.querySelectorAll("[data-path]")]; }
 function paintSel() {
   const all = rows();
@@ -75,10 +87,13 @@ function move(delta) {
   selected = clampIndex(selected + delta, n);
   paintSel();
 }
-function openSel() {
+function searchNow(q) {
+  send({ type: "search", q, kind: kind() });
+}
+function openSel(reveal) {
   const row = rows()[selected];
   if (!row) return;
-  send({ type: "open", path: row.dataset.path });
+  send({ type: "open", path: row.dataset.path, reveal: reveal });
 }
 document.getElementById("q").oninput = (e) => {
   clearTimeout(timer);
@@ -86,11 +101,17 @@ document.getElementById("q").oninput = (e) => {
   if (!q) {
     idle();
     list.innerHTML = "";
-    send({ type: "search", q: "" });
+    searchNow("");
     return;
   }
   busy("Searching…");
-  timer = setTimeout(() => send({ type: "search", q }), 200);
+  timer = setTimeout(() => searchNow(q), 200);
+};
+document.getElementById("kind").onchange = () => {
+  const q = document.getElementById("q").value.trim();
+  if (!q) return;
+  busy("Searching…");
+  searchNow(q);
 };
 list.onmouseover = (e) => {
   const row = e.target.closest("[data-path]");
@@ -112,7 +133,10 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "Enter") {
     e.preventDefault();
-    openSel();
+    const row = rows()[selected];
+    if (!row) return;
+    if (e.metaKey) send({ type: "copy", path: row.dataset.path });
+    else openSel(!e.altKey);
   }
 });
 window.__macotronReceive = (data) => {
@@ -136,7 +160,7 @@ window.__macotronReceive = (data) => {
       const token = ++seq;
       if (!q) return;
       try {
-        const hits = await macotron.spotlight.search(q);
+        const hits = await macotron.spotlight.search(q, { kind: String(data.kind || "") });
         if (token !== seq) return;
         macotron.panel.postMessage(id, { hits: (hits || []).slice(0, 20) });
       } catch (err) {
@@ -145,8 +169,13 @@ window.__macotronReceive = (data) => {
         macotron.panel.postMessage(id, { hits: [] });
       }
     }
+    if (data.type === "copy") {
+      macotron.clipboard.set(String(data.path));
+      macotron.notify.toast("Copied", String(data.path));
+    }
     if (data.type === "open") {
-      await macotron.shell.run("/usr/bin/open", ["-R", String(data.path)]);
+      const path = String(data.path);
+      await macotron.shell.run("/usr/bin/open", data.reveal === false ? [path] : ["-R", path]);
       macotron.panel.close(id);
     }
   });

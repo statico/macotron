@@ -10,18 +10,26 @@ function userVolumes(names) {
   });
 }
 
+function emptyTrash() {
+  if (!confirm("Empty the Trash?")) return;
+  macotron.shell.run("/usr/bin/osascript", ["-e", 'tell application "Finder" to empty the trash']);
+}
+
 function paint() {
   const names = userVolumes(macotron.fs.list("/Volumes"));
+  const menu = names.length
+    ? names.map((name) => ({
+        title: "Eject " + name,
+        onClick: () => macotron.shell.run("/usr/sbin/diskutil", ["eject", "/Volumes/" + name]),
+      }))
+    : [{ title: "No volumes" }];
+  menu.push({ title: "Empty Trash", onClick: emptyTrash });
   macotron.menubar.status("eject", {
     title: "",
     sfSymbol: "eject.fill",
-    menu: names.length
-      ? names.map((name) => ({
-          title: "Eject " + name,
-          onClick: () => macotron.shell.run("/usr/sbin/diskutil", ["eject", "/Volumes/" + name]),
-        }))
-      : [{ title: "No volumes" }],
+    menu,
   });
 }
 
 paint();
+macotron.command("Empty Trash", "Empty the Trash", emptyTrash);

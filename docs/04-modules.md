@@ -19,7 +19,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | ClipboardModule | `macotron.clipboard` | NSPasteboard |
 | AIModule | `macotron.ai` | AI provider abstraction for plugins |
 | PanelModule | `macotron.panel` | Small WKWebView panels |
-| SpotlightModule | `macotron.spotlight` | NSMetadataQuery file search |
+| SpotlightModule | `macotron.spotlight` | `mdfind` file search (`folder`, `kind`) |
 | AppModule | `macotron.app` | NSWorkspace app launch/switch/hide/quit/menu |
 | AudioModule | `macotron.audio` | Default input/output, volume, mute |
 | SpacesModule | `macotron.spaces` | Mission Control spaces |
