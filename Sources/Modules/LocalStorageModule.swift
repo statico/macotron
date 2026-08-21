@@ -129,7 +129,6 @@ public final class LocalStorageModule: NativeModule {
             }
         } catch {
             // File doesn't exist yet or is malformed — start with empty store
-            logger.info("localStorage: no existing data at \(filePath.path), starting fresh")
         }
     }
 

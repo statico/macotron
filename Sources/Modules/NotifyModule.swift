@@ -131,7 +131,6 @@ public final class NotifyModule: NativeModule {
                 }
             }
 
-            logger.info("notify.show: \(title)")
             return QJS_Undefined()
         }, "show", 3))
 

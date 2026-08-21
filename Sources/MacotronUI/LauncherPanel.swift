@@ -1,8 +1,5 @@
 // LauncherPanel.swift — Floating NSPanel for the launcher
 import AppKit
-import os
-
-private let logger = Logger(subsystem: "io.statico.macotron", category: "launcher")
 
 private extension NSView {
     func firstEditableTextField() -> NSTextField? {
@@ -165,7 +162,6 @@ public final class LauncherPanel: NSPanel {
             pinHost()
             return
         }
-        logPlacement(isShown ? "resize" : "open", height: height, visible: visible, pinTop: pin, frame: newFrame)
         setFrame(newFrame, display: true)
         pinHost()
     }
@@ -252,24 +248,6 @@ public final class LauncherPanel: NSPanel {
         let size = NSSize(width: width, height: height)
         minSize = size
         maxSize = size
-    }
-
-    private func logPlacement(_ reason: String, height: CGFloat, visible: CGRect, pinTop: CGFloat?, frame: CGRect) {
-        let topPct = visible.height > 0 ? (visible.maxY - frame.maxY) / visible.height : 0
-        let widthPct = visible.width > 0 ? frame.width / visible.width : 0
-        let heightPct = visible.height > 0 ? frame.height / visible.height : 0
-        logger.notice("""
-            launcher \(reason, privacy: .public) \
-            wantH=\(height, format: .fixed(precision: 1), privacy: .public) \
-            pin=\(pinTop.map { String(format: "%.1f", $0) } ?? "nil", privacy: .public) \
-            current=\(NSStringFromRect(self.frame), privacy: .public) \
-            visible=\(NSStringFromRect(visible), privacy: .public) \
-            frame=\(NSStringFromRect(frame), privacy: .public) \
-            topPct=\(topPct, format: .fixed(precision: 3), privacy: .public) \
-            widthPct=\(widthPct, format: .fixed(precision: 3), privacy: .public) \
-            heightPct=\(heightPct, format: .fixed(precision: 3), privacy: .public) \
-            screen=\(self.screen?.localizedName ?? "none", privacy: .public)
-            """)
     }
 
 }

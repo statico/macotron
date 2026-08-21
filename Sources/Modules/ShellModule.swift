@@ -2,9 +2,6 @@
 import CQuickJS
 import Foundation
 import MacotronEngine
-import os
-
-private let logger = Logger(subsystem: "io.statico.macotron", category: "shell")
 
 @MainActor
 public final class ShellModule: NativeModule {
@@ -131,7 +128,6 @@ public final class ShellModule: NativeModule {
                 }
             }
 
-            logger.info("shell.run: \(command) \(args)")
             return promise
         }, "run", 2))
         JS_SetPropertyStr(ctx, macotron, "shell", shellObj)

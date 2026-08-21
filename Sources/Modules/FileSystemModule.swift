@@ -135,7 +135,6 @@ public final class FileSystemModule: NativeModule {
     fileprivate func stopWatcher(_ id: UInt64) {
         guard let watcher = activeWatchers.removeValue(forKey: id) else { return }
         watcher.stop()
-        logger.info("fs.watch stopped: \(watcher.path)")
     }
 
     /// Stop all active watchers.
@@ -170,7 +169,6 @@ public final class FileSystemModule: NativeModule {
             let expandedPath = NSString(string: path).expandingTildeInPath
             do {
                 let content = try String(contentsOfFile: expandedPath, encoding: .utf8)
-                logger.info("fs.read: \(expandedPath)")
                 return JSBridge.newString(ctx, content)
             } catch {
                 return QJS_ThrowInternalError(ctx, "fs.read failed: \(error.localizedDescription)")
@@ -215,7 +213,6 @@ public final class FileSystemModule: NativeModule {
                     withIntermediateDirectories: true
                 )
                 try content.write(toFile: expandedPath, atomically: true, encoding: .utf8)
-                logger.info("fs.write: \(expandedPath) (\(content.count) chars)")
                 return QJS_Undefined()
             } catch {
                 return QJS_ThrowInternalError(ctx, "fs.write failed: \(error.localizedDescription)")
@@ -253,7 +250,6 @@ public final class FileSystemModule: NativeModule {
             let dest = NSString(string: to).expandingTildeInPath
             do {
                 try FileManager.default.moveItem(atPath: src, toPath: dest)
-                logger.info("fs.rename: \(src) -> \(dest)")
                 return QJS_Undefined()
             } catch {
                 return QJS_ThrowInternalError(ctx, "fs.rename failed: \(error.localizedDescription)")
@@ -279,7 +275,6 @@ public final class FileSystemModule: NativeModule {
                     JS_SetPropertyUint32(ctx, jsArr, UInt32(i),
                                          JSBridge.newString(ctx, entry))
                 }
-                logger.info("fs.list: \(expandedPath) (\(entries.count) entries)")
                 return jsArr
             } catch {
                 return QJS_ThrowInternalError(ctx, "fs.list failed: \(error.localizedDescription)")
@@ -413,8 +408,6 @@ public final class FileSystemModule: NativeModule {
 
             FSEventStreamSetDispatchQueue(stream, .main)
             FSEventStreamStart(stream)
-
-            logger.info("fs.watch: watching \(expandedPath) (id=\(watcherID))")
 
             // Return a JS stop function. We create a small JS closure that captures
             // the watcher ID and calls the native $$__fsStopWatcher(id) helper.

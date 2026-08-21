@@ -45,7 +45,6 @@ public final class ModuleManager {
             try workspace.updateSettings { settings in
                 settings["pluginSettings"] = moduleSettings
             }
-            logger.info("Saved plugin settings")
         } catch {
             logger.error("Failed to save plugin settings: \(error)")
         }
@@ -206,7 +205,6 @@ public final class ModuleManager {
             if directory == "plugins" {
                 setModuleEnabled(filename: filename, enabled: true)
             }
-            logger.info("Deleted \(directory)/\(filename)")
             return true
         } catch {
             logger.error("Failed to delete \(filename): \(error)")
