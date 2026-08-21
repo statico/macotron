@@ -98,6 +98,24 @@ First call to shell run with an unapproved command prompts:
 
 Extra allowed commands live under `modules.shell.allowlist` in `settings.json`.
 
+## Custom URL Events Are Untrusted
+
+Any local app or webpage can fire a URL at Macotron. The event payload a plugin receives
+(`url`, `scheme`, `host`, `path`, `query`) is attacker-controlled input. The only
+provenance is `sourceBundle` — the sender's bundle ID, when macOS can resolve it.
+
+- `macotron://` events prompt (Allow / Cancel, showing the URL and sender) before any
+  plugin handler runs, because those links dispatch straight into plugin code.
+- Web schemes (`http`, `https`, `mailto`) do not prompt on dispatch; they route links to
+  apps, and an unhandled URL ends in the fallback picker, which opens nothing without a
+  click.
+- In handlers, validate payload fields and call `macotron.confirm()` before any
+  dangerous-tier action (`shell.run`, `fs.write`, `url.open` to an unexpected target)
+  driven by the payload. Check `sourceBundle` when the sender matters.
+
+One-time tokens for trusted senders may come later; today every `macotron://` event is
+confirmed by the user.
+
 ## Version Control
 
 The workdir is a git repo. External agents commit changes. The app runs `git init` only. The app does not create commits.
@@ -115,3 +133,4 @@ Commit often on `main`. Do not commit secrets.
 | Third-party plugins | Bundled catalog plus hash ledger. Community listings later |
 | Plugin file rewritten on disk | SHA-256 in Keychain. Mismatch does not execute unless Hot Reload is on or the user overrides after a scan |
 | Screen or clipboard sent to models | Structured delimiters plus ignore-instructions framing |
+| `macotron://` deep links from other apps | Confirmation alert before dispatch. Payloads documented as untrusted |

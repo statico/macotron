@@ -62,6 +62,27 @@ struct URLRouteTests {
     }
 }
 
+@Suite("URLEventGate")
+struct URLEventGateTests {
+    @Test("macotron scheme requires confirmation")
+    func macotronScheme() {
+        #expect(URLEventGate.needsConfirmation(scheme: "macotron"))
+    }
+
+    @Test("scheme check is case insensitive")
+    func caseInsensitive() {
+        #expect(URLEventGate.needsConfirmation(scheme: "MACOTRON"))
+    }
+
+    @Test("web schemes do not require confirmation")
+    func webSchemes() {
+        #expect(!URLEventGate.needsConfirmation(scheme: "https"))
+        #expect(!URLEventGate.needsConfirmation(scheme: "http"))
+        #expect(!URLEventGate.needsConfirmation(scheme: "mailto"))
+        #expect(!URLEventGate.needsConfirmation(scheme: ""))
+    }
+}
+
 private func u(_ string: String) -> URL {
     URL(string: string)!
 }

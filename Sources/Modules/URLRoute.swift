@@ -1,5 +1,13 @@
 import Foundation
 
+// macotron:// deep links dispatch straight into plugin handlers, so an attacker-controlled
+// URL is a remote trigger for plugin code. Web schemes only route links to apps.
+enum URLEventGate {
+    static func needsConfirmation(scheme: String) -> Bool {
+        scheme.caseInsensitiveCompare("macotron") == .orderedSame
+    }
+}
+
 enum URLRoute: Equatable {
     case match(String)
     case wildcard
