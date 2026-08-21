@@ -35,6 +35,37 @@ struct AppLaunchTests {
             .bundleIdentifier == "com.apple.Safari")
     }
 
+    /// Synthetic layout, so this holds whether or not Xcode is installed here.
+    @Test("apps nested inside an Xcode bundle are scanned")
+    func nestedBundlesInXcode() throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory
+            .appending(path: "macotron-nested-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? fm.removeItem(at: root) }
+        let xcode = root.appending(path: "Xcode.app")
+        for sub in ["Contents/Developer/Applications/Simulator.app", "Contents/Applications/Instruments.app"] {
+            try fm.createDirectory(at: xcode.appending(path: sub), withIntermediateDirectories: true)
+        }
+        let other = root.appending(path: "TextEdit.app")
+        try fm.createDirectory(at: other.appending(path: "Contents/Applications/Sneaky.app"), withIntermediateDirectories: true)
+
+        let nested = AppCatalog.nestedBundles(in: xcode).map(\.lastPathComponent)
+        #expect(nested.sorted() == ["Instruments.app", "Simulator.app"])
+        #expect(AppCatalog.nestedBundles(in: other).isEmpty)
+    }
+
+    @Test(
+        "the scan finds Simulator, which Xcode nests inside its own bundle",
+        .enabled(if: FileManager.default.fileExists(atPath: "/Applications/Xcode.app"))
+    )
+    func scanFindsSimulator() {
+        let nested = AppCatalog.nestedBundles(in: URL(fileURLWithPath: "/Applications/Xcode.app"))
+        #expect(nested.contains { $0.lastPathComponent == "Simulator.app" })
+        #expect(Bundle(url: URL(
+            fileURLWithPath: "/Applications/Xcode.app/Contents/Developer/Applications/Simulator.app"
+        ))?.bundleIdentifier == "com.apple.iphonesimulator")
+    }
+
     @Test("shortcut hides when the app is already frontmost")
     func hideIfFrontmost() {
         #expect(AppLaunch.shouldHide(bundleID: "com.apple.Safari", frontmost: "com.apple.Safari"))

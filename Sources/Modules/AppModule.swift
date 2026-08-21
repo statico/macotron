@@ -229,6 +229,23 @@ public enum AppCatalog {
         )) ?? []
         return contents.filter { $0.pathExtension == "app" }
     }
+
+    /// Xcode ships Simulator, Instruments, and friends inside its own bundle, where
+    /// a top-level directory scan never reaches them. Only Xcode is descended into,
+    /// so this costs two directory reads rather than two per installed app.
+    public static func nestedBundles(in appBundle: URL) -> [URL] {
+        guard appBundle.lastPathComponent.hasPrefix("Xcode") else { return [] }
+        return ["Contents/Developer/Applications", "Contents/Applications"]
+            .flatMap { appBundles(in: appBundle.appending(path: $0)) }
+    }
+
+    /// Every bundle the launcher offers, nested and out-of-tree ones included.
+    public static func allBundles(
+        home: URL = FileManager.default.homeDirectoryForCurrentUser
+    ) -> [URL] {
+        let top = searchDirectories(home: home).flatMap(appBundles(in:))
+        return top + top.flatMap(nestedBundles(in:)) + extraApps
+    }
 }
 
 /// Launch or activate via Launch Services. `NSRunningApplication.activate()` from a

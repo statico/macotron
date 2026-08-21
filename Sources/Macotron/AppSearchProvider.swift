@@ -42,10 +42,7 @@ final class AppSearchProvider {
             entries.append(AppEntry(name: name, bundleID: bundleID, url: url, icon: icon))
         }
 
-        for dir in AppCatalog.searchDirectories() {
-            AppCatalog.appBundles(in: dir).forEach(add)
-        }
-        AppCatalog.extraApps.forEach(add)
+        AppCatalog.allBundles().forEach(add)
 
         allApps = entries.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         lastRefresh = Date()
