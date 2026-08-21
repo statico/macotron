@@ -776,8 +776,15 @@ public struct SettingsView: View {
             .accessibilityLabel("Add Plugin from Catalog")
 
             Menu {
-                Button("Empty Plugin…") { showNewPlugin = true }
+                ForEach(PluginAuthoring.agents) { tool in
+                    Button(tool.name) { launchAuthoringTool(tool) }
+                }
                 Divider()
+                ForEach(PluginAuthoring.editors) { tool in
+                    Button(tool.name) { launchAuthoringTool(tool) }
+                }
+                Divider()
+                Button("Empty Plugin…") { showNewPlugin = true }
                 Button("Open Plugins Folder") { state.openPluginsFolder?() }
             } label: {
                 twoLineActionLabel("Build Plugin", "with Agent")
@@ -788,6 +795,19 @@ public struct SettingsView: View {
         }
         .controlSize(.small)
         .padding(8)
+    }
+
+    private func launchAuthoringTool(_ tool: PluginAuthoringTool) {
+        guard let dir = state.configDirURL else { return }
+        guard !PluginAuthoring.launch(tool, in: dir) else { return }
+        let alert = NSAlert()
+        alert.messageText = "Could not open the plugins folder in \(tool.name)"
+        alert.informativeText = "\(tool.name) does not look installed. Install it, or use Open Plugins Folder to work somewhere else."
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Open Plugins Folder")
+        if alert.runModal() == .alertSecondButtonReturn {
+            state.openPluginsFolder?()
+        }
     }
 
     private func twoLineActionLabel(_ top: String, _ bottom: String) -> some View {
