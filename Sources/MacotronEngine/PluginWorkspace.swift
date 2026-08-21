@@ -111,6 +111,130 @@ public final class PluginWorkspace {
         if !fm.fileExists(atPath: settingsFile.path(percentEncoded: false)) {
             try writeSettings(Self.defaultSettings)
         }
+        migratePluginNames(PluginCatalog.legacyRenames())
+    }
+
+    public func migratePluginNames(
+        _ renames: [String: String],
+        hashStore: PluginHashStore = PluginTrust.store
+    ) {
+        let fm = FileManager.default
+        var settings = readSettings()
+        var changedSettings = false
+
+        for (oldName, newName) in renames.sorted(by: { $0.key < $1.key }) {
+            let src = pluginsDir.appending(path: oldName)
+            let dest = pluginsDir.appending(path: newName)
+            guard fm.fileExists(atPath: src.path(percentEncoded: false)) else { continue }
+            guard !fm.fileExists(atPath: dest.path(percentEncoded: false)) else { continue }
+            do {
+                try fm.moveItem(at: src, to: dest)
+            } catch {
+                logger.error("Failed to migrate \(oldName) to \(newName): \(error.localizedDescription)")
+                continue
+            }
+
+            changedSettings = migratePluginSettings(&settings, oldName: oldName, newName: newName)
+                || changedSettings
+            changedSettings = migrateDisabledPlugins(&settings, oldName: oldName, newName: newName)
+                || changedSettings
+            changedSettings = migrateShortcutTable(&settings, key: "commandShortcuts", oldName: oldName, newName: newName)
+                || changedSettings
+            changedSettings = migrateShortcutTable(&settings, key: "keyboardShortcuts", oldName: oldName, newName: newName)
+                || changedSettings
+            changedSettings = migrateFavoriteIDs(&settings, oldName: oldName, newName: newName)
+                || changedSettings
+            PluginTrust.migrateHash(from: oldName, to: newName, store: hashStore)
+        }
+
+        if changedSettings {
+            try? writeSettings(settings)
+        }
+    }
+
+    private func migratePluginSettings(
+        _ settings: inout [String: Any],
+        oldName: String,
+        newName: String
+    ) -> Bool {
+        guard var table = settings["pluginSettings"] as? [String: [String: Any]],
+              let value = table.removeValue(forKey: oldName) else {
+            return false
+        }
+        table[newName] = value
+        settings["pluginSettings"] = table
+        return true
+    }
+
+    private func migrateDisabledPlugins(
+        _ settings: inout [String: Any],
+        oldName: String,
+        newName: String
+    ) -> Bool {
+        guard var disabled = settings["disabledPlugins"] as? [String] else { return false }
+        var changed = false
+        disabled = disabled.map { name in
+            guard name == oldName else { return name }
+            changed = true
+            return newName
+        }
+        if changed {
+            settings["disabledPlugins"] = disabled
+        }
+        return changed
+    }
+
+    private func migrateShortcutTable(
+        _ settings: inout [String: Any],
+        key: String,
+        oldName: String,
+        newName: String
+    ) -> Bool {
+        guard let table = settings[key] as? [String: String] else { return false }
+        let prefix = oldName + "/"
+        var changed = false
+        var migrated: [String: String] = [:]
+        migrated.reserveCapacity(table.count)
+        for (id, combo) in table {
+            if id == oldName {
+                migrated[newName] = combo
+                changed = true
+            } else if id.hasPrefix(prefix) {
+                migrated[newName + String(id.dropFirst(oldName.count))] = combo
+                changed = true
+            } else {
+                migrated[id] = combo
+            }
+        }
+        if changed {
+            settings[key] = migrated
+        }
+        return changed
+    }
+
+    private func migrateFavoriteIDs(
+        _ settings: inout [String: Any],
+        oldName: String,
+        newName: String
+    ) -> Bool {
+        guard var favorites = settings["launcherFavorites"] as? [String] else { return false }
+        let prefix = oldName + "/"
+        var changed = false
+        favorites = favorites.map { id in
+            if id == oldName {
+                changed = true
+                return newName
+            }
+            if id.hasPrefix(prefix) {
+                changed = true
+                return newName + String(id.dropFirst(oldName.count))
+            }
+            return id
+        }
+        if changed {
+            settings["launcherFavorites"] = favorites
+        }
+        return changed
     }
 
     /// Real git, not the Xcode CLT stub. Workdir still works without it.

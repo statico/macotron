@@ -63,6 +63,16 @@ public enum PluginTrust {
         return approved == PluginHash.sha256(source: source)
     }
 
+    public static func migrateHash(
+        from oldFilename: String,
+        to newFilename: String,
+        store: PluginHashStore = store
+    ) {
+        guard let hash = store.read(filename: oldFilename) else { return }
+        store.write(filename: newFilename, hash: hash)
+        store.delete(filename: oldFilename)
+    }
+
     /// First upgrade: if the ledger is empty, treat every current plugin as approved.
     public static func grandfatherIfEmpty(pluginsDir: URL, store: PluginHashStore = store) {
         if store is KeychainHashStore {
