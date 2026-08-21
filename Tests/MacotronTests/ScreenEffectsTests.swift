@@ -14,8 +14,8 @@ struct ScreenEffectsTests {
     }
 
     private func eval(_ extra: String) throws -> String {
-        let pluginURL = pluginURL()
-        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
+        let url = pluginURL()
+        let pluginSource = try String(contentsOf: url, encoding: .utf8)
         let harness = """
             var calls = [];
             var commands = {};
@@ -38,7 +38,7 @@ struct ScreenEffectsTests {
             \(extra)
             """
         let engine = Engine()
-        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
+        let (result, error) = engine.evaluate(harness, filename: url.path)
         #expect(error == nil)
         return result ?? ""
     }
