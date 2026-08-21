@@ -317,6 +317,22 @@ public final class SettingsState: ObservableObject {
         installTarget = plugin
     }
 
+    public func addBuiltIn(_ plugin: CatalogPlugin) {
+        let dest = configDirURL?
+            .appending(path: "plugins")
+            .appending(path: plugin.filename)
+        if let dest, FileManager.default.fileExists(atPath: dest.path(percentEncoded: false)) {
+            beginInstall(plugin)
+            return
+        }
+        scanReport = nil
+        scanning = false
+        overwrite = nil
+        isReviewing = false
+        installTarget = nil
+        onInstallCatalog?(plugin, false)
+    }
+
     /// Catalog plugins ship inside the signed app bundle, so their bytes are already
     /// as trusted as Macotron itself. A review scans because those bytes came off
     /// the user's disk.
@@ -392,7 +408,8 @@ public struct SettingsView: View {
                 CatalogBrowser(
                     plugins: state.catalogPlugins,
                     installedNames: state.installedPluginNames,
-                    onInstall: { state.beginInstall($0) }
+                    onAdd: { state.addBuiltIn($0) },
+                    onDetails: { state.beginInstall($0) }
                 )
                 HStack {
                     Spacer()

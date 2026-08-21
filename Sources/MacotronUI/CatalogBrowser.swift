@@ -5,9 +5,9 @@ import SwiftUI
 public struct CatalogBrowser: View {
     let plugins: [CatalogPlugin]
     var installedNames: Set<String>
-    var onInstall: (CatalogPlugin) -> Void
+    var onAdd: (CatalogPlugin) -> Void
+    var onDetails: (CatalogPlugin) -> Void
     @State private var query = ""
-    @StateObject private var command = CommandHeld()
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -19,8 +19,8 @@ public struct CatalogBrowser: View {
                         CatalogRow(
                             plugin: plugin,
                             installed: installedNames.contains(plugin.filename),
-                            commandHeld: command.isHeld,
-                            onInstall: { onInstall(plugin) }
+                            onAdd: { onAdd(plugin) },
+                            onDetails: { onDetails(plugin) }
                         )
                     }
                 }
@@ -42,10 +42,8 @@ public struct CatalogBrowser: View {
 private struct CatalogRow: View {
     let plugin: CatalogPlugin
     let installed: Bool
-    let commandHeld: Bool
-    var onInstall: () -> Void
-
-    private var canReinstall: Bool { installed && commandHeld }
+    var onAdd: () -> Void
+    var onDetails: () -> Void
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -66,15 +64,11 @@ private struct CatalogRow: View {
                     .lineLimit(2)
             }
             Spacer(minLength: 8)
-            Button("View Source…") {
-                NSWorkspace.shared.open(plugin.fileURL)
-            }
+            Button("Details…", action: onDetails)
             .controlSize(.small)
-            Button(canReinstall ? "Reinstall…" : installed ? "Installed" : "Install…") {
-                onInstall()
-            }
+            Button(installed ? "Added" : "Add", action: onAdd)
             .controlSize(.small)
-            .disabled(installed && !canReinstall)
+            .disabled(installed)
         }
         .padding(8)
         .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.04)))
@@ -140,7 +134,7 @@ private struct CatalogInstallSheet: View {
     private var primaryLabel: String {
         let override = state.scanReport?.needsOverride == true
         if state.isReviewing { return override ? "Run Anyway" : "Reload" }
-        return override ? "Install Anyway" : "Install"
+        return override ? "Add Anyway" : "Add"
     }
 
     /// A built-in needs no scan result to proceed; anything else waits for one.

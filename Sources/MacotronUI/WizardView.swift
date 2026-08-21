@@ -201,14 +201,15 @@ public struct WizardView: View {
         VStack(alignment: .leading, spacing: 12) {
             stepHeader(
                 icon: "puzzlepiece.extension",
-                title: "Install Some Plugins",
-                subtitle: "Here are some example plugins to get you started. You can install more later from Settings, or make your own."
+                title: "Add Some Plugins",
+                subtitle: "Here are some example plugins to get you started. You can add more later from Settings, or make your own."
             )
             .frame(maxWidth: .infinity)
             CatalogBrowser(
                 plugins: permissions.catalogPlugins,
                 installedNames: permissions.installedPluginNames,
-                onInstall: { permissions.beginInstall($0) }
+                onAdd: { permissions.addBuiltIn($0) },
+                onDetails: { permissions.beginInstall($0) }
             )
         }
         .padding(24)

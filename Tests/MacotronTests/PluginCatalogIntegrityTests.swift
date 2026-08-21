@@ -719,6 +719,61 @@ struct CatalogInstallScanTests {
         #expect(state.scanReport == nil)
     }
 
+    @Test("Add writes a built-in immediately without opening details")
+    func addBuiltInImmediately() {
+        let state = SettingsState()
+        var added: [String] = []
+        state.onInstallCatalog = { plugin, override in
+            #expect(!override)
+            added.append(plugin.filename)
+        }
+
+        state.addBuiltIn(plugin("weather.js"))
+
+        #expect(added == ["weather.js"])
+        #expect(state.installTarget == nil)
+        #expect(state.scanReport == nil)
+        #expect(!state.scanning)
+    }
+
+    @Test("Details computes modified overwrite before opening the sheet")
+    func detailsProtectsModifiedPlugin() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "macotron-catalog-details-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let plugins = root.appending(path: "plugins", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: plugins, withIntermediateDirectories: true)
+        try "user edit".write(to: plugins.appending(path: "weather.js"), atomically: true, encoding: .utf8)
+
+        let state = SettingsState()
+        state.configDirURL = root
+        let item = plugin("weather.js")
+        state.beginInstall(item)
+
+        #expect(state.installTarget?.filename == "weather.js")
+        #expect(state.overwrite == .modified)
+    }
+
+    @Test("Add never silently replaces an existing plugin")
+    func addRoutesExistingPluginToDetails() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "macotron-catalog-add-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let plugins = root.appending(path: "plugins", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: plugins, withIntermediateDirectories: true)
+        try "user edit".write(to: plugins.appending(path: "weather.js"), atomically: true, encoding: .utf8)
+
+        let state = SettingsState()
+        state.configDirURL = root
+        var added = false
+        state.onInstallCatalog = { _, _ in added = true }
+        state.addBuiltIn(plugin("weather.js"))
+
+        #expect(!added)
+        #expect(state.installTarget?.filename == "weather.js")
+        #expect(state.overwrite == .modified)
+    }
+
     @Test("Scan Anyway scans the plugin being installed")
     func scanAnyway() {
         let state = SettingsState()
