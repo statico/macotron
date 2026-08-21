@@ -65,7 +65,7 @@ let package = Package(
         // Main app executable
         .executableTarget(
             name: "Macotron",
-            dependencies: ["MacotronEngine", "MacotronUI", "Modules"],
+            dependencies: ["MacotronEngine", "MacotronUI", "Modules", "AI"],
             path: "Sources/Macotron",
             resources: [
                 .copy("Resources/macotron-runtime.js"),

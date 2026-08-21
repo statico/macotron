@@ -20,6 +20,18 @@ struct PluginHeaderTests {
         #expect(header.description == "Current weather in the menu bar.")
     }
 
+    @Test("Reads permissions without eval")
+    func parsesPermissions() {
+        let source = """
+        macotron.plugin({
+            title: "OCR",
+            permissions: ["screenRecording", "accessibility"],
+        });
+        """
+        let header = PluginHeader.parse(source)
+        #expect(header.permissions == ["screenRecording", "accessibility"])
+    }
+
     @Test("Accepts single-quoted strings")
     func parsesSingleQuotes() {
         let header = PluginHeader.parse("macotron.plugin({ title: 'Meetings', description: 'Next event.' });")

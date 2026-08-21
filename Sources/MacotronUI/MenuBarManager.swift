@@ -2,10 +2,12 @@
 import AppKit
 import MacotronEngine
 
-/// Small red circle drawn over the status item glyph.
+/// Small circle drawn over the status item glyph.
 private final class BadgeDotView: NSView {
+    var fill = NSColor.systemRed
+
     override func draw(_ dirtyRect: NSRect) {
-        NSColor.systemRed.setFill()
+        fill.setFill()
         NSBezierPath(ovalIn: bounds).fill()
     }
 }
@@ -50,8 +52,10 @@ public final class MenuBarManager: NSObject {
 
     /// Required permissions the user has not granted yet.
     private var missingPermissions: [Permission] = []
+    private var hotReload = false
+    private var pendingReviewCount = 0
 
-    /// Red dot overlay shown on the status button while permissions are missing.
+    /// Dot overlay on the status button.
     private var badgeView: NSView?
 
     public var onReload: (() -> Void)?
@@ -59,6 +63,8 @@ public final class MenuBarManager: NSObject {
     public var onToggleLauncher: (() -> Void)?
     public var onOpenSettings: (() -> Void)?
     public var onOpenPermissions: (() -> Void)?
+    public var onToggleHotReload: ((Bool) -> Void)?
+    public var onReviewPending: (() -> Void)?
 
     /// Called before the menu opens, so permission state is never stale.
     public var onMenuWillOpen: (() -> Void)?
@@ -79,6 +85,14 @@ public final class MenuBarManager: NSObject {
     public func setMissingPermissions(_ permissions: [Permission]) {
         guard permissions != missingPermissions else { return }
         missingPermissions = permissions
+        refreshStatusImage()
+        rebuildMenu()
+    }
+
+    public func setIntegrityState(hotReload: Bool, pendingCount: Int) {
+        guard hotReload != self.hotReload || pendingCount != pendingReviewCount else { return }
+        self.hotReload = hotReload
+        pendingReviewCount = pendingCount
         refreshStatusImage()
         rebuildMenu()
     }
@@ -159,12 +173,15 @@ public final class MenuBarManager: NSObject {
         badgeView?.removeFromSuperview()
         badgeView = nil
 
-        guard !missingPermissions.isEmpty else {
+        let showRed = !missingPermissions.isEmpty
+        let showOrange = hotReload || pendingReviewCount > 0
+        guard showRed || showOrange else {
             button.toolTip = nil
             return
         }
 
         let dot = BadgeDotView()
+        dot.fill = showRed ? .systemRed : .systemOrange
         dot.translatesAutoresizingMaskIntoConstraints = false
         button.addSubview(dot)
         NSLayoutConstraint.activate([
@@ -174,7 +191,13 @@ public final class MenuBarManager: NSObject {
             dot.topAnchor.constraint(equalTo: button.topAnchor, constant: 4),
         ])
         badgeView = dot
-        button.toolTip = "Macotron needs permissions"
+        if showRed {
+            button.toolTip = "Macotron needs permissions"
+        } else if pendingReviewCount > 0 {
+            button.toolTip = "Plugin files changed and need review"
+        } else {
+            button.toolTip = "Hot Reload is on"
+        }
     }
 
     public func setTitle(_ text: String) {
@@ -266,6 +289,7 @@ public final class MenuBarManager: NSObject {
         pluginMenuBoxes.removeAll()
 
         addPermissionWarningIfNeeded()
+        addIntegrityWarningIfNeeded()
 
         // Group dynamic items by section
         let sections = Dictionary(grouping: dynamicItems, by: { $0.config.section ?? "" })
@@ -305,6 +329,21 @@ public final class MenuBarManager: NSObject {
         reload.target = self
         reload.image = Self.menuSymbol("arrow.clockwise")
         menu.addItem(reload)
+
+        let hotReloadItem = NSMenuItem(title: "Hot Reload", action: #selector(toggleHotReloadAction), keyEquivalent: "")
+        hotReloadItem.target = self
+        hotReloadItem.state = hotReload ? .on : .off
+        menu.addItem(hotReloadItem)
+
+        if pendingReviewCount > 0 {
+            let review = NSMenuItem(
+                title: "Review & Reload (\(pendingReviewCount))",
+                action: #selector(reviewPendingAction),
+                keyEquivalent: ""
+            )
+            review.target = self
+            menu.addItem(review)
+        }
 
         let openConfig = NSMenuItem(title: "Open Config Folder", action: #selector(openConfigAction), keyEquivalent: ",")
         openConfig.target = self
@@ -365,6 +404,39 @@ public final class MenuBarManager: NSObject {
         menu.addItem(.separator())
     }
 
+    private func addIntegrityWarningIfNeeded() {
+        guard missingPermissions.isEmpty else { return }
+        if pendingReviewCount > 0 {
+            let item = NSMenuItem(
+                title: "Plugin files changed",
+                action: #selector(reviewPendingAction),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.attributedTitle = NSAttributedString(
+                string: "\(pendingReviewCount) plugin file(s) changed — Review & Reload",
+                attributes: [
+                    .foregroundColor: NSColor.systemOrange,
+                    .font: NSFont.menuFont(ofSize: 0),
+                ]
+            )
+            menu.addItem(item)
+            menu.addItem(.separator())
+        } else if hotReload {
+            let item = NSMenuItem(title: "Hot Reload is on", action: #selector(toggleHotReloadAction), keyEquivalent: "")
+            item.target = self
+            item.attributedTitle = NSAttributedString(
+                string: "Hot Reload is on — plugins load without a scan",
+                attributes: [
+                    .foregroundColor: NSColor.systemOrange,
+                    .font: NSFont.menuFont(ofSize: 0),
+                ]
+            )
+            menu.addItem(item)
+            menu.addItem(.separator())
+        }
+    }
+
     @objc private func openPermissionsAction() {
         onOpenPermissions?()
     }
@@ -389,6 +461,14 @@ public final class MenuBarManager: NSObject {
 
     @objc private func openSettingsAction() {
         onOpenSettings?()
+    }
+
+    @objc private func toggleHotReloadAction() {
+        onToggleHotReload?(!hotReload)
+    }
+
+    @objc private func reviewPendingAction() {
+        onReviewPending?()
     }
 }
 

@@ -31,7 +31,8 @@ Example:
     "showMenuBarIcon": true,
     "appearance": "system",
     "textScale": 1.0,
-    "launcherBackground": "translucent"
+    "launcherBackground": "translucent",
+    "hotReload": false
   },
   "modules": {},
   "pluginSettings": {},
@@ -46,7 +47,7 @@ Disabled plugins stay on disk but are not loaded; manage them in Settings → Pl
 
 Launcher commands can declare `arguments` on `macotron.command`. Users assign per-command shortcuts in Settings → Plugins or in the launcher with ⌘K on a selected result (apps included). Those bindings live in `commandShortcuts`. Star a result with ⌘S; `launcherFavorites` is the empty-query list. Plugin hotkeys from `keyboard.on(id, default, callback)` are overridable in Settings (`keyboardShortcuts`). Do not register `keyboard.on` for launcher commands.
 
-The app hot-reloads when any file in the workdir changes. That includes `settings.json` and files under `plugins/`.
+The app watches the workdir. `settings.json` updates apply without reloading plugins. With **Hot Reload** off (the default), a change to `plugins/*.js` keeps the last in-memory copy and asks you to Review & Reload. With Hot Reload on, plugins reload immediately and the menu bar shows an orange dot.
 
 ## Git
 

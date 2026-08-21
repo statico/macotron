@@ -222,6 +222,7 @@ public final class PluginWorkspace {
             "appearance": "system",
             "textScale": 1.0,
             "launcherBackground": "translucent",
+            "hotReload": false,
         ],
         "modules": [:] as [String: Any],
         "pluginSettings": [:] as [String: Any],

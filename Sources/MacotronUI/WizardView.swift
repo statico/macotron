@@ -6,6 +6,7 @@ import SwiftUI
 public enum WizardStep: Int, CaseIterable {
     case welcome = 0
     case folder
+    case catalog
     case permissions
     case ready
 }
@@ -75,6 +76,7 @@ public struct WizardView: View {
                 switch state.currentStep {
                 case .welcome: welcomeStep
                 case .folder: folderStep
+                case .catalog: catalogStep
                 case .permissions: permissionsStep
                 case .ready: readyStep
                 }
@@ -113,6 +115,9 @@ public struct WizardView: View {
                 .disabled(!canFinish)
             } else {
                 Button("Next") {
+                    if state.currentStep == .folder, let url = state.pluginsURL {
+                        _ = state.initWorkspace?(url)
+                    }
                     withAnimation(.easeInOut(duration: 0.2)) {
                         state.stepIndex += 1
                     }
@@ -204,6 +209,38 @@ public struct WizardView: View {
         }
     }
 
+    private var catalogStep: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            stepHeader(
+                icon: "puzzlepiece.extension",
+                title: "Choose Plugins",
+                subtitle: "Stock plugins are highlighted. You can skip this and install later from Settings."
+            )
+            CatalogBrowser(
+                plugins: permissions.catalogPlugins,
+                installedNames: permissions.installedPluginNames,
+                onInstall: { permissions.beginInstall($0) },
+                onPreview: { permissions.beginInstall($0) }
+            )
+        }
+        .padding(24)
+        .sheet(item: $permissions.installTarget) { plugin in
+            CatalogInstallSheet(
+                plugin: plugin,
+                overwrite: permissions.overwrite,
+                modelNote: permissions.scanNote,
+                report: permissions.scanReport,
+                scanning: permissions.scanning,
+                onScan: { permissions.onScanCatalog?(plugin) },
+                onInstall: { override in
+                    permissions.onInstallCatalog?(plugin, override)
+                    permissions.installTarget = nil
+                },
+                onCancel: { permissions.installTarget = nil }
+            )
+        }
+    }
+
     private var permissionsStep: some View {
         let missing = permissions.missingPermissions
 
@@ -250,7 +287,7 @@ public struct WizardView: View {
                 .font(.title)
                 .fontWeight(.bold)
 
-            Text("Open the launcher with your hotkey to search commands and apps. Edit plugins in your chosen folder — Macotron reloads on save.")
+            Text("Open the launcher with your hotkey. Install more plugins from Settings. With Hot Reload off, Macotron keeps the last approved copy until you review a change.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

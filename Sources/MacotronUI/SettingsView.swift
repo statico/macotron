@@ -150,6 +150,20 @@ public final class SettingsState: ObservableObject {
     @Published public var pluginsPath: String = ""
     @Published public var requestedTab: Int?
     @Published public var requestedPlugin: String?
+    @Published public var catalogPlugins: [CatalogPlugin] = []
+    @Published public var installedPluginNames: Set<String> = []
+    @Published public var pendingReview: [String] = []
+    @Published public var hotReload = false
+    @Published public var installTarget: CatalogPlugin?
+    @Published public var scanReport: PluginScanReport?
+    @Published public var scanning = false
+    @Published public var scanNote: String?
+    @Published public var overwrite: CatalogOverwrite?
+
+    public var onSetHotReload: ((Bool) -> Void)?
+    public var onScanCatalog: ((CatalogPlugin) -> Void)?
+    public var onInstallCatalog: ((CatalogPlugin, Bool) -> Void)?
+    public var onReviewPending: (() -> Void)?
 
     /// Baseline permissions plus whatever the loaded plugins declared.
     @Published public var requiredPermissions: [Permission] = Permissions.baseline
@@ -196,6 +210,7 @@ public final class SettingsState: ObservableObject {
         appearance = readAppearance?() ?? .system
         textScale = readTextScale?() ?? 1.0
         launcherBackground = readLauncherBackground?() ?? .translucent
+        catalogPlugins = PluginCatalog.load()
         pluginsPath = configDirURL?.path(percentEncoded: false) ?? ""
         refreshModules()
         refreshAppShortcuts()
@@ -267,12 +282,34 @@ public final class SettingsState: ObservableObject {
         launcherBackground = value
         writeLauncherBackground?(value)
     }
+
+    public func setHotReload(_ value: Bool) {
+        hotReload = value
+        onSetHotReload?(value)
+    }
+
+    public func beginInstall(_ plugin: CatalogPlugin) {
+        scanReport = nil
+        scanNote = nil
+        scanning = false
+        let dest = configDirURL?
+            .appending(path: "plugins")
+            .appending(path: plugin.filename)
+        if let dest, FileManager.default.fileExists(atPath: dest.path(percentEncoded: false)),
+           let existing = PluginHash.sha256(file: dest) {
+            overwrite = PluginCatalog.overwriteKind(existingHash: existing, bundledHash: plugin.bundleHash)
+        } else {
+            overwrite = nil
+        }
+        installTarget = plugin
+    }
 }
 
 public struct SettingsView: View {
     @ObservedObject var state: SettingsState
     @State private var selectedTab: SettingsTab
     @State private var selectedPlugin: String?
+    @State private var showCatalog = false
     @FocusState private var pluginListFocused: Bool
 
     public init(state: SettingsState, initialTab: Int = 0) {
@@ -307,6 +344,36 @@ public struct SettingsView: View {
         }
         .onChange(of: state.requestedTab) { applySettingsRequest() }
         .onChange(of: state.requestedPlugin) { applySettingsRequest() }
+        .sheet(isPresented: $showCatalog) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Plugin Catalog")
+                    .font(.title2.weight(.semibold))
+                CatalogBrowser(
+                    plugins: state.catalogPlugins,
+                    installedNames: state.installedPluginNames,
+                    onInstall: { state.beginInstall($0) },
+                    onPreview: { state.beginInstall($0) }
+                )
+            }
+            .padding(16)
+            .frame(width: 560, height: 480)
+        }
+        .sheet(item: $state.installTarget) { plugin in
+            CatalogInstallSheet(
+                plugin: plugin,
+                overwrite: state.overwrite,
+                modelNote: state.scanNote,
+                report: state.scanReport,
+                scanning: state.scanning,
+                onScan: { state.onScanCatalog?(plugin) },
+                onInstall: { override in
+                    state.onInstallCatalog?(plugin, override)
+                    state.installTarget = nil
+                    showCatalog = false
+                },
+                onCancel: { state.installTarget = nil }
+            )
+        }
     }
 
     private var tabBar: some View {
@@ -455,6 +522,14 @@ public struct SettingsView: View {
                     .disabled(!state.showDockIcon)
                 }
 
+                formRow("Hot Reload") {
+                    Toggle("Reload plugins on every save without a scan", isOn: Binding(
+                        get: { state.hotReload },
+                        set: { state.setHotReload($0) }
+                    ))
+                    .toggleStyle(.checkbox)
+                }
+
                 formRow("Appearance") {
                     Picker("", selection: Binding(
                         get: { state.appearance },
@@ -587,11 +662,21 @@ public struct SettingsView: View {
                 Divider()
 
                 HStack {
-                    Button("Browse plugins on GitHub") {
+                    Button("Browse Catalog…") {
+                        showCatalog = true
+                    }
+                    .controlSize(.small)
+                    if !state.pendingReview.isEmpty {
+                        Button("Review & Reload") {
+                            state.onReviewPending?()
+                        }
+                        .controlSize(.small)
+                    }
+                    Spacer()
+                    Button("GitHub") {
                         NSWorkspace.shared.open(githubPluginsURL)
                     }
                     .controlSize(.small)
-                    Spacer()
                 }
                 .padding(8)
             }
@@ -634,7 +719,7 @@ public struct SettingsView: View {
             Text("No plugins installed")
                 .font(.callout)
                 .foregroundStyle(.secondary)
-            Text("Add .js files to the plugins/ folder, or browse GitHub.")
+            Text("Add plugins from the catalog, or drop .js files into the plugins folder.")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }

@@ -38,6 +38,12 @@ The first check calls the system request API for each missing permission. That c
 
 Store secrets in the macOS Keychain through `macotron.keychain`. Do not put API keys in plugin source, `settings.json`, or git history.
 
+## Plugin integrity
+
+Last-approved plugin bytes are stored as SHA-256 hashes in the Keychain (`macotron.plugin.hash.<filename>`). `settings.json` is not a trust store.
+
+Install from the bundled catalog after a three-pass on-device scan when Apple Intelligence is available. A failed scan or a missing model still lets you **Install Anyway**. With Hot Reload off, an on-disk rewrite keeps the running plugin and asks for Review & Reload. Cold start does not execute unapproved bytes. Turning Hot Reload on skips the scan and shows an orange menu-bar dot.
+
 ## Gitignore for App-Owned Docs
 
 The workdir `.gitignore` must ignore app-owned agent files and cache:
@@ -102,5 +108,6 @@ Commit often on `main`. Do not commit secrets.
 | Shell commands | Shell allowlist plus per-command approval |
 | Secrets in repo | Keychain storage. Gitignore guidance in agent docs |
 | App-owned agent files edited by users | Banner plus overwrite. Files stay gitignored |
-| Third-party plugins | Same access as local plugins. Review before install |
+| Third-party plugins | Bundled catalog plus hash ledger. Community listings later |
+| Plugin file rewritten on disk | SHA-256 in Keychain. Mismatch does not execute unless Hot Reload is on or the user overrides after a scan |
 | Screen or clipboard sent to models | Structured delimiters plus ignore-instructions framing |
