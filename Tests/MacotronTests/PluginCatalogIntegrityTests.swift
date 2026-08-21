@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 import Testing
 @testable import MacotronEngine
 @testable import MacotronUI
@@ -165,9 +166,89 @@ struct PluginCatalogTests {
         let new = workspace.pluginsDir.appending(path: "weather.js")
         try "old".write(to: old, atomically: true, encoding: .utf8)
         try "existing".write(to: new, atomically: true, encoding: .utf8)
+        try workspace.writeSettings([
+            "pluginSettings": ["demo-weather.js": ["city": "SF"]],
+            "disabledPlugins": ["demo-weather.js"],
+            "commandShortcuts": ["demo-weather.js/Refresh": "cmd+r"],
+            "keyboardShortcuts": ["demo-weather.js/Hotkey": "cmd+w"],
+            "launcherFavorites": ["demo-weather.js/Refresh"],
+        ])
+        hashes.write(filename: "demo-weather.js", hash: "abc123")
         workspace.migratePluginNames(["demo-weather.js": "weather.js"], hashStore: hashes)
         #expect(try String(contentsOf: new, encoding: .utf8) == "existing")
         #expect(FileManager.default.fileExists(atPath: old.path))
+        let settings = workspace.readSettings()
+        let pluginSettings = settings["pluginSettings"] as? [String: [String: Any]]
+        #expect(pluginSettings?["demo-weather.js"]?["city"] as? String == "SF")
+        #expect(settings["disabledPlugins"] as? [String] == ["demo-weather.js"])
+        #expect(settings["commandShortcuts"] as? [String: String] == ["demo-weather.js/Refresh": "cmd+r"])
+        #expect(settings["keyboardShortcuts"] as? [String: String] == ["demo-weather.js/Hotkey": "cmd+w"])
+        #expect(settings["launcherFavorites"] as? [String] == ["demo-weather.js/Refresh"])
+        #expect(hashes.read(filename: "demo-weather.js") == "abc123")
+        #expect(hashes.read(filename: "weather.js") == nil)
+    }
+
+    @MainActor
+    @Test func migrationPreservesUnrelatedShortcuts() throws {
+        let (workspace, hashes) = try makeMigrationWorkspace()
+        defer { try? FileManager.default.removeItem(at: workspace.root) }
+        try "x".write(
+            to: workspace.pluginsDir.appending(path: "demo-weather.js"),
+            atomically: true,
+            encoding: .utf8
+        )
+        try workspace.writeSettings([
+            "pluginSettings": [:] as [String: Any],
+            "disabledPlugins": [] as [String],
+            "commandShortcuts": [
+                "demo-weather.js/Refresh": "cmd+r",
+                "demo-notes.js/Open": "cmd+n",
+            ],
+            "keyboardShortcuts": [
+                "demo-weather.js/Hotkey": "cmd+w",
+                "demo-notes.js/Toggle": "cmd+t",
+            ],
+            "launcherFavorites": [] as [String],
+        ])
+        workspace.migratePluginNames(["demo-weather.js": "weather.js"], hashStore: hashes)
+        let settings = workspace.readSettings()
+        let command = settings["commandShortcuts"] as? [String: String]
+        let keyboard = settings["keyboardShortcuts"] as? [String: String]
+        #expect(command?["weather.js/Refresh"] == "cmd+r")
+        #expect(command?["demo-notes.js/Open"] == "cmd+n")
+        #expect(keyboard?["weather.js/Hotkey"] == "cmd+w")
+        #expect(keyboard?["demo-notes.js/Toggle"] == "cmd+t")
+    }
+
+    @MainActor
+    @Test func migrationRollsBackFileWhenSettingsWriteFails() throws {
+        let (workspace, hashes) = try makeMigrationWorkspace()
+        defer { try? FileManager.default.removeItem(at: workspace.root) }
+        let old = workspace.pluginsDir.appending(path: "demo-weather.js")
+        try "weather".write(to: old, atomically: true, encoding: .utf8)
+        try workspace.writeSettings([
+            "pluginSettings": ["demo-weather.js": ["city": "SF"]],
+            "disabledPlugins": [] as [String],
+            "commandShortcuts": [:] as [String: String],
+            "keyboardShortcuts": [:] as [String: String],
+            "launcherFavorites": [] as [String],
+        ])
+        hashes.write(filename: "demo-weather.js", hash: "abc123")
+        let settingsPath = workspace.settingsFile.path(percentEncoded: false)
+        try settingsPath.withCString { pointer in
+            if chflags(pointer, UInt32(UF_IMMUTABLE)) != 0 {
+                throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: nil)
+            }
+        }
+        defer { settingsPath.withCString { _ = chflags($0, 0) } }
+        workspace.migratePluginNames(["demo-weather.js": "weather.js"], hashStore: hashes)
+        #expect(FileManager.default.fileExists(atPath: old.path))
+        #expect(!FileManager.default.fileExists(atPath: workspace.pluginsDir.appending(path: "weather.js").path))
+        let settings = workspace.readSettings()
+        let pluginSettings = settings["pluginSettings"] as? [String: [String: Any]]
+        #expect(pluginSettings?["demo-weather.js"]?["city"] as? String == "SF")
+        #expect(hashes.read(filename: "demo-weather.js") == "abc123")
+        #expect(hashes.read(filename: "weather.js") == nil)
     }
 
     @MainActor
