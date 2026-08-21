@@ -121,23 +121,25 @@ private struct CatalogInstallSheet: View {
                     state.installTarget = nil
                     state.isReviewing = false
                 }
-                if let report = state.scanReport, report.needsOverride {
-                    Button(state.isReviewing ? "Run Anyway" : "Install Anyway") {
-                        install(override: true)
-                    }
-                        .keyboardShortcut(.defaultAction)
-                } else if state.scanReport?.approved == true {
-                    Button(state.isReviewing ? "Reload" : "Install") {
-                        install(override: false)
-                    }
-                        .keyboardShortcut(.defaultAction)
+                Button(primaryLabel) {
+                    install(override: state.scanReport?.needsOverride == true)
                 }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(state.scanReport == nil)
             }
             .padding(.top, 4)
         }
         .padding(20)
         .padding(.bottom, 6)
         .frame(width: 540)
+    }
+
+    /// The scan decides between the plain and the override wording, so until a
+    /// report lands this shows the plain action and stays disabled.
+    private var primaryLabel: String {
+        let override = state.scanReport?.needsOverride == true
+        if state.isReviewing { return override ? "Run Anyway" : "Reload" }
+        return override ? "Install Anyway" : "Install"
     }
 
     @ViewBuilder
