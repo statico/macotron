@@ -8,7 +8,7 @@ Combine related display effects into one `screen-effects.js` plugin.
 ## Catalog
 
 The catalog contains built-in plugins. It does not classify plugins as stock or demo.
-Each catalog row contains `filename`, `highlighted`, and `category`.
+Each catalog row contains `filename` and `highlighted`.
 
 All built-in plugin filenames use their functional name. For example,
 `demo-calculator.js` becomes `calculator.js`.

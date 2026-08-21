@@ -413,7 +413,6 @@ public final class PluginWorkspace {
         "commandShortcuts": [:] as [String: String],
         "keyboardShortcuts": [:] as [String: String],
         "launcherFavorites": [] as [String],
-        "security": ["shell": ["allow": [] as [String], "strict": false]],
     ]
 
     public static let gitignoreContents = """
@@ -637,8 +636,7 @@ public final class PluginWorkspace {
           "disabledPlugins": [],
           "commandShortcuts": {},
           "keyboardShortcuts": {},
-          "launcherFavorites": [],
-          "security": { "shell": { "allow": [], "strict": false } }
+          "launcherFavorites": []
         }
         ```
         Disabled plugins stay on disk but are not loaded; manage them in Settings → Plugins.

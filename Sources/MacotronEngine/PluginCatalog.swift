@@ -3,7 +3,6 @@ import Foundation
 public struct CatalogPlugin: Equatable, Identifiable, Sendable {
     public var filename: String
     public var highlighted: Bool
-    public var category: String
     public var title: String
     public var description: String
     public var permissions: [Permission]
@@ -16,7 +15,6 @@ public struct CatalogPlugin: Equatable, Identifiable, Sendable {
     public init(
         filename: String,
         highlighted: Bool,
-        category: String,
         title: String,
         description: String,
         permissions: [Permission],
@@ -26,7 +24,6 @@ public struct CatalogPlugin: Equatable, Identifiable, Sendable {
     ) {
         self.filename = filename
         self.highlighted = highlighted
-        self.category = category
         self.title = title
         self.description = description
         self.permissions = permissions
@@ -60,7 +57,6 @@ public enum PluginCatalog {
             return CatalogPlugin(
                 filename: filename,
                 highlighted: row["highlighted"] as? Bool ?? false,
-                category: row["category"] as? String ?? "Other",
                 title: header.title ?? String(filename.dropLast(3)),
                 description: header.description ?? "",
                 permissions: perms,

@@ -2,293 +2,235 @@
   "plugins": [
     {
       "filename": "calculator.js",
-      "highlighted": true,
-      "category": "Tools"
+      "highlighted": true
     },
     {
       "filename": "clipboard-history.js",
-      "highlighted": true,
-      "category": "Clipboard"
+      "highlighted": true
     },
     {
       "filename": "file-search.js",
-      "highlighted": true,
-      "category": "Files"
+      "highlighted": true
     },
     {
       "filename": "lock-screen.js",
-      "highlighted": true,
-      "category": "System"
+      "highlighted": true
     },
     {
       "filename": "meetings.js",
-      "highlighted": true,
-      "category": "Productivity"
+      "highlighted": true
     },
     {
       "filename": "notes.js",
-      "highlighted": true,
-      "category": "Productivity"
+      "highlighted": true
     },
     {
       "filename": "snippets.js",
-      "highlighted": true,
-      "category": "Productivity"
+      "highlighted": true
     },
     {
       "filename": "weather.js",
-      "highlighted": true,
-      "category": "Menu bar"
+      "highlighted": true
     },
     {
       "filename": "window-grid.js",
-      "highlighted": true,
-      "category": "Windows"
+      "highlighted": true
     },
     {
       "filename": "windows.js",
-      "highlighted": true,
-      "category": "Windows"
+      "highlighted": true
     },
     {
       "filename": "ai-chat.js",
-      "highlighted": false,
-      "category": "AI"
+      "highlighted": false
     },
     {
       "filename": "appearance.js",
-      "highlighted": false,
-      "category": "System"
+      "highlighted": false
     },
     {
       "filename": "audio.js",
-      "highlighted": false,
-      "category": "Media"
+      "highlighted": false
     },
     {
       "filename": "batch-rename.js",
-      "highlighted": false,
-      "category": "Files"
+      "highlighted": false
     },
     {
       "filename": "battery.js",
-      "highlighted": false,
-      "category": "Menu bar"
+      "highlighted": false
     },
     {
       "filename": "brightness.js",
-      "highlighted": false,
-      "category": "System"
+      "highlighted": false
     },
     {
       "filename": "browser-picker.js",
-      "highlighted": false,
-      "category": "Browser"
+      "highlighted": false
     },
     {
       "filename": "calendar.js",
-      "highlighted": false,
-      "category": "Productivity"
+      "highlighted": false
     },
     {
       "filename": "clipboard-image.js",
-      "highlighted": false,
-      "category": "Clipboard"
+      "highlighted": false
     },
     {
       "filename": "color-picker.js",
-      "highlighted": false,
-      "category": "Screen"
+      "highlighted": false
     },
     {
       "filename": "cpu-graph.js",
-      "highlighted": false,
-      "category": "Menu bar"
+      "highlighted": false
     },
     {
       "filename": "datetime.js",
-      "highlighted": false,
-      "category": "Tools"
+      "highlighted": false
     },
     {
       "filename": "devutils.js",
-      "highlighted": false,
-      "category": "Tools"
+      "highlighted": false
     },
     {
       "filename": "fan.js",
-      "highlighted": false,
-      "category": "System"
+      "highlighted": false
     },
     {
       "filename": "focus-idle.js",
-      "highlighted": false,
-      "category": "System"
+      "highlighted": false
     },
     {
       "filename": "gestures.js",
-      "highlighted": false,
-      "category": "Windows"
+      "highlighted": false
     },
     {
       "filename": "heic-to-jpeg.js",
-      "highlighted": false,
-      "category": "Files"
+      "highlighted": false
     },
     {
       "filename": "hid.js",
-      "highlighted": false,
-      "category": "Devices"
+      "highlighted": false
     },
     {
       "filename": "hyper.js",
-      "highlighted": false,
-      "category": "Input"
+      "highlighted": false
     },
     {
       "filename": "icon-rainbow.js",
-      "highlighted": false,
-      "category": "Menu bar"
+      "highlighted": false
     },
     {
       "filename": "idle.js",
-      "highlighted": false,
-      "category": "System"
+      "highlighted": false
     },
     {
       "filename": "layouts.js",
-      "highlighted": false,
-      "category": "Windows"
+      "highlighted": false
     },
     {
       "filename": "lorem.js",
-      "highlighted": false,
-      "category": "Tools"
+      "highlighted": false
     },
     {
       "filename": "meeting-overlay.js",
-      "highlighted": false,
-      "category": "Productivity"
+      "highlighted": false
     },
     {
       "filename": "now-playing.js",
-      "highlighted": false,
-      "category": "Menu bar"
+      "highlighted": false
     },
     {
       "filename": "ocr.js",
-      "highlighted": false,
-      "category": "Screen"
+      "highlighted": false
     },
     {
       "filename": "plain-paste.js",
-      "highlighted": false,
-      "category": "Clipboard"
+      "highlighted": false
     },
     {
       "filename": "pomodoro.js",
-      "highlighted": false,
-      "category": "Productivity"
+      "highlighted": false
     },
     {
       "filename": "present-mode.js",
-      "highlighted": false,
-      "category": "System"
+      "highlighted": false
     },
     {
       "filename": "qr.js",
-      "highlighted": false,
-      "category": "Screen"
+      "highlighted": false
     },
     {
       "filename": "record.js",
-      "highlighted": false,
-      "category": "Media"
+      "highlighted": false
     },
     {
       "filename": "regex.js",
-      "highlighted": false,
-      "category": "Tools"
+      "highlighted": false
     },
     {
       "filename": "browser-profiles.js",
-      "highlighted": false,
-      "category": "Browser"
+      "highlighted": false
     },
     {
       "filename": "screen-effects.js",
-      "highlighted": false,
-      "category": "System"
+      "highlighted": false
     },
     {
       "filename": "screen-ai-summary.js",
-      "highlighted": false,
-      "category": "AI"
+      "highlighted": false
     },
     {
       "filename": "screenshot-rename.js",
-      "highlighted": false,
-      "category": "Files"
+      "highlighted": false
     },
     {
       "filename": "security-checklist.js",
-      "highlighted": false,
-      "category": "System"
+      "highlighted": false
     },
     {
       "filename": "share.js",
-      "highlighted": false,
-      "category": "Tools"
+      "highlighted": false
     },
     {
       "filename": "shortcuts.js",
-      "highlighted": false,
-      "category": "Productivity"
+      "highlighted": false
     },
     {
       "filename": "spaces.js",
-      "highlighted": false,
-      "category": "Windows"
+      "highlighted": false
     },
     {
       "filename": "power.js",
-      "highlighted": false,
-      "category": "System"
+      "highlighted": false
     },
     {
       "filename": "disk-usage.js",
-      "highlighted": false,
-      "category": "Files"
+      "highlighted": false
     },
     {
       "filename": "system-metrics.js",
-      "highlighted": false,
-      "category": "Menu bar"
+      "highlighted": false
     },
     {
       "filename": "system-settings.js",
-      "highlighted": false,
-      "category": "System"
+      "highlighted": false
     },
     {
       "filename": "url-router.js",
-      "highlighted": false,
-      "category": "Browser"
+      "highlighted": false
     },
     {
       "filename": "usb.js",
-      "highlighted": false,
-      "category": "Devices"
+      "highlighted": false
     },
     {
       "filename": "wifi.js",
-      "highlighted": false,
-      "category": "System"
+      "highlighted": false
     },
     {
       "filename": "window-switcher.js",
-      "highlighted": false,
-      "category": "Windows"
+      "highlighted": false
     }
   ]
 }
