@@ -162,7 +162,10 @@ public final class ModuleManager {
         }
         pendingReview.remove(filename)
 
-        let cachePath = cacheDir.appending(path: filename + ".iife.bc")
+        // Cache name embeds the source hash: any planted or stale bytecode
+        // whose name doesn't match the current source is never read.
+        let sourceHash = PluginHash.sha256(source: source)
+        let cachePath = cacheDir.appending(path: "\(filename).\(sourceHash).iife.bc")
 
         switch PluginNeeds.parse(source) {
         case .failure(let error):
@@ -183,14 +186,7 @@ public final class ModuleManager {
         defer { engine.currentEvaluatingFile = nil }
 
         let isolated = Engine.isolatedPlugin(source)
-        if let cacheData = try? Data(contentsOf: cachePath),
-           let cacheDate = try? FileManager.default.attributesOfItem(
-               atPath: cachePath.path(percentEncoded: false)
-           )[.modificationDate] as? Date,
-           let sourceDate = try? FileManager.default.attributesOfItem(
-               atPath: file.path(percentEncoded: false)
-           )[.modificationDate] as? Date,
-           cacheDate >= sourceDate {
+        if let cacheData = try? Data(contentsOf: cachePath) {
             let (_, error) = engine.evaluateBytecode(cacheData, filename: filename)
             if error == nil { return }
             logger.error("\(filename) (cached): \(error ?? "")")
@@ -202,7 +198,20 @@ public final class ModuleManager {
             logger.error("\(filename): \(error)")
             lastReloadErrors.append((filename: filename, error: error))
         } else if let bytecode = engine.compileToBytecode(isolated, filename: fullPath) {
+            deleteStaleCaches(filename: filename, keeping: cachePath.lastPathComponent)
             try? bytecode.write(to: cachePath)
+        }
+    }
+
+    private func deleteStaleCaches(filename: String, keeping: String) {
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: cacheDir, includingPropertiesForKeys: nil
+        )) ?? []
+        for file in files {
+            let name = file.lastPathComponent
+            if name.hasPrefix(filename + "."), name.hasSuffix(".iife.bc"), name != keeping {
+                try? FileManager.default.removeItem(at: file)
+            }
         }
     }
 
