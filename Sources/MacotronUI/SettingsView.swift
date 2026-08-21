@@ -351,10 +351,11 @@ public final class SettingsState: ObservableObject {
         scanning = false
     }
 
-    /// A verdict approves only the exact bytes it scanned. No report is fine for
-    /// built-ins, whose bytes ship inside the signed bundle.
+    /// A verdict approves only the exact bytes it scanned. No report is fine only
+    /// for built-ins, whose bytes ship inside the signed bundle; reviewed bytes
+    /// came off disk and always need one.
     public func allowsInstall(of plugin: CatalogPlugin, override: Bool) -> Bool {
-        guard let report = scanReport else { return true }
+        guard let report = scanReport else { return installIsBuiltIn }
         guard report.matches(source: plugin.source) else { return false }
         return !report.needsOverride || override
     }
