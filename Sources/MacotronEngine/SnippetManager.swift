@@ -117,15 +117,18 @@ public final class ModuleManager {
 
     public func reloadAll() {
         logger.info("Reloading all plugins...")
+        let timer = StepTimer("reloadAll", category: "modules")
         lastReloadErrors.removeAll()
 
         engine.reset()
+        timer.step("engine.reset")
         engine.moduleSettings = loadModuleSettings()
 
         // Map settings.json into configStore (replaces config.js + macotron.config())
         engine.configStore = workspace.readSettings()
 
         engine.registerAllModules()
+        timer.step("registerAllModules")
 
         // Evaluate the runtime after the final registerAllModules: registration
         // replaces the global macotron object, so helpers must land on it last.
@@ -133,6 +136,7 @@ public final class ModuleManager {
            let runtimeJS = try? String(contentsOf: runtimeURL, encoding: .utf8) {
             engine.evaluate(runtimeJS, filename: "macotron-runtime.js")
         }
+        timer.step("runtime.js")
 
         let disabled = disabledPlugins()
         let pluginFiles = listJSFiles(in: workspace.pluginsDir)
@@ -143,11 +147,14 @@ public final class ModuleManager {
         for file in pluginFiles {
             executeFile(file)
         }
+        timer.step("\(pluginFiles.count) plugins")
 
         engine.notifyModulesDidReload()
+        timer.step("modulesDidReload")
         logger.info("Loaded \(pluginFiles.count) plugins. Ready.")
         onDidReload?()
         onPendingReviewChange?()
+        timer.total()
     }
 
     private func executeFile(_ file: URL) {
@@ -157,7 +164,11 @@ public final class ModuleManager {
         }
 
         let filename = file.lastPathComponent
-        if !hotReload, !PluginTrust.matches(filename: filename, source: source) {
+        let timer = StepTimer(filename, category: "modules")
+        let approved = hotReload || PluginTrust.matches(filename: filename, source: source)
+        timer.step("trust")
+        defer { timer.step("eval") }
+        if !approved {
             pendingReview.insert(filename)
             logger.error("\(filename): on-disk source is not approved")
             return

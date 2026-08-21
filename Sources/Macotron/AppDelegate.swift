@@ -5,6 +5,9 @@ import MacotronEngine
 import MacotronUI
 import Modules
 import AI
+import os
+
+private let appLogger = Logger(subsystem: "io.statico.macotron", category: "app")
 
 @MainActor
 public final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -204,12 +207,19 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func installModuleManagerCallbacks() {
         moduleManager.onDidReload = { [weak self] in
+            let timer = StepTimer("onDidReload", category: "app")
             self?.refreshPermissions()
+            timer.step("refreshPermissions")
             self?.applyUIPrefsFromSettings()
+            timer.step("applyUIPrefs")
             self?.installCommandShortcuts()
+            timer.step("installCommandShortcuts")
             self?.rebindPluginHotkeys()
+            timer.step("rebindPluginHotkeys")
             self?.settingsState.refreshModules()
+            timer.step("refreshModules")
             self?.refreshIntegrity()
+            timer.step("refreshIntegrity")
         }
         moduleManager.onPendingReviewChange = { [weak self] in
             self?.refreshIntegrity()
@@ -747,19 +757,30 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func installCatalogPlugin(_ plugin: CatalogPlugin, override: Bool) {
+        let timer = StepTimer("install \(plugin.filename)", category: "app")
         guard let workspace else { return }
-        guard settingsState.allowsInstall(of: plugin, override: override) else { return }
+        guard settingsState.allowsInstall(of: plugin, override: override) else {
+            appLogger.info("install \(plugin.filename, privacy: .public) blocked by allowsInstall")
+            return
+        }
         let dest = workspace.pluginsDir.appending(path: plugin.filename)
         do {
             try plugin.source.write(to: dest, atomically: true, encoding: .utf8)
+            timer.step("write")
             PluginTrust.approve(filename: plugin.filename, source: plugin.source)
+            timer.step("approve")
             PluginTrust.approveImports(
                 in: plugin.source, importerDir: workspace.pluginsDir, baseDir: workspace.root)
+            timer.step("approveImports")
             moduleManager.reloadAll()
+            timer.step("reloadAll")
             refreshIntegrity()
+            timer.step("refreshIntegrity")
             if settingsState.isReviewing {
                 presentNextReview(workspace: workspace)
+                timer.step("presentNextReview")
             }
+            timer.total()
         } catch {
             NSLog("[Macotron] Catalog install failed: \(error)")
         }

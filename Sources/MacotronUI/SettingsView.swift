@@ -1,8 +1,11 @@
 // SettingsView.swift — General prefs, plugins list
 import AppKit
 import MacotronEngine
+import os
 import SwiftUI
 import UniformTypeIdentifiers
+
+private let settingsLogger = Logger(subsystem: "io.statico.macotron", category: "settings")
 
 enum PluginListNav {
     static func neighbor(of selected: String?, in filenames: [String], delta: Int) -> String? {
@@ -318,10 +321,13 @@ public final class SettingsState: ObservableObject {
     }
 
     public func addBuiltIn(_ plugin: CatalogPlugin) {
+        let t0 = CFAbsoluteTimeGetCurrent()
+        settingsLogger.info("addBuiltIn \(plugin.filename, privacy: .public)")
         let dest = configDirURL?
             .appending(path: "plugins")
             .appending(path: plugin.filename)
         if let dest, FileManager.default.fileExists(atPath: dest.path(percentEncoded: false)) {
+            settingsLogger.info("addBuiltIn \(plugin.filename, privacy: .public) already on disk, opening details")
             beginInstall(plugin)
             return
         }
@@ -331,6 +337,7 @@ public final class SettingsState: ObservableObject {
         isReviewing = false
         installTarget = nil
         onInstallCatalog?(plugin, false)
+        settingsLogger.info("addBuiltIn \(plugin.filename, privacy: .public) returned +\(Int((CFAbsoluteTimeGetCurrent() - t0) * 1000))ms")
     }
 
     /// Catalog plugins ship inside the signed app bundle, so their bytes are already
