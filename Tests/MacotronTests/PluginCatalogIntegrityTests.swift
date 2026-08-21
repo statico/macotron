@@ -864,6 +864,20 @@ struct CatalogInstallScanTests {
         let state = SettingsState()
         #expect(state.allowsInstall(of: plugin("weather.js"), override: false))
     }
+
+    @Test("no report never allows installing reviewed bytes, even with override")
+    func noReportBlocksReviewInstall() {
+        let state = SettingsState()
+        state.onScanCatalog = { _ in }
+        state.beginReview(
+            filename: "foo.js",
+            source: "macotron.plugin({ title: \"x\" });",
+            destHash: nil,
+            fileURL: URL(fileURLWithPath: "/tmp/foo.js")
+        )
+        #expect(!state.allowsInstall(of: state.installTarget!, override: false))
+        #expect(!state.allowsInstall(of: state.installTarget!, override: true))
+    }
 }
 
 @Suite("WizardStep")
