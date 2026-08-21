@@ -117,6 +117,10 @@
       "highlighted": false
     },
     {
+      "filename": "homekit.js",
+      "highlighted": false
+    },
+    {
       "filename": "hyper.js",
       "highlighted": false
     },
@@ -170,6 +174,10 @@
     },
     {
       "filename": "regex.js",
+      "highlighted": false
+    },
+    {
+      "filename": "reminders.js",
       "highlighted": false
     },
     {

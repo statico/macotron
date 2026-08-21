@@ -875,6 +875,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         launcherModule = launcher
         engine.addModule(launcher)
         engine.addModule(NotesModule())
+        engine.addModule(RemindersModule())
+        engine.addModule(HomeKitModule())
+        engine.addModule(DockModule())
     }
 
     private func executeCommand(_ id: String, args: [String: Any] = [:]) {

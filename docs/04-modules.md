@@ -35,6 +35,9 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 | MediaModule | `macotron.media` | Now Playing metadata, artwork, play/pause |
 | LauncherModule | `macotron.launcher` | Extra rows in the quick launcher |
 | NotesModule | `macotron.notes` | List and open Apple Notes |
+| RemindersModule | `macotron.reminders` | List, add, and complete Reminders |
+| HomeKitModule | `macotron.homekit` | List and control HomeKit accessories |
+| DockModule | `macotron.dock` | Read Dock icon badges |
 | ContactsModule | `macotron.contacts` | List and search Contacts |
 | PowerModule | `macotron.power` | Prevent sleep, lock, sleep, display sleep, screensaver, log out, restart, shutdown |
 | BonjourModule | `macotron.bonjour` | Browse Bonjour / mDNS services |
@@ -96,6 +99,12 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 **Clipboard:** `text()`, `set(text)`, `setImage(base64)`, `clear()`, `types()`, `data(uti)` (base64 or `null`). `clipboard:changed` is `{ changeCount, types }`. History: `history()`, `paste(id)`, `remove(id)`, `clearHistory()`.
 
 **Calendar:** `upcoming({ hours })` is `{ id, title, start, end, allDay, location, calendar }[]`. Times are epoch ms.
+
+**Reminders:** `list({ days, completed })` is `{ id, title, due, completed, list }[]`. `due` is epoch ms or `null`. Incomplete only unless `completed: true`. `add({ title, due?, list? })` and `complete(id, on?)` return `{ ok, id?, error? }`. macOS prompts for Reminders access on first use.
+
+**HomeKit:** `available()` is true when `HMHomeManager` is present (including with no homes). On native macOS the public HomeKit framework is unavailable, so `homes()` is `[]` and `set` returns `{ ok: false, error }`. `accessories(homeId?)` is `{ id, name, room, type, on?, value?, reachable }[]`. Lights and switches include `on`; sensors may include `value`.
+
+**Dock:** `badges()` is `{ app, bundleID?, badge }[]` for Dock tiles that show a badge. Needs Accessibility. Empty when untrusted.
 
 **MenuBar:** `macotron.menubar.add(id, config)` (rows in the Macotron menu; `menu` is a nested dropdown), `.status(id, config)` (extra item next to the Macotron icon: `title`, `subtitle`, `color`, `subtitleColor`, `bold`, `italic`, `secondary`, `minWidth` in points, `sfSymbol`, `image` file path, `onClick`, `menu`), `.update`, `.remove`, `.setIcon`, `.setIconColor(color)` (named or `#RRGGBB`; `null` restores the system tint), `.setTitle`. Two-line extras use the same size and color for both lines unless `secondary` is set (smaller, dimmer subtitle).
 
