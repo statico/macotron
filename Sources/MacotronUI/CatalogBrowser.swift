@@ -125,7 +125,7 @@ private struct CatalogInstallSheet: View {
                     install(override: state.scanReport?.needsOverride == true)
                 }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(state.scanReport == nil)
+                    .disabled(!canInstall)
             }
             .padding(.top, 4)
         }
@@ -135,11 +135,17 @@ private struct CatalogInstallSheet: View {
     }
 
     /// The scan decides between the plain and the override wording, so until a
-    /// report lands this shows the plain action and stays disabled.
+    /// report lands this shows the plain action.
     private var primaryLabel: String {
         let override = state.scanReport?.needsOverride == true
         if state.isReviewing { return override ? "Run Anyway" : "Reload" }
         return override ? "Install Anyway" : "Install"
+    }
+
+    /// A built-in needs no scan result to proceed; anything else waits for one.
+    private var canInstall: Bool {
+        if state.scanning { return false }
+        return state.scanReport != nil || state.installIsBuiltIn
     }
 
     @ViewBuilder
@@ -149,6 +155,19 @@ private struct CatalogInstallSheet: View {
                 ProgressView()
                     .controlSize(.small)
                 Text("Scanning with Apple Intelligence…")
+            }
+        } else if state.scanReport == nil, state.installIsBuiltIn {
+            HStack(alignment: .center, spacing: 8) {
+                scanBanner(
+                    "checkmark.circle.fill",
+                    "Plugin distributed with Macotron, no scan needed.",
+                    .green
+                )
+                Spacer(minLength: 8)
+                Button("Scan Anyway") {
+                    state.scanInstallTarget()
+                }
+                    .controlSize(.small)
             }
         } else if let report = state.scanReport {
             VStack(alignment: .leading, spacing: 8) {

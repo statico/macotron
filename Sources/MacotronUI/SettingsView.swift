@@ -301,6 +301,15 @@ public final class SettingsState: ObservableObject {
             overwrite = nil
         }
         installTarget = plugin
+    }
+
+    /// Catalog plugins ship inside the signed app bundle, so their bytes are already
+    /// as trusted as Macotron itself. A review scans because those bytes came off
+    /// the user's disk.
+    public var installIsBuiltIn: Bool { !isReviewing }
+
+    public func scanInstallTarget() {
+        guard let plugin = installTarget else { return }
         onScanCatalog?(plugin)
     }
 
@@ -320,9 +329,7 @@ public final class SettingsState: ObservableObject {
             bundleHash: destHash ?? PluginHash.sha256(source: source),
             fileURL: fileURL
         )
-        if let plugin = installTarget {
-            onScanCatalog?(plugin)
-        }
+        scanInstallTarget()
     }
 }
 
