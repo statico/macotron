@@ -584,6 +584,59 @@ struct PluginCatalogTests {
     }
 }
 
+@MainActor
+@Suite("CatalogInstallScan")
+struct CatalogInstallScanTests {
+    private func plugin(_ filename: String) -> CatalogPlugin {
+        CatalogPlugin(
+            filename: filename,
+            highlighted: false,
+            title: filename,
+            description: "",
+            permissions: [],
+            source: "macotron.plugin({ title: \"x\" });",
+            bundleHash: "hash",
+            fileURL: URL(fileURLWithPath: "/tmp/\(filename)")
+        )
+    }
+
+    @Test("installing a built-in does not kick off a scan")
+    func builtInDoesNotScan() {
+        let state = SettingsState()
+        var scanned: [String] = []
+        state.onScanCatalog = { scanned.append($0.filename) }
+        state.beginInstall(plugin("weather.js"))
+        #expect(scanned.isEmpty)
+        #expect(state.installIsBuiltIn)
+        #expect(state.scanReport == nil)
+    }
+
+    @Test("Scan Anyway scans the plugin being installed")
+    func scanAnyway() {
+        let state = SettingsState()
+        var scanned: [String] = []
+        state.onScanCatalog = { scanned.append($0.filename) }
+        state.beginInstall(plugin("weather.js"))
+        state.scanInstallTarget()
+        #expect(scanned == ["weather.js"])
+    }
+
+    @Test("reviewing bytes that came off disk always scans")
+    func reviewScans() {
+        let state = SettingsState()
+        var scanned: [String] = []
+        state.onScanCatalog = { scanned.append($0.filename) }
+        state.beginReview(
+            filename: "weather.js",
+            source: "macotron.plugin({ title: \"x\" });",
+            destHash: nil,
+            fileURL: URL(fileURLWithPath: "/tmp/weather.js")
+        )
+        #expect(scanned == ["weather.js"])
+        #expect(!state.installIsBuiltIn)
+    }
+}
+
 @Suite("WizardStep")
 struct WizardStepTests {
     @Test func catalogIsBeforePermissions() {

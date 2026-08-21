@@ -42,7 +42,11 @@ Store secrets in the macOS Keychain through `macotron.keychain`. Do not put API 
 
 Last-approved plugin bytes are stored as SHA-256 hashes in the Keychain (`macotron.plugin.hash.<filename>`). `settings.json` is not a trust store.
 
-Install from the bundled catalog after a three-pass on-device scan when Apple Intelligence is available. A failed scan or a missing model still lets you **Install Anyway**. With Hot Reload off, an on-disk rewrite keeps the running plugin and asks for Review & Reload. Cold start does not execute unapproved bytes. Turning Hot Reload on skips the scan and shows an orange menu-bar dot.
+Catalog plugins ship inside the signed app bundle, so installing one does not scan: its bytes are already as trusted as Macotron itself. **Scan Anyway** runs the scan on demand.
+
+Reviewing a plugin that changed on disk does scan, because those bytes came from outside the bundle. The scan makes three on-device passes when Apple Intelligence is available; a failed scan or a missing model still lets you **Run Anyway**.
+
+With Hot Reload off, an on-disk rewrite keeps the running plugin and asks for Review & Reload. Cold start does not execute unapproved bytes. Turning Hot Reload on skips the scan and shows an orange menu-bar dot.
 
 ## Gitignore for App-Owned Docs
 
