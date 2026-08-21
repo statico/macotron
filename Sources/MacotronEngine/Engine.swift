@@ -531,21 +531,34 @@ public final class Engine {
         pendingCompletions[token] != nil
     }
 
-    /// Reject and free every in-flight promise. Must run while the old context is alive.
+    /// Reject and free every in-flight promise. Must run while the old context
+    /// is alive. Rejection handlers may re-enter async bridges and register new
+    /// pendings, so repeat until stably empty — nothing may survive JS_FreeContext.
     private func rejectAllPending(_ reason: String) {
-        guard !pendingCompletions.isEmpty else { return }
-        for pending in pendingCompletions.values {
-            var err = JSBridge.newString(context, reason)
-            _ = JS_Call(context, pending.reject, QJS_Undefined(), 1, &err)
-            JS_FreeValue(context, err)
-            JS_FreeValue(context, pending.resolve)
-            JS_FreeValue(context, pending.reject)
-            for extra in pending.extras {
-                JS_FreeValue(context, extra)
+        var rounds = 0
+        while !pendingCompletions.isEmpty {
+            rounds += 1
+            let batch = pendingCompletions
+            pendingCompletions.removeAll()
+            for pending in batch.values {
+                // ponytail: after 64 re-arm rounds, free without running the
+                // rejection (a handler is spawning work in a loop); JS never
+                // observes the settle but the context stays safe to free.
+                if rounds <= 64 {
+                    var err = JSBridge.newString(context, reason)
+                    _ = JS_Call(context, pending.reject, QJS_Undefined(), 1, &err)
+                    JS_FreeValue(context, err)
+                }
+                JS_FreeValue(context, pending.resolve)
+                JS_FreeValue(context, pending.reject)
+                for extra in pending.extras {
+                    JS_FreeValue(context, extra)
+                }
+            }
+            if rounds <= 64 {
+                drainJobQueue()
             }
         }
-        pendingCompletions.removeAll()
-        drainJobQueue()
     }
 
     // MARK: - Job Queue

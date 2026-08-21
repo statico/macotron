@@ -35,4 +35,38 @@ struct AsyncResetTests {
         #expect(result == "2")
         #expect(!logs.contains { $0.hasPrefix("settled:resolved") })
     }
+
+    @Test("rejection handler that spawns new async work during reset is also cancelled")
+    func rejectionHandlerReentersAsyncBridge() async throws {
+        let engine = Engine()
+        engine.addModule(ShellModule())
+        engine.registerAllModules()
+
+        var logs: [String] = []
+        engine.logHandler = { logs.append($0) }
+
+        // The outer rejection handler re-enters shell.run while reset() is
+        // rejecting pendings. The inner promise must not survive the reset.
+        engine.evaluate("""
+            macotron.shell.run('sleep', ['0.3']).catch(e => {
+                $$__log('outer:rejected');
+                macotron.shell.run('sleep', ['0.3']).then(
+                    r => $$__log('inner:resolved'),
+                    e => $$__log('inner:rejected')
+                );
+            });
+        """)
+        engine.reset()
+
+        #expect(logs.contains("outer:rejected"))
+        #expect(logs.contains("inner:rejected"))
+
+        // Let both shell completions land after the reload; the inner one must
+        // find its token claimed and drop instead of touching the freed context.
+        try await Task.sleep(for: .seconds(1))
+        let (result, error) = engine.evaluate("1 + 1")
+        #expect(error == nil)
+        #expect(result == "2")
+        #expect(!logs.contains("inner:resolved"))
+    }
 }
