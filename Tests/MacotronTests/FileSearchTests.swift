@@ -77,4 +77,13 @@ struct FileSearchTests {
         #expect(html.contains("@keyframes"))
         #expect(html.contains("Searching"))
     }
+
+    @Test("kind select is posted with search")
+    func kindSelect() throws {
+        let html = try eval("html")
+        #expect(html.contains("id=\"kind\""))
+        #expect(html.contains("pdf"))
+        #expect(html.contains("kind:"))
+        #expect(html.contains("metaKey"))
+    }
 }

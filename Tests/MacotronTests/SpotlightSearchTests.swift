@@ -32,4 +32,17 @@ struct SpotlightSearchTests {
         #expect(rows[0]["name"] as? String == "Hello World.txt")
         #expect(rows[1]["name"] as? String == "Notes.md")
     }
+
+    @Test("kind pdf appears in the query as *.pdf")
+    func kindPdf() {
+        let q = SpotlightSearch.queryString("Notes", kind: "pdf")
+        #expect(q?.contains("*.pdf") == true)
+    }
+
+    @Test("empty kind does not add FSName extension clause")
+    func emptyKind() {
+        let q = SpotlightSearch.queryString("Notes", kind: "")
+        #expect(q == SpotlightSearch.queryString("Notes"))
+        #expect(q?.contains("*.") != true)
+    }
 }

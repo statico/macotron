@@ -379,7 +379,7 @@ declare const macotron: {
     };
 
     spotlight: {
-        search(query: string): Promise<Array<{ path: string; name: string; kind: string }>>;
+        search(query: string, opts?: { folder?: string; kind?: string }): Promise<Array<{ path: string; name: string; kind: string }>>;
     };
 
     launcher: {
