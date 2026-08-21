@@ -97,6 +97,8 @@ public enum JSBridge {
             return newObject(ctx, dict)
         case let arr as [Any]:
             return newArray(ctx, arr)
+        case is NSNull:
+            return QJS_Null()
         default:
             return QJS_Undefined()
         }

@@ -498,6 +498,37 @@ declare const macotron: {
         }>;
     };
 
+    reminders: {
+        list(opts?: { days?: number; completed?: boolean }): Array<{
+            id: string;
+            title: string;
+            due: number | null;
+            completed: boolean;
+            list: string;
+        }>;
+        add(row: { title: string; due?: number; list?: string }): { ok: boolean; id?: string; error?: string };
+        complete(id: string, on?: boolean): { ok: boolean; error?: string };
+    };
+
+    homekit: {
+        available(): boolean;
+        homes(): Array<{ id: string; name: string }>;
+        accessories(homeId?: string): Array<{
+            id: string;
+            name: string;
+            room: string;
+            type: string;
+            on?: boolean;
+            value?: number;
+            reachable: boolean;
+        }>;
+        set(id: string, state: { on?: boolean; value?: number }): { ok: boolean; error?: string };
+    };
+
+    dock: {
+        badges(): Array<{ app: string; bundleID?: string; badge: string }>;
+    };
+
     ax: {
         focused(): { id: number; role: string; title: string; value: string; frame: { x: number; y: number; width: number; height: number } } | null;
         selectedText(): string | null;

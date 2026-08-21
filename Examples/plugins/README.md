@@ -30,6 +30,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | gestures.js | event.tap swipe, window.moveToFraction | (3-finger swipe tiles) |
 | heic-to-jpeg.js | sips + fs | Convert Downloads HEIC |
 | hid.js | hid.list | HID Devices |
+| homekit.js | homekit.homes / accessories / set | (HomeKit menu bar) |
 | hyper.js | keyboard.setHyperKey, keyboard.on | (Caps Lock as Hyper) |
 | icon-rainbow.js | menubar.setIconColor |  |
 | idle.js | idle.*, system:idle/active | Idle Seconds |
@@ -47,6 +48,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | present-mode.js | defaults + Finder | Toggle Present Mode |
 | qr.js | qr.scan / qr.show | Scan QR (Screen/Camera), Show QR |
 | record.js | audio.record, camera.preview/snapshot | Start/Stop Recording, Camera Preview/Snapshot |
+| reminders.js | reminders.list / add / complete | (Reminders menu bar) |
 | regex.js | panel | Regex Workbench |
 | screen-ai-summary.js | screen + ai | Summarize Screen |
 | screen-effects.js | display.setGamma, display nightShift/trueTone/grayscale | Toggle Night Vision, Toggle Extra Dark, Toggle Invert Display, Toggle Night Shift, Night Shift 60%, Toggle True Tone, Toggle Grayscale |

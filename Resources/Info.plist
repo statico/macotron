@@ -41,6 +41,10 @@
     <string>Plugins can see when a Focus mode is on.</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
     <string>Macotron plugins can list upcoming calendar events.</string>
+    <key>NSRemindersFullAccessUsageDescription</key>
+    <string>Macotron plugins can list and complete reminders.</string>
+    <key>NSHomeKitUsageDescription</key>
+    <string>Macotron plugins can list and control HomeKit accessories.</string>
     <key>NSContactsUsageDescription</key>
     <string>Macotron plugins can search and list contacts.</string>
     <key>NSCameraUsageDescription</key>
