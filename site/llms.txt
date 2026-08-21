@@ -1,0 +1,10 @@
+# Macotron
+
+Native macOS host for JavaScript plugins.
+
+## Read these
+
+- [Home](/index.md)
+- [Glossary](/glossary.md)
+- [AGENTS.md](/AGENTS.md)
+- [Sitemap](/sitemap.md)

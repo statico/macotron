@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://macotron.statico.io/sitemap.xml

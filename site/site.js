@@ -6,12 +6,19 @@ const CARDS = [
     ["Command shortcuts", "Assign a key to any launcher command."],
     ["Command args", "Text, number, and dropdown prompts."],
     ["Launcher rows", "Plugins inject extra results."],
+    ["Contacts search", "Names, emails, and phones as you type."],
+    ["Web search", "Google, Wikipedia, Maps, YouTube, GitHub, Define."],
     ["Global hotkeys", "Carbon hotkeys, overridable in Settings."],
+    ["Show Hotkeys", "Overlay of every bound combo."],
   ]],
   ["Windows", [
     ["Tile windows", "Halves, corners, center, or another display."],
     ["Drag-to-snap", "Pull a window to an edge or corner to tile."],
+    ["Window grid", "Drag a cell to place the focused window."],
+    ["Placement preview", "Ghost the destination before you commit."],
+    ["Save layouts", "Snapshot frames and restore them later."],
     ["Switch windows", "Pick an open window by name and raise it."],
+    ["Option-Tab switcher", "Hold Option and press Tab to flip windows."],
     ["Minimize / close", "Drive window chrome from a script."],
     ["Fullscreen", "Toggle native fullscreen on the focused window."],
     ["Window events", "React when a window is created or focused."],
@@ -19,25 +26,34 @@ const CARDS = [
     ["Spaces", "List Mission Control desktops."],
     ["Switch desktop", "Go by number, id, or display."],
     ["Move to space", "SkyLight when SIP allows it."],
+    ["Trackpad swipe", "Three-finger swipe tiles the focused window."],
   ]],
   ["Interface", [
     ["Menu bar extras", "Icons, two-line text, click menus beside Macotron."],
+    ["Sparklines", "CPU or any series as a tiny menu-bar graph."],
     ["Icon tint", "Recolor the Macotron glyph from a plugin."],
     ["System banners", "UserNotifications from a one-liner."],
     ["HUD toasts", "One-line overlay under the cursor."],
     ["HTML panels", "Small WKWebView windows for custom UI."],
     ["Liquid Glass", "Translucent Tahoe panels, regular or clear."],
+    ["HUD blur panels", "glass: translucent for a Control Center look."],
     ["Frameless panels", "No title bar. Escape closes."],
+    ["Close on blur", "Panel goes away when it loses key focus."],
+    ["Blocking dialogs", "alert, confirm, and prompt. Same as the browser."],
   ]],
   ["Screen & clipboard", [
     ["Screenshot", "Full display PNG, or drag a rectangle."],
     ["Color picker", "System magnifier eyedropper, hex plus RGB."],
     ["OCR", "Read text from a file or a screenshot."],
-    ["Spotlight search", "NSMetadataQuery from plugin code."],
+    ["QR scan", "Camera or a screen selection. First payload wins."],
+    ["QR show", "Float a generated code in a window."],
+    ["Spotlight search", "Folder and kind filters from plugin code."],
     ["Clipboard text", "Get and set the pasteboard."],
     ["Clipboard images", "Push a PNG onto the pasteboard."],
     ["Clipboard history", "Browse, paste, or drop old clips."],
     ["Snippets", "Abbreviation expansion as you type."],
+    ["Plain paste", "Command-V strips to public.utf8-plain-text."],
+    ["Markdown preview", "Render clipboard markdown in a glass panel."],
   ]],
   ["Display", [
     ["Dark mode", "Read and set system appearance."],
@@ -47,6 +63,9 @@ const CARDS = [
     ["Night vision", "Red-only gamma for dark rooms."],
     ["Extra dark", "Dim below the hardware minimum."],
     ["Invert display", "Swap white and black in the LUT."],
+    ["Night Shift", "On/off and strength from a plugin."],
+    ["True Tone", "Toggle when the private API is present."],
+    ["Grayscale", "Force the display to gray."],
     ["Display list", "Frames, scale, serial, millimeters."],
     ["Display events", "Add, remove, move, mirror, mode."],
   ]],
@@ -67,19 +86,28 @@ const CARDS = [
     ["Idle hooks", "system:idle and system:active callbacks."],
     ["Locale", "Language, region, metric vs US units."],
     ["USB", "Name, vendor, attach and detach."],
+    ["HID devices", "List, open, feature and input reports."],
+    ["Time Machine", "Backup percent in the menu bar."],
   ]],
   ["Power", [
     ["Keep awake", "IOPM assertion so the Mac stays up."],
     ["Lock screen", "Lock now from a hotkey."],
     ["Sleep", "Put the machine to sleep."],
+    ["Display sleep", "Blank the screens only."],
+    ["Screensaver", "Start the saver from a script."],
+    ["Log out / restart", "Or shut down. Same as the Apple menu."],
     ["Sleep events", "Hear system:sleep, wake, lock, unlock."],
   ]],
   ["Network", [
     ["Wi-Fi", "SSID, on/off, and interface IPs."],
     ["Bluetooth", "Radio toggle plus connected devices."],
+    ["Device batteries", "Percent on paired Bluetooth hardware."],
     ["AirDrop", "Off, Contacts Only, or Everyone."],
     ["Network bytes", "Interface counters in and out."],
+    ["Ping", "Round-trip via /sbin/ping."],
     ["HTTP", "GET/POST/PUT/DELETE from plugins."],
+    ["Bonjour", "Browse mDNS services on the LAN."],
+    ["UDP", "Send and listen on IPv4."],
   ]],
   ["Input", [
     ["Post clicks", "HID click at a Cocoa point."],
@@ -88,6 +116,8 @@ const CARDS = [
     ["Scroll", "Pixel or line scroll events."],
     ["HID tap", "Listen, and swallow events if you want."],
     ["Mouse warp", "Move the cursor. Read buttons."],
+    ["Hyper key", "Caps Lock or Fn as ⌘⇧⌃⌥ while held."],
+    ["Gestures", "Swipe, magnify, and rotate from a tap."],
   ]],
   ["Apps", [
     ["Launch apps", "Open by bundle ID via Launch Services."],
@@ -99,25 +129,42 @@ const CARDS = [
     ["Open in browser", "Pick Safari, a profile, or another app."],
     ["URL schemes", "Register macotron:// handlers."],
     ["Shortcuts.app", "List and run user shortcuts."],
+    ["Dock badges", "Unread counts from Dock tiles."],
+    ["Empty Trash", "From the Eject menu, Finder-style."],
   ]],
   ["Audio & media", [
     ["Audio devices", "List inputs and outputs."],
     ["Default output", "Cycle speakers or a USB DAC."],
     ["Volume", "0 to 1 on the system or a device."],
     ["Mute", "Toggle mute without touching volume."],
+    ["Mic mute", "Mute the input from the menu bar."],
+    ["Record", "Capture the microphone to a file."],
     ["Now Playing", "Title, artist, artwork, play/pause, skip."],
+    ["Headphone pause", "Pause when the output device unplugs."],
   ]],
-  ["Personal data", [
+  ["Home & people", [
     ["Calendar", "Upcoming events for the next N hours."],
     ["Meetings", "Next event in the menu bar."],
+    ["Meeting overlay", "Fullscreen join card 60s before, with QR."],
+    ["Reminders", "List, add, and complete from a plugin."],
     ["Notes", "List Apple Notes and open one."],
     ["Contacts", "Search names, emails, phones."],
+    ["HomeKit", "Homes, accessories, on/off and values."],
+    ["World clock", "A few cities in the menu bar."],
+  ]],
+  ["Devices", [
+    ["Camera list", "Built-in and USB cameras."],
+    ["Camera preview", "Live panel, then a JPEG snapshot."],
+    ["Apple TV", "Browse the LAN and send remote keys."],
+    ["Share sheet", "Text, files, or a URL."],
+    ["AirDrop", "Push paths through sharingd."],
   ]],
   ["Files & shell", [
     ["Read files", "Text or base64 bytes. ~ expands."],
     ["Write files", "Overwrite a path from a plugin."],
     ["Rename", "Atomic rename; fails if the dest exists."],
     ["Watch files", "FSEvents callback on change."],
+    ["Spotlight kind", "folder and kind on mdfind-style search."],
     ["Shell", "Allowlisted Apple tools with a prompt."],
     ["Keychain", "Secrets that never hit settings.json."],
   ]],
@@ -127,16 +174,24 @@ const CARDS = [
     ["Gemini", "Google models from a plugin."],
     ["OpenAI", "Same chat/stream shape."],
     ["Token stream", "Push chunks into a panel as they arrive."],
+    ["Translate", "Selected text through the on-device model."],
+  ]],
+  ["Accessibility", [
+    ["Focused element", "Role, title, value, and frame."],
+    ["Selected text", "Whatever the focused field has highlighted."],
+    ["AX tree", "Children, parent, find, press, setValue."],
   ]],
   ["Runtime", [
     ["Hot reload", "Save a .js file. The host reloads it."],
     ["QuickJS", "Embedded engine, bytecode cache."],
     ["ES modules", "import/export with a custom loader."],
     ["localStorage", "JSON store in the workdir."],
+    ["every / at", "Interval or wall-clock jobs. Reload cancels them."],
     ["Git workdir", "Optional git init. Agents commit."],
     ["Stock Mac", "No Homebrew, npm, or extra binaries."],
     ["Settings UI", "Per-plugin page, shortcuts, checks."],
     ["Plugin options", "Text, toggles, dropdowns, files, keys."],
+    ["Placeholders", "Live hints such as the current locale."],
     ["Password options", "Keychain-backed fields in Settings."],
     ["Plugin checks", "Orange warning when something is blocked."],
     ["First-run wizard", "Pick a folder. Seed README once."],
@@ -144,45 +199,111 @@ const CARDS = [
     ["Community plugins", "GitHub topic macotron-plugin."],
     ["Direct download", "No App Store. Optional Homebrew cask."],
   ]],
+  ["Featured plugins", [
+    ["Calculator", "Evaluate an expression as you type."],
+    ["Clipboard History", "Search recent clips from the launcher."],
+    ["File Search", "Spotlight results, then copy a path."],
+    ["Lock Screen", "Lock this Mac from the launcher."],
+    ["Meetings", "Next calendar event in the menu bar."],
+    ["Notes", "Search Apple Notes from the launcher."],
+    ["Snippets", "Text expansions from the launcher."],
+    ["Weather", "Current weather in the menu bar."],
+    ["Window Grid", "Drag a grid to place the focused window."],
+    ["Windows", "Tile with the keyboard or snap by dragging."],
+  ]],
   ["Built-in plugins", [
-    ["Weather menu", "wttr.in in the menu bar."],
-    ["Pomodoro", "Timer plus a status item."],
-    ["Calculator", "A tiny glass panel."],
-    ["Regex workbench", "Test a pattern against a haystack."],
-    ["File search UI", "Spotlight results in a frameless panel."],
-    ["Disk usage", "df/du in a readable panel."],
-    ["Dev utils", "UUID, timestamp, Base64, JWT peek."],
-    ["Lorem ipsum", "Generate placeholder text to the clipboard."],
-    ["ISO date", "Stamp the clipboard with now()."],
-    ["Batch rename", "Prefix Downloads with YYYY-MM-DD."],
+    ["Apple TV", "Remote for Apple TVs on the LAN."],
+    ["Bluetooth", "Paired device batteries in the menu bar."],
+    ["Contacts", "Search contacts from the launcher."],
+    ["HomeKit", "Home accessories in the menu bar."],
+    ["Hyper Key", "Hold Caps Lock as Hyper (⌘⇧⌃⌥)."],
+    ["Mic Mute", "Mute the input from the menu bar."],
+    ["Network Path", "Throughput and ping in the menu bar."],
+    ["QR Code", "Scan from the screen or camera, or show one."],
+    ["Record", "Microphone capture and camera preview."],
+    ["Reminders", "Next reminder in the menu bar."],
+    ["Share", "Share sheet and AirDrop from a command."],
+    ["Time Machine", "Backup progress in the menu bar."],
+    ["Translate", "Selected text through the on-device model."],
+    ["Web Search", "Search the web or look up a word."],
+    ["World Clock", "Times in the menu bar for a few cities."],
+    ["Gestures", "Three-finger swipe tiles the focused window."],
+    ["Layouts", "Save and restore the Work window layout."],
+    ["Meeting Overlay", "Fullscreen join card with a QR."],
+    ["Plain Paste", "Command-V pastes plain text only."],
+    ["Window Switcher", "Hold Option and press Tab."],
+  ]],
+  ["More plugins", [
+    ["AI Chat", "On-device model, Claude, or Gemini."],
+    ["Appearance", "Toggle system light and dark mode."],
+    ["Audio", "Cycle the default output device."],
+    ["Batch Rename", "Prefix today's Downloads with the date."],
+    ["Battery", "Charge level and time remaining."],
+    ["Brightness", "Dim or brighten from the keyboard."],
+    ["Browser Picker", "Unknown hosts show a picker."],
+    ["Calendar", "Upcoming events."],
+    ["Clipboard Images", "Count and re-paste image clips."],
+    ["Color Picker", "System magnifier, hex plus RGB."],
+    ["CPU Graph", "Usage sparkline in the menu bar."],
+    ["Date Stamp", "Copy the current ISO-8601 timestamp."],
+    ["Dev Utils", "UUID, hashes, Base64, JWT peek."],
+    ["Eject", "Eject volumes, or empty the Trash."],
+    ["Fan", "Hold a fan-speed floor from the menu bar."],
+    ["Frontmost App", "Track the last app that became active."],
+    ["Headphone Pause", "Pause media when headphones unplug."],
     ["HEIC to JPEG", "sips conversion on a stock Mac."],
-    ["Screenshot rename", "OCR the latest Desktop capture."],
-    ["Present mode", "Hide desktop clutter for a talk."],
-    ["Security checklist", "FileVault, firewall, SIP probes."],
-    ["Clipboard images UI", "Browse image clips and paste."],
+    ["HID", "List HID devices attached to this Mac."],
+    ["Icon Rainbow", "Cycle the menu bar glyph."],
+    ["Idle", "Notify when the Mac goes idle or wakes."],
+    ["Lorem Ipsum", "Generate placeholder text."],
+    ["Markdown", "Preview clipboard markdown."],
+    ["Now Playing", "Album art and track info."],
+    ["OCR", "Select a screen area and copy the text."],
+    ["Pomodoro", "A 25-minute focus timer."],
+    ["Present Mode", "Hide desktop icons for a talk."],
+    ["Profiles", "Light mode at home, dark mode at work."],
+    ["Regex Workbench", "Test a pattern against a haystack."],
+    ["Safari", "Open a URL in Safari."],
+    ["Screen Effects", "Night vision, extra dark, Night Shift."],
+    ["Screen Summary", "Summarize a selection with Claude."],
+    ["Screenshot Rename", "OCR the latest Desktop capture."],
+    ["Security Checklist", "FileVault, firewall, SIP."],
+    ["Shortcuts", "Run Shortcuts.app from the launcher."],
+    ["Spaces", "Jump to the next Mission Control desktop."],
+    ["Stay Awake", "Prevent sleep from the menu bar."],
+    ["Storage", "Folder sizes in your home folder."],
+    ["System Metrics", "CPU and GPU in the menu bar."],
+    ["System Settings", "Search Settings panes from the launcher."],
+    ["URL Router", "Open matching links in Safari."],
+    ["USB", "Toast when a device is plugged in."],
+    ["Wi-Fi", "Toggle Wi-Fi, Bluetooth, and AirDrop."],
   ]],
 ];
 
 const APIS = [
   ["macotron.window", [
     "List, focus, minimize, close, fullscreen",
-    "move / moveToFraction across displays",
+    "move / moveToFraction / previewFraction",
+    "restore saved frames",
     "Drag-to-edge snap maps",
     "window:created, window:focused",
   ]],
   ["macotron.keyboard", [
     "Global hotkeys with Settings override",
     "Modifier flags (cmd, opt, fn, ...)",
+    "setHyperKey: caps or fn",
   ]],
   ["macotron.event / mouse", [
     "Post click, key, unicode, scroll",
     "HID tap; return false to swallow",
+    "Swipe, magnify, rotate",
     "Cursor location, warp, buttons",
   ]],
   ["macotron.display", [
     "List frames, scale, serial, mm",
     "Brightness and XDR",
     "Gamma LUT, restore ColorSync",
+    "Night Shift, True Tone, grayscale",
     "display:changed flags",
   ]],
   ["macotron.system", [
@@ -193,19 +314,25 @@ const APIS = [
   ]],
   ["macotron.power", [
     "Prevent / allow sleep",
-    "Lock and sleep now",
+    "Lock, sleep, display sleep, screensaver",
+    "Log out, restart, shutdown",
     "system:sleep, wake, lock, unlock",
   ]],
   ["macotron.audio", [
     "Devices, default in/out",
-    "Volume and mute",
+    "Volume and mute, including the mic",
+    "record / stopRecord",
     "audio:changed",
   ]],
   ["macotron.network", [
     "Wi-Fi SSID and radio",
-    "Bluetooth devices",
+    "Bluetooth devices and batteries",
     "AirDrop mode, interface IPs",
+    "counters and ping",
   ]],
+  ["macotron.bonjour", ["Browse mDNS; timeout in seconds"]],
+  ["macotron.udp", ["send, listen, unlisten; udp:message"]],
+  ["macotron.appletv", ["list on the LAN; send remote keys"]],
   ["macotron.app", [
     "List, launch, switch, hide, quit",
     "Choose an AX menu path",
@@ -221,9 +348,15 @@ const APIS = [
     "System color picker",
   ]],
   ["macotron.ocr", ["Recognize text from a path or image"]],
+  ["macotron.qr", [
+    "detect from image or path",
+    "scan camera or screenshot",
+    "image / show a generated code",
+  ]],
   ["macotron.clipboard", [
     "Text, images, UTIs",
     "History, paste, remove",
+    "setPastePlain for Command-V",
   ]],
   ["macotron.snippets", ["List, set, insert, expansion on/off"]],
   ["macotron.fs", ["read, write, list, rename, watch, exists"]],
@@ -235,46 +368,86 @@ const APIS = [
   ]],
   ["macotron.panel", [
     "html or rawHtml, glass, frameless",
+    "closeOnBlur, fullscreen, qr",
     "postMessage / onMessage",
   ]],
   ["macotron.menubar", [
     "Menu rows and extra status items",
     "SF Symbols, images, two-line text",
+    "sparkline / svg",
     "setIcon / setIconColor / setTitle",
   ]],
   ["macotron.notify", ["System banners and HUD toasts"]],
   ["macotron.media", ["Now Playing snapshot, play/pause, skip"]],
   ["macotron.calendar", ["Upcoming events with times and location"]],
+  ["macotron.reminders", ["list, add, complete"]],
   ["macotron.notes", ["List and open Apple Notes"]],
   ["macotron.contacts", ["List and search"]],
-  ["macotron.spotlight", ["Metadata search: path, name, kind"]],
+  ["macotron.homekit", ["homes, accessories, set on/value"]],
+  ["macotron.dock", ["Badge counts from Dock tiles"]],
+  ["macotron.ax", ["focused, selectedText, find, press"]],
+  ["macotron.camera", ["list, preview, snapshot"]],
+  ["macotron.share", ["Share sheet and AirDrop"]],
+  ["macotron.hid", ["list, open, reports, hid:input"]],
+  ["macotron.spotlight", ["Search by query, folder, kind"]],
   ["macotron.launcher", ["Inject extra launcher rows"]],
   ["macotron.usb", ["List devices; usb:changed"]],
   ["macotron.shortcuts", ["List and run Shortcuts.app"]],
   ["macotron.url", ["Custom schemes; open in an app or profile"]],
   ["macotron.keychain", ["get, set, delete, has"]],
   ["macotron.idle", ["Seconds idle; threshold; idle/active events"]],
+  ["macotron.every / at", ["Interval or wall-clock; weekday filter"]],
+  ["alert / confirm / prompt", ["Blocking NSAlert sheets"]],
   ["macotron.settings / checks", ["Open the plugin page; status rows"]],
 ];
+
+const FEATURED = [
+  "calculator.js",
+  "clipboard-history.js",
+  "file-search.js",
+  "lock-screen.js",
+  "meetings.js",
+  "notes.js",
+  "snippets.js",
+  "weather.js",
+  "window-grid.js",
+  "windows.js",
+];
+
+const PLUGIN_FILES = [
+  "ai-chat.js", "appearance.js", "apple-tv.js", "audio.js", "batch-rename.js",
+  "battery.js", "bluetooth.js", "brightness.js", "browser-picker.js",
+  "browser-profiles.js", "calculator.js", "calendar.js", "clipboard-history.js",
+  "clipboard-image.js", "color-picker.js", "contacts.js", "cpu-graph.js",
+  "datetime.js", "devutils.js", "disk-usage.js", "eject.js", "fan.js",
+  "file-search.js", "focus-idle.js", "gestures.js", "headphone-pause.js",
+  "heic-to-jpeg.js", "hid.js", "homekit.js", "hyper.js", "icon-rainbow.js",
+  "idle.js", "layouts.js", "lock-screen.js", "lorem.js", "markdown.js",
+  "meeting-overlay.js", "meetings.js", "mic-mute.js", "network-path.js",
+  "notes.js", "now-playing.js", "ocr.js", "plain-paste.js", "pomodoro.js",
+  "power.js", "present-mode.js", "profiles.js", "qr.js", "record.js",
+  "regex.js", "reminders.js", "screen-ai-summary.js", "screen-effects.js",
+  "screenshot-rename.js", "security-checklist.js", "share.js", "shortcuts.js",
+  "snippets.js", "spaces.js", "system-metrics.js", "system-settings.js",
+  "time-machine.js", "translate.js", "url-router.js", "usb.js", "weather.js",
+  "web-search.js", "wifi.js", "window-grid.js", "window-switcher.js",
+  "windows.js", "world-clock.js",
+];
+
+function pluginEntry(name, group) {
+  return {
+    id: name,
+    path: "workdir/plugins/" + name,
+    label: name,
+    group,
+  };
+}
 
 const FILES = [
   { id: "AGENTS.md", path: "workdir/AGENTS.md", label: "AGENTS.md", group: "root" },
   { id: "README.md", path: "workdir/README.md", label: "README.md", group: "root" },
-  { id: "windows.js", path: "workdir/plugins/windows.js", label: "windows.js", group: "plugins" },
-  { id: "ai-chat.js", path: "workdir/plugins/ai-chat.js", label: "ai-chat.js", group: "plugins" },
-  { id: "weather.js", path: "workdir/plugins/weather.js", label: "weather.js", group: "plugins" },
-  { id: "battery.js", path: "workdir/plugins/battery.js", label: "battery.js", group: "plugins" },
-  { id: "fan.js", path: "workdir/plugins/fan.js", label: "fan.js", group: "plugins" },
-  { id: "now-playing.js", path: "workdir/plugins/now-playing.js", label: "now-playing.js", group: "plugins" },
-  { id: "meetings.js", path: "workdir/plugins/meetings.js", label: "meetings.js", group: "plugins" },
-  { id: "screen-ai-summary.js", path: "workdir/plugins/screen-ai-summary.js", label: "screen-ai-summary.js", group: "plugins" },
-  { id: "ocr.js", path: "workdir/plugins/ocr.js", label: "ocr.js", group: "plugins" },
-  { id: "file-search.js", path: "workdir/plugins/file-search.js", label: "file-search.js", group: "plugins" },
-  { id: "snippets.js", path: "workdir/plugins/snippets.js", label: "snippets.js", group: "plugins" },
-  { id: "calculator.js", path: "workdir/plugins/calculator.js", label: "calculator.js", group: "plugins" },
-  { id: "screen-effects.js", path: "workdir/plugins/screen-effects.js", label: "screen-effects.js", group: "plugins" },
-  { id: "pomodoro.js", path: "workdir/plugins/pomodoro.js", label: "pomodoro.js", group: "plugins" },
-  { id: "clipboard-history.js", path: "workdir/plugins/clipboard-history.js", label: "clipboard-history.js", group: "plugins" },
+  ...FEATURED.map((name) => pluginEntry(name, "featured")),
+  ...PLUGIN_FILES.filter((name) => !FEATURED.includes(name)).map((name) => pluginEntry(name, "plugins")),
 ];
 
 const cache = new Map();
@@ -312,6 +485,10 @@ function colorJS(chunk) {
     .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="tok-num">$1</span>');
 }
 
+function cardHTML([t, d]) {
+  return `<article class="card"><b>${esc(t)}</b><span>${esc(d)}</span></article>`;
+}
+
 function renderCards(query) {
   const q = query.trim().toLowerCase();
   const match = ([t, d]) => !q || t.toLowerCase().includes(q) || d.toLowerCase().includes(q);
@@ -326,7 +503,7 @@ function renderCards(query) {
       el.className = "group";
       el.innerHTML =
         `<h3>${esc(group)}</h3><div class="group-items">` +
-        items.map(([t, d]) => `<article class="card"><b>${esc(t)}</b><span>${esc(d)}</span></article>`).join("") +
+        items.map(cardHTML).join("") +
         `</div>`;
       return el;
     })
@@ -347,24 +524,27 @@ function renderApis() {
 function renderSidebar(current) {
   const nav = document.getElementById("sidebar");
   nav.replaceChildren();
-  const addLabel = (text) => {
+  const addLabel = (text, key) => {
     const p = document.createElement("p");
     p.className = "side-label";
     p.textContent = text;
+    if (key) p.dataset[key] = "1";
     nav.append(p);
   };
   addLabel("Folder");
   for (const f of FILES) {
+    if (f.group === "featured" && !nav.querySelector("[data-featured]")) {
+      addLabel("Featured", "featured");
+    }
     if (f.group === "plugins" && !nav.querySelector("[data-plugins]")) {
-      addLabel("plugins");
-      nav.lastElementChild.dataset.plugins = "1";
+      addLabel("plugins", "plugins");
     }
     const b = document.createElement("button");
     b.type = "button";
     b.className = "side-btn";
     b.dataset.kind = f.label.endsWith(".js") ? "js" : "md";
     b.textContent = f.label;
-    b.setAttribute("aria-current", f.id === current ? "true" : "false");
+    if (f.id === current) b.setAttribute("aria-current", "true");
     b.addEventListener("click", () => openFile(f.id));
     nav.append(b);
   }
@@ -376,6 +556,7 @@ async function openFile(id) {
   renderSidebar(id);
   document.getElementById("finder-title").textContent = file.label;
   const code = document.querySelector("#code code");
+  code.className = file.label.endsWith(".js") ? "language-javascript" : "language-markdown";
   if (!cache.has(id)) {
     code.textContent = "Loading...";
     const res = await fetch(file.path);
@@ -397,15 +578,19 @@ function applyTheme(mode) {
   });
 }
 
+function refresh() {
+  renderCards(document.getElementById("q").value);
+}
+
 function boot() {
   applyTheme(currentTheme());
   document.querySelector(".theme").addEventListener("click", (e) => {
     const btn = e.target.closest("[data-theme-set]");
     if (btn) applyTheme(btn.dataset.themeSet);
   });
-  renderCards("");
+  document.getElementById("q").addEventListener("input", refresh);
+  refresh();
   renderApis();
-  document.getElementById("q").addEventListener("input", (e) => renderCards(e.target.value));
   openFile("windows.js");
 }
 

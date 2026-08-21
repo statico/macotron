@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Macotron</title>
   <meta name="description" content="Native macOS host for JavaScript plugins. Plugins are .js files in a folder. Macotron loads them.">
+  <meta property="og:title" content="Macotron does everything.">
+  <meta property="og:description" content="Native macOS host for JavaScript plugins. Plugins are .js files in a folder. Macotron loads them.">
   <link rel="canonical" href="https://macotron.statico.io/">
+  <link rel="alternate" type="text/markdown" href="/index.md" title="Markdown">
   <link rel="icon" href="icon.png">
   <link rel="apple-touch-icon" href="icon.png">
   <script>
@@ -15,6 +18,28 @@
     })();
   </script>
   <link rel="stylesheet" href="site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Macotron",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "macOS",
+    "url": "https://macotron.statico.io/",
+    "description": "Native macOS host for JavaScript plugins. Plugins are .js files in a folder. Macotron loads them.",
+    "dateModified": "2026-08-21",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" }
+    ]
+  }
+  </script>
 </head>
 <body>
   <header class="top">
@@ -42,11 +67,11 @@
     <section class="hero">
       <div class="hero-copy">
         <img class="hero-icon" src="icon.png" width="112" height="112" alt="">
-        <h1>It does everything.</h1>
+        <h1>Macotron does everything.</h1>
         <p class="byline">
-          A scriptable macOS host. Tile windows, bind hotkeys, drive the menu bar,
-          read sensors, capture the screen, talk to models — from small JavaScript
-          files that reload when you save them.
+          Tile windows, bind hotkeys, drive the menu bar, read sensors, capture
+          the screen, talk to models. From small JavaScript files that reload
+          when you save them.
         </p>
         <div class="cta">
           <a class="btn" href="https://github.com/statico/macotron/releases/latest">Download for macOS</a>
@@ -55,7 +80,7 @@
         <p class="fineprint">Free and open source. Built with Swift and QuickJS.</p>
       </div>
       <figure class="hero-code">
-        <pre><code><span class="tok-cmt">// ~/Macotron/plugins/tile.js</span>
+        <pre><code class="language-javascript"><span class="tok-cmt">// ~/Macotron/plugins/tile.js</span>
 <span class="tok-fn">macotron</span>.<span class="tok-fn">keyboard</span>.on(<span class="tok-str">"Tile Left"</span>, <span class="tok-str">"ctrl+opt+left"</span>, () =&gt; {
   <span class="tok-kw">const</span> win = <span class="tok-fn">macotron</span>.window.focused();
   <span class="tok-fn">macotron</span>.window.moveToFraction(win.id, {
@@ -81,9 +106,10 @@
       <div class="source-copy">
         <h2>Plugins</h2>
         <p>
-          First launch asks for a directory. Scripts go in <code>plugins/</code>, and
-          Macotron writes an <code>AGENTS.md</code> next to them so a coding agent
-          already knows the API.
+          The catalog ships 73 built-in plugins. First launch copies the ones you
+          pick into <code>plugins/</code>. Macotron writes an <code>AGENTS.md</code>
+          next to them so a coding agent already knows the API. Open a file in
+          the finder to read the script this site ships.
         </p>
       </div>
       <div class="finder" id="finder" role="region" aria-label="Built-in plugins folder">
@@ -94,7 +120,7 @@
         <div class="finder-body">
           <nav class="sidebar" id="sidebar"></nav>
           <div class="pane">
-            <pre class="code" id="code"><code></code></pre>
+            <pre class="code" id="code"><code class="language-javascript"></code></pre>
           </div>
         </div>
       </div>
@@ -103,7 +129,7 @@
     <section class="api" id="api">
       <div class="api-head">
         <h2>Host API</h2>
-        <p class="lede">Everything hangs off <code>macotron.*</code>. Apple-shipped tools only.</p>
+        <p class="lede">Everything hangs off <code>macotron.*</code>. Apple-shipped tools only. Plugins call these namespaces to tile windows, read sensors, and talk to models.</p>
       </div>
       <div class="api-grid" id="apis"></div>
     </section>
@@ -111,7 +137,7 @@
 
   <footer>
     <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
-    <p>macotron.statico.io</p>
+    <p><a href="/glossary.html">Glossary</a></p>
   </footer>
   <script src="site.js"></script>
 </body>
