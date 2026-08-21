@@ -4,7 +4,7 @@ Date: 2026-08-20
 
 ## Goal
 
-Users install bundled stock and demo plugins from a catalog (first launch, before permissions, and later from Settings). Plugins on disk only execute after the user has approved those exact bytes, unless Hot Reload is on.
+Users install bundled built-in plugins from a catalog (first launch, before permissions, and later from Settings). Plugins on disk only execute after the user has approved those exact bytes, unless Hot Reload is on.
 
 ## Threat model
 
@@ -20,11 +20,11 @@ Another process can rewrite `plugins/*.js`. `settings.json` is not a trust store
 
 ## Catalog
 
-`Resources/Catalog/catalog.json` plus bundled `Examples/plugins/*.js`. Entries: filename, kind (`stock`|`demo`), highlighted, category. Parse title, description, permissions from source without eval.
+`Resources/Catalog/catalog.json` plus bundled `Examples/plugins/*.js`. Entries: filename, highlighted, category. Parse title, description, permissions from source without eval.
 
 Overwrite: warn if destination exists; stronger copy if SHA ≠ bundled catalog SHA.
 
-Highlighted rows first, then stock, then demos. Install is per plugin.
+Highlighted rows first, then the rest by title. Install is per plugin.
 
 Wizard: Welcome → Folder → Choose Plugins → Permissions → Ready. Catalog is skippable. Wizard window is tall enough to scroll the list.
 

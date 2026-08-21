@@ -1,6 +1,9 @@
 macotron.plugin({
     title: "Screen Effects",
     description: "Control color, gamma, and system display effects.",
+    help: "This plugin replaces the old Night Vision, Gamma Black, and Display Modes plugins. "
+        + "Delete demo-night-vision.js, demo-gamma-black.js, and demo-display-modes.js from your "
+        + "plugins folder to remove the duplicate commands.",
 });
 
 const DIM = 0.35;

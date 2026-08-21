@@ -111,7 +111,7 @@ public final class PluginWorkspace {
         if !fm.fileExists(atPath: settingsFile.path(percentEncoded: false)) {
             try writeSettings(Self.defaultSettings)
         }
-        migratePluginNames(PluginCatalog.legacyRenames())
+        migratePluginNames(PluginCatalog.legacyRenames)
     }
 
     public func migratePluginNames(
@@ -126,6 +126,17 @@ public final class PluginWorkspace {
             let dest = pluginsDir.appending(path: newName)
             guard fm.fileExists(atPath: src.path(percentEncoded: false)) else { continue }
             guard !fm.fileExists(atPath: dest.path(percentEncoded: false)) else { continue }
+            if let conflict = stateConflict(
+                in: settings,
+                oldName: oldName,
+                newName: newName,
+                hashStore: hashStore
+            ) {
+                logger.error(
+                    "Kept \(oldName) because \(newName) already has \(conflict) state"
+                )
+                continue
+            }
             do {
                 try fm.moveItem(at: src, to: dest)
             } catch {
@@ -157,6 +168,56 @@ public final class PluginWorkspace {
 
             PluginTrust.migrateHash(from: oldName, to: newName, store: hashStore)
         }
+    }
+
+    /// The stored id a plugin-scoped id becomes after the rename, or nil when the id
+    /// belongs to another plugin.
+    private static func migratedID(_ id: String, oldName: String, newName: String) -> String? {
+        if id == oldName { return newName }
+        if id.hasPrefix(oldName + "/") { return newName + String(id.dropFirst(oldName.count)) }
+        return nil
+    }
+
+    /// Name of the first state category that already holds the destination identity.
+    /// Migrating would then have to pick a winner, so the caller keeps the old file.
+    private func stateConflict(
+        in settings: [String: Any],
+        oldName: String,
+        newName: String,
+        hashStore: PluginHashStore
+    ) -> String? {
+        if let table = settings["pluginSettings"] as? [String: [String: Any]],
+           table[oldName] != nil, table[newName] != nil {
+            return "plugin settings"
+        }
+        if let disabled = settings["disabledPlugins"] as? [String],
+           disabled.contains(oldName), disabled.contains(newName) {
+            return "disabled plugin"
+        }
+        for key in ["commandShortcuts", "keyboardShortcuts"] {
+            guard let table = settings[key] as? [String: String] else { continue }
+            let collides = table.keys.contains { id in
+                guard let migrated = Self.migratedID(id, oldName: oldName, newName: newName) else {
+                    return false
+                }
+                return table[migrated] != nil
+            }
+            if collides { return key }
+        }
+        if let favorites = settings["launcherFavorites"] as? [String] {
+            let ids = Set(favorites)
+            let collides = favorites.contains { id in
+                guard let migrated = Self.migratedID(id, oldName: oldName, newName: newName) else {
+                    return false
+                }
+                return ids.contains(migrated)
+            }
+            if collides { return "launcher favorite" }
+        }
+        if hashStore.read(filename: oldName) != nil, hashStore.read(filename: newName) != nil {
+            return "approved hash"
+        }
+        return nil
     }
 
     private func applySettingsMigration(
@@ -195,16 +256,10 @@ public final class PluginWorkspace {
         newName: String
     ) -> Bool {
         guard var disabled = settings["disabledPlugins"] as? [String] else { return false }
-        var changed = false
-        disabled = disabled.map { name in
-            guard name == oldName else { return name }
-            changed = true
-            return newName
-        }
-        if changed {
-            settings["disabledPlugins"] = disabled
-        }
-        return changed
+        guard disabled.contains(oldName) else { return false }
+        disabled = disabled.map { $0 == oldName ? newName : $0 }
+        settings["disabledPlugins"] = disabled
+        return true
     }
 
     private func migrateShortcutTable(
@@ -213,26 +268,18 @@ public final class PluginWorkspace {
         oldName: String,
         newName: String
     ) -> Bool {
-        guard let table = settings[key] as? [String: String] else { return false }
-        let prefix = oldName + "/"
-        var changed = false
-        var migrated: [String: String] = [:]
-        migrated.reserveCapacity(table.count)
-        for (id, combo) in table {
-            if id == oldName {
-                migrated[newName] = combo
-                changed = true
-            } else if id.hasPrefix(prefix) {
-                migrated[newName + String(id.dropFirst(oldName.count))] = combo
-                changed = true
-            } else {
-                migrated[id] = combo
-            }
+        guard var table = settings[key] as? [String: String] else { return false }
+        let affected = table.keys
+            .filter { Self.migratedID($0, oldName: oldName, newName: newName) != nil }
+            .sorted()
+        guard !affected.isEmpty else { return false }
+        for id in affected {
+            guard let migrated = Self.migratedID(id, oldName: oldName, newName: newName),
+                  let combo = table.removeValue(forKey: id) else { continue }
+            table[migrated] = combo
         }
-        if changed {
-            settings[key] = migrated
-        }
-        return changed
+        settings[key] = table
+        return true
     }
 
     private func migrateFavoriteIDs(
@@ -240,24 +287,13 @@ public final class PluginWorkspace {
         oldName: String,
         newName: String
     ) -> Bool {
-        guard var favorites = settings["launcherFavorites"] as? [String] else { return false }
-        let prefix = oldName + "/"
-        var changed = false
-        favorites = favorites.map { id in
-            if id == oldName {
-                changed = true
-                return newName
-            }
-            if id.hasPrefix(prefix) {
-                changed = true
-                return newName + String(id.dropFirst(oldName.count))
-            }
-            return id
+        guard let favorites = settings["launcherFavorites"] as? [String] else { return false }
+        let migrated = favorites.map {
+            Self.migratedID($0, oldName: oldName, newName: newName) ?? $0
         }
-        if changed {
-            settings["launcherFavorites"] = favorites
-        }
-        return changed
+        guard migrated != favorites else { return false }
+        settings["launcherFavorites"] = migrated
+        return true
     }
 
     /// Real git, not the Xcode CLT stub. Workdir still works without it.
