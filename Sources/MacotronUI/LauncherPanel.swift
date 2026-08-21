@@ -74,6 +74,7 @@ public final class LauncherPanel: NSPanel {
         }
         contentView = chrome
         hasShadow = style != .glass
+        invalidateShadow()
         if isShown {
             resizeToHeight(lastHeight)
         }
@@ -103,6 +104,7 @@ public final class LauncherPanel: NSPanel {
             visual.material = .hudWindow
             visual.state = .active
             visual.blendingMode = .behindWindow
+            visual.maskImage = cornerMask(radius: cornerRadius)
             visual.wantsLayer = true
             visual.layer?.cornerRadius = cornerRadius
             visual.layer?.masksToBounds = true
@@ -113,6 +115,25 @@ public final class LauncherPanel: NSPanel {
             view.autoresizingMask = [.width, .height]
             return view
         }
+    }
+
+    /// Corner shape for behind-window vibrancy.
+    ///
+    /// The window server blurs and shadows a behind-window effect view using its
+    /// mask image; CALayer corner masking is invisible to it. Without a mask the
+    /// shadow is cast from the panel's square frame, so the transparent corners
+    /// land on unshadowed backdrop and read as bright notches over flat, light
+    /// windows. Cap insets keep the corners fixed as the panel resizes.
+    private static func cornerMask(radius: CGFloat) -> NSImage {
+        let side = radius * 2 + 1
+        let mask = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
+            NSColor.black.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
+            return true
+        }
+        mask.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
+        mask.resizingMode = .stretch
+        return mask
     }
 
     @available(macOS 26.0, *)
@@ -221,12 +242,15 @@ public final class LauncherPanel: NSPanel {
         }
     }
 
+    /// The shadow is cached from the panel's shape, so a resize leaves it drawn
+    /// around the old bounds until it is invalidated.
     public override func setFrame(_ frameRect: NSRect, display flag: Bool) {
         applyingFrame = true
         super.setFrame(frameRect, display: flag)
         applyingFrame = false
         windowFrame.size = frame.size
         pinHost()
+        invalidateShadow()
     }
 
     private func pinHost() {
