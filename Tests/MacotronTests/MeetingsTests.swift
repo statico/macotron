@@ -7,14 +7,14 @@ import Testing
 struct MeetingsTests {
     @Test("hides personal and OOO, shows the next timed event")
     func hidesFilteredTitles() throws {
-        let demoURL = URL(fileURLWithPath: #filePath)
+        let pluginURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appending(path: "Examples/plugins/meetings.js")
-        let demo = try String(contentsOf: demoURL, encoding: .utf8)
+        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
         let now = Int(Date().timeIntervalSince1970 * 1000)
-        let source = """
+        let harness = """
             var statusConfig = null;
             var macotron = {
                 plugin: () => ({ hours: 12, hide: "personal\\nOOO" }),
@@ -32,11 +32,11 @@ struct MeetingsTests {
                 command: () => {},
                 notify: { toast: () => {} }
             };
-            \(demo)
+            \(pluginSource)
             JSON.stringify({ title: statusConfig.title, count: statusConfig.menu.length })
             """
         let engine = Engine()
-        let (result, error) = engine.evaluate(source, filename: demoURL.path)
+        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
         #expect(error == nil)
         #expect(result?.contains("Standup") == true)
         #expect(result?.contains("Personal") != true)

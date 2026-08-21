@@ -7,13 +7,13 @@ import Testing
 struct FanTests {
     @Test("full blast toggle toasts on and off")
     func toggleToasts() throws {
-        let demoURL = URL(fileURLWithPath: #filePath)
+        let pluginURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appending(path: "Examples/plugins/fan.js")
-        let demo = try String(contentsOf: demoURL, encoding: .utf8)
-        let source = """
+        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
+        let harness = """
             var statusConfig = null;
             var floor = null;
             var toasts = [];
@@ -43,13 +43,13 @@ struct FanTests {
                 command: () => {},
                 notify: { toast: (title, body) => { toasts.push({ title: title, body: body }); } }
             };
-            \(demo)
+            \(pluginSource)
             statusConfig.onClick();
             statusConfig.onClick();
             JSON.stringify(toasts)
             """
         let engine = Engine()
-        let (result, error) = engine.evaluate(source, filename: demoURL.path)
+        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
         #expect(error == nil)
         #expect(result?.contains("\"body\":\"On\"") == true)
         #expect(result?.contains("\"body\":\"Off\"") == true)

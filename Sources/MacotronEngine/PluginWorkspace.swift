@@ -415,7 +415,7 @@ public final class PluginWorkspace {
         APIs and Apple-shipped tools (`/usr/bin/open`, `/usr/bin/defaults`, `/bin/mv`).
         Do not call Homebrew, npm, pip, ffmpeg, Chrome-only binaries, or other
         third-party installs. Optional cloud AI keys are fine; they are not required
-        for the host or demo plugins to load.
+        for the host or built-in plugins to load.
 
         ## API compatibility pragma
 

@@ -42,13 +42,13 @@ On first launch, the wizard guides the user:
 
 1. **Welcome** — Macotron hosts plugins that automate macOS.
 2. **Pick directory** — Choose the plugins workdir. Optionally open it in Finder or Cursor.
-3. **Choose plugins** — Install bundled stock and demo plugins. You can skip this.
+3. **Choose plugins** — Install built-in plugins. You can skip this.
 4. **Permissions** — Grant what the installed plugins declared.
 5. **Ready** — The app seeds `README.md` once if missing. It writes `AGENTS.md` and `CLAUDE.md`.
 
 The wizard does not demand Accessibility up front. Permissions arrive when a feature needs them.
 
-The first-run catalog lists bundled stock and demo plugins after the folder step and before permissions. Featured stock plugins are highlighted. You can skip the catalog and install later from Settings → Plugins.
+The first-run catalog lists built-in plugins after the folder step and before permissions. Featured plugins are highlighted. You can skip the catalog and install later from Settings → Plugins.
 
 ## How Plugins Work
 
@@ -60,7 +60,7 @@ Plugins can call `macotron.ai` for Claude, OpenAI, Gemini, or on-device Foundati
 
 ## Marketplace
 
-The in-app catalog installs bundled stock and demo plugins. Settings also links to the GitHub topic search `topic:macotron-plugin`. Community listings are later.
+The in-app catalog installs built-in plugins. Settings also links to the GitHub topic search `topic:macotron-plugin`. Community listings are later.
 
 https://github.com/topics/macotron-plugin
 

@@ -62,8 +62,8 @@ struct WeatherTests {
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
             let pluginURL = repository.appending(path: "Examples/plugins/weather.js")
-            let demo = try String(contentsOf: pluginURL, encoding: .utf8)
-            let source = """
+            let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
+            let harness = """
                 var capturedURLs = [];
                 var statusConfig = null;
                 var rejectNextRequest = false;
@@ -98,9 +98,9 @@ struct WeatherTests {
                     command: (title, detail, handler) => { commandHandler = handler; },
                     log: () => {}
                 };
-                \(demo)
+                \(pluginSource)
                 """
-            let (_, error) = engine.evaluate(source, filename: pluginURL.path)
+            let (_, error) = engine.evaluate(harness, filename: pluginURL.path)
             if let error {
                 throw HarnessError.evaluation(error)
             }

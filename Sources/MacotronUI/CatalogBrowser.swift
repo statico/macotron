@@ -94,7 +94,7 @@ private struct CatalogInstallSheet: View {
             if let overwrite = state.overwrite {
                 Text(overwrite == .modified
                      ? "This replaces a plugin you already edited."
-                     : "This replaces the installed copy of this stock plugin.")
+                     : "This replaces the installed copy of this built-in plugin.")
                     .foregroundStyle(.orange)
                     .font(.callout)
             }

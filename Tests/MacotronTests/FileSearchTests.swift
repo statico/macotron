@@ -6,13 +6,13 @@ import Testing
 @Suite("FileSearch")
 struct FileSearchTests {
     private func eval(_ js: String) throws -> String {
-        let demoURL = URL(fileURLWithPath: #filePath)
+        let pluginURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appending(path: "Examples/plugins/file-search.js")
-        let demo = try String(contentsOf: demoURL, encoding: .utf8)
-        let source = """
+        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
+        let harness = """
             var html = "";
             var opened = null;
             var macotron = {
@@ -28,11 +28,11 @@ struct FileSearchTests {
                 shell: { run: async () => ({}) },
                 notify: { toast: () => {} }
             };
-            \(demo)
+            \(pluginSource)
             \(js)
             """
         let engine = Engine()
-        let (result, error) = engine.evaluate(source, filename: demoURL.path)
+        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
         #expect(error == nil)
         return result ?? ""
     }

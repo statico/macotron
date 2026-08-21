@@ -7,13 +7,13 @@ import Testing
 struct BatteryTests {
     @Test("click menu lists health, cycles, and settings — not a click-through")
     func menuShowsDetails() throws {
-        let demoURL = URL(fileURLWithPath: #filePath)
+        let pluginURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appending(path: "Examples/plugins/battery.js")
-        let demo = try String(contentsOf: demoURL, encoding: .utf8)
-        let source = """
+        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
+        let harness = """
             var statusConfig = null;
             var macotron = {
                 plugin: () => ({}),
@@ -37,14 +37,14 @@ struct BatteryTests {
                 command: () => {},
                 notify: { toast: () => {} }
             };
-            \(demo)
+            \(pluginSource)
             JSON.stringify({
                 onClick: typeof statusConfig.onClick,
                 menu: statusConfig.menu.map((row) => row === "-" ? "-" : row.title)
             })
             """
         let engine = Engine()
-        let (result, error) = engine.evaluate(source, filename: demoURL.path)
+        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
         #expect(error == nil)
         #expect(result?.contains("\"onClick\":\"undefined\"") == true)
         #expect(result?.contains("Maximum capacity 96%") == true)
@@ -55,13 +55,13 @@ struct BatteryTests {
 
     @Test("low power mode menu item turns it on and toasts")
     func lowPowerModeTurnsOn() throws {
-        let demoURL = URL(fileURLWithPath: #filePath)
+        let pluginURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appending(path: "Examples/plugins/battery.js")
-        let demo = try String(contentsOf: demoURL, encoding: .utf8)
-        let source = """
+        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
+        let harness = """
             var statusConfig = null;
             var setArg = null;
             var toast = null;
@@ -85,7 +85,7 @@ struct BatteryTests {
                 command: () => {},
                 notify: { toast: (title, body) => { toast = { title: title, body: body }; } }
             };
-            \(demo)
+            \(pluginSource)
             var row = statusConfig.menu.find((item) => item.title && item.title.indexOf("Low Power Mode") === 0);
             row.onClick();
             JSON.stringify({
@@ -95,7 +95,7 @@ struct BatteryTests {
             })
             """
         let engine = Engine()
-        let (result, error) = engine.evaluate(source, filename: demoURL.path)
+        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
         #expect(error == nil)
         #expect(result?.contains("\"hasClick\":true") == true)
         #expect(result?.contains("\"setArg\":true") == true)

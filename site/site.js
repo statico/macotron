@@ -144,7 +144,7 @@ const CARDS = [
     ["Community plugins", "GitHub topic macotron-plugin."],
     ["Direct download", "No App Store. Optional Homebrew cask."],
   ]],
-  ["Bundled demos", [
+  ["Built-in plugins", [
     ["Weather menu", "wttr.in in the menu bar."],
     ["Pomodoro", "Timer plus a status item."],
     ["Calculator", "A tiny glass panel."],
