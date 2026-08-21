@@ -3,15 +3,15 @@ import Testing
 @testable import MacotronEngine
 
 @MainActor
-@Suite("MeetingsDemoTests")
-struct MeetingsDemoTests {
+@Suite("Meetings")
+struct MeetingsTests {
     @Test("hides personal and OOO, shows the next timed event")
     func hidesFilteredTitles() throws {
         let demoURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/demo-meetings.js")
+            .appending(path: "Examples/plugins/meetings.js")
         let demo = try String(contentsOf: demoURL, encoding: .utf8)
         let now = Int(Date().timeIntervalSince1970 * 1000)
         let source = """

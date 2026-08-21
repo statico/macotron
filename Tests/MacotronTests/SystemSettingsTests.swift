@@ -3,14 +3,14 @@ import Testing
 @testable import MacotronEngine
 
 @MainActor
-@Suite("SystemSettingsDemo")
-struct SystemSettingsDemoTests {
+@Suite("SystemSettings")
+struct SystemSettingsTests {
     private func eval(_ extra: String) throws -> String {
         let demoURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/demo-system-settings.js")
+            .appending(path: "Examples/plugins/system-settings.js")
         let demo = try String(contentsOf: demoURL, encoding: .utf8)
         let source = """
             var provider = "";

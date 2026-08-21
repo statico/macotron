@@ -20,11 +20,11 @@ Call existing `move` / `moveToFraction` path. Add `bundleID` on `getAll()` / `fo
 Return `{ restored, missing }` counts.
 
 Tests: `Tests/MacotronTests/WindowRestoreTests.swift` for the matcher only (no live AX).
-Demo: `Examples/plugins/demo-layouts.js` — commands Save Work / Restore Work via `localStorage`.
+Demo: `Examples/plugins/layouts.js` — commands Save Work / Restore Work via `localStorage`.
 
 ## Window switcher demo only
 
-`Examples/plugins/demo-window-switcher.js` — Option-Tab via `event.tap`, panel list, `window.focus`.
+`Examples/plugins/window-switcher.js` — Option-Tab via `event.tap`, panel list, `window.focus`.
 No new host API. Optional `panel.open({ id })` if panel agent shipped it; else new UUID each show is fine.
 
 ---
@@ -34,7 +34,7 @@ No new host API. Optional `panel.open({ id })` if panel agent shipped it; else n
 `KeyCombo.parse("hyper+h")` = cmd+shift+ctrl+opt+h.
 `keyboard.setHyperKey("caps"|"fn"|null)` installs a session event tap that maps Caps Lock (or Fn) to those four modifiers while held, and swallows the caps lock lock.
 `keyboard.hyperKey()` returns the current key or `null`.
-Demo: `Examples/plugins/demo-hyper.js`.
+Demo: `Examples/plugins/hyper.js`.
 Tests: KeyCombo parse/glyphs for `hyper`.
 
 ---
@@ -45,16 +45,16 @@ Tests: KeyCombo parse/glyphs for `hyper`.
 Use `NSEvent.addGlobalMonitorForEvents` (and local) for `.swipe`, `.magnify`, `.rotate`.
 Callback payload: `{ type, fingers, direction, delta, flags }`.
 `direction` is `left|right|up|down` for swipe. `delta` is magnification or rotation.
-Demo: `Examples/plugins/demo-gestures.js` — 3-finger swipe tiles the focused window.
+Demo: `Examples/plugins/gestures.js` — 3-finger swipe tiles the focused window.
 Tests: payload builder / direction from delta.
 
 ---
 
 ## Clipboard history UI + plain paste
 
-API already has history. Rewrite `Examples/plugins/demo-clipboard-history.js` to fill `launcher.set`.
+API already has history. Rewrite `Examples/plugins/clipboard-history.js` to fill `launcher.set`.
 `clipboard.setPastePlain(on)` / `isPastePlain()` — on Command-V, rewrite pasteboard to `public.utf8-plain-text` only, then let the paste through. Install a key-down tap. Dry-run is a no-op.
-Demo: `Examples/plugins/demo-plain-paste.js`.
+Demo: `Examples/plugins/plain-paste.js`.
 Tests: extract the UTI filter / plain-text rewrite helper.
 
 ---
@@ -65,7 +65,7 @@ Tests: extract the UTI filter / plain-text rewrite helper.
 Render to a PNG in `NSTemporaryDirectory()` and pass the existing `imagePath`.
 `Sources/Modules/SparklineImage.swift` — `png(values:width:height:color:)` and `png(svg:)`.
 `NSImage(data:)` can load SVG on current macOS. Rasterize to PNG.
-Demo: `Examples/plugins/demo-cpu-graph.js`.
+Demo: `Examples/plugins/cpu-graph.js`.
 Tests: sparkline produces non-empty PNG; empty values returns nil.
 
 ---
@@ -78,7 +78,7 @@ On `macotron.display`:
 - `grayscale()` / `setGrayscale(on)`
 
 Use `dlsym` private APIs (`CBBlueLightClient`, `CGDisplayForceToGray`). If a symbol is missing, return `{ on: false, available: false }` and `set*` returns `{ ok: false, error }`.
-Never crash. Demo: `Examples/plugins/demo-display-modes.js`.
+Never crash. Demo: `Examples/plugins/screen-effects.js`.
 Tests: parse setNightShift argument (bool vs `{ strength }`).
 
 ---
@@ -90,7 +90,7 @@ Tests: parse setNightShift argument (bool vs `{ strength }`).
 If no fallback callback, show a small native picker (Safari / Chrome if present / system default) that calls `url.open`.
 Add `http`, `https`, `mailto` to `Resources/Info.plist` `CFBundleURLTypes`.
 When a URL arrives and no host rule matches, emit fallback. `url.on("https", "*", cb)` may also register as wildcard.
-Demo: `Examples/plugins/demo-browser-picker.js`.
+Demo: `Examples/plugins/browser-picker.js`.
 Tests: host match / wildcard / fallback routing (pure functions).
 
 ---
@@ -103,8 +103,8 @@ Tests: host match / wildcard / fallback routing (pure functions).
 - `fullscreen?: boolean` — frame = the screen under the cursor (`visibleFrame` is wrong; user asked stretch to the edges → use `screen.frame`)
 - `qr?: string` — append a QR `<img src="data:image/png;base64,…">` using existing `QRCodes.png`
 
-Demo: `Examples/plugins/demo-meeting-overlay.js` — 60s before a timed event, fullscreen frameless glass panel with title, countdown, Join if url, and `qr` of the join url.
-Keep `demo-meetings.js` as the menu bar plugin.
+Demo: `Examples/plugins/meeting-overlay.js` — 60s before a timed event, fullscreen frameless glass panel with title, countdown, Join if url, and `qr` of the join url.
+Keep `meetings.js` as the menu bar plugin.
 
 ---
 
@@ -144,7 +144,7 @@ No demo required. Tests: handle table + attribute mapping from mocks / string ro
 - `share.airDrop(paths)` — `NSSharingService(named: .sendViaAirDrop)`
 
 Permissions: add `microphone` to `Permission` in `Permissions.swift` and parse `"microphone"`. Info.plist `NSMicrophoneUsageDescription`.
-Demos: `demo-record.js`, `demo-share.js`.
+Demos: `record.js`, `share.js`.
 Tests: path expand, service name list non-empty on macOS, record options parse.
 
 ---

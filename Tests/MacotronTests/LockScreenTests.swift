@@ -3,14 +3,14 @@ import Testing
 @testable import MacotronEngine
 
 @MainActor
-@Suite("LockScreenDemo")
-struct LockScreenDemoTests {
+@Suite("LockScreen")
+struct LockScreenTests {
     private func eval(_ extra: String) throws -> String {
         let demoURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/demo-lock-screen.js")
+            .appending(path: "Examples/plugins/lock-screen.js")
         let demo = try String(contentsOf: demoURL, encoding: .utf8)
         let source = """
             var locked = 0;

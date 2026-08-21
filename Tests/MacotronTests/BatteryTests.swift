@@ -3,15 +3,15 @@ import Testing
 @testable import MacotronEngine
 
 @MainActor
-@Suite("BatteryDemoTests")
-struct BatteryDemoTests {
+@Suite("Battery")
+struct BatteryTests {
     @Test("click menu lists health, cycles, and settings — not a click-through")
     func menuShowsDetails() throws {
         let demoURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/demo-battery.js")
+            .appending(path: "Examples/plugins/battery.js")
         let demo = try String(contentsOf: demoURL, encoding: .utf8)
         let source = """
             var statusConfig = null;
@@ -59,7 +59,7 @@ struct BatteryDemoTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/demo-battery.js")
+            .appending(path: "Examples/plugins/battery.js")
         let demo = try String(contentsOf: demoURL, encoding: .utf8)
         let source = """
             var statusConfig = null;

@@ -3,14 +3,14 @@ import Testing
 @testable import MacotronEngine
 
 @MainActor
-@Suite("FileSearchDemoTests")
-struct FileSearchDemoTests {
+@Suite("FileSearch")
+struct FileSearchTests {
     private func eval(_ js: String) throws -> String {
         let demoURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/demo-file-search.js")
+            .appending(path: "Examples/plugins/file-search.js")
         let demo = try String(contentsOf: demoURL, encoding: .utf8)
         let source = """
             var html = "";

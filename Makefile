@@ -64,6 +64,7 @@ bundle: build ## Create ~/Applications/Macotron.app
 		--platform macosx --minimum-deployment-target 15.0 --errors --warnings >/dev/null
 	@cp Resources/banner.png "$(BUNDLE)/Contents/Resources/"
 	@mkdir -p "$(BUNDLE)/Contents/Resources/Catalog"
+	@/bin/rm -f "$(BUNDLE)/Contents/Resources/Catalog/"*.js
 	@cp Resources/Catalog/catalog.json "$(BUNDLE)/Contents/Resources/Catalog/"
 	@cp Examples/plugins/*.js "$(BUNDLE)/Contents/Resources/Catalog/"
 	@if [ -n "$(SIGN_IDENTITY)" ]; then \

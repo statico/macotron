@@ -3,8 +3,8 @@ import Testing
 @testable import MacotronEngine
 
 @MainActor
-@Suite("WeatherDemoTests")
-struct WeatherDemoTests {
+@Suite("Weather")
+struct WeatherTests {
     private static let fixture = #"""
     {
       "current_condition": [{
@@ -61,13 +61,13 @@ struct WeatherDemoTests {
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
                 .deletingLastPathComponent()
-            let demoURL = repository.appending(path: "Examples/plugins/demo-weather.js")
-            let demo = try String(contentsOf: demoURL, encoding: .utf8)
+            let pluginURL = repository.appending(path: "Examples/plugins/weather.js")
+            let demo = try String(contentsOf: pluginURL, encoding: .utf8)
             let source = """
                 var capturedURLs = [];
                 var statusConfig = null;
                 var rejectNextRequest = false;
-                var responseData = \(WeatherDemoTests.fixture);
+                var responseData = \(WeatherTests.fixture);
                 if (!\(localObservation)) delete responseData.current_condition[0].localObsDateTime;
                 var responseBody = JSON.stringify(responseData);
                 var fallbackTime = "20:30:00-0700";
@@ -100,7 +100,7 @@ struct WeatherDemoTests {
                 };
                 \(demo)
                 """
-            let (_, error) = engine.evaluate(source, filename: demoURL.path)
+            let (_, error) = engine.evaluate(source, filename: pluginURL.path)
             if let error {
                 throw HarnessError.evaluation(error)
             }
