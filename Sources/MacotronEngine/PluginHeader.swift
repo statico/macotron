@@ -14,7 +14,7 @@ public enum PluginHeader {
         }
     }
 
-    /// First 8 KB is enough: demos declare `macotron.plugin({ title })` at the top.
+    /// First 8 KB is enough: plugins declare `macotron.plugin({ title })` at the top.
     private static let prefixBytes = 8192
 
     public static func parse(_ source: String) -> Info {

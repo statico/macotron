@@ -68,7 +68,7 @@ No in-app coding agent. The plugins on disk are the source of truth.
 - One plugins folder, optionally a git repo
 - Stock Mac only — no Homebrew, npm, or extra apps
 
-Try the demos in [Examples/plugins](Examples/plugins/README.md). Community plugins: [github.com/topics/macotron-plugin](https://github.com/topics/macotron-plugin).
+Try the built-in plugins in [Examples/plugins](Examples/plugins/README.md). Community plugins: [github.com/topics/macotron-plugin](https://github.com/topics/macotron-plugin).
 
 ## How it works
 
@@ -132,7 +132,7 @@ make cleanprefs   # wipe prefs, wizard on next launch
 - [AI](docs/05-ai-integration.md)
 - [Security](docs/06-security.md)
 - [Build](docs/07-build-system.md)
-- [Demo plugins](Examples/plugins/README.md)
+- [Built-in plugins](Examples/plugins/README.md)
 - [Phases](docs/09-phases.md)
 - [Plugins workdir](docs/10-plugins-workdir.md)
 - [Host design](docs/superpowers/specs/2026-08-17-host-shell-design.md)

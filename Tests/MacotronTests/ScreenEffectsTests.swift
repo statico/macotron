@@ -14,9 +14,9 @@ struct ScreenEffectsTests {
     }
 
     private func eval(_ extra: String) throws -> String {
-        let demoURL = pluginURL()
-        let demo = try String(contentsOf: demoURL, encoding: .utf8)
-        let source = """
+        let pluginURL = pluginURL()
+        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
+        let harness = """
             var calls = [];
             var commands = {};
             var macotron = {
@@ -34,11 +34,11 @@ struct ScreenEffectsTests {
                 command: (name, desc, fn) => { commands[name] = fn; },
                 notify: { toast: () => {} }
             };
-            \(demo)
+            \(pluginSource)
             \(extra)
             """
         let engine = Engine()
-        let (result, error) = engine.evaluate(source, filename: demoURL.path)
+        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
         #expect(error == nil)
         return result ?? ""
     }

@@ -6,13 +6,13 @@ import Testing
 @Suite("LockScreen")
 struct LockScreenTests {
     private func eval(_ extra: String) throws -> String {
-        let demoURL = URL(fileURLWithPath: #filePath)
+        let pluginURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appending(path: "Examples/plugins/lock-screen.js")
-        let demo = try String(contentsOf: demoURL, encoding: .utf8)
-        let source = """
+        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
+        let harness = """
             var locked = 0;
             var commands = {};
             var macotron = {
@@ -20,11 +20,11 @@ struct LockScreenTests {
                 command: (name, desc, fn) => { commands[name] = fn; },
                 power: { lock: () => { locked++; return true; } }
             };
-            \(demo)
+            \(pluginSource)
             \(extra)
             """
         let engine = Engine()
-        let (result, error) = engine.evaluate(source, filename: demoURL.path)
+        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
         #expect(error == nil)
         return result ?? ""
     }
