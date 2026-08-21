@@ -4,8 +4,12 @@ macotron.plugin({
 });
 
 macotron.on("usb:changed", (info) => {
+  const name = info.name || "Device";
   const verb = info.action === "remove" ? "Removed" : "Attached";
-  macotron.notify.toast("USB " + verb, info.name || "Device");
+  macotron.notify.toast("USB " + verb, name);
+  if (info.action !== "remove") {
+    macotron.shell.run("/usr/bin/say", ["Device", name, "connected"]);
+  }
 });
 
 macotron.command("USB Devices", "List attached USB devices", () => {
