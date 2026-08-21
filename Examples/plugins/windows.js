@@ -1,6 +1,6 @@
 const opts = macotron.plugin({
     title: "Windows",
-    description: "Tile with the keyboard or snap by dragging. Hold Shift for thirds; the top edge is the middle third.",
+    description: "Tile the focused window with the keyboard, snap it by dragging to an edge, or switch windows by name.",
     permissions: ["accessibility"],
     options: {
         threshold: { type: "number", label: "Snap edge (px)", default: 20 },

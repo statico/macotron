@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "Reminders",
-    description: "Next reminder in the menu bar.",
+    description: "Show your next reminder in the menu bar.",
 });
 
 function clip(s, n) {

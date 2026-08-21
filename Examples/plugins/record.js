@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Record",
-  description: "Record the microphone or preview the camera.",
+  description: "Record the microphone, or preview and snapshot the camera.",
   permissions: ["microphone", "camera"],
 });
 

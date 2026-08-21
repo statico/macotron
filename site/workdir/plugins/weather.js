@@ -3,7 +3,7 @@
 
 const opts = macotron.plugin({
     title: "Weather",
-    description: "Current weather in the menu bar.",
+    description: "Show the current weather in the menu bar.",
     options: {
         location: {
             type: "string",

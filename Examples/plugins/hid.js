@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "HID",
-  description: "List HID devices attached to this Mac.",
+  description: "List keyboards, mice, and other input devices on this Mac.",
 });
 
 macotron.command("HID Devices", "List attached HID devices", () => {

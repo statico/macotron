@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Snippets",
-  description: "Text expansions you can insert from the launcher.",
+  description: "Expand short abbreviations into longer text from the launcher.",
 });
 
 macotron.snippets.set("omw", "On my way!");

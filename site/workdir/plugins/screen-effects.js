@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "Screen Effects",
-    description: "Control color, gamma, and system display effects.",
+    description: "Tint, dim, invert, or add a CRT overlay to the display. Toggle Night Shift, True Tone, and grayscale.",
 });
 
 const DIM = 0.35;

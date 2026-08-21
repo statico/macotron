@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Network Path",
-  description: "Interface throughput and ping in the menu bar.",
+  description: "Show network speed and ping in the menu bar.",
 });
 
 function fmt(n) {

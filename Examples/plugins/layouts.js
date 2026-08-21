@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "Layouts",
-    description: "Save and restore the Work window layout.",
+    description: "Save the current window layout and restore it later.",
     permissions: ["accessibility"],
 });
 

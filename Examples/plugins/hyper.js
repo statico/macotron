@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Hyper Key",
-  description: "Hold Caps Lock as Hyper (⌘⇧⌃⌥).",
+  description: "Use Caps Lock as a Hyper key (Command, Shift, Control, and Option together).",
 });
 
 macotron.keyboard.setHyperKey("caps");

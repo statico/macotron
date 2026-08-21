@@ -2,7 +2,7 @@ const systemLocale = macotron.system.locale().language;
 
 const opts = macotron.plugin({
   title: "Translate",
-  description: "Translate the selected text with the on-device model.",
+  description: "Translate the selected text with Apple Intelligence.",
   permissions: ["accessibility"],
   options: {
     locale: {

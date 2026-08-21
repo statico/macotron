@@ -1,6 +1,6 @@
 const opts = macotron.plugin({
   title: "World Clock",
-  description: "Times in the menu bar for a few cities.",
+  description: "Show the time in several cities in the menu bar.",
   options: {
     zones: {
       type: "string",

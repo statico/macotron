@@ -2,7 +2,7 @@
 
 macotron.plugin({
   title: "Brightness",
-  description: "Dim or brighten the display from the keyboard.",
+  description: "Dim or brighten the display, and turn XDR on or off.",
 });
 
 function nudgeBrightness(delta) {

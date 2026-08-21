@@ -1,7 +1,7 @@
 // APIs: screen.pickColor, clipboard.set, notify.toast, command
 macotron.plugin({
   title: "Color Picker",
-  description: "Pick a screen color with the system magnifier.",
+  description: "Click a pixel on screen and copy its color.",
 });
 
 async function pickColor() {

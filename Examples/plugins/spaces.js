@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Spaces",
-  description: "Jump to the next Mission Control desktop.",
+  description: "Switch to the next Mission Control desktop.",
   permissions: ["accessibility"],
 });
 

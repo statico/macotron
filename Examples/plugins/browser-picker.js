@@ -1,7 +1,7 @@
 // APIs: url.setDefaultHandler, url.on, url.onFallback, url.open, panel
 macotron.plugin({
   title: "Browser Picker",
-  description: "Route links. Unknown hosts show a picker.",
+  description: "Open YouTube in Safari, GitHub in Chrome, and ask which browser to use for other links.",
 });
 
 macotron.url.setDefaultHandler("https");

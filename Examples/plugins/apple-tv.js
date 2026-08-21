@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "Apple TV",
-    description: "Remote for Apple TVs on the LAN.",
+    description: "Control Apple TVs on your network from the menu bar.",
 });
 
 function esc(s) {

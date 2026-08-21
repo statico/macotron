@@ -1,6 +1,6 @@
 const opts = macotron.plugin({
     title: "Window Grid",
-    description: "Drag a grid to place the focused window.",
+    description: "Place the focused window by dragging a grid.",
     permissions: ["accessibility"],
     options: {
         columns: { type: "number", label: "Columns", default: 6 },

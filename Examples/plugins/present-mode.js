@@ -2,7 +2,7 @@
 
 macotron.plugin({
   title: "Present Mode",
-  description: "Hide desktop icons for presenting.",
+  description: "Hide desktop icons while you present or share your screen.",
 });
 
 let presenting = false;

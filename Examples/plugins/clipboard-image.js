@@ -2,7 +2,7 @@
 // history items: { id, text, kind: "text"|"image", ts }
 macotron.plugin({
   title: "Clipboard Images",
-  description: "Count and re-paste clipboard images.",
+  description: "Paste the latest image from clipboard history.",
 });
 
 macotron.command("Clipboard Images", "Count image/text history and re-paste newest image", () => {

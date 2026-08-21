@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Markdown",
-  description: "Preview clipboard markdown in a panel.",
+  description: "Preview Markdown from the clipboard in a panel.",
 });
 
 function esc(s) {

@@ -2,7 +2,7 @@
 
 macotron.plugin({
   title: "HEIC to JPEG",
-  description: "Convert HEIC files in Downloads to JPEG.",
+  description: "Convert HEIC photos in Downloads to JPEG.",
 });
 
 macotron.command("Convert Downloads HEIC", "Write JPEGs next to HEIC files in Downloads", async () => {

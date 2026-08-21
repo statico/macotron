@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "Meeting Overlay",
-    description: "Fullscreen overlay 60 seconds before a timed event, with join QR.",
+    description: "Show a full-screen overlay one minute before a timed calendar event, with a QR code to join.",
 });
 
 const shown = new Set();

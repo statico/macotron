@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "File Search",
-  description: "Spotlight search and copy a path.",
+  description: "Search files with Spotlight and copy or reveal a path.",
 });
 
 function navDelta(key, ctrl) {

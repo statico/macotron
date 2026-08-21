@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "Contacts",
-    description: "Search contacts from the launcher.",
+    description: "Search your contacts from the launcher.",
 });
 
 function paint() {

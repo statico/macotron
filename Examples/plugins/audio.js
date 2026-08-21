@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Audio",
-  description: "Cycle the default output device.",
+  description: "Switch speakers and mute volume from the menu bar.",
 });
 
 function outputs() {

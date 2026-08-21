@@ -1,6 +1,6 @@
 macotron.plugin({
   title: "Web Search",
-  description: "Search the web or look up a word from the launcher.",
+  description: "Search Google, Wikipedia, Maps, YouTube, or GitHub from the launcher, or look up a word in Dictionary.",
 });
 
 function searchURL(engine, q) {
