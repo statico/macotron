@@ -149,6 +149,7 @@ public final class FileSystemModule: NativeModule {
 
     public func register(in engine: Engine, options: [String: Any]) {
         self.engine = engine
+        engine.configStore["__fsModule"] = self
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JS_GetPropertyStr(ctx, global, "macotron")
@@ -319,7 +320,7 @@ public final class FileSystemModule: NativeModule {
             guard let opaque else {
                 return QJS_ThrowInternalError(ctx, "fs.watch: engine not available")
             }
-            let _ = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
 
             let expandedPath = NSString(string: path).expandingTildeInPath
 
@@ -335,22 +336,13 @@ public final class FileSystemModule: NativeModule {
             // Protect the JS callback from garbage collection
             let protectedCallback = JS_DupValue(ctx, argv[1])
 
-            // Retrieve the FileSystemModule via its pointer stored as a hidden global.
-            // (C function callbacks cannot capture Swift references, so we pass the
-            // module pointer through the JS context as a float64-encoded address.)
-            let globalObj = JS_GetGlobalObject(ctx)
-            let modulePtrVal = JS_GetPropertyStr(ctx, globalObj, "$$__fsModule")
-            JS_FreeValue(ctx, globalObj)
-
-            var ptrBits: Double = 0
-            JS_ToFloat64(ctx, &ptrBits, modulePtrVal)
-            JS_FreeValue(ctx, modulePtrVal)
-
-            guard let moduleRawPtr = UnsafeMutableRawPointer(bitPattern: UInt(ptrBits)) else {
+            // Retrieve the FileSystemModule from the Engine-owned configStore.
+            // (C function callbacks cannot capture Swift references. The engine
+            // comes from JS_GetContextOpaque, so JS code cannot tamper with it.)
+            guard let module = engine.configStore["__fsModule"] as? FileSystemModule else {
                 JS_FreeValue(ctx, protectedCallback)
                 return QJS_ThrowInternalError(ctx, "fs.watch: module reference lost")
             }
-            let module = Unmanaged<FileSystemModule>.fromOpaque(moduleRawPtr).takeUnretainedValue()
 
             // Register in the global watcher registry (bridges C callback → module)
             let watcherID = FSWatcherRegistry.shared.allocate(path: expandedPath, module: module)
@@ -418,13 +410,6 @@ public final class FileSystemModule: NativeModule {
 
             return stopFn
         }, "watch", 2))
-
-        // Store self pointer as a hidden global so the watch C callback can
-        // retrieve the FileSystemModule instance. Encoded as float64 (macOS
-        // uses 48-bit virtual addresses, well within float64 precision).
-        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
-        let ptrAsDouble = Double(UInt(bitPattern: selfPtr))
-        JS_SetPropertyStr(ctx, global, "$$__fsModule", JSBridge.newFloat64(ctx, ptrAsDouble))
 
         JS_SetPropertyStr(ctx, macotron, "fs", fsObj)
 
