@@ -708,14 +708,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let background = LauncherBackground.parse(readUIValue("launcherBackground"))
         launcherPrefs.background = background
         launcherPanel?.applyBackground(background)
-        let hotReload = readUIValue("hotReload") as? Bool ?? false
-        moduleManager?.hotReload = hotReload
-        settingsState.hotReload = hotReload
         refreshIntegrity()
     }
 
     private func setHotReload(_ value: Bool) {
-        writeUIValue("hotReload", value)
         moduleManager?.hotReload = value
         settingsState.hotReload = value
         refreshIntegrity()
