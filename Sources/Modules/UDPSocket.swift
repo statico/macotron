@@ -144,7 +144,10 @@ final class UDPHub: @unchecked Sendable {
             if n <= 0 { break }
             var hostBuf = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
             _ = inet_ntop(AF_INET, &src.sin_addr, &hostBuf, socklen_t(INET_ADDRSTRLEN))
-            let host = String(cString: hostBuf)
+            let host = String(
+                decoding: hostBuf.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) },
+                as: UTF8.self
+            )
             let fromPort = Int(UInt16(bigEndian: src.sin_port))
             let payload = UDPCodec.decode(Data(buf.prefix(Int(n))))
             onMessage?(host, fromPort, payload)
