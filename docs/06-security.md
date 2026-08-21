@@ -88,6 +88,8 @@ enum CapabilityTier {
 
 `shell.run`, `fs.write`, `fs.rename`, `http.post`, `http.put`, `http.delete`, `url.open`, `url.registerHandler`, `keychain.set`, `keychain.delete`, `screen.capture`, `power.lock`, `power.sleep`, `power.displaySleep`, `power.screensaver`, `power.logOut`, `power.restart`, `power.shutdown`
 
+`macotron.fs` has the same file access as Macotron itself (TCC-scoped).
+
 ## Shell Command Approval
 
 First call to shell run with an unapproved command prompts:
