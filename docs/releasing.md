@@ -14,7 +14,7 @@ last tag, and a new `Casks/macotron.rb` pushed to statico/homebrew-tap.
 People then install with:
 
 ```sh
-brew install --cask statico/tap/macotron
+brew install statico/tap/macotron
 ```
 
 ## One-time setup
