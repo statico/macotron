@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Macotron og:image source</title>
+<meta name="robots" content="noindex">
+<!--
+  Source for og.png, the social preview card. It is not linked from the site.
+  Regenerate after changing the wording:
+
+    python3 -m http.server 19876 --directory site
+    # then screenshot http://localhost:19876/og.html at exactly 1200x630
+-->
+<style>
+  :root {
+    --nord0: #2e3440; --nord1: #3b4252; --nord2: #434c5e; --nord3: #4c566a;
+    --nord6: #eceff4; --nord8: #88c0d0; --nord9: #81a1c1; --nord14: #a3be8c;
+    --nord15: #b48ead;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    width: 1200px; height: 630px; overflow: hidden;
+    background: radial-gradient(120% 120% at 12% 0%, #3b4252 0%, #2e3440 55%);
+    color: var(--nord6);
+    font: 16px system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 60px 72px 56px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .head { display: flex; align-items: flex-start; gap: 30px; }
+  .head img { width: 116px; height: 116px; margin-top: 4px; }
+  h1 { font-size: 68px; line-height: 1.02; letter-spacing: -0.02em; }
+  .byline {
+    margin-top: 16px; font-size: 25px; line-height: 1.35; color: #c9d2e0;
+    max-width: 24ch;
+  }
+  .code {
+    font-family: var(--mono); font-size: 22px; line-height: 1.55;
+    background: #262b35; border: 1px solid var(--nord2); border-radius: 14px;
+    padding: 24px 28px; white-space: pre; color: var(--nord6);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+  }
+  .cmt { color: #7b869a; } .fn { color: var(--nord8); }
+  .kw { color: var(--nord9); } .str { color: var(--nord14); }
+  .num { color: var(--nord15); }
+  .foot {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-size: 23px; color: #a9b3c4;
+  }
+  .foot b { color: var(--nord8); font-weight: 600; }
+  .foot .brew { font-family: var(--mono); font-size: 20px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <img src="icon.png" alt="">
+    <div>
+      <h1>Macotron does&nbsp;everything.</h1>
+      <p class="byline">Tile windows, bind hotkeys, read sensors, talk to models. From small JavaScript files.</p>
+    </div>
+  </div>
+
+  <div class="code"><span class="cmt">// ~/Macotron/plugins/tile.js</span>
+<span class="fn">macotron</span>.<span class="fn">keyboard</span>.on(<span class="str">"Tile Left"</span>, <span class="str">"ctrl+opt+left"</span>, () =&gt; {
+  <span class="kw">const</span> win = <span class="fn">macotron</span>.window.focused();
+  <span class="fn">macotron</span>.window.moveToFraction(win.id, { x: <span class="num">0</span>, w: <span class="num">0.5</span> });
+});</div>
+
+  <div class="foot">
+    <b>macotron.statico.io</b>
+    <span class="brew">brew install statico/tap/macotron</span>
+  </div>
+</body>
+</html>
