@@ -1,97 +1,118 @@
-# Macotron does everything.
-
 <p align="center">
   <img src="site/icon.png" alt="Macotron" width="128" height="128">
 </p>
 
-Tile windows, bind hotkeys, drive the menu bar, read sensors, capture the screen, talk to models. From small JavaScript files that reload when you save them.
+<h1 align="center">Macotron</h1>
+<p align="center"><b>It does everything.</b><br>Customization and automation with a quick launch bar, global hotkeys, menu bar items, and APIs for everything you can think of. Open-source and free.</p>
 
-Free and open source. Built with Swift and QuickJS.
+<p align="center">
+  <a href="#install">Install</a> ·
+  <a href="#quickstart">Quickstart</a> ·
+  <a href="#what-it-does">What it Does</a> ·
+  <a href="#plugins">Plugins</a> ·
+  <a href="#security">Security</a> ·
+  <a href="https://macotron.statico.io">Home Page</a>
+</p>
 
-- [Download for macOS](https://github.com/statico/macotron/releases/latest), or `brew install statico/tap/macotron`
-- [Homepage](https://macotron.statico.io/)
-- [Source](https://github.com/statico/macotron)
+---
 
-## What it is
+## Install
 
-Macotron is a native macOS host for JavaScript plugins. First launch asks for a directory. Scripts go in `plugins/`. Macotron writes an `AGENTS.md` next to them so a coding agent already knows the API. [Claude Code](https://claude.com/claude-code), [Codex](https://openai.com/codex/), [Cursor](https://cursor.com), [pi.dev](https://pi.dev), or you.
+Pick one:
 
-The catalog ships 73 built-in plugins. Everything hangs off `macotron.*`. Apple-shipped tools only. No Homebrew, npm, or extra binaries.
+- [Download for macOS](https://github.com/statico/macotron/releases/latest)
+- `brew install statico/tap/macotron`
 
-## Example
+## Quickstart
+
+1. Download, install, and open Macotron
+1. Pick a directory to store your settings and plugins
+1. Add any example plugins that look interesting
+1. Approve any permissions requests
+1. Hit ⌥-Space (the default) and explore the quick search items
+1. Explore the new menu bar items
+1. Explore the Macotron settings
+1. Open the plugins directory with your favorite AI coding agent and have fun!
+
+## What it Does
+
+The default plugins do things like:
+
+- Extend quick search with files, contacts, or Apple Notes
+- Toggle extra-dark or red night vision mode
+- Control your Apple TV
+- Put CPU, GPU, and memory meters in the menu bar
+- Show upcoming meetings and alert you when they start
+- Organize windows by halves, thirds, or by snapping edges & corners
+- Clipboard history, text snippets, text replacement
+- Open certain URLs in certain browsers
+- Control your fan speed
+- Convert HEIC images to JPEGs in `~/Downloads`
+- Toggle mic mute or cycle through audio output devices
+- Show the now-playing music information with album art
+- Start a chat window with Apple Intelligence
+- Select a region on the screen and OCR it
+- Show Time Machine backup time remaining
+
+...but that's not all. Check [the home page](https://macotron.statico.io) for a longer list of examples.
+
+## Plugins
+
+Each bit of Macotron functionality is contained in a **plugin**. A plugin is a single JavaScript file that defines metadata, permissions required, settings that the user can override, and all of the hooks and logic needed for it to run.
+
+**The intention is to let AI coding agents make plugins for you.** The plugins directory will contain an `AGENTS.md` with all of the information your agent needs.
+
+**Plugins must be reloaded once changed,** at least by default. When developing plugins, you can choose **Enable Hot Reloading** in the Macotron menu to automatically reload them without confirmation.
+
+### Example Plugin
 
 ```javascript
-// ~/Macotron/plugins/tile.js
+macotron.plugin({
+  title: "Move Windows",
+  description: "Tile windows using hotkeys",
+});
+
 macotron.keyboard.on("Tile Left", "ctrl+opt+left", () => {
   const win = macotron.window.focused();
   macotron.window.moveToFraction(win.id, {
     x: 0, y: 0, w: 0.5, h: 1,
   });
 });
+
+// ...
 ```
 
-Save the file. The hotkey is live.
+If you have Hot Reloading turned on, changing the plugin source will take effect instantly.
 
-## Capabilities
+You can read [a concise description of the API](https://macotron.statico.io/#api), the [full API reference](https://github.com/statico/macotron/blob/main/Sources/Macotron/Resources/macotron.d.ts), or [browse the default plugins](https://github.com/statico/macotron/blob/main/Examples/plugins/README.md). Or just, y'know, let your agent do that for you or whatever.
 
-The [homepage](https://macotron.statico.io/#can) lists the host: launcher, windows, menu bar, screen, clipboard, display, system, power, network, input, apps, audio, home, devices, files, shell, AI, and accessibility.
+## Security
 
-Types: [macotron.d.ts](Sources/Macotron/Resources/macotron.d.ts). Modules: [docs/04-modules.md](docs/04-modules.md).
+Hotkeys and window control need Accessibility and Input Monitoring. Screen capture needs Screen Recording. Fan control needs a system helper app installed. It's a little scary, but Macotron tries to only ask for additional permissions when an enabled plugin needs them.
 
-## Plugins
+By default, plugins are not reloaded if the source changes. This is to prevent a malicious app from running arbitrary code. You'll need to approve all plugin changes, or you can turn on Hot Reloading in the menu bar to automatically reload plugins when developing them.
 
-Featured: Calculator, Clipboard History, File Search, Lock Screen, Meetings, Notes, Snippets, Weather, Window Grid, Windows.
+Shell commands require approval the first time they're run.
 
-All 73 live in [Examples/plugins](Examples/plugins/). Community plugins: [github.com/topics/macotron-plugin](https://github.com/topics/macotron-plugin).
+Plugins can define secrets that are stored in the Keychain instead of on disk.
 
-## Building
+## Contributing
 
-macOS 15 Sequoia and Swift 6.2 or later. No Xcode GUI.
+Due to the hopelessness of reviewing code contributions in the AI era, pull requests have been disabled. Instead, file an issue to report a bug or request a feature.
+
+The intent behind default plugins isn't to offer every plugin imaginable, but rather a set just big enough to show off Macotron's capabilities and provide great default behavior.
+
+### Building
+
+If you do want to build Macotron locally, you'll need macOS 15 Sequoia and Swift 6.2 or later. No Xcode GUI is required.
 
 ```bash
-make build    # compile
+make build    # compile, app lands in ~/Applications/Macotron.app
 make run      # compile, bundle, launch
 make clean    # build artifacts
 ```
 
-The app lands at `~/Applications/Macotron.app`.
-
-## Permissions and signing
-
-Hotkeys and window control need Accessibility and Input Monitoring. Screen capture needs Screen Recording. The app asks when a feature needs them.
-
-Permissions stick to the code signature. `make run` signs ad-hoc by default, so each rebuild can reset the toggles. For a stable signature, create a local **Macotron-Dev** code-signing certificate in Keychain Access (Certificate Assistant, then Code Signing). Then:
-
-```bash
-make run   # picks Macotron-Dev if it exists
-```
-
-After the first stable-signed build, add `~/Applications/Macotron.app` under **System Settings, Privacy & Security, Accessibility** (and Input Monitoring / Screen Recording as needed).
-
-If hotkeys die after a rebuild, remove and re-add Macotron in that list, or `tccutil reset Accessibility`.
-
-```bash
-codesign -d -vvvv ~/Applications/Macotron.app
-```
-
-Look for `Authority=Macotron-Dev`, not adhoc.
-
-```bash
-make cleanprefs   # wipe prefs, wizard on next launch
-```
-
-## Docs
-
-- [Overview](docs/01-overview.md)
-- [Project structure](docs/02-project-structure.md)
-- [Engine](docs/03-engine.md)
-- [Native modules](docs/04-modules.md)
-- [AI](docs/05-ai-integration.md)
-- [Security](docs/06-security.md)
-- [Build](docs/07-build-system.md)
-- [Built-in plugins](Examples/plugins/README.md)
-- [Phases](docs/09-phases.md)
-- [Plugins workdir](docs/10-plugins-workdir.md)
+For more information, refer to the plans and documentation in `docs/`.
 
 ## License
 
@@ -106,3 +127,7 @@ Macotron is MIT licensed. See [LICENSE](LICENSE).
 QuickJS-ng is the only vendored dependency. It ships here as an amalgamated `quickjs-amalgam.c` plus headers, with the upstream copyright notices intact in the source: Fabrice Bellard, Charlie Gordon, Ben Noordhuis, Saúl Ibarra Corretgé, and Marcin Kolny. The vendored version is whatever `QJS_VERSION_*` in `Vendor/quickjs-ng/include/quickjs.h` says. `quickjs-swift-helpers.c` is Macotron's own shim, not upstream code.
 
 Everything else is first-party Swift or an Apple-shipped framework. There are no Swift package dependencies, no npm, and no Homebrew.
+
+### AI Disclaimer
+
+Macotron was developed with various AI coding agents and models, partially as a research project for me to test various models. I haven't looked at much of the code in detail, but I've had many models perform many reviews, and the codebase feels decent enough. I've put significant effort into making the API concise, the UX decent, and performance reasonable.
