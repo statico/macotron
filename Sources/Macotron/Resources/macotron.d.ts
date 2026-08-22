@@ -570,9 +570,24 @@ declare const macotron: {
 
     system: {
         cpuTemp(): Promise<number>;
-        cpu(): { usage: number };
+        /** `performance` / `efficiency` are per-cluster busy percentages; Intel Macs report every core as performance. */
+        cpu(): {
+            usage: number;
+            performance: number;
+            efficiency: number;
+            performanceCores: number;
+            efficiencyCores: number;
+        };
         locale(): { language: string; region: string; measurement: "metric" | "us" };
-        memory(): { total: number; used: number; free: number };
+        memory(): {
+            total: number;
+            used: number;
+            free: number;
+            active: number;
+            inactive: number;
+            wired: number;
+            compressed: number;
+        };
         battery(): {
             level: number;
             charging: boolean;
