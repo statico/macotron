@@ -10,7 +10,9 @@ BINARY = $(BUILD_DIR)/$(CONFIG)/$(APP_NAME)
 # last shipped; `make publish VERSION=x.y.z` is what cuts a new one.
 VERSION ?= $(shell git tag --list 'v*' --sort=-v:refname | head -1 | sed 's/^v//')
 DMG = $(BUILD_DIR)/$(APP_NAME)-$(VERSION).dmg
-NOTARY_PROFILE ?= macotron-notary
+# One App Store Connect API key authorizes the whole team, so this profile is
+# shared with every other app signed by TA59XVWN77, not specific to Macotron.
+NOTARY_PROFILE ?= personal-notary
 
 # Root helper for privileged work such as fan-speed writes. SMAppService loads it
 # from inside the bundle, so the plist must use BundleProgram and the helper must
