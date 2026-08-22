@@ -202,7 +202,7 @@ macotron.checks([
 
 ```json
 {
-  "launcher": { "hotkey": "cmd+space" },
+  "launcher": { "hotkey": "opt+space" },
   "ui": {
     "showDockIcon": true,
     "showMenuBarIcon": true,

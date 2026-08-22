@@ -245,7 +245,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.configDirURL = workspace.root
 
         settingsState.readHotkey = { [weak self] in
-            self?.resolveHotkey() ?? "cmd+space"
+            self?.resolveHotkey() ?? "opt+space"
         }
         settingsState.writeHotkey = { [weak self] combo in
             guard let self else { return }
@@ -705,7 +705,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
            let hotkey = launcher["hotkey"] as? String {
             return hotkey
         }
-        return "cmd+space"
+        return "opt+space"
     }
 
     private func readUIValue(_ key: String) -> Any? {
