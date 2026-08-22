@@ -363,7 +363,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.revealModuleFile = { [weak self] filename in
             guard let self else { return }
             let url = self.moduleManager.configDir.appending(path: "plugins").appending(path: filename)
-            NSWorkspace.shared.activateFileViewerSelecting([url])
+            NSWorkspace.shared.revealInFinder(url)
         }
         settingsState.saveModuleOption = { [weak self] filename, key, value in
             guard let self else { return }

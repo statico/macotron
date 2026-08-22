@@ -93,6 +93,20 @@ final class AppSearchProvider {
             return
         }
         searchLogger.notice("reveal: \(app.url.path, privacy: .public)")
-        NSWorkspace.shared.activateFileViewerSelecting([app.url])
+        NSWorkspace.shared.revealInFinder(app.url)
+    }
+}
+
+extension NSWorkspace {
+    /// Select a file in Finder and bring Finder forward.
+    ///
+    /// Since macOS 14 an app cannot pull focus away from whoever holds it, so
+    /// `activateFileViewerSelecting` on its own selects the file behind the
+    /// frontmost window and Finder never appears. Every caller here reveals
+    /// from a window Macotron owns, so activation has to be handed over first.
+    @MainActor
+    func revealInFinder(_ url: URL) {
+        NSApp.yieldActivation(toApplicationWithBundleIdentifier: "com.apple.finder")
+        activateFileViewerSelecting([url])
     }
 }
