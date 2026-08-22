@@ -1,8 +1,11 @@
 // AppSearchProvider.swift — Discover and search all installed applications
 import AppKit
+import OSLog
 import MacotronUI
 import MacotronEngine
 import Modules
+
+private let searchLogger = Logger(subsystem: "io.statico.macotron", category: "search")
 
 @MainActor
 final class AppSearchProvider {
@@ -85,8 +88,11 @@ final class AppSearchProvider {
 
     /// Reveal an app in Finder
     func revealInFinder(bundleID: String) {
-        if let app = allApps.first(where: { $0.bundleID == bundleID }) {
-            NSWorkspace.shared.activateFileViewerSelecting([app.url])
+        guard let app = allApps.first(where: { $0.bundleID == bundleID }) else {
+            searchLogger.notice("reveal: no app for \(bundleID, privacy: .public)")
+            return
         }
+        searchLogger.notice("reveal: \(app.url.path, privacy: .public)")
+        NSWorkspace.shared.activateFileViewerSelecting([app.url])
     }
 }

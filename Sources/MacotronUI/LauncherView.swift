@@ -65,6 +65,7 @@ public struct LauncherView: View {
     public var onSearch: ((String) -> [SearchResult])?
     public var onAssignShortcut: ((String, String, String) -> Void)?
     public var onToggleFavorite: ((String) -> Void)?
+    public var onOpenSettings: (() -> Void)?
     public var onHeightChange: ((CGFloat) -> Void)?
 
     public init(
@@ -76,6 +77,7 @@ public struct LauncherView: View {
         onSearch: ((String) -> [SearchResult])? = nil,
         onAssignShortcut: ((String, String, String) -> Void)? = nil,
         onToggleFavorite: ((String) -> Void)? = nil,
+        onOpenSettings: (() -> Void)? = nil,
         onHeightChange: ((CGFloat) -> Void)? = nil
     ) {
         self._prefs = ObservedObject(wrappedValue: prefs)
@@ -86,6 +88,7 @@ public struct LauncherView: View {
         self.onSearch = onSearch
         self.onAssignShortcut = onAssignShortcut
         self.onToggleFavorite = onToggleFavorite
+        self.onOpenSettings = onOpenSettings
         self.onHeightChange = onHeightChange
     }
 
@@ -142,6 +145,7 @@ public struct LauncherView: View {
                                 label: results[selectedIndex].isFavorite ? "Unfavorite" : "Favorite"
                             )
                         }
+                        shortcutHint(keys: ["cmd", ";"], label: "Settings")
                         Spacer()
                         shortcutHint(keys: ["esc"], label: "Close")
                     }
@@ -178,6 +182,7 @@ public struct LauncherView: View {
                 onCmdReturn: { executeSelectedWithModifier() },
                 onCmdK: { beginShortcutRecording() },
                 onCmdS: { toggleSelectedFavorite() },
+                onCmdSemicolon: { onOpenSettings?() },
                 onEscape: { handleEscape() },
                 onRecordedCombo: { saveRecordedShortcut($0) },
                 onClearShortcut: { saveRecordedShortcut("") },
@@ -511,6 +516,7 @@ struct KeyEventHandler: NSViewRepresentable {
     var onCmdReturn: () -> Void
     var onCmdK: () -> Void
     var onCmdS: (() -> Void)?
+    var onCmdSemicolon: (() -> Void)?
     var onEscape: (() -> Bool)?
     var onRecordedCombo: ((String) -> Void)?
     var onClearShortcut: (() -> Void)?
@@ -533,6 +539,7 @@ struct KeyEventHandler: NSViewRepresentable {
         view.onCmdReturn = onCmdReturn
         view.onCmdK = onCmdK
         view.onCmdS = onCmdS
+        view.onCmdSemicolon = onCmdSemicolon
         view.onEscape = onEscape
         view.onRecordedCombo = onRecordedCombo
         view.onClearShortcut = onClearShortcut
@@ -546,6 +553,7 @@ struct KeyEventHandler: NSViewRepresentable {
         var onCmdReturn: (() -> Void)?
         var onCmdK: (() -> Void)?
         var onCmdS: (() -> Void)?
+        var onCmdSemicolon: (() -> Void)?
         var onEscape: (() -> Bool)?
         var onRecordedCombo: ((String) -> Void)?
         var onClearShortcut: (() -> Void)?
@@ -596,6 +604,12 @@ struct KeyEventHandler: NSViewRepresentable {
                !flags.contains(.option), !flags.contains(.control),
                event.charactersIgnoringModifiers?.lowercased() == "s" {
                 onCmdS?()
+                return true
+            }
+            if interceptListKeys, flags.contains(.command), !flags.contains(.shift),
+               !flags.contains(.option), !flags.contains(.control),
+               event.charactersIgnoringModifiers == ";" {
+                onCmdSemicolon?()
                 return true
             }
             if interceptListKeys, flags.contains(.control) && !flags.contains(.command) {
