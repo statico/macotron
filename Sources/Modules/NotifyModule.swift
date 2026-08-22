@@ -2,7 +2,7 @@
 import CQuickJS
 import Foundation
 import MacotronEngine
-import UserNotifications
+@preconcurrency import UserNotifications
 import os
 
 private let logger = Logger(subsystem: "io.statico.macotron", category: "notify")
