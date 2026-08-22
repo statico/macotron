@@ -258,7 +258,7 @@
     },
     {
       "filename": "system-settings.js",
-      "highlighted": false
+      "highlighted": true
     },
     {
       "filename": "time-machine.js",

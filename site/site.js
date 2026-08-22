@@ -409,6 +409,7 @@ const FEATURED = [
   "meetings.js",
   "notes.js",
   "snippets.js",
+  "system-settings.js",
   "weather.js",
   "window-grid.js",
   "windows.js",

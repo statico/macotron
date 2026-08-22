@@ -22,7 +22,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | clipboard-image.js | clipboard.setImage/paste/remove | Clipboard Images |
 | color-picker.js | screen.pickColor | Pick Color |
 | contacts.js | contacts.list, launcher.set | (launcher rows) |
-| cpu-graph.js | system.cpu, menubar.status sparkline | (CPU menu bar graph) |
+| cpu-graph.js | system.cpu/gpu/memory, menubar.status svg | (CPU, GPU, memory menu bar gauges) |
 | datetime.js | clipboard.set | Insert ISO Date |
 | devutils.js | clipboard | UUID, timestamp, Base64, JWT |
 | disk-usage.js | shell.run df/du + panel | Disk Usage |
