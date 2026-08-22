@@ -15,7 +15,7 @@ The app itself lives in the repo root (`Sources/`, `Examples/plugins/`). Do not 
 
 ## Installation
 
-1. Download from https://github.com/statico/macotron/releases/latest
+1. `brew install statico/tap/macotron`, or download from https://github.com/statico/macotron/releases/latest
 2. Or build with `make bundle` from the repo root
 3. First launch picks a workdir. Plugins go in `plugins/*.js`
 

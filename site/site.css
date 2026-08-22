@@ -262,8 +262,13 @@ main > section {
   text-decoration-color: var(--line);
 }
 .ghost:hover { text-decoration-color: currentColor; }
+.brew {
+  margin: 1.1rem 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
 .fineprint {
-  margin: 1.5rem 0 0;
+  margin: 0.7rem 0 0;
   font-size: 0.8rem;
   color: var(--muted);
 }
