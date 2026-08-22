@@ -24,6 +24,17 @@ struct SnapDragTests {
     }
 }
 
+@Suite("CoreTopology")
+struct CoreTopologyTests {
+    @Test("the cluster split covers every logical core")
+    func split() {
+        let split = CoreTopology.split
+        #expect(split.efficiency + split.performance == CoreTopology.count("hw.logicalcpu"))
+        #expect(split.performance > 0)
+        #expect(split.efficiency >= 0)
+    }
+}
+
 @Suite("CPULoad")
 struct CPULoadTests {
     @Test("busy ticks are a percent of the total")
