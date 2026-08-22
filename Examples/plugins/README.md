@@ -44,6 +44,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | markdown.js | clipboard + panel | Markdown from Clipboard |
 | meeting-overlay.js | calendar.upcoming, panel fullscreen | (pre-meeting overlay) |
 | meetings.js | calendar.upcoming | Next Meeting |
+| mini-calendar.js | menubar svg + panel + shell (`cal`) | Calendar |
 | mic-mute.js | audio.input / setMuted | (mic mute) |
 | network-path.js | network.counters / ping | (menu bar throughput + ping) |
 | notes.js | notes.list, launcher.set | (launcher rows) |
