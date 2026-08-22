@@ -373,6 +373,10 @@ public final class PluginWorkspace {
     // MARK: - Settings
 
     public func readSettings() -> [String: Any] {
+        StepTimer.measure("readSettings") { readSettingsUncached() }
+    }
+
+    private func readSettingsUncached() -> [String: Any] {
         guard let data = try? Data(contentsOf: settingsFile),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else {

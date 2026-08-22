@@ -652,6 +652,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     /// The first check also registers Macotron in the System Settings lists, so
     /// the user can find the toggles without hunting for the app.
     private func refreshPermissions() {
+        StepTimer.measure("refreshPermissions") { refreshPermissionsBody() }
+    }
+
+    private func refreshPermissionsBody() {
         let required = requiredPermissions()
         let missing = Permissions.missing(from: required)
 
@@ -926,6 +930,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func executeCommand(_ id: String, args: [String: Any] = [:]) {
+        StepTimer.measure("execute \(id)") { executeCommandBody(id, args: args) }
+    }
+
+    private func executeCommandBody(_ id: String, args: [String: Any]) {
         launcherPanel.dismiss()
         if runHostCommand(id) {
             return
@@ -1092,6 +1100,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func search(_ query: String) -> [SearchResult] {
+        StepTimer.measure("search") { searchBody(query) }
+    }
+
+    private func searchBody(_ query: String) -> [SearchResult] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let pluginHits = launcherModule?.allHits() ?? []
         let favorites = Self.favoriteIDs(from: workspace.readSettings()["launcherFavorites"])
