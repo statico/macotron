@@ -1,6 +1,6 @@
 ---
 title: Macotron does everything.
-description: Native macOS host for JavaScript plugins. Plugins are .js files in a folder. Macotron loads them.
+description: Customization and automation with a quick launch bar, global hotkeys, menu bar items, and APIs for everything you can think of. Open-source and free.
 doc_version: "1.1.0"
 last_updated: 2026-08-21
 ---
