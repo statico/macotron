@@ -151,6 +151,7 @@ final class ToastHost {
     private func makePanel() -> NSPanel {
         let title = NSTextField(labelWithString: "")
         title.font = .systemFont(ofSize: 15, weight: .medium)
+        title.alignment = .center
         title.lineBreakMode = .byWordWrapping
         title.maximumNumberOfLines = 0
         title.usesSingleLineMode = false
