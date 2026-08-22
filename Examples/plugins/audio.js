@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "Audio",
+  title: "Audio Menu Bar Widgets",
   description: "Switch speakers and mute volume from the menu bar.",
 });
 

@@ -1,5 +1,5 @@
 macotron.plugin({
-    title: "Appearance",
+    title: "Appearance Toggle",
     description: "Switch this Mac between light and dark appearance.",
 });
 

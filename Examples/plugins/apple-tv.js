@@ -1,5 +1,5 @@
 macotron.plugin({
-    title: "Apple TV",
+    title: "Apple TV Controls",
     description: "Control Apple TVs on your network from the menu bar.",
 });
 

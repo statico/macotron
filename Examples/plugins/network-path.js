@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "Network Path",
+  title: "Network Stats",
   description: "Show network speed and ping in the menu bar.",
 });
 

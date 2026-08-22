@@ -6,11 +6,11 @@ macotron.plugin({
 });
 
 macotron.command("Regex Workbench", "Test a regular expression against sample text", () => {
-    const id = macotron.panel.open({
-        title: "Regex",
-        width: 520,
-        height: 420,
-        html: `<div class="toolbar">
+  const id = macotron.panel.open({
+    title: "Regex",
+    width: 520,
+    height: 420,
+    html: `<div class="toolbar">
   <input id="pat" class="mono" placeholder="fox|dog" autofocus>
   <input id="flags" class="inline mono" value="g" maxlength="8" placeholder="gimsuy" title="Flags: g i m s u y d">
 </div>
@@ -49,6 +49,6 @@ document.getElementById("pat").oninput = run;
 document.getElementById("flags").oninput = run;
 document.getElementById("src").oninput = run;
 </script>`,
-    });
-    void id;
+  });
+  void id;
 });

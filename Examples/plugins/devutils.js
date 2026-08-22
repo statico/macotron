@@ -1,8 +1,8 @@
 // APIs: command, clipboard.set, notify
 
 macotron.plugin({
-  title: "Dev Utils",
-  description: "Copy a UUID, Unix time, Base64 text, or a decoded JWT.",
+    title: "Dev Utils",
+    description: "Copy a UUID, Unix time, Base64 text, or a decoded JWT.",
 });
 
 function copy(title, value) {

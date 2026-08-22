@@ -1,5 +1,5 @@
 const opts = macotron.plugin({
-    title: "Meetings",
+    title: "Meetings Menu",
     description: "Show your next calendar event in the menu bar.",
     options: {
         hours: {

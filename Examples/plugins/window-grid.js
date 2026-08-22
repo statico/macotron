@@ -1,61 +1,61 @@
 const opts = macotron.plugin({
-    title: "Window Grid",
-    description: "Place the focused window by dragging a grid.",
-    permissions: ["accessibility"],
-    options: {
-        columns: { type: "number", label: "Columns", default: 6 },
-        rows: { type: "number", label: "Rows", default: 6 },
-    },
+  title: "Window Quick Grid",
+  description: "Place the focused window by dragging a grid.",
+  permissions: ["accessibility"],
+  options: {
+    columns: { type: "number", label: "Columns", default: 6 },
+    rows: { type: "number", label: "Rows", default: 6 },
+  },
 });
 
 function clampGrid(n, fallback) {
-    const v = Math.round(Number(n));
-    if (!Number.isFinite(v) || v < 1) return fallback;
-    return Math.min(20, v);
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v) || v < 1) return fallback;
+  return Math.min(20, v);
 }
 
 function cellsToFraction(sel, cols, rows) {
-    const c0 = Math.min(sel.c0, sel.c1);
-    const c1 = Math.max(sel.c0, sel.c1);
-    const r0 = Math.min(sel.r0, sel.r1);
-    const r1 = Math.max(sel.r0, sel.r1);
-    return {
-        x: c0 / cols,
-        y: r0 / rows,
-        w: (c1 - c0 + 1) / cols,
-        h: (r1 - r0 + 1) / rows,
-    };
+  const c0 = Math.min(sel.c0, sel.c1);
+  const c1 = Math.max(sel.c0, sel.c1);
+  const r0 = Math.min(sel.r0, sel.r1);
+  const r1 = Math.max(sel.r0, sel.r1);
+  return {
+    x: c0 / cols,
+    y: r0 / rows,
+    w: (c1 - c0 + 1) / cols,
+    h: (r1 - r0 + 1) / rows,
+  };
 }
 
 let panelId = null;
 let targetWin = null;
 
 macotron.on("panel:closed", (event) => {
-    if (!event || event.id !== panelId) return;
-    macotron.window.previewFraction(null);
-    if (targetWin) macotron.window.focus(targetWin.id);
-    panelId = null;
+  if (!event || event.id !== panelId) return;
+  macotron.window.previewFraction(null);
+  if (targetWin) macotron.window.focus(targetWin.id);
+  panelId = null;
 });
 
 function openGrid() {
-    const win = macotron.window.focused();
-    if (!win) {
-        macotron.notify.toast("Window Grid", "No focused window", { color: "warning" });
-        return;
-    }
-    targetWin = win;
+  const win = macotron.window.focused();
+  if (!win) {
+    macotron.notify.toast("Window Grid", "No focused window", { color: "warning" });
+    return;
+  }
+  targetWin = win;
 
-    const startCols = clampGrid(opts.columns, 6);
-    const startRows = clampGrid(opts.rows, 6);
+  const startCols = clampGrid(opts.columns, 6);
+  const startRows = clampGrid(opts.rows, 6);
 
-    const id = macotron.panel.open({
-        title: "Window Grid",
-        width: 380,
-        height: 360,
-        glass: "translucent",
-        frameless: true,
-        closeOnBlur: true,
-        html: `<style>
+  const id = macotron.panel.open({
+    title: "Window Grid",
+    width: 380,
+    height: 360,
+    glass: "translucent",
+    frameless: true,
+    closeOnBlur: true,
+    html: `<style>
 body { padding: 14px; gap: 10px; }
 .toolbar { display: flex; gap: 16px; align-items: center; }
 .toolbar label { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -195,28 +195,28 @@ window.addEventListener("mouseup", (e) => {
 });
 rebuild();
 </script>`,
-    });
+  });
 
-    panelId = id;
+  panelId = id;
 
-    function apply(sel) {
-        const cols = clampGrid(sel.cols, startCols);
-        const rows = clampGrid(sel.rows, startRows);
-        return Object.assign({ display: win.display }, cellsToFraction(sel, cols, rows));
+  function apply(sel) {
+    const cols = clampGrid(sel.cols, startCols);
+    const rows = clampGrid(sel.rows, startRows);
+    return Object.assign({ display: win.display }, cellsToFraction(sel, cols, rows));
+  }
+
+  macotron.panel.onMessage(id, (data) => {
+    if (!data) return;
+    if (data.type === "preview") {
+      if (data.clear) macotron.window.previewFraction(null);
+      else macotron.window.previewFraction(apply(data));
+      return;
     }
-
-    macotron.panel.onMessage(id, (data) => {
-        if (!data) return;
-        if (data.type === "preview") {
-            if (data.clear) macotron.window.previewFraction(null);
-            else macotron.window.previewFraction(apply(data));
-            return;
-        }
-        if (data.type !== "place") return;
-        macotron.window.previewFraction(null);
-        macotron.window.moveToFraction(win.id, apply(data));
-        macotron.panel.close(id);
-    });
+    if (data.type !== "place") return;
+    macotron.window.previewFraction(null);
+    macotron.window.moveToFraction(win.id, apply(data));
+    macotron.panel.close(id);
+  });
 }
 
 macotron.keyboard.on("Place Window", "ctrl+opt+g", openGrid);

@@ -1,7 +1,7 @@
 // APIs: keyboard, screen.capture, ai.claude, notify
 
 macotron.plugin({
-    title: "Screen Summary",
+    title: "Screen Summary Example",
     description: "Drag a box on screen and ask Claude what is in it.",
     permissions: ["screenRecording"],
 });

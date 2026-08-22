@@ -1,5 +1,5 @@
 const opts = macotron.plugin({
-    title: "Windows",
+    title: "Window Controls",
     description: "Tile the focused window with the keyboard, snap it by dragging to an edge, or switch windows by name.",
     permissions: ["accessibility"],
     options: {

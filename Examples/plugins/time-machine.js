@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "Time Machine",
+  title: "Time Machine Progress",
   description: "Show Time Machine backup progress in the menu bar.",
 });
 

@@ -1,5 +1,5 @@
 const opts = macotron.plugin({
-    title: "AI Chat",
+    title: "AI Chat Window",
     description: "Chat with Apple Intelligence, Claude, or Gemini.",
     options: {
         model: {
@@ -40,7 +40,7 @@ function loadState() {
             const parsed = JSON.parse(raw);
             if (parsed && parsed.version === 1 && Array.isArray(parsed.chats)) return parsed;
         }
-    } catch (_) {}
+    } catch (_) { }
     const chat = newChat();
     return { version: 1, activeId: chat.id, chats: [chat] };
 }

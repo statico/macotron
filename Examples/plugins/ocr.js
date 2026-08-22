@@ -1,8 +1,8 @@
 // APIs: ocr.recognize, screen.capture, clipboard.set, notify.toast, command
 macotron.plugin({
-  title: "OCR",
-  description: "Drag a box on screen and copy the text inside it.",
-  permissions: ["screenRecording"],
+    title: "OCR",
+    description: "Drag a box on screen and copy the text inside it.",
+    permissions: ["screenRecording"],
 });
 
 async function ocrSelection() {
