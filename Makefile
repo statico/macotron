@@ -94,7 +94,7 @@ check: bundle ## Typecheck load plugins (ARGS='plugins/foo.js' optional)
 	$(BUNDLE)/Contents/MacOS/$(APP_NAME) --check $(ARGS)
 
 trace: ## Stream timings for slow interactive paths
-	log stream --style compact --predicate 'subsystem == "io.statico.macotron" AND (category == "perf" OR eventMessage BEGINSWITH "slow")'
+	log stream --level info --style compact --predicate 'subsystem == "io.statico.macotron"'
 
 scan: ## Sweep built-in plugins + tmp/malware with the on-device scanner
 	swift run --build-path $(BUILD_DIR) PluginScan --runs $${SCAN_RUNS:-3} --concurrency $${SCAN_CONCURRENCY:-16} \

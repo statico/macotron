@@ -46,7 +46,7 @@ public final class StepTimer {
             if elapsed >= threshold {
                 let text = label()
                 Logger(subsystem: "io.statico.macotron", category: category)
-                    .info("slow \(text, privacy: .public) \(ms(elapsed))ms")
+                    .notice("slow \(text, privacy: .public) \(ms(elapsed))ms")
             }
         }
         return try body()
