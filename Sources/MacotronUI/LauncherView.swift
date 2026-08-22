@@ -63,7 +63,7 @@ public struct LauncherView: View {
     public var onExecuteCommand: ((String, [String: Any]) -> Void)?
     public var onRevealInFinder: ((String) -> Void)?
     public var onSearch: ((String) -> [SearchResult])?
-    public var onAssignShortcut: ((String, String) -> Void)?
+    public var onAssignShortcut: ((String, String, String) -> Void)?
     public var onToggleFavorite: ((String) -> Void)?
     public var onHeightChange: ((CGFloat) -> Void)?
 
@@ -74,7 +74,7 @@ public struct LauncherView: View {
         onExecuteCommand: ((String, [String: Any]) -> Void)? = nil,
         onRevealInFinder: ((String) -> Void)? = nil,
         onSearch: ((String) -> [SearchResult])? = nil,
-        onAssignShortcut: ((String, String) -> Void)? = nil,
+        onAssignShortcut: ((String, String, String) -> Void)? = nil,
         onToggleFavorite: ((String) -> Void)? = nil,
         onHeightChange: ((CGFloat) -> Void)? = nil
     ) {
@@ -333,7 +333,7 @@ public struct LauncherView: View {
             return
         }
         let id = results[selectedIndex].id
-        onAssignShortcut?(id, combo)
+        onAssignShortcut?(id, combo, results[selectedIndex].title)
         isRecordingShortcut = false
         applySearch(session.query)
         if let idx = results.firstIndex(where: { $0.id == id }) {
