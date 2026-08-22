@@ -100,13 +100,35 @@ final class AppSearchProvider {
 extension NSWorkspace {
     /// Select a file in Finder and bring Finder forward.
     ///
-    /// Since macOS 14 an app cannot pull focus away from whoever holds it, so
-    /// `activateFileViewerSelecting` on its own selects the file behind the
-    /// frontmost window and Finder never appears. Every caller here reveals
-    /// from a window Macotron owns, so activation has to be handed over first.
+    /// `activateFileViewerSelecting` is a one-way request with no result, and
+    /// on this machine it selects nothing and Finder never appears, both on
+    /// its own and after yielding activation. So check afterwards whether
+    /// Finder actually came forward, and fall back to `open -R`, which asks
+    /// LaunchServices from outside this process.
     @MainActor
     func revealInFinder(_ url: URL) {
-        NSApp.yieldActivation(toApplicationWithBundleIdentifier: "com.apple.finder")
+        let finder = "com.apple.finder"
+        searchLogger.notice(
+            """
+            reveal before: front=\(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "none", privacy: .public)             active=\(NSApp.isActive)             finderRunning=\(!NSRunningApplication.runningApplications(withBundleIdentifier: finder).isEmpty)
+            """
+        )
+        NSApp.yieldActivation(toApplicationWithBundleIdentifier: finder)
         activateFileViewerSelecting([url])
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "none"
+            searchLogger.notice("reveal after: front=\(front, privacy: .public)")
+            guard front != finder else { return }
+            let open = Process()
+            open.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            open.arguments = ["-R", url.path]
+            do {
+                try open.run()
+                searchLogger.notice("reveal fallback: open -R ran")
+            } catch {
+                searchLogger.error("reveal fallback failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
     }
 }
