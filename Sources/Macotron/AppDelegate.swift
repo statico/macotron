@@ -145,13 +145,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             onSearch: { [weak self] query in
                 self?.search(query) ?? []
             },
-            onAssignShortcut: { [weak self] id, combo in
-                self?.saveShortcut(
+            onAssignShortcut: { [weak self] id, combo, title in
+                guard let self else { return }
+                let saved = self.saveShortcut(
                     id: id,
                     combo: combo,
                     tableKey: "commandShortcuts",
                     otherKey: "keyboardShortcuts"
                 )
+                guard saved, !combo.isEmpty else { return }
+                self.launcherPanel.dismiss()
+                ToastHost.shared.flash("\(KeyCombo.glyphs(combo).joined()) will open \(title)")
             },
             onToggleFavorite: { [weak self] id in
                 self?.toggleFavorite(id)
@@ -997,16 +1001,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @discardableResult
     private func saveShortcut(
         id: String,
         combo: String,
         tableKey: String,
         otherKey: String,
         defaultCombo: String? = nil
-    ) {
+    ) -> Bool {
         if !combo.isEmpty, combo.lowercased() == resolveHotkey().lowercased() {
             NSLog("[Macotron] Shortcut collides with the launcher hotkey")
-            return
+            return false
         }
         var stored = combo
         if let defaultCombo {
@@ -1041,6 +1046,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         rebindPluginHotkeys()
         settingsState.refreshModules()
         settingsState.refreshAppShortcuts()
+        return true
     }
 
     /// Plugin option hotkeys live in pluginSettings, not the shortcut tables.

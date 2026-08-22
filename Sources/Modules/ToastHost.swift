@@ -105,8 +105,13 @@ private final class ToastPanel: NSPanel {
 }
 
 @MainActor
-final class ToastHost {
-    static let shared = ToastHost()
+public final class ToastHost {
+    public static let shared = ToastHost()
+
+    /// Host-side one-liner: bottom toast with the standard duration.
+    public func flash(_ text: String) {
+        show(title: text, body: nil, position: .bottom, duration: 2)
+    }
 
     private var panel: NSPanel?
     private var titleField: NSTextField?
