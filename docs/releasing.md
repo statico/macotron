@@ -29,8 +29,13 @@ brew install statico/tap/macotron
     --apple-id you@example.com --team-id TEAMID --password APP-SPECIFIC-PASSWORD
   ```
 
-  Use another name with `NOTARY_PROFILE=...`. Without a profile the DMG is
-  still signed, but Gatekeeper blocks it.
+  Use another name with `NOTARY_PROFILE=...`. Without a profile `make release`
+  refuses to package: a signed but unnotarized DMG downloads fine and then
+  tells the user that Apple could not verify the app is free of malware. Pass
+  `ALLOW_UNNOTARIZED=1` to build one anyway for local testing.
+
+  The team ID is `TA59XVWN77`, and the password is an app-specific password
+  from appleid.apple.com, not the Apple ID password.
 - `gh auth login`, and push access to statico/homebrew-tap.
 
 ## Pieces

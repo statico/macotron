@@ -127,11 +127,16 @@ release: ## Build a signed, notarized DMG (VERSION=x.y.z)
 	@if xcrun notarytool history --keychain-profile "$(NOTARY_PROFILE)" >/dev/null 2>&1; then \
 		xcrun notarytool submit "$(DMG)" --keychain-profile "$(NOTARY_PROFILE)" --wait && \
 		xcrun stapler staple "$(DMG)"; \
+	elif [ -n "$(ALLOW_UNNOTARIZED)" ]; then \
+		printf '\033[33mUnnotarized: this DMG is only good for local testing.\033[0m\n'; \
 	else \
-		printf '\033[33mWarning: no notary profile "$(NOTARY_PROFILE)", so the DMG is\033[0m\n'; \
-		printf '\033[33msigned but not notarized and Gatekeeper will block it.\033[0m\n'; \
-		printf '\033[33mSee docs/releasing.md to create one.\033[0m\n'; \
+		echo "No notary profile \"$(NOTARY_PROFILE)\". Gatekeeper would tell everyone"; \
+		echo "who downloads this that Macotron is malware, so refusing to package it."; \
+		echo "Create one (see docs/releasing.md), or ALLOW_UNNOTARIZED=1 to test locally."; \
+		rm -f "$(DMG)"; \
+		exit 1; \
 	fi
+	@if [ -z "$(ALLOW_UNNOTARIZED)" ]; then xcrun stapler validate "$(DMG)"; fi
 	@echo "Built $(DMG)"
 
 tap: ## Re-point the Homebrew cask at VERSION (publish does this already)
