@@ -139,8 +139,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.executeCommand(id, args: args)
             },
             onRevealInFinder: { [weak self] id in
-                guard !id.hasPrefix("launcher:") else { return }
-                self?.appSearchProvider.revealInFinder(bundleID: id)
+                guard let self, !id.hasPrefix("launcher:") else { return }
+                appLogger.notice("launcher reveal \(id, privacy: .public)")
+                // Finder cannot come forward while the floating launcher panel
+                // still holds key focus, so hide it first, as Return does.
+                self.launcherPanel.dismiss()
+                self.appSearchProvider.revealInFinder(bundleID: id)
             },
             onSearch: { [weak self] query in
                 self?.search(query) ?? []
@@ -159,6 +163,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onToggleFavorite: { [weak self] id in
                 self?.toggleFavorite(id)
+            },
+            onOpenSettings: { [weak self] in
+                guard let self else { return }
+                self.launcherPanel.dismiss()
+                self.openSettingsAction()
             },
             onHeightChange: { [weak self] height in
                 self?.launcherPanel.requestHeight(height)
