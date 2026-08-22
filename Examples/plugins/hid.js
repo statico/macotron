@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "HID",
+  title: "HID (USB) Example",
   description: "List keyboards, mice, and other input devices on this Mac.",
 });
 

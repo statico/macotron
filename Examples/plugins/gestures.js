@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "Gestures",
+  title: "Gesture Examples",
   description: "Swipe three fingers left or right to tile the focused window.",
   permissions: ["inputMonitoring", "accessibility"],
 });

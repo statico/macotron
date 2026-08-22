@@ -1,5 +1,5 @@
 macotron.plugin({
-    title: "Notes",
+    title: "Notes Search",
     description: "Search Apple Notes from the launcher.",
 });
 

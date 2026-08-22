@@ -1,5 +1,5 @@
 const opts = macotron.plugin({
-    title: "System Metrics",
+    title: "System Metrics Example",
     description: "Show CPU and GPU usage in the menu bar.",
     options: {
         colorize: {

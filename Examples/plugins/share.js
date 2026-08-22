@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "Share",
+  title: "Share Commands",
   description: "Share clipboard text or a file with the share sheet or AirDrop.",
 });
 

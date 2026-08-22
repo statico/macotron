@@ -1,5 +1,5 @@
 macotron.plugin({
-    title: "Contacts",
+    title: "Contacts Search",
     description: "Search your contacts from the launcher.",
 });
 

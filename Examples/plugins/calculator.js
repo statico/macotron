@@ -1,8 +1,8 @@
 // APIs: command, panel
 
 macotron.plugin({
-  title: "Calculator",
-  description: "Type an expression and see the result as you type.",
+    title: "Calculator Example",
+    description: "Type an expression and see the result as you type.",
 });
 
 macotron.command("Calculator", "Evaluate an expression as you type", () => {

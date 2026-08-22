@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "Lock Screen",
+  title: "Lock Screen Command",
   description: "Lock this Mac from the launcher.",
 });
 

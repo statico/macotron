@@ -1,8 +1,8 @@
 macotron.plugin({
-  title: "Fan",
-  description: "Show fan speed in the menu bar, and keep fans from running slower than a set speed.",
-  permissions: ["helper"],
-  help: "Click the fan icon in the menu bar to keep fans at least 50% or 100% speed, or return control to macOS.\n\nFan speed always shows. Setting a minimum speed needs the Macotron background helper — use Install on this page.",
+    title: "Fan Control Menu",
+    description: "Show fan speed in the menu bar, and keep fans from running slower than a set speed.",
+    permissions: ["helper"],
+    help: "Click the fan icon in the menu bar to keep fans at least 50% or 100% speed, or return control to macOS.\n\nFan speed always shows. Setting a minimum speed needs the Macotron background helper — use Install on this page.",
 });
 
 function snapshot() {

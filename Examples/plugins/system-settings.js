@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "System Settings",
+  title: "System Settings Search",
   description: "Open System Settings panes from the launcher.",
 });
 

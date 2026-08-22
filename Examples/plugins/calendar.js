@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "Calendar",
+  title: "Upcoming Events Example",
   description: "Show your upcoming calendar events.",
 });
 

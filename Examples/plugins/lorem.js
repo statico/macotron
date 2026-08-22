@@ -1,6 +1,6 @@
 macotron.plugin({
-  title: "Lorem Ipsum",
-  description: "Copy placeholder text to the clipboard.",
+    title: "Lorem Ipsum Generator",
+    description: "Copy placeholder text to the clipboard.",
 });
 
 const WORDS = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua".split(" ");

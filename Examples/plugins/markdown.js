@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "Markdown",
+  title: "Markdown Preview",
   description: "Preview Markdown from the clipboard in a panel.",
 });
 

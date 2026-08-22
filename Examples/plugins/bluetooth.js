@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "Bluetooth",
+  title: "Bluetooth Device Levels",
   description: "Show battery levels for paired Bluetooth devices in the menu bar.",
 });
 

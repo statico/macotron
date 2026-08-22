@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "Eject",
+  title: "Eject Disks from Menu Bar",
   description: "Eject disks from the menu bar, and empty the Trash.",
 });
 
@@ -19,9 +19,9 @@ function paint() {
   const names = userVolumes(macotron.fs.list("/Volumes"));
   const menu = names.length
     ? names.map((name) => ({
-        title: "Eject " + name,
-        onClick: () => macotron.shell.run("/usr/sbin/diskutil", ["eject", "/Volumes/" + name]),
-      }))
+      title: "Eject " + name,
+      onClick: () => macotron.shell.run("/usr/sbin/diskutil", ["eject", "/Volumes/" + name]),
+    }))
     : [{ title: "No volumes" }];
   menu.push({ title: "Empty Trash", onClick: emptyTrash });
   macotron.menubar.status("eject", {

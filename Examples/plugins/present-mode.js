@@ -1,8 +1,8 @@
 // APIs: command, shell.run, notify
 
 macotron.plugin({
-  title: "Present Mode",
-  description: "Hide desktop icons while you present or share your screen.",
+    title: "Presenter Mode",
+    description: "Hide desktop icons while you present or share your screen.",
 });
 
 let presenting = false;

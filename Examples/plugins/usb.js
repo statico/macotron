@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "USB",
+  title: "USB Watcher Example",
   description: "Announce when a USB device is plugged in, and list attached devices.",
 });
 

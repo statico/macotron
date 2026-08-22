@@ -1,8 +1,8 @@
 // APIs: macotron.power, macotron.menubar, macotron.notify.show, macotron.command
 
 macotron.plugin({
-  title: "Stay Awake",
-  description: "Keep this Mac awake from the menu bar.",
+    title: "Stay Awake Toggle",
+    description: "Keep this Mac awake from the menu bar.",
 });
 
 const DURATIONS = [

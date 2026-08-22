@@ -1,5 +1,5 @@
 macotron.plugin({
-    title: "Icon Rainbow",
+    title: "Icon Rainbow Example",
     description: "Cycle the Macotron menu bar icon through rainbow colors.",
 });
 

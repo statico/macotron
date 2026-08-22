@@ -1,7 +1,7 @@
 // APIs: url.open, command
 macotron.plugin({
-  title: "Safari",
-  description: "Open GitHub in Safari.",
+  title: "Open GitHub in Safari",
+  description: "Open all GitHub links in Safari.",
 });
 
 macotron.command("Open GitHub in Safari", "Open github.com in Safari", () => {
