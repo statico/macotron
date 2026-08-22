@@ -13,10 +13,12 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     private var floor: Int?
     private var modeKey = "F0Md"
     private var timer: DispatchSourceTimer?
+    private var forced: Set<Int> = []
 
     func setFanFloor(_ percent: Int, reply: @escaping (String?) -> Void) {
         lock.lock()
         floor = min(100, max(1, percent))
+        log.info("setFanFloor \(self.floor ?? 0, privacy: .public)%")
         let error = apply()
         startTimer(error == nil)
         lock.unlock()
@@ -25,6 +27,7 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
 
     func restoreFans(reply: @escaping (String?) -> Void) {
         lock.lock()
+        log.info("restoreFans")
         floor = nil
         startTimer(false)
         let error = apply()
@@ -35,6 +38,7 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     func restoreForFailsafe() {
         lock.lock()
         defer { lock.unlock() }
+        log.info("failsafe: last client went away, releasing fans")
         floor = nil
         startTimer(false)
         if let error = apply() {
@@ -80,9 +84,18 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     private func applyFloor(_ percent: Int, fans: [FanInfo]) throws {
         for fan in fans {
             let floorRPM = FanFloor.rpm(percent: percent, min: fan.min, max: fan.max)
-            if percent >= 100 || fan.rpm + 80 < floorRPM {
+            // Once we force a fan its reported rpm is our own target, not what the
+            // system wants. Re-deciding from rpm therefore flips it back to auto on
+            // the very next tick, the fan coasts down, and we force it again: the
+            // audible spin up/down. Stay forced until the floor is lifted.
+            let force = percent >= 100 || forced.contains(fan.index) || fan.rpm + 80 < floorRPM
+            log.info(
+                "fan \(fan.index, privacy: .public) rpm=\(Int(fan.rpm), privacy: .public) target=\(Int(floorRPM), privacy: .public) \(force ? "force" : "auto", privacy: .public)"
+            )
+            if force {
                 try unlock(fan.index)
                 try smc.writeRPM(key(fan.index, "Tg"), floorRPM)
+                forced.insert(fan.index)
             } else {
                 try writeMode(fan.index, 0)
             }
@@ -90,6 +103,7 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     }
 
     private func restoreAuto(count: Int) throws {
+        forced.removeAll()
         for index in 0..<count {
             try writeMode(index, 0)
         }
@@ -174,7 +188,9 @@ final class HelperListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked 
         }
         lock.lock()
         connectionCount += 1
+        let count = connectionCount
         lock.unlock()
+        log.info("client \(connection.processIdentifier, privacy: .public) connected, \(count, privacy: .public) open")
         connection.resume()
         return true
     }
@@ -230,6 +246,7 @@ final class HelperListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked 
     private func connectionInvalidated() {
         lock.lock()
         connectionCount = max(0, connectionCount - 1)
+        log.info("client disconnected, \(self.connectionCount, privacy: .public) open")
         if connectionCount == 0 {
             service.restoreForFailsafe()
         }
