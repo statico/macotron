@@ -22,20 +22,22 @@ brew install statico/tap/macotron
 - A **Developer ID Application** certificate in the login keychain. Without it
   `make release` refuses to package, because an unsigned DMG downloads fine and
   then tells the user the app is damaged.
-- A notary profile, so `xcrun notarytool` can submit without a prompt:
+- A notary profile named `personal-notary`, so `xcrun notarytool` can submit
+  without a prompt. The key authorizes the team, TA59XVWN77, so the same
+  profile notarizes every app signed with that Developer ID. Make one in App
+  Store Connect under Users and Access > Integrations > App Store Connect API,
+  with the Developer role, then keep the `.p8` somewhere permanent, because
+  the profile reads the file every time:
 
   ```sh
-  xcrun notarytool store-credentials macotron-notary \
-    --apple-id you@example.com --team-id TEAMID --password APP-SPECIFIC-PASSWORD
+  xcrun notarytool store-credentials personal-notary \
+    --key ~/private_keys/AuthKey_KEYID.p8 --key-id KEYID --issuer ISSUER-UUID
   ```
 
   Use another name with `NOTARY_PROFILE=...`. Without a profile `make release`
   refuses to package: a signed but unnotarized DMG downloads fine and then
   tells the user that Apple could not verify the app is free of malware. Pass
   `ALLOW_UNNOTARIZED=1` to build one anyway for local testing.
-
-  The team ID is `TA59XVWN77`, and the password is an app-specific password
-  from appleid.apple.com, not the Apple ID password.
 - `gh auth login`, and push access to statico/homebrew-tap.
 
 ## Pieces
