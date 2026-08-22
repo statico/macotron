@@ -35,7 +35,7 @@ SIGN_FLAGS = $(if $(findstring Developer ID,$(SIGN_IDENTITY)),--options runtime,
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run bundle check clean cleanprefs release scan
+.PHONY: help build run bundle check clean cleanprefs release scan trace
 
 ##@ General
 
@@ -92,6 +92,9 @@ run: bundle ## Bundle and launch (kills existing instance first)
 
 check: bundle ## Typecheck load plugins (ARGS='plugins/foo.js' optional)
 	$(BUNDLE)/Contents/MacOS/$(APP_NAME) --check $(ARGS)
+
+trace: ## Stream timings for slow interactive paths
+	log stream --style compact --predicate 'subsystem == "io.statico.macotron" AND (category == "perf" OR eventMessage BEGINSWITH "slow")'
 
 scan: ## Sweep built-in plugins + tmp/malware with the on-device scanner
 	swift run --build-path $(BUILD_DIR) PluginScan --runs $${SCAN_RUNS:-3} --concurrency $${SCAN_CONCURRENCY:-16} \

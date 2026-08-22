@@ -30,4 +30,25 @@ public final class StepTimer {
     }
 
     private static func ms(_ seconds: CFAbsoluteTime) -> Int { Int(seconds * 1000) }
+
+    /// Time one block and log it only when it blocks longer than `threshold`.
+    /// Cheap enough to leave on hot interactive paths: two clock reads.
+    @discardableResult
+    public static func measure<T>(
+        _ label: @autoclosure () -> String,
+        category: String = "perf",
+        threshold: TimeInterval = 0.02,
+        _ body: () throws -> T
+    ) rethrows -> T {
+        let start = CFAbsoluteTimeGetCurrent()
+        defer {
+            let elapsed = CFAbsoluteTimeGetCurrent() - start
+            if elapsed >= threshold {
+                let text = label()
+                Logger(subsystem: "io.statico.macotron", category: category)
+                    .info("slow \(text, privacy: .public) \(ms(elapsed))ms")
+            }
+        }
+        return try body()
+    }
 }

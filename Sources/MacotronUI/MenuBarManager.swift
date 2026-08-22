@@ -284,6 +284,10 @@ public final class MenuBarManager: NSObject {
     }
 
     private func rebuildMenu() {
+        StepTimer.measure("rebuildMenu") { rebuildMenuBody() }
+    }
+
+    private func rebuildMenuBody() {
         menu.removeAllItems()
 
         pluginMenuBoxes.removeAll()
@@ -479,6 +483,6 @@ public final class MenuBarManager: NSObject {
 
 extension MenuBarManager: NSMenuDelegate {
     public func menuNeedsUpdate(_ menu: NSMenu) {
-        onMenuWillOpen?()
+        StepTimer.measure("menuNeedsUpdate") { onMenuWillOpen?() }
     }
 }

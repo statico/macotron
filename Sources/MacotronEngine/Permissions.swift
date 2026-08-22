@@ -193,7 +193,9 @@ public enum Permissions {
     }
 
     public static func missing(from required: [Permission]) -> [Permission] {
-        required.filter { !$0.isGranted }
+        required.filter { permission in
+            !StepTimer.measure("permission \(permission)") { permission.isGranted }
+        }
     }
 
     /// Ask for every required permission that is still missing. macOS only shows
