@@ -49,6 +49,79 @@ private final class CPUTicks: @unchecked Sendable {
     }
 }
 
+/// Per-core load split by core type. Apple Silicon enumerates the efficiency
+/// cluster first, so the last `hw.perflevel0.logicalcpu` cores are the
+/// performance ones; Intel reports a single perf level and lands all in
+/// `performance`.
+enum CoreTopology {
+    static func count(_ name: String) -> Int {
+        var value: Int = 0
+        var size = MemoryLayout<Int>.size
+        guard sysctlbyname(name, &value, &size, nil, 0) == 0 else { return 0 }
+        return value
+    }
+
+    /// (efficiency, performance) logical core counts.
+    static let split: (efficiency: Int, performance: Int) = {
+        let total = count("hw.logicalcpu")
+        let performance = count("hw.perflevel0.logicalcpu")
+        guard count("hw.nperflevels") > 1, performance > 0, performance < total else {
+            return (0, total)
+        }
+        return (total - performance, performance)
+    }()
+}
+
+private final class CoreTicks: @unchecked Sendable {
+    static let shared = CoreTicks()
+    private let lock = NSLock()
+    private var prev: [[Double]]?
+
+    /// Busy percent for the efficiency and performance clusters.
+    func usage() -> (efficiency: Double, performance: Double) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let now = Self.sample() else { return (0, 0) }
+        let last = prev
+        prev = now
+        guard let last, last.count == now.count else { return (0, 0) }
+
+        let eCount = min(CoreTopology.split.efficiency, now.count)
+        func busy(_ range: Range<Int>) -> Double {
+            var used = 0.0, total = 0.0
+            for i in range {
+                let delta = zip(now[i], last[i]).map(-)
+                let sum = delta.reduce(0, +)
+                guard sum > 0 else { continue }
+                total += sum
+                used += sum - delta[Int(CPU_STATE_IDLE)]
+            }
+            return total > 0 ? used / total * 100 : 0
+        }
+        return (busy(0..<eCount), busy(eCount..<now.count))
+    }
+
+    /// Raw tick counters, one row per logical core.
+    private static func sample() -> [[Double]]? {
+        var cores: natural_t = 0
+        var info: processor_info_array_t?
+        var infoCount: mach_msg_type_number_t = 0
+        guard host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO, &cores, &info, &infoCount) == KERN_SUCCESS,
+              let info else { return nil }
+        defer {
+            vm_deallocate(
+                mach_task_self_,
+                vm_address_t(bitPattern: info),
+                vm_size_t(infoCount) * vm_size_t(MemoryLayout<integer_t>.stride)
+            )
+        }
+        let states = Int(CPU_STATE_MAX)
+        return (0..<Int(cores)).map { core in
+            (0..<states).map { Double(info[core * states + $0]) }
+        }
+    }
+}
+
 enum BatteryStatus {
     static func snapshot(_ sources: [[String: Any]]) -> [String: Any] {
         var level: Double = -1
@@ -226,6 +299,7 @@ public final class SystemModule: NativeModule {
         let systemObj = JS_NewObject(ctx)
 
         _ = CPUTicks.shared.usage()
+        _ = CoreTicks.shared.usage()
 
         JS_SetPropertyStr(ctx, systemObj, "cpuTemp",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
@@ -236,7 +310,14 @@ public final class SystemModule: NativeModule {
         JS_SetPropertyStr(ctx, systemObj, "cpu",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
-            return JSBridge.newObject(ctx, ["usage": CPUTicks.shared.usage()])
+            let cores = CoreTicks.shared.usage()
+            return JSBridge.newObject(ctx, [
+                "usage": CPUTicks.shared.usage(),
+                "efficiency": cores.efficiency,
+                "performance": cores.performance,
+                "efficiencyCores": Double(CoreTopology.split.efficiency),
+                "performanceCores": Double(CoreTopology.split.performance),
+            ])
         }, "cpu", 0))
 
         JS_SetPropertyStr(ctx, systemObj, "locale",
