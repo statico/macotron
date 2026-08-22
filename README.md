@@ -8,7 +8,7 @@ Tile windows, bind hotkeys, drive the menu bar, read sensors, capture the screen
 
 Free and open source. Built with Swift and QuickJS.
 
-- [Download for macOS](https://github.com/statico/macotron/releases/latest)
+- [Download for macOS](https://github.com/statico/macotron/releases/latest), or `brew install statico/tap/macotron`
 - [Homepage](https://macotron.statico.io/)
 - [Source](https://github.com/statico/macotron)
 
