@@ -23,7 +23,7 @@ cask "macotron" do
 
   url "https://github.com/statico/macotron/releases/download/v#{version}/Macotron-#{version}.dmg"
   name "Macotron"
-  desc "Scriptable macOS automation with JavaScript plugins"
+  desc "Customization and automation with a launch bar, hotkeys, and menu bar items"
   homepage "https://macotron.statico.io/"
 
   livecheck do
