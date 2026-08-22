@@ -146,7 +146,7 @@ public enum SettingsTab: Int, CaseIterable {
 
 @MainActor
 public final class SettingsState: ObservableObject {
-    @Published public var launcherHotkey: String = "cmd+space"
+    @Published public var launcherHotkey: String = "opt+space"
     @Published public var showHotkeysHotkey: String = ""
     @Published public var showDockIcon: Bool = true
     @Published public var showMenuBarIcon: Bool = true
@@ -214,7 +214,7 @@ public final class SettingsState: ObservableObject {
     public init() {}
 
     public func load() {
-        launcherHotkey = readHotkey?() ?? "cmd+space"
+        launcherHotkey = readHotkey?() ?? "opt+space"
         showHotkeysHotkey = readShowHotkeysHotkey?() ?? ""
         showDockIcon = readShowDockIcon?() ?? true
         showMenuBarIcon = readShowMenuBarIcon?() ?? true

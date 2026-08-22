@@ -41,8 +41,8 @@ public final class MenuBarManager: NSObject {
     /// Items registered by JS plugins, keyed by ID
     private var dynamicItems: [(id: String, config: MenuItemConfig)] = []
 
-    /// Current launcher shortcut combo string (e.g. "cmd+space"), used for menu display
-    private var launcherShortcut: String = "cmd+space"
+    /// Current launcher shortcut combo string (e.g. "opt+space"), used for menu display
+    private var launcherShortcut: String = "opt+space"
 
     /// SF Symbol set by a JS plugin, or nil to use the Macotron glyph.
     /// Redrawn when the permission warning changes.

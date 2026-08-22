@@ -402,7 +402,7 @@ public final class PluginWorkspace {
     // MARK: - Defaults & templates
 
     public static let defaultSettings: [String: Any] = [
-        "launcher": ["hotkey": "cmd+space"],
+        "launcher": ["hotkey": "opt+space"],
         "ui": [
             "showDockIcon": true,
             "showMenuBarIcon": true,
@@ -641,7 +641,7 @@ public final class PluginWorkspace {
 
         ```json
         {
-          "launcher": { "hotkey": "cmd+space" },
+          "launcher": { "hotkey": "opt+space" },
           "ui": {
             "showDockIcon": true,
             "showMenuBarIcon": true,
