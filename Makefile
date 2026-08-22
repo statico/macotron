@@ -1,15 +1,23 @@
 APP_NAME = Macotron
 BUILD_DIR = /tmp/macotron-build
 BUNDLE = $(HOME)/Applications/$(APP_NAME).app
-BINARY = $(BUILD_DIR)/debug/$(APP_NAME)
 BUNDLE_ID = io.statico.macotron
+CONFIG ?= debug
+BINARY = $(BUILD_DIR)/$(CONFIG)/$(APP_NAME)
+
+# Releases are built here, not in CI, so the Developer ID key never leaves this
+# Mac. VERSION defaults to the newest tag so `make release` can rebuild what was
+# last shipped; `make publish VERSION=x.y.z` is what cuts a new one.
+VERSION ?= $(shell git tag --list 'v*' --sort=-v:refname | head -1 | sed 's/^v//')
+DMG = $(BUILD_DIR)/$(APP_NAME)-$(VERSION).dmg
+NOTARY_PROFILE ?= macotron-notary
 
 # Root helper for privileged work such as fan-speed writes. SMAppService loads it
 # from inside the bundle, so the plist must use BundleProgram and the helper must
 # be signed before the outer bundle is sealed.
 HELPER_NAME = MacotronHelper
 HELPER_LABEL = $(BUNDLE_ID).helper
-HELPER_BINARY = $(BUILD_DIR)/debug/$(HELPER_NAME)
+HELPER_BINARY = $(BUILD_DIR)/$(CONFIG)/$(HELPER_NAME)
 
 # Stable signing keeps a fixed CDHash, so macOS permissions persist across builds.
 # Prefer a Developer ID, which is the only identity that satisfies SMAppService:
@@ -35,7 +43,7 @@ SIGN_FLAGS = $(if $(findstring Developer ID,$(SIGN_IDENTITY)),--options runtime,
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run bundle check clean cleanprefs release scan trace
+.PHONY: help build run bundle check clean cleanprefs release publish tap scan trace
 
 ##@ General
 
@@ -47,7 +55,7 @@ help: ## Show this help
 ##@ Build
 
 build: ## Compile the debug binary
-	swift build --build-path $(BUILD_DIR)
+	swift build -c $(CONFIG) --build-path $(BUILD_DIR)
 
 bundle: build ## Create ~/Applications/Macotron.app
 	@mkdir -p "$(BUNDLE)/Contents/MacOS"
@@ -57,6 +65,10 @@ bundle: build ## Create ~/Applications/Macotron.app
 	@cp $(HELPER_BINARY) "$(BUNDLE)/Contents/MacOS/$(HELPER_NAME)"
 	@cp Resources/$(HELPER_LABEL).plist "$(BUNDLE)/Contents/Library/LaunchDaemons/"
 	@cp Resources/Info.plist "$(BUNDLE)/Contents/"
+	@if [ -n "$(VERSION)" ]; then \
+		/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" \
+			-c "Set :CFBundleVersion $(VERSION)" "$(BUNDLE)/Contents/Info.plist"; \
+	fi
 	@cp Sources/Macotron/Resources/macotron-runtime.js "$(BUNDLE)/Contents/Resources/"
 	@cp Sources/Macotron/Resources/macotron.d.ts "$(BUNDLE)/Contents/Resources/"
 	@xcrun actool $(CURDIR)/Resources/$(APP_NAME).icon --compile "$(BUNDLE)/Contents/Resources" \
@@ -100,9 +112,52 @@ scan: ## Sweep built-in plugins + tmp/malware with the on-device scanner
 	swift run --build-path $(BUILD_DIR) PluginScan --runs $${SCAN_RUNS:-3} --concurrency $${SCAN_CONCURRENCY:-16} \
 		Examples/plugins --fail tmp/malware --out tmp/scan-sweep.jsonl $(ARGS)
 
-release: ## Compile a release binary
-	swift build -c release --build-path $(BUILD_DIR)
-	@echo "TODO: bundle, sign with Developer ID, notarize, create DMG"
+release: ## Build a signed, notarized DMG (VERSION=x.y.z)
+	@test -n "$(VERSION)" || { echo "No tag yet: pass VERSION=x.y.z"; exit 1; }
+	@$(MAKE) CONFIG=release VERSION=$(VERSION) bundle
+	@codesign -dvv "$(BUNDLE)" 2>&1 | grep -q "Authority=Developer ID" || \
+		{ echo "Refusing to package: not signed with a Developer ID."; exit 1; }
+	@rm -rf $(BUILD_DIR)/dmg && mkdir -p $(BUILD_DIR)/dmg
+	@cp -R "$(BUNDLE)" $(BUILD_DIR)/dmg/
+	@ln -s /Applications $(BUILD_DIR)/dmg/Applications
+	@rm -f "$(DMG)"
+	@hdiutil create -quiet -volname "$(APP_NAME) $(VERSION)" \
+		-srcfolder $(BUILD_DIR)/dmg -ov -format UDZO "$(DMG)"
+	@codesign --force --sign "$(SIGN_IDENTITY)" "$(DMG)"
+	@if xcrun notarytool history --keychain-profile "$(NOTARY_PROFILE)" >/dev/null 2>&1; then \
+		xcrun notarytool submit "$(DMG)" --keychain-profile "$(NOTARY_PROFILE)" --wait && \
+		xcrun stapler staple "$(DMG)"; \
+	else \
+		printf '\033[33mWarning: no notary profile "$(NOTARY_PROFILE)", so the DMG is\033[0m\n'; \
+		printf '\033[33msigned but not notarized and Gatekeeper will block it.\033[0m\n'; \
+		printf '\033[33mSee docs/releasing.md to create one.\033[0m\n'; \
+	fi
+	@echo "Built $(DMG)"
+
+tap: ## Re-point the Homebrew cask at VERSION (publish does this already)
+	@test -n "$(VERSION)" || { echo "usage: make tap VERSION=x.y.z"; exit 1; }
+	scripts/update-tap.sh $(VERSION) "$(DMG)"
+
+publish: ## Tag, build, and ship a release + Homebrew cask (VERSION=x.y.z)
+	@test -n "$(VERSION)" || { echo "usage: make publish VERSION=x.y.z"; exit 1; }
+	@git diff --quiet HEAD || { echo "Working tree is dirty."; exit 1; }
+	@git tag --list 'v$(VERSION)' | grep -q . && \
+		{ echo "v$(VERSION) already exists."; exit 1; } || true
+	@mkdir -p $(BUILD_DIR)
+	@prev=$$(git tag --list 'v*' --sort=-v:refname | head -1); \
+		if [ -n "$$prev" ]; then \
+			git log --reverse --no-merges --pretty='- %s' $$prev..HEAD \
+				> $(BUILD_DIR)/notes.md; \
+		else \
+			echo "First release." > $(BUILD_DIR)/notes.md; \
+		fi
+	@echo "Release notes:"; sed 's/^/  /' $(BUILD_DIR)/notes.md
+	@$(MAKE) VERSION=$(VERSION) release
+	git tag -a v$(VERSION) -m "$(APP_NAME) $(VERSION)"
+	git push origin HEAD v$(VERSION)
+	gh release create v$(VERSION) "$(DMG)" --title "$(APP_NAME) $(VERSION)" \
+		--notes-file $(BUILD_DIR)/notes.md
+	scripts/update-tap.sh $(VERSION) "$(DMG)"
 
 ##@ Maintenance
 
