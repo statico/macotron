@@ -1,7 +1,7 @@
 # Macotron does everything.
 
 <p align="center">
-  <img src="Resources/banner.png" alt="Macotron" width="600">
+  <img src="site/icon.png" alt="Macotron" width="128" height="128">
 </p>
 
 Tile windows, bind hotkeys, drive the menu bar, read sensors, capture the screen, talk to models. From small JavaScript files that reload when you save them.
