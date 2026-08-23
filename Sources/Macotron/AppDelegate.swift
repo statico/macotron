@@ -1279,7 +1279,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        results.append(contentsOf: appSearchProvider.matching(q, limit: 20).map { app in
+        let apps = StepTimer.measure("search apps", threshold: 0.005) {
+            appSearchProvider.matching(q, limit: 20)
+        }
+        results.append(contentsOf: apps.map { app in
             SearchResult(
                 id: app.bundleID,
                 title: app.name,
@@ -1305,19 +1308,23 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        results.sort { r1, r2 in
-            let s1 = FuzzyMatch.best(query: q, targets: [r1.title, r1.subtitle]) ?? 0
-            let s2 = FuzzyMatch.best(query: q, targets: [r2.title, r2.subtitle]) ?? 0
-            if s1 != s2 { return s1 > s2 }
-            let action: (SearchResult.ResultType) -> Bool = { $0 == .command || $0 == .plugin }
-            if action(r1.type) && !action(r2.type) { return true }
-            return false
-        }
+        // Score once per result rather than twice per comparison: sorting
+        // otherwise re-runs the matcher O(n log n) times on every keystroke.
+        let action: (SearchResult.ResultType) -> Bool = { $0 == .command || $0 == .plugin }
+        results = results
+            .map { ($0, FuzzyMatch.best(query: q, targets: [$0.title, $0.subtitle]) ?? 0) }
+            .sorted { a, b in
+                if a.1 != b.1 { return a.1 > b.1 }
+                return action(a.0.type) && !action(b.0.type)
+            }
+            .map(\.0)
 
         // Live providers answer the query itself rather than matching a name, so
         // they skip fuzzy ranking and lead. A calculator result belongs above a
         // list of apps that happen to share a letter with the sum.
-        let live = (launcherModule?.liveHits(query: q) ?? []).map { hit in
+        let live = StepTimer.measure("search live providers", threshold: 0.005) {
+            launcherModule?.liveHits(query: q) ?? []
+        }.map { hit in
             SearchResult(
                 id: hit.id,
                 title: hit.title,

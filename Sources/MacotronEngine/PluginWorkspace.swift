@@ -14,6 +14,10 @@ public final class PluginWorkspace {
     public var cacheDir: URL { root.appending(path: ".cache") }
     public var settingsFile: URL { root.appending(path: "settings.json") }
 
+    /// Parsed settings.json, keyed by the file's modification date and size so
+    /// an external edit still wins. Search reads settings on every keystroke.
+    private var settingsCache: (stamp: [AnyHashable: Any], value: [String: Any])?
+
     public init(root: URL) {
         self.root = root
     }
@@ -373,7 +377,18 @@ public final class PluginWorkspace {
     // MARK: - Settings
 
     public func readSettings() -> [String: Any] {
-        StepTimer.measure("readSettings") { readSettingsUncached() }
+        let stamp = (try? FileManager.default.attributesOfItem(
+            atPath: settingsFile.path(percentEncoded: false)
+        )) ?? [:]
+        if let cached = settingsCache,
+           cached.stamp[FileAttributeKey.modificationDate] as? Date
+               == stamp[FileAttributeKey.modificationDate] as? Date,
+           cached.stamp[FileAttributeKey.size] as? Int == stamp[FileAttributeKey.size] as? Int {
+            return cached.value
+        }
+        let value = StepTimer.measure("readSettings") { readSettingsUncached() }
+        settingsCache = (stamp, value)
+        return value
     }
 
     private func readSettingsUncached() -> [String: Any] {
@@ -391,6 +406,7 @@ public final class PluginWorkspace {
             options: [.prettyPrinted, .sortedKeys]
         )
         try data.write(to: settingsFile, options: .atomic)
+        settingsCache = nil
     }
 
     public func updateSettings(_ mutate: (inout [String: Any]) -> Void) throws {
