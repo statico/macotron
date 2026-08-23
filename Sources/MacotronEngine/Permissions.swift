@@ -64,6 +64,18 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         }
     }
 
+    /// A TCC request only registers the app in the System Settings list when a
+    /// capture device of that kind exists. A Mac with no camera can never turn
+    /// the Camera row green, so Macotron must not ask for it at all.
+    @MainActor
+    public var isAvailable: Bool {
+        switch self {
+        case .camera: return AVCaptureDevice.default(for: .video) != nil
+        case .microphone: return AVCaptureDevice.default(for: .audio) != nil
+        default: return true
+        }
+    }
+
     /// Title of the row action. The background helper installs a daemon instead of
     /// asking macOS for access, so it does not read as granting anything.
     public var actionTitle: String {
@@ -189,7 +201,9 @@ public enum Permissions {
     /// Baseline plus whatever the loaded plugins declared, in a stable order.
     public static func required(declaredBy plugins: Set<String>) -> [Permission] {
         let declared = plugins.compactMap(parse)
-        return Permission.allCases.filter { baseline.contains($0) || declared.contains($0) }
+        return Permission.allCases
+            .filter { baseline.contains($0) || declared.contains($0) }
+            .filter(\.isAvailable)
     }
 
     public static func missing(from required: [Permission]) -> [Permission] {

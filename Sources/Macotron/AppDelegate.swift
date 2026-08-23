@@ -58,8 +58,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let wizardDone = UserDefaults.standard.bool(forKey: AppDelegate.wizardCompletedKey)
         if !wizardDone || PluginWorkspace.resolveFromDefaults() == nil {
             showSetupWizard()
-        } else if Permissions.missing(from: requiredPermissions()).contains(where: \.isAutoRequestable) {
-            showPermissionsWizard()
+        } else {
+            nagAboutPermissionsIfStillMissing()
         }
 
         didFinishLaunching = true
@@ -543,6 +543,22 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         wizardState.startFullSetup()
         configureWizard()
         presentWizard()
+    }
+
+    /// AXIsProcessTrusted answers false for a moment after a login-item launch,
+    /// before TCC has this process registered, so a check at t=0 puts the wizard
+    /// on screen for a permission that is already granted. Ask a few times and
+    /// only nag if it is still missing.
+    private func nagAboutPermissionsIfStillMissing(attempt: Int = 0) {
+        guard Permissions.missing(from: requiredPermissions())
+            .contains(where: \.isAutoRequestable) else { return }
+        guard attempt >= 2 else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                self?.nagAboutPermissionsIfStillMissing(attempt: attempt + 1)
+            }
+            return
+        }
+        showPermissionsWizard()
     }
 
     /// Shown at startup when setup is done but macOS permissions are missing.
