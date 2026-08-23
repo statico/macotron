@@ -247,10 +247,22 @@ final class HelperListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked 
         lock.lock()
         connectionCount = max(0, connectionCount - 1)
         log.info("client disconnected, \(self.connectionCount, privacy: .public) open")
-        if connectionCount == 0 {
+        let idle = connectionCount == 0
+        if idle {
             service.restoreForFailsafe()
         }
         lock.unlock()
+        // Exit when nobody is left. launchd starts us on demand, so staying
+        // resident means an updated app keeps talking to the daemon it shipped
+        // with weeks ago -- the fan bug fixed in the app is still live in here.
+        guard idle else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            guard let self else { return }
+            lock.lock()
+            let stillIdle = connectionCount == 0
+            lock.unlock()
+            if stillIdle { exit(0) }
+        }
     }
 }
 

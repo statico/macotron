@@ -69,6 +69,12 @@ final class FanController: @unchecked Sendable {
             error = call { $0.restoreFans(reply: $1) }
         }
 
+        // Let go of the daemon once nothing is held, so it can exit and the
+        // next call starts whatever helper the current app ships.
+        if requestedFloor == nil, error == nil {
+            dropConnection()
+        }
+
         lock.lock()
         if error == nil {
             floor = requestedFloor

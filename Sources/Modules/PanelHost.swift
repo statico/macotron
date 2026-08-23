@@ -340,10 +340,11 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
                 view.style = glass == .clear ? .clear : .regular
                 view.contentView = webView
                 view.autoresizingMask = [.width, .height]
-                if radius > 0 {
-                    view.cornerRadius = radius
-                    view.clipsToBounds = true
-                }
+                // Glass rounds itself by default, which inside a titled window
+                // leaves the corners cut away from the frame. Square it off and
+                // let the window shape the edges.
+                view.cornerRadius = radius
+                view.clipsToBounds = radius > 0
                 return view
             }
             return Self.roundedVisual(frame: frame, webView: webView, clear: glass == .clear, radius: radius)

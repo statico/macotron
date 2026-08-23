@@ -28,6 +28,16 @@ struct NotesListTests {
         ])
     }
 
+    @Test("parses one block per folder")
+    func parseFolders() {
+        let text = "Personal\nid-1\tid-2\nShopping\tIdeas\u{01}Work\nid-3\nPlan\u{01}Empty\n\n"
+        #expect(NotesList.parseFolders(text) == [
+            NoteRecord(id: "id-1", title: "Shopping", folder: "Personal"),
+            NoteRecord(id: "id-2", title: "Ideas", folder: "Personal"),
+            NoteRecord(id: "id-3", title: "Plan", folder: "Work"),
+        ])
+    }
+
     @Test("escapes AppleScript strings")
     func escape() {
         #expect(NotesList.escape("a\"b\\c") == "a\\\"b\\\\c")

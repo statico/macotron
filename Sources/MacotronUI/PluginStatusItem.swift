@@ -516,6 +516,7 @@ enum PluginMenu {
         return zip(menu.items, entries).allSatisfy { item, entry in
             if entry.isSeparator { return item.isSeparatorItem }
             if item.isSeparatorItem { return false }
+            if (entry.html != nil) != (item.view is MenuWebView) { return false }
             if entry.children.isEmpty {
                 return item.submenu == nil
             }
@@ -527,6 +528,10 @@ enum PluginMenu {
     private static func write(_ entries: [MenuBarEntry], onto menu: NSMenu, retaining boxes: inout [Action]) {
         for (item, entry) in zip(menu.items, entries) {
             if entry.isSeparator { continue }
+            if let html = entry.html, let view = item.view as? MenuWebView {
+                view.update(html: html, size: size(entry))
+                continue
+            }
             apply(title: entry.title, icon: entry.icon, to: item)
             if !entry.children.isEmpty, let submenu = item.submenu {
                 write(entry.children, onto: submenu, retaining: &boxes)
@@ -542,6 +547,12 @@ enum PluginMenu {
                 menu.addItem(.separator())
                 continue
             }
+            if let html = entry.html {
+                let row = NSMenuItem()
+                row.view = MenuWebView(html: html, size: size(entry))
+                menu.addItem(row)
+                continue
+            }
             let row = item(title: entry.title, icon: entry.icon)
             if !entry.children.isEmpty {
                 row.submenu = make(entry.children, retaining: &boxes)
@@ -550,6 +561,13 @@ enum PluginMenu {
             }
             menu.addItem(row)
         }
+    }
+
+    static func size(_ entry: MenuBarEntry) -> NSSize {
+        NSSize(
+            width: max(60, min(entry.size.width, 800)),
+            height: max(24, min(entry.size.height, 600))
+        )
     }
 
     private static func bind(_ entry: MenuBarEntry, to item: NSMenuItem, retaining boxes: inout [Action]) {

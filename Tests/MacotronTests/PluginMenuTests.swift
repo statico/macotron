@@ -33,6 +33,34 @@ struct PluginMenuTests {
         #expect(item.image == nil)
     }
 
+    /// The page would restart its animations and refetch its images on every
+    /// repaint if the row reloaded whenever the plugin redrew its menu.
+    @MainActor
+    @Test("a web row only reloads when its markup changes")
+    func webRowIsReused() {
+        var boxes: [PluginMenu.Action] = []
+        let menu = PluginMenu.make(
+            [MenuBarEntry(title: "", html: "<b>one</b>", width: 200, height: 100)],
+            retaining: &boxes
+        )
+        let view = menu.items.first?.view as? MenuWebView
+        #expect(view?.html == "<b>one</b>")
+        #expect(view?.frame.size == NSSize(width: 200, height: 100))
+
+        PluginMenu.sync(menu, to: [MenuBarEntry(title: "", html: "<b>one</b>")], retaining: &boxes)
+        #expect(menu.items.first?.view === view)
+        #expect(view?.html == "<b>one</b>")
+
+        PluginMenu.sync(menu, to: [MenuBarEntry(title: "", html: "<b>two</b>")], retaining: &boxes)
+        #expect(menu.items.first?.view === view)
+        #expect(view?.html == "<b>two</b>")
+
+        // Swapping a web row for a plain one has to rebuild the menu.
+        PluginMenu.sync(menu, to: [MenuBarEntry(title: "Plain")], retaining: &boxes)
+        #expect(menu.items.first?.view == nil)
+        #expect(menu.items.first?.title == "Plain")
+    }
+
     @Test("menu items keep working after the host drops its action list")
     func itemsRetainActions() {
         var ran = false

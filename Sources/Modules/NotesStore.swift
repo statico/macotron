@@ -22,23 +22,28 @@ enum NotesStore {
                 end repeat
             end repeat
 
-            set theOut to ""
-            repeat with aNote in notes
-                set folderName to ""
-                set folderID to ""
-                try
-                    set aContainer to container of aNote
-                    set folderName to name of aContainer
-                    set folderID to id of aContainer
-                end try
-                if trashIDs does not contain folderID then
-                    set theOut to theOut & (id of aNote) & tab & (name of aNote) & tab & folderName & linefeed
+            -- Asking each note for its own id, name and container is three
+            -- Apple Events per note, which is minutes of round trips once a
+            -- library runs to thousands. Ask each folder for all of its notes
+            -- at once instead: a handful of events whatever the note count.
+            set theOut to {}
+            repeat with aFolder in folders
+                if trashIDs does not contain (id of aFolder) then
+                    set theIDs to id of notes of aFolder
+                    set theNames to name of notes of aFolder
+                    set AppleScript's text item delimiters to tab
+                    set end of theOut to (name of aFolder) & linefeed & ¬
+                        (theIDs as text) & linefeed & (theNames as text)
+                    set AppleScript's text item delimiters to ""
                 end if
             end repeat
-            return theOut
+            set AppleScript's text item delimiters to (ASCII character 1)
+            set theText to theOut as text
+            set AppleScript's text item delimiters to ""
+            return theText
         end tell
         """
-        return NotesList.parse(run(source) ?? "")
+        return NotesList.parseFolders(run(source) ?? "")
     }
 
     static func open(_ id: String) {
