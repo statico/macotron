@@ -22,6 +22,8 @@ public struct SearchResult: Identifiable {
     public let shortcut: String
     public let kind: String
     public let isFavorite: Bool
+    /// Draws an orange warning badge in place of the favorite star.
+    public let warning: Bool
 
     public enum ResultType {
         case app
@@ -35,7 +37,8 @@ public struct SearchResult: Identifiable {
         commandArguments: [CommandArgumentSpec] = [],
         shortcut: String = "",
         kind: String = "",
-        isFavorite: Bool = false
+        isFavorite: Bool = false,
+        warning: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -46,6 +49,7 @@ public struct SearchResult: Identifiable {
         self.shortcut = shortcut
         self.kind = kind
         self.isFavorite = isFavorite
+        self.warning = warning
     }
 }
 
@@ -668,7 +672,11 @@ struct ResultRow: View {
                 Text(result.title)
                     .font(.system(size: 13 * textScale, weight: .medium))
                     .lineLimit(1)
-                if result.isFavorite {
+                if result.warning {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 9 * textScale))
+                        .foregroundStyle(.orange)
+                } else if result.isFavorite {
                     Image(systemName: "star.fill")
                         .font(.system(size: 9 * textScale))
                         .foregroundStyle(.yellow)

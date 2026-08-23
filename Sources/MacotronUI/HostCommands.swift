@@ -3,6 +3,9 @@ import Foundation
 public enum HostCommands {
     public static let showHotkeysID = "macotron.show-hotkeys"
     public static let openSettingsID = "macotron.settings"
+    /// Deliberately absent from `all`: the launcher only offers this row while a
+    /// required permission is actually missing.
+    public static let fixPermissionsID = "macotron.fix-permissions"
 
     public struct Definition: Equatable, Sendable {
         public let id: String
