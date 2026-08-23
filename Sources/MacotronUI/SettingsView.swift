@@ -96,6 +96,8 @@ public struct ModuleSummary: Identifiable {
     public let isEnabled: Bool
     public let commands: [PluginCommandSummary]
     public let permissions: [Permission]
+    /// Menu bar items this plugin asked for that the user has dragged out.
+    public let hiddenStatusItems: [String]
 
     public var needsSetup: Bool { options.contains { $0.needsSetup } }
     public var hasFailedChecks: Bool { checks.contains { !$0.ok } }
@@ -105,7 +107,7 @@ public struct ModuleSummary: Identifiable {
                 options: [ModuleOption] = [], events: [String] = [],
                 hotkeys: [PluginCommandSummary] = [], hasErrors: Bool = false, errorMessage: String? = nil,
                 isEnabled: Bool = true, commands: [PluginCommandSummary] = [],
-                permissions: [Permission] = []) {
+                permissions: [Permission] = [], hiddenStatusItems: [String] = []) {
         self.id = filename
         self.filename = filename
         self.title = title.isEmpty ? String(filename.dropLast(3)) : title
@@ -118,6 +120,7 @@ public struct ModuleSummary: Identifiable {
         self.hasErrors = hasErrors
         self.errorMessage = errorMessage
         self.isEnabled = isEnabled
+        self.hiddenStatusItems = hiddenStatusItems
         self.commands = commands
         self.permissions = permissions
     }
@@ -172,6 +175,7 @@ public final class SettingsState: ObservableObject {
     public var onScanCatalog: ((CatalogPlugin) -> Void)?
     public var onInstallCatalog: ((CatalogPlugin, Bool) -> Void)?
     public var onInstallAll: (([CatalogPlugin]) -> Void)?
+    public var restoreStatusItem: ((String) -> Void)?
     public var onReviewPending: (() -> Void)?
 
     /// Baseline permissions plus whatever the loaded plugins declared.
@@ -1064,6 +1068,7 @@ struct PluginDetailView: View {
                 if !summary.help.isEmpty { helpBox }
                 if !summary.permissions.isEmpty { permissionsSection }
                 if !summary.checks.isEmpty { checksSection }
+                if !summary.hiddenStatusItems.isEmpty { hiddenStatusSection }
 
                 if !summary.isEnabled {
                     disabledHint
@@ -1171,6 +1176,31 @@ struct PluginDetailView: View {
                     granted: state.grantedPermissions.contains(permission),
                     onChange: { state.refreshPermissions() }
                 )
+            }
+        }
+    }
+
+    /// Command-dragging an item out of the menu bar is easy to do by accident,
+    /// and macOS remembers it, so the item does not come back on its own.
+    private var hiddenStatusSection: some View {
+        pluginSection("Menu Bar") {
+            ForEach(summary.hiddenStatusItems, id: \.self) { id in
+                HStack(alignment: .center, spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.orange)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\u{201C}\(id)\u{201D} was removed from the menu bar")
+                            .font(.system(size: 12, weight: .medium))
+                        Text("Command-dragging an item out of the menu bar hides it for good.")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 8)
+                    Button("Restore") { state.restoreStatusItem?(id) }
+                        .controlSize(.small)
+                }
             }
         }
     }

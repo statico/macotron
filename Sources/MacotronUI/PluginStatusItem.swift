@@ -57,11 +57,32 @@ final class PluginStatusItem: NSObject {
     private var onClick: (() -> Void)?
     private var menuKeep: [PluginMenu.Action] = []
     private var dropdown: NSMenu?
+    private var visibility: NSKeyValueObservation?
+    private var removed = false
+
+    /// Command-dragging an item out of the menu bar sets `isVisible` false and
+    /// macOS remembers it, so the item stays gone across launches. Most plugins
+    /// mean their item to be there, so say so; `required: false` opts out.
+    var required = true
+    var onVisibilityChange: ((String, Bool) -> Void)?
+
+    var isVisible: Bool { item.isVisible }
+
+    func restore() {
+        item.isVisible = true
+    }
 
     init(id: String) {
         self.id = id
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
+        visibility = item.observe(\.isVisible, options: [.new]) { [weak self] item, _ in
+            let visible = item.isVisible
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.onVisibilityChange?(self.id, visible)
+            }
+        }
         guard let button = item.button else { return }
         button.title = ""
         button.image = nil
@@ -154,7 +175,7 @@ final class PluginStatusItem: NSObject {
         sfSymbol: String?, imagePath: String?, onClick: (() -> Void)?,
         menu: [MenuBarEntry]
     ) {
-        guard reapplyAttempts < 20 else { return }
+        guard reapplyAttempts < 20, item.isVisible else { return }
         reapplyAttempts += 1
         reapplyWork?.cancel()
         let work = DispatchWorkItem { [weak self] in
@@ -171,6 +192,12 @@ final class PluginStatusItem: NSObject {
 
     func remove() {
         reapplyWork?.cancel()
+        visibility?.invalidate()
+        visibility = nil
+        onVisibilityChange = nil
+        // Removing an item twice raises, and a reload can race a removal.
+        guard !removed else { return }
+        removed = true
         NSStatusBar.system.removeStatusItem(item)
     }
 

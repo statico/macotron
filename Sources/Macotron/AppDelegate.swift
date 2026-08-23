@@ -24,6 +24,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private let launcherSession = LauncherSession()
     private var keyboardModule: KeyboardModule?
     private var launcherModule: LauncherModule?
+    private var menuBarPluginModule: MenuBarModule?
     private var wizardWindow: WizardWindow?
     private let wizardState = WizardState()
     private var appSearchProvider: AppSearchProvider!
@@ -97,6 +98,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBarManager = MenuBarManager()
         menuBarManager.onReload = { [weak self] in
             self?.moduleManager.reloadAll()
+        }
+        menuBarManager.onHiddenStatusChange = { [weak self] _ in
+            self?.settingsState.refreshModules()
         }
         menuBarManager.onOpenConfig = { [weak self] in
             guard let self else { return }
@@ -312,6 +316,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         settingsState.onInstallCatalog = { [weak self] plugin, override in
             self?.installCatalogPlugin(plugin, override: override)
+        }
+        settingsState.restoreStatusItem = { [weak self] id in
+            self?.menuBarManager?.restoreStatus(id: id)
         }
         settingsState.onInstallAll = { [weak self] plugins in
             self?.installCatalogPlugins(plugins)
@@ -529,7 +536,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 commands: commands,
                 permissions: (meta["permissions"] as? [Any] ?? []).compactMap {
                     ($0 as? String).flatMap(Permissions.parse)
-                }
+                },
+                hiddenStatusItems: hiddenStatusItems(of: file.filename)
             ))
         }
 
@@ -764,6 +772,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshIntegrity()
     }
 
+    private func hiddenStatusItems(of filename: String) -> [String] {
+        let owners = menuBarPluginModule?.statusOwners ?? [:]
+        return (menuBarManager?.hiddenStatusIDs ?? [])
+            .filter { owners[$0] == filename }
+            .sorted()
+    }
+
     private func refreshIntegrity() {
         let pending = moduleManager?.pendingReview ?? []
         settingsState.pendingReview = pending.sorted()
@@ -951,6 +966,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let menuBarModule = MenuBarModule()
         menuBarModule.delegate = menuBarManager
+        menuBarPluginModule = menuBarModule
         engine.addModule(menuBarModule)
 
         engine.addModule(URLSchemeModule())
@@ -1361,11 +1377,12 @@ extension MenuBarManager: MenuBarModuleDelegate {
         sfSymbol: String?,
         imagePath: String?,
         onClick: (() -> Void)?,
-        menu: [MenuBarEntry]
+        menu: [MenuBarEntry],
+        required: Bool
     ) {
         setStatus(
             id: id, title: title, subtitle: subtitle, color: color, subtitleColor: subtitleColor,
-            bold: bold, italic: italic, secondary: secondary, minWidth: minWidth, sfSymbol: sfSymbol, imagePath: imagePath, onClick: onClick, menu: menu
+            bold: bold, italic: italic, secondary: secondary, minWidth: minWidth, sfSymbol: sfSymbol, imagePath: imagePath, onClick: onClick, menu: menu, required: required
         )
     }
 

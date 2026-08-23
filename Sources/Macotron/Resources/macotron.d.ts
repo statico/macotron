@@ -701,6 +701,12 @@ declare const macotron: {
                 sfSymbol?: string;
                 icon?: string;
                 image?: string;
+                /**
+                 * Warn in Settings, with a Restore button, when the user
+                 * command-drags this item out of the menu bar. Default true.
+                 * Pass `false` for an item that is fine to hide.
+                 */
+                required?: boolean;
                 sparkline?: { values: number[]; width?: number; height?: number; color?: string };
                 svg?: string;
                 onClick?: () => void;
