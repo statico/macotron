@@ -5,13 +5,17 @@ macotron.plugin({
 
 const DOW = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
+// The bottom half is a filled block with the date knocked out of it, so the
+// number gets the whole width instead of leaving room for a border.
 function icon(date, ink) {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="21" height="18" viewBox="0 0 21 18">
-<rect x="1.3" y="2.2" width="18.4" height="14.6" rx="3.2" fill="none" stroke="${ink}" stroke-width="1.3"/>
-<path d="M1.3 7.4 H19.7" stroke="${ink}" stroke-width="1.1"/>
-<path d="M6.2 1.2 V3.4 M14.8 1.2 V3.4" stroke="${ink}" stroke-width="1.3" stroke-linecap="round"/>
-<text x="10.5" y="6.4" font-family="Helvetica-Bold" font-size="4.2" text-anchor="middle" fill="${ink}">${DOW[date.getDay()]}</text>
-<text x="10.5" y="15.2" font-family="Helvetica-Bold" font-size="7.8" text-anchor="middle" fill="${ink}">${date.getDate()}</text>
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="18" viewBox="0 0 22 18">
+<mask id="k">
+<rect x="0" y="0" width="22" height="18" fill="white"/>
+<rect x="1.8" y="1.8" width="18.4" height="6.9" rx="1.9" fill="black"/>
+<text x="11" y="16.3" font-family="Helvetica-Bold" font-size="9.2" text-anchor="middle" fill="black">${date.getDate()}</text>
+</mask>
+<rect x="0.5" y="0.5" width="21" height="17" rx="3.1" fill="${ink}" mask="url(#k)"/>
+<text x="11" y="7.35" font-family="Helvetica-Bold" font-size="5.7" text-anchor="middle" fill="${ink}">${DOW[date.getDay()]}</text>
 </svg>`;
 }
 
@@ -27,6 +31,23 @@ function markToday(text, month, year) {
 async function month(m, y) {
     const r = await macotron.shell.run("cal", ["-h", String(m), String(y)]);
     return markToday(r.stdout.replace(/\s+$/, ""), m, y);
+}
+
+let panelId = null;
+
+// The host emits panel:closed whichever way the window went away, so the
+// toggle stays honest even when the user closes it with Escape.
+macotron.on("panel:closed", (event) => {
+    if (event && event.id === panelId) panelId = null;
+});
+
+function toggle() {
+    if (panelId) {
+        macotron.panel.close(panelId);
+        panelId = null;
+        return;
+    }
+    open();
 }
 
 function open() {
@@ -62,6 +83,8 @@ send({ type: "nav", delta: 0 });
 </script>`,
     });
 
+    panelId = id;
+
     const now = new Date();
     let m = now.getMonth() + 1;
     let y = now.getFullYear();
@@ -86,7 +109,7 @@ function render() {
     macotron.menubar.status("mini-calendar", {
         title: "",
         svg: icon(now, macotron.system.darkMode() ? "#ffffff" : "#000000"),
-        onClick: open,
+        onClick: toggle,
         menu: [
             { title: now.toDateString() },
             "-",
@@ -98,4 +121,4 @@ function render() {
 render();
 macotron.every(60000, render);
 
-macotron.command("Calendar", "Browse this month", open);
+macotron.command("Calendar", "Browse this month", toggle);
