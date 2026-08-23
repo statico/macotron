@@ -55,6 +55,10 @@ select { width: 100%; }
 <script>
 // The host finds the Apple TVs after the window is already up, so the remote
 // starts as a spinner and fills in when the list arrives.
+// The page can be slower to load than the host is to answer, so ask for the
+// list once this script is running rather than racing a timer.
+webkit.messageHandlers.macotron.postMessage({ "type": "ready" });
+
 window.addEventListener("message", (e) => {
   const tvs = (e.data && e.data.tvs) || [];
   const status = document.getElementById("status");
@@ -87,16 +91,18 @@ function open() {
         glass: true,
         html: remoteHTML(),
     });
-    // Discovery parks the main thread for its whole timeout, so let the window
-    // draw first. The result is reused for 30 seconds by the host.
+    // Discovery parks the main thread for its whole timeout, so it waits until
+    // the page says it is up. The result is reused for 30 seconds by the host.
     let tvs = [];
-    setTimeout(() => {
-        tvs = macotron.appletv.list().map((t) => ({ id: esc(t.id), name: esc(t.name) }));
-        macotron.panel.postMessage(id, { tvs });
-    }, 50);
     let warned = false;
     macotron.panel.onMessage(id, (msg) => {
-        if (!msg || msg.type !== "key") return;
+        if (!msg) return;
+        if (msg.type === "ready") {
+            tvs = macotron.appletv.list().map((t) => ({ id: esc(t.id), name: esc(t.name) }));
+            macotron.panel.postMessage(id, { tvs });
+            return;
+        }
+        if (msg.type !== "key") return;
         const target = msg.id || (tvs[0] && tvs[0].id);
         if (!target) return;
         const result = macotron.appletv.send(target, msg.key);
