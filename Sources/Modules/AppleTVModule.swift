@@ -39,6 +39,23 @@ public final class AppleTVModule: NativeModule {
     public let name = "appletv"
 
     private var devices: [[String: Any]] = []
+    private var browsedAt: Date?
+
+    /// A browse parks the main thread in a nested run loop for its whole
+    /// timeout, so repeating one per key press beachballs the machine. Apple TVs
+    /// do not come and go by the second; reuse a recent result.
+    private static let browseTTL: TimeInterval = 30
+
+    fileprivate func cachedDevices() -> [[String: Any]]? {
+        guard let browsedAt, Date().timeIntervalSince(browsedAt) < Self.browseTTL,
+              !devices.isEmpty else { return nil }
+        return devices
+    }
+
+    fileprivate func store(_ rows: [[String: Any]]) {
+        devices = rows
+        browsedAt = Date()
+    }
 
     public init() {}
 
@@ -53,12 +70,15 @@ public final class AppleTVModule: NativeModule {
             guard let ctx else { return QJS_Undefined() }
             let engine = Unmanaged<Engine>.fromOpaque(JS_GetContextOpaque(ctx)).takeUnretainedValue()
             let module = engine.configStore["__appletvModule"] as? AppleTVModule
+            if let cached = module?.cachedDevices() {
+                return JSBridge.newArray(ctx, cached.map { $0 as Any })
+            }
             let rows = AppleTVRemote.merge(BonjourBrowse.browse(
                 types: ["_companion-link._tcp", "_airplay._tcp"],
                 timeout: 1.5,
                 dryRun: engine.dryRun
             ))
-            module?.devices = rows
+            module?.store(rows)
             return JSBridge.newArray(ctx, rows.map { $0 as Any })
         }, "list", 0))
 
@@ -71,14 +91,14 @@ public final class AppleTVModule: NativeModule {
             let engine = Unmanaged<Engine>.fromOpaque(JS_GetContextOpaque(ctx)).takeUnretainedValue()
             if engine.dryRun { return JSBridge.newObject(ctx, ["ok": true]) }
             let module = engine.configStore["__appletvModule"] as? AppleTVModule
-            var devices = module?.devices ?? []
+            var devices = module?.cachedDevices() ?? []
             if devices.isEmpty {
                 devices = AppleTVRemote.merge(BonjourBrowse.browse(
                     types: ["_companion-link._tcp", "_airplay._tcp"],
                     timeout: 1.5,
                     dryRun: false
                 ))
-                module?.devices = devices
+                module?.store(devices)
             }
             return JSBridge.newObject(ctx, AppleTVRemote.send(id: id, command: command, devices: devices, dryRun: false))
         }, "send", 2))
