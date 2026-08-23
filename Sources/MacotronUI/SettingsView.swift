@@ -171,6 +171,7 @@ public final class SettingsState: ObservableObject {
     public var onSetHotReload: ((Bool) -> Void)?
     public var onScanCatalog: ((CatalogPlugin) -> Void)?
     public var onInstallCatalog: ((CatalogPlugin, Bool) -> Void)?
+    public var onInstallAll: (([CatalogPlugin]) -> Void)?
     public var onReviewPending: (() -> Void)?
 
     /// Baseline permissions plus whatever the loaded plugins declared.
@@ -340,6 +341,21 @@ public final class SettingsState: ObservableObject {
         settingsLogger.info("addBuiltIn \(plugin.filename, privacy: .public) returned +\(Int((CFAbsoluteTimeGetCurrent() - t0) * 1000))ms")
     }
 
+    /// Bulk add skips the per-plugin sheet: these bytes ship inside the signed
+    /// app bundle, so there is nothing to review. Anything already on disk is
+    /// left alone rather than overwritten.
+    public func addAllBuiltIn() {
+        let pending = catalogPlugins.filter { !installedPluginNames.contains($0.filename) }
+        guard !pending.isEmpty else { return }
+        settingsLogger.info("addAllBuiltIn \(pending.count, privacy: .public) plugins")
+        scanReport = nil
+        scanning = false
+        overwrite = nil
+        isReviewing = false
+        installTarget = nil
+        onInstallAll?(pending)
+    }
+
     /// Catalog plugins ship inside the signed app bundle, so their bytes are already
     /// as trusted as Macotron itself. A review scans because those bytes came off
     /// the user's disk.
@@ -433,7 +449,8 @@ public struct SettingsView: View {
                     plugins: state.catalogPlugins,
                     installedNames: state.installedPluginNames,
                     onAdd: { state.addBuiltIn($0) },
-                    onDetails: { state.beginInstall($0) }
+                    onDetails: { state.beginInstall($0) },
+                    onAddAll: { state.addAllBuiltIn() }
                 )
                 HStack {
                     Spacer()

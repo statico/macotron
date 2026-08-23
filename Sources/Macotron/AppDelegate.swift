@@ -313,6 +313,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.onInstallCatalog = { [weak self] plugin, override in
             self?.installCatalogPlugin(plugin, override: override)
         }
+        settingsState.onInstallAll = { [weak self] plugins in
+            self?.installCatalogPlugins(plugins)
+        }
         settingsState.onReviewPending = { [weak self] in
             self?.reviewPendingPlugins()
         }
@@ -801,6 +804,35 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             NSLog("[Macotron] Catalog install failed: \(error)")
         }
+    }
+
+    /// Bulk add. One reload at the end: reloading per plugin would replay every
+    /// other plugin once per file.
+    private func installCatalogPlugins(_ plugins: [CatalogPlugin]) {
+        let timer = StepTimer("install \(plugins.count) plugins", category: "app")
+        guard let workspace else { return }
+        var installed = 0
+        for plugin in plugins {
+            let dest = workspace.pluginsDir.appending(path: plugin.filename)
+            guard !FileManager.default.fileExists(atPath: dest.path(percentEncoded: false)) else {
+                continue
+            }
+            do {
+                try plugin.source.write(to: dest, atomically: true, encoding: .utf8)
+                PluginTrust.approve(filename: plugin.filename, source: plugin.source)
+                PluginTrust.approveImports(
+                    in: plugin.source, importerDir: workspace.pluginsDir, baseDir: workspace.root)
+                installed += 1
+            } catch {
+                NSLog("[Macotron] Catalog install failed for \(plugin.filename): \(error)")
+            }
+        }
+        timer.step("wrote \(installed)")
+        guard installed > 0 else { return }
+        moduleManager.reloadAll()
+        timer.step("reloadAll")
+        refreshIntegrity()
+        timer.total()
     }
 
     /// The user authored these bytes here, so trust them straight away instead of
