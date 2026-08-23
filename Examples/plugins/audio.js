@@ -39,5 +39,6 @@ function mute() {
 
 macotron.on("audio:changed", paint);
 paint();
+macotron.keyboard.on("Cycle Output", "ctrl+opt+a", cycle);
 macotron.command("Cycle Output", "Switch to the next audio output", cycle);
 macotron.command("Mute", "Mute or unmute the system output", mute);
