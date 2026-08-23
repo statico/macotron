@@ -13,5 +13,13 @@
     <true/>
     <key>com.apple.security.automation.apple-events</key>
     <true/>
+    <!-- Under the hardened runtime tccd refuses to even prompt for camera or
+         microphone without these, and the app never appears in the Privacy
+         lists: "requires entitlement com.apple.security.device.camera but it
+         is missing ... Policy disallows prompt". -->
+    <key>com.apple.security.device.camera</key>
+    <true/>
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
 </dict>
 </plist>
