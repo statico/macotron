@@ -54,6 +54,8 @@ help: ## Show this help
 		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2 } \
 		/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) }' $(MAKEFILE_LIST)
 
+TRACE_LOG ?= tmp/log
+
 ##@ Build
 
 # SWIFT_FLAGS='--disable-sandbox' when make itself runs inside a sandbox:
@@ -109,8 +111,12 @@ run: bundle ## Bundle and launch (kills existing instance first)
 check: bundle ## Typecheck load plugins (ARGS='plugins/foo.js' optional)
 	$(BUNDLE)/Contents/MacOS/$(APP_NAME) --check $(ARGS)
 
-trace: ## Stream timings for slow interactive paths
-	log stream --level info --style compact --predicate 'subsystem == "io.statico.macotron"'
+# Tees to $(TRACE_LOG) because `log` refuses to run inside a sandbox: an agent
+# working in one can read the file even though it cannot run the command.
+trace: ## Stream the app log to the terminal and tmp/log
+	@mkdir -p $(dir $(TRACE_LOG))
+	log stream --level info --style compact --predicate 'subsystem == "io.statico.macotron"' \
+		| tee $(TRACE_LOG)
 
 scan: ## Sweep built-in plugins + tmp/malware with the on-device scanner
 	swift run --build-path $(BUILD_DIR) PluginScan --runs $${SCAN_RUNS:-3} --concurrency $${SCAN_CONCURRENCY:-16} \

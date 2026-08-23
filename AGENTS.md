@@ -9,3 +9,4 @@
 - A modern Hammerspoon: scriptable plugins on a native macOS host
 - Use subagents to parallelize work
 - Built-in macOS only: host APIs and built-in plugins must work on a stock Mac with Macotron installed. No Homebrew, npm, or other third-party binaries. Use `macotron.*` and Apple-shipped tools (`/usr/bin/open`, `/usr/bin/defaults`, `/bin/mv`).
+- Need the app log? Ask the user to run `make trace` — it streams the log and tees it to `tmp/log`, which is readable even from a sandbox where `log` itself is not
