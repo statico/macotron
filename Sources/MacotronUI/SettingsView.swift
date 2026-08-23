@@ -850,7 +850,6 @@ public struct SettingsView: View {
             .frame(maxWidth: .infinity)
             .help("Create a plugin with an editor or agent")
         }
-        .controlSize(.small)
         .padding(8)
     }
 
@@ -878,7 +877,9 @@ public struct SettingsView: View {
             Text("Add plugins from the catalog, or drop .js files into the plugins folder.")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
         }
+        .padding(.horizontal, 24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
