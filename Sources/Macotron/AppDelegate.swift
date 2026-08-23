@@ -1085,6 +1085,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         case HostCommands.openSettingsID:
             openSettingsAction()
             return true
+        case HostCommands.openPluginsID:
+            settingsState.requestedTab = SettingsTab.plugins.rawValue
+            openSettingsAction()
+            return true
         case HostCommands.fixPermissionsID:
             settingsState.requestedTab = SettingsTab.permissions.rawValue
             openSettingsAction()
