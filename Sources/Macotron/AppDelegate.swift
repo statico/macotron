@@ -443,6 +443,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func buildPluginSummaries() -> [ModuleSummary] {
+        StepTimer.measure("buildPluginSummaries") { buildPluginSummariesBody() }
+    }
+
+    private func buildPluginSummariesBody() -> [ModuleSummary] {
         let errorMap = Dictionary(
             moduleManager.lastReloadErrors.map { ($0.filename, $0.error) },
             uniquingKeysWith: { first, _ in first }
