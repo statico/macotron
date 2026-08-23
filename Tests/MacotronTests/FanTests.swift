@@ -51,7 +51,8 @@ struct FanTests {
         let engine = Engine()
         let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
         #expect(error == nil)
-        #expect(result?.contains("\"body\":\"On\"") == true)
-        #expect(result?.contains("\"body\":\"Off\"") == true)
+        // The toast has to name the speed it set; "On" told the user nothing.
+        #expect(result?.contains("\"body\":\"Minimum fan speed: 100%\"") == true)
+        #expect(result?.contains("\"body\":\"Back to automatic speed\"") == true)
     }
 }
