@@ -28,7 +28,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var wizardWindow: WizardWindow?
     private let wizardState = WizardState()
     private var appSearchProvider: AppSearchProvider!
-    private var didRegisterPermissions = false
+    /// Which permissions have already been asked for. The first refresh runs
+    /// before the plugins are loaded, so at that point only the baseline is
+    /// known — a one-shot latch here would mean camera and microphone, which
+    /// only a plugin declares, are never requested and so never appear in the
+    /// System Settings lists.
+    private var registeredPermissions: Set<Permission> = []
     private var permissionTimer: Timer?
     private var scanTask: Task<Void, Never>?
     private var didFinishLaunching = false
@@ -695,9 +700,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let required = requiredPermissions()
         let missing = Permissions.missing(from: required)
 
-        if !didRegisterPermissions, !missing.isEmpty {
-            didRegisterPermissions = true
-            Permissions.registerWithSystem(required)
+        let unregistered = missing.filter { !registeredPermissions.contains($0) }
+        if !unregistered.isEmpty {
+            registeredPermissions.formUnion(unregistered)
+            Permissions.registerWithSystem(unregistered)
         }
 
         menuBarManager?.setMissingPermissions(missing.filter(\.isAutoRequestable))
@@ -1037,6 +1043,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         switch id {
         case HostCommands.showHotkeysID:
             showHotkeysOverlay()
+            return true
+        case HostCommands.openSettingsID:
+            openSettingsAction()
             return true
         default:
             return false
