@@ -14,13 +14,29 @@ struct SnapDragTests {
         #expect(!snapped)
     }
 
-    @Test("a drag past slop snaps")
+    @Test("a drag that carries a window snaps")
     func drag() {
         var drag = SnapDrag()
         drag.down(CGPoint(x: 0, y: 0))
         drag.moved(CGPoint(x: SnapDrag.slop + 1, y: 0))
+        drag.sample(windowOrigin: CGPoint(x: 100, y: 100))
+        drag.sample(windowOrigin: CGPoint(x: 100 + SnapDrag.slop + 1, y: 100))
         let snapped = drag.up()
         #expect(snapped)
+    }
+
+    /// A screenshot selection or a text selection is a long left-drag that moves
+    /// no window. It must not raise the snap overlay.
+    @Test("a drag that moves no window does not snap")
+    func selectionDrag() {
+        var drag = SnapDrag()
+        drag.down(CGPoint(x: 0, y: 0))
+        for step in 1...20 {
+            drag.moved(CGPoint(x: CGFloat(step) * 10, y: 0))
+            drag.sample(windowOrigin: CGPoint(x: 100, y: 100))
+        }
+        let snapped = drag.up()
+        #expect(!snapped)
     }
 }
 
