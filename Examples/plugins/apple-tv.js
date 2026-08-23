@@ -11,15 +11,14 @@ function esc(s) {
     return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 }
 
-function remoteHTML(tvs) {
-    if (!tvs.length) {
-        return "<p>No Apple TV found. The tvOS Simulator cannot be controlled.</p>";
-    }
-    const picker = tvs.length > 1
-        ? `<select id="tv">${tvs.map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("")}</select>`
-        : `<input type="hidden" id="tv" value="${esc(tvs[0].id)}">`;
-    return `${picker}
+function remoteHTML() {
+    return `<div id="picker"></div>
+<div id="status">Looking for Apple TVs<span class="dots"></span></div>
 <style>
+#status { text-align: center; padding: 24px 8px; color: var(--macotron-secondary-label); }
+.dots::after { content: "..."; animation: dots 1.2s steps(4, end) infinite; }
+@keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+#remote[hidden] { display: none; }
 .pad { position: relative; width: 176px; height: 176px; border-radius: 50%;
   background: color-mix(in srgb, var(--macotron-control) 70%, transparent);
   border: 1px solid var(--macotron-control-border); margin: 8px auto; }
@@ -37,6 +36,7 @@ function remoteHTML(tvs) {
   color: var(--macotron-control-text); }
 select { width: 100%; }
 </style>
+<div id="remote" hidden>
 <div class="pad">
   <button class="up" data-key="up">▲</button>
   <button class="left" data-key="left">◀</button>
@@ -51,7 +51,25 @@ select { width: 100%; }
 <div class="row">
   <button data-key="playpause">⏯</button>
 </div>
+</div>
 <script>
+// The host finds the Apple TVs after the window is already up, so the remote
+// starts as a spinner and fills in when the list arrives.
+window.addEventListener("message", (e) => {
+  const tvs = (e.data && e.data.tvs) || [];
+  const status = document.getElementById("status");
+  if (!tvs.length) {
+    status.textContent = "No Apple TV found. The tvOS Simulator cannot be controlled.";
+    return;
+  }
+  status.hidden = true;
+  document.getElementById("remote").hidden = false;
+  document.getElementById("picker").innerHTML = tvs.length > 1
+    ? '<select id="tv">' + tvs.map((t) =>
+        '<option value="' + t.id + '">' + t.name + "</option>").join("") + "</select>"
+    : '<input type="hidden" id="tv" value="' + tvs[0].id + '">';
+});
+
 document.addEventListener("click", (e) => {
   const key = e.target.closest("[data-key]")?.dataset.key;
   if (!key) return;
@@ -62,16 +80,20 @@ document.addEventListener("click", (e) => {
 }
 
 function open() {
-    // Discovery parks the main thread for its whole timeout. Do it once when
-    // the remote opens, not on every key press.
-    const tvs = macotron.appletv.list();
     const id = macotron.panel.open({
         title: "Apple TV",
         width: 280,
         height: 480,
         glass: true,
-        html: remoteHTML(tvs),
+        html: remoteHTML(),
     });
+    // Discovery parks the main thread for its whole timeout, so let the window
+    // draw first. The result is reused for 30 seconds by the host.
+    let tvs = [];
+    setTimeout(() => {
+        tvs = macotron.appletv.list().map((t) => ({ id: esc(t.id), name: esc(t.name) }));
+        macotron.panel.postMessage(id, { tvs });
+    }, 50);
     let warned = false;
     macotron.panel.onMessage(id, (msg) => {
         if (!msg || msg.type !== "key") return;

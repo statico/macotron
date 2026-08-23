@@ -72,9 +72,8 @@ function setFloor(percent) {
         macotron.notify.toast("Fan", s.error, { color: "error" });
         return;
     }
-    if (percent == null) macotron.notify.toast("Fan", "Off");
-    else if (percent === 100) macotron.notify.toast("Fan", "On", { color: "success" });
-    else macotron.notify.toast("Fan", percent + "% floor", { color: "success" });
+    if (percent == null) macotron.notify.toast("Fan", "Back to automatic speed");
+    else macotron.notify.toast("Fan", "Minimum fan speed: " + percent + "%", { color: "success" });
 }
 
 function toggle() {

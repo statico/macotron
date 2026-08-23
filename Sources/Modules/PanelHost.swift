@@ -224,6 +224,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     private let fullscreen: Bool
     private let closeOnBlur: Bool
     private var blurArmed = false
+    private var reclaimedKey = false
     private var zoomMonitor: Any?
     private var dragMonitor: Any?
     private var dragJSBusy = false
@@ -370,6 +371,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
 
     func show(fullscreen: Bool = false) {
         blurArmed = false
+        reclaimedKey = false
         if fullscreen {
             panel.styleMask = PanelChrome.styleMask(frameless: true)
             panel.level = .statusBar
@@ -473,7 +475,20 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
 
     @objc private func windowDidResignKey(_ notification: Notification) {
         guard closeOnBlur, blurArmed else { return }
-        close()
+        // Clicking a plugin's menu bar item runs a tracking session that takes
+        // key away for a moment right after the panel came up: the app is still
+        // active and no window is key. That is the panel's own opener, not the
+        // user dismissing it, so claim key back instead of closing. Once per
+        // show, so a panel can never fight the user for focus.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.panel.isKeyWindow else { return }
+            if !self.reclaimedKey, NSApp.isActive, NSApp.keyWindow == nil {
+                self.reclaimedKey = true
+                self.bringToFront()
+                return
+            }
+            self.close()
+        }
     }
 
     @objc private func windowWillClose(_ notification: Notification) {
