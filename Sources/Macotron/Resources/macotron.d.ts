@@ -6,6 +6,16 @@ interface MenuBarMenuItem {
     icon?: string;
     onClick?: () => void;
     menu?: MenuBarMenuItem[];
+    /**
+     * Show a web page as the row itself instead of a title. The page keeps
+     * running while the menu is open, but menu tracking eats mouse events
+     * before the page sees them, so keep buttons in ordinary rows.
+     * Reloaded only when this markup changes.
+     */
+    html?: string;
+    /** Size of the `html` row in points. Defaults to 260 x 160. */
+    width?: number;
+    height?: number;
 }
 
 interface HIDFilter {

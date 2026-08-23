@@ -19,4 +19,6 @@ function paint() {
 }
 
 paint();
-macotron.every(60000, paint);
+// Every minute is a lot of Apple Events for a library with thousands of notes,
+// and note titles do not change that fast.
+macotron.every(300000, paint);

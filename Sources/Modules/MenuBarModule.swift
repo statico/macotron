@@ -340,6 +340,13 @@ public final class MenuBarModule: NativeModule {
         return parseMenu(ctx: ctx, menuVal, prefix: prefix)
     }
 
+    private func number(_ ctx: OpaquePointer, _ obj: JSValue, _ name: String) -> Double? {
+        let val = JSBridge.getProperty(ctx, obj, name)
+        defer { JS_FreeValue(ctx, val) }
+        guard !JSBridge.isUndefined(val), !JSBridge.isNull(val) else { return nil }
+        return JSBridge.toDouble(ctx, val)
+    }
+
     private func parseMenu(ctx: OpaquePointer, _ val: JSValue, prefix: String) -> [MenuBarEntry] {
         guard JS_IsArray(val) else { return [] }
         let lenVal = JS_GetPropertyStr(ctx, val, "length")
@@ -365,7 +372,19 @@ public final class MenuBarModule: NativeModule {
                 let nestedVal = JSBridge.getProperty(ctx, elem, "menu")
                 let children = parseMenu(ctx: ctx, nestedVal, prefix: key)
                 JS_FreeValue(ctx, nestedVal)
-                entries.append(MenuBarEntry(title: title, icon: icon, onClick: onClick, children: children))
+                let htmlVal = JSBridge.getProperty(ctx, elem, "html")
+                let html: String? = JSBridge.isUndefined(htmlVal) || JSBridge.isNull(htmlVal)
+                    ? nil : JSBridge.toString(ctx, htmlVal)
+                JS_FreeValue(ctx, htmlVal)
+                entries.append(MenuBarEntry(
+                    title: title,
+                    icon: icon,
+                    onClick: onClick,
+                    children: children,
+                    html: html,
+                    width: number(ctx, elem, "width") ?? 260,
+                    height: number(ctx, elem, "height") ?? 160
+                ))
             }
             JS_FreeValue(ctx, elem)
         }
