@@ -12,8 +12,7 @@ final class MenuWebView: NSView {
     private(set) var html: String
 
     init(html: String, size: NSSize) {
-        let config = WKWebViewConfiguration()
-        webView = WKWebView(frame: NSRect(origin: .zero, size: size), configuration: config)
+        webView = WKWebView(frame: NSRect(origin: .zero, size: size))
         webView.autoresizingMask = [.width, .height]
         webView.setValue(false, forKey: "drawsBackground")
         self.html = html
