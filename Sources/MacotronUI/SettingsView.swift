@@ -17,6 +17,25 @@ enum PluginListNav {
     }
 }
 
+/// Finder-style type-select for the plugin list.
+enum PluginFilter {
+    static func matches(_ summary: ModuleSummary, query: String) -> Bool {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return true }
+        return summary.title.localizedCaseInsensitiveContains(q)
+            || summary.filename.localizedCaseInsensitiveContains(q)
+            || summary.description.localizedCaseInsensitiveContains(q)
+    }
+
+    /// Characters worth starting a filter with. Space is only accepted once
+    /// something has been typed, so it cannot start one on its own.
+    static func accepts(_ characters: String, existing: String) -> Bool {
+        guard characters.count == 1, let c = characters.first else { return false }
+        if c == " " { return !existing.isEmpty }
+        return c.isLetter || c.isNumber || c == "-" || c == "." || c == "_"
+    }
+}
+
 enum MacotronRepo {
     static let url = URL(string: "https://github.com/statico/macotron")!
 }
@@ -420,6 +439,8 @@ public struct SettingsView: View {
     @ObservedObject var state: SettingsState
     @State private var selectedTab: SettingsTab
     @State private var selectedPlugin: String?
+    @State private var pluginFilter = ""
+    @State private var pluginFilterHide: Task<Void, Never>?
     @State private var showCatalog = false
     @State private var showNewPlugin = false
     @FocusState private var pluginListFocused: Bool
@@ -767,7 +788,7 @@ public struct SettingsView: View {
                     ScrollViewReader { proxy in
                         ScrollView {
                             VStack(spacing: 1) {
-                                ForEach(state.moduleSummaries) { summary in
+                                ForEach(filteredPlugins) { summary in
                                     let selected = selectedPlugin == summary.filename
                                     Button {
                                         selectedPlugin = summary.filename
@@ -829,8 +850,21 @@ public struct SettingsView: View {
         .focusable()
         .focused($pluginListFocused)
         .focusEffectDisabled()
+        .overlay(alignment: .bottom) { pluginFilterOverlay }
         .onKeyPress(.upArrow) { handlePluginArrow(-1) }
         .onKeyPress(.downArrow) { handlePluginArrow(1) }
+        .onKeyPress(.escape) {
+            guard !pluginFilter.isEmpty else { return .ignored }
+            clearPluginFilter()
+            return .handled
+        }
+        .onKeyPress(.delete) {
+            guard !pluginFilter.isEmpty else { return .ignored }
+            pluginFilter.removeLast()
+            pluginFilter.isEmpty ? clearPluginFilter() : armPluginFilterHide()
+            return .handled
+        }
+        .onKeyPress { press in typePluginFilter(press) }
         .onAppear {
             selectInitialPlugin()
             pluginListFocused = true
@@ -901,6 +935,64 @@ public struct SettingsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private var filteredPlugins: [ModuleSummary] {
+        state.moduleSummaries.filter { PluginFilter.matches($0, query: pluginFilter) }
+    }
+
+    /// Finder-style: typing anywhere in the list floats a filter that fades on
+    /// its own, so finding a plugin never costs a trip to a search field.
+    @ViewBuilder
+    private var pluginFilterOverlay: some View {
+        if !pluginFilter.isEmpty {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Text(pluginFilter)
+                    .font(.system(size: 13, weight: .medium))
+                if filteredPlugins.isEmpty {
+                    Text("no matches")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.orange)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(.regularMaterial, in: Capsule())
+            .overlay(Capsule().strokeBorder(.separator))
+            .shadow(radius: 8, y: 2)
+            .padding(.bottom, 16)
+            .transition(.opacity)
+        }
+    }
+
+    private func typePluginFilter(_ press: KeyPress) -> KeyPress.Result {
+        guard !press.modifiers.contains(.command), !press.modifiers.contains(.control),
+              !(NSApp.keyWindow?.firstResponder is NSTextView),
+              PluginFilter.accepts(press.characters, existing: pluginFilter) else { return .ignored }
+        pluginFilter += press.characters
+        if let first = filteredPlugins.first, !filteredPlugins.contains(where: { $0.filename == selectedPlugin }) {
+            selectedPlugin = first.filename
+        }
+        armPluginFilterHide()
+        return .handled
+    }
+
+    private func armPluginFilterHide() {
+        pluginFilterHide?.cancel()
+        pluginFilterHide = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2.5))
+            guard !Task.isCancelled else { return }
+            clearPluginFilter()
+        }
+    }
+
+    private func clearPluginFilter() {
+        pluginFilterHide?.cancel()
+        pluginFilterHide = nil
+        withAnimation(.easeOut(duration: 0.15)) { pluginFilter = "" }
+    }
+
     /// Prefer the first plugin that needs setup; otherwise keep the current
     /// selection while it still exists on disk.
     private func selectInitialPlugin() {
@@ -919,7 +1011,7 @@ public struct SettingsView: View {
 
     @discardableResult
     private func movePluginSelection(_ delta: Int) -> Bool {
-        let files = state.moduleSummaries.map(\.filename)
+        let files = filteredPlugins.map(\.filename)
         guard let next = PluginListNav.neighbor(of: selectedPlugin, in: files, delta: delta) else {
             return false
         }
