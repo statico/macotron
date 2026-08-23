@@ -779,9 +779,20 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             .sorted()
     }
 
+    private var lastPendingReview: Set<String> = []
+
     private func refreshIntegrity() {
         let pending = moduleManager?.pendingReview ?? []
         settingsState.pendingReview = pending.sorted()
+        // An edited plugin is quarantined and simply stops running, taking its
+        // menu bar item with it. The badge on the icon is too quiet for that,
+        // so say it out loud the first time each file lands in the queue.
+        let fresh = Set(pending).subtracting(lastPendingReview)
+        lastPendingReview = Set(pending)
+        if !fresh.isEmpty {
+            let names = fresh.sorted().joined(separator: ", ")
+            ToastHost.shared.flash("Not running until reviewed: \(names)")
+        }
         if let dir = workspace?.pluginsDir,
            let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
             settingsState.installedPluginNames = Set(files.filter { $0.pathExtension == "js" }.map(\.lastPathComponent))
