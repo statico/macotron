@@ -1028,7 +1028,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             showHotkeysOverlay()
             return true
         default:
-            return false
+            guard id.hasPrefix(Self.pluginSettingsPrefix) else { return false }
+            settingsState.requestedTab = SettingsTab.plugins.rawValue
+            settingsState.requestedPlugin = String(id.dropFirst(Self.pluginSettingsPrefix.count))
+            settingsWindow?.show()
+            return true
         }
     }
 
@@ -1176,6 +1180,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         StepTimer.measure("search") { searchBody(query) }
     }
 
+    /// Namespaces the plugin rows so they cannot collide with a command id or a
+    /// bundle id when the launcher hands the selection back.
+    static let pluginSettingsPrefix = "macotron.plugin-settings:"
+
     private func searchBody(_ query: String) -> [SearchResult] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let pluginHits = launcherModule?.allHits() ?? []
@@ -1243,6 +1251,22 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        // A plugin is findable by its own name and description, so its settings
+        // page is one query away instead of a hunt through the sidebar.
+        for module in settingsState.moduleSummaries {
+            let name = module.title.isEmpty ? module.filename : module.title
+            guard FuzzyMatch.best(query: q, targets: [name, module.description]) != nil else { continue }
+            let id = Self.pluginSettingsPrefix + module.filename
+            results.append(SearchResult(
+                id: id,
+                title: name,
+                subtitle: module.description,
+                type: .plugin,
+                kind: "Plugin Settings",
+                isFavorite: favorites.contains(id)
+            ))
+        }
+
         results.sort { r1, r2 in
             let s1 = FuzzyMatch.best(query: q, targets: [r1.title, r1.subtitle]) ?? 0
             let s2 = FuzzyMatch.best(query: q, targets: [r2.title, r2.subtitle]) ?? 0
@@ -1284,6 +1308,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 type: .plugin,
                 nsImage: hit.image,
                 kind: hit.kind,
+                isFavorite: isFavorite
+            )
+        }
+        if id.hasPrefix(Self.pluginSettingsPrefix) {
+            let filename = String(id.dropFirst(Self.pluginSettingsPrefix.count))
+            guard let module = settingsState.moduleSummaries.first(where: { $0.filename == filename }) else { return nil }
+            return SearchResult(
+                id: id,
+                title: module.title.isEmpty ? module.filename : module.title,
+                subtitle: module.description,
+                type: .plugin,
+                kind: "Plugin Settings",
                 isFavorite: isFavorite
             )
         }
