@@ -344,6 +344,10 @@ public final class SettingsState: ObservableObject {
     /// Bulk add skips the per-plugin sheet: these bytes ship inside the signed
     /// app bundle, so there is nothing to review. Anything already on disk is
     /// left alone rather than overwritten.
+    public var missingCatalogCount: Int {
+        catalogPlugins.filter { !installedPluginNames.contains($0.filename) }.count
+    }
+
     public func addAllBuiltIn() {
         let pending = catalogPlugins.filter { !installedPluginNames.contains($0.filename) }
         guard !pending.isEmpty else { return }
@@ -449,10 +453,15 @@ public struct SettingsView: View {
                     plugins: state.catalogPlugins,
                     installedNames: state.installedPluginNames,
                     onAdd: { state.addBuiltIn($0) },
-                    onDetails: { state.beginInstall($0) },
-                    onAddAll: { state.addAllBuiltIn() }
+                    onDetails: { state.beginInstall($0) }
                 )
                 HStack {
+                    if state.missingCatalogCount > 0 {
+                        Button("I Feel Lucky, Add Everything!") {
+                            state.addAllBuiltIn()
+                        }
+                            .help("Add all \(state.missingCatalogCount) plugins you do not have yet")
+                    }
                     Spacer()
                     Button("Done") {
                         showCatalog = false
