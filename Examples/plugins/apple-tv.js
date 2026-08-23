@@ -1,6 +1,10 @@
 macotron.plugin({
     title: "Apple TV Controls",
-    description: "Control Apple TVs on your network from the menu bar.",
+    description: "Find Apple TVs on your network and open a remote.",
+    help: "Macotron finds Apple TVs over Bonjour, but sending a key needs Companion "
+        + "pairing, which is not implemented yet, so the remote reports \"not paired\". "
+        + "Discovery holds the app still for about a second, so it runs once per open "
+        + "and the result is reused for 30 seconds.",
 });
 
 function esc(s) {
@@ -58,6 +62,8 @@ document.addEventListener("click", (e) => {
 }
 
 function open() {
+    // Discovery parks the main thread for its whole timeout. Do it once when
+    // the remote opens, not on every key press.
     const tvs = macotron.appletv.list();
     const id = macotron.panel.open({
         title: "Apple TV",
@@ -66,11 +72,19 @@ function open() {
         glass: true,
         html: remoteHTML(tvs),
     });
+    let warned = false;
     macotron.panel.onMessage(id, (msg) => {
         if (!msg || msg.type !== "key") return;
-        const list = macotron.appletv.list();
-        const target = msg.id || (list[0] && list[0].id);
-        if (target) macotron.appletv.send(target, msg.key);
+        const target = msg.id || (tvs[0] && tvs[0].id);
+        if (!target) return;
+        const result = macotron.appletv.send(target, msg.key);
+        if (result && result.ok) return;
+        // Say it once rather than swallowing every press.
+        if (warned) return;
+        warned = true;
+        macotron.notify.toast("Apple TV", result && result.error ? result.error : "Could not send", {
+            color: "error",
+        });
     });
 }
 

@@ -70,6 +70,8 @@ struct AppleTVPluginTests {
             var sent = [];
             var panel = {};
             var onMessage = null;
+            var toasts = [];
+            var listCalls = 0;
             var macotron = {
                 plugin: () => ({}),
                 command: (name, desc, fn) => { commands[name] = fn; },
@@ -78,10 +80,11 @@ struct AppleTVPluginTests {
                     onMessage: (id, fn) => { onMessage = fn; }
                 },
                 appletv: {
-                    list: () => (\(tvs)),
+                    list: () => { listCalls++; return (\(tvs)); },
                     send: (id, key) => { sent.push({ id: id, key: key }); return { ok: false, error: "not paired" }; }
                 },
-                menubar: { status: () => {} }
+                menubar: { status: () => {} },
+                notify: { toast: (title, body) => { toasts.push(body); } }
             };
             \(pluginSource)
             \(extra)
@@ -117,5 +120,23 @@ struct AppleTVPluginTests {
         #expect(result.contains(#""id":"10.0.0.5:7000"#))
         #expect(result.contains(#""key":"up"#))
         #expect(result.contains("data-key"))
+    }
+
+    /// Discovery parks the main thread in a nested run loop for its whole
+    /// timeout. One browse per key press is what made the remote beachball.
+    @Test("key presses do not re-run discovery")
+    func keysDoNotRediscover() throws {
+        let tvs = #"""
+            [{ id: "10.0.0.5:7000", name: "Living Room", host: "10.0.0.5", port: 7000, type: "_airplay._tcp" }]
+            """#
+        let result = try eval(#"""
+            commands["Apple TV Remote"]();
+            for (var i = 0; i < 8; i++) onMessage({ type: "key", key: "up" });
+            JSON.stringify({ listCalls: listCalls, sent: sent.length, toasts: toasts })
+            """#, tvs: tvs)
+        #expect(result.contains(#""listCalls":1"#))
+        #expect(result.contains(#""sent":8"#))
+        // The failure is reported once, not once per press.
+        #expect(result.contains(#"["not paired"]"#))
     }
 }
