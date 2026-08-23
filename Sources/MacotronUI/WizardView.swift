@@ -209,8 +209,7 @@ public struct WizardView: View {
                 plugins: permissions.catalogPlugins,
                 installedNames: permissions.installedPluginNames,
                 onAdd: { permissions.addBuiltIn($0) },
-                onDetails: { permissions.beginInstall($0) },
-                onAddAll: { permissions.addAllBuiltIn() }
+                onDetails: { permissions.beginInstall($0) }
             )
         }
         .padding(24)
