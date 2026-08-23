@@ -72,12 +72,19 @@ struct AppleTVPluginTests {
             var onMessage = null;
             var toasts = [];
             var listCalls = 0;
+            var posted = [];
+            // The plugin defers discovery so the window can draw first. Hold the
+            // callbacks so a test can run them when it wants to.
+            var timers = [];
+            globalThis.setTimeout = (fn) => { timers.push(fn); return timers.length; };
+            function runTimers() { var due = timers; timers = []; due.forEach((fn) => fn()); }
             var macotron = {
                 plugin: () => ({}),
                 command: (name, desc, fn) => { commands[name] = fn; },
                 panel: {
                     open: (opts) => { panel = opts; return "p1"; },
-                    onMessage: (id, fn) => { onMessage = fn; }
+                    onMessage: (id, fn) => { onMessage = fn; },
+                    postMessage: (id, data) => { posted.push(data); }
                 },
                 appletv: {
                     list: () => { listCalls++; return (\(tvs)); },
@@ -95,16 +102,35 @@ struct AppleTVPluginTests {
         return result ?? ""
     }
 
-    @Test("empty list tells the user the simulator cannot be controlled")
-    func emptyList() throws {
+    /// The window has to be up before discovery runs, otherwise the 1.5s browse
+    /// blocks the main thread inside the click that opened it.
+    @Test("the panel opens before discovery runs")
+    func opensBeforeDiscovery() throws {
         let result = try eval(#"""
             commands["Apple TV Remote"]();
-            JSON.stringify({ html: panel.html, glass: panel.glass, width: panel.width, height: panel.height })
+            JSON.stringify({
+                listCalls: listCalls, posted: posted.length,
+                html: panel.html, glass: panel.glass, width: panel.width, height: panel.height
+            })
             """#, tvs: "[]")
-        #expect(result.contains("No Apple TV found. The tvOS Simulator cannot be controlled."))
+        #expect(result.contains(#""listCalls":0"#))
+        #expect(result.contains(#""posted":0"#))
+        #expect(result.contains("Looking for Apple TVs"))
         #expect(result.contains(#""glass":true"#))
         #expect(result.contains(#""width":280"#))
         #expect(result.contains(#""height":480"#))
+    }
+
+    @Test("an empty result posts no devices, and the page says so")
+    func emptyList() throws {
+        let result = try eval(#"""
+            commands["Apple TV Remote"]();
+            runTimers();
+            JSON.stringify({ listCalls: listCalls, posted: posted, html: panel.html })
+            """#, tvs: "[]")
+        #expect(result.contains(#""listCalls":1"#))
+        #expect(result.contains(#""tvs":[]"#))
+        #expect(result.contains("No Apple TV found. The tvOS Simulator cannot be controlled."))
     }
 
     @Test("clicking a key sends it to the listed Apple TV")
@@ -114,11 +140,13 @@ struct AppleTVPluginTests {
             """#
         let result = try eval(#"""
             commands["Apple TV Remote"]();
+            runTimers();
             onMessage({ type: "key", key: "up" });
-            JSON.stringify({ sent: sent, html: panel.html })
+            JSON.stringify({ sent: sent, posted: posted, html: panel.html })
             """#, tvs: tvs)
         #expect(result.contains(#""id":"10.0.0.5:7000"#))
         #expect(result.contains(#""key":"up"#))
+        #expect(result.contains("Living Room"))
         #expect(result.contains("data-key"))
     }
 
@@ -131,6 +159,7 @@ struct AppleTVPluginTests {
             """#
         let result = try eval(#"""
             commands["Apple TV Remote"]();
+            runTimers();
             for (var i = 0; i < 8; i++) onMessage({ type: "key", key: "up" });
             JSON.stringify({ listCalls: listCalls, sent: sent.length, toasts: toasts })
             """#, tvs: tvs)
