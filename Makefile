@@ -6,8 +6,9 @@ CONFIG ?= debug
 BINARY = $(BUILD_DIR)/$(CONFIG)/$(APP_NAME)
 
 # Releases are built here, not in CI, so the Developer ID key never leaves this
-# Mac. VERSION defaults to the newest tag so `make release` can rebuild what was
-# last shipped; `make publish VERSION=x.y.z` is what cuts a new one.
+# Mac. VERSION defaults to the newest tag so local bundles carry a version, but
+# release and publish both demand it on the command line: defaulting there would
+# happily stamp today's tree with the last tag's number and ship it.
 VERSION ?= $(shell git tag --list 'v*' --sort=-v:refname | head -1 | sed 's/^v//')
 DMG = $(BUILD_DIR)/$(APP_NAME)-$(VERSION).dmg
 # One App Store Connect API key authorizes the whole team, so this profile is
@@ -123,7 +124,8 @@ scan: ## Sweep built-in plugins + tmp/malware with the on-device scanner
 		Examples/plugins --fail tmp/malware --out tmp/scan-sweep.jsonl $(ARGS)
 
 release: ## Build a signed, notarized DMG (VERSION=x.y.z)
-	@test -n "$(VERSION)" || { echo "No tag yet: pass VERSION=x.y.z"; exit 1; }
+	@test "$(origin VERSION)" = "command line" && test -n "$(VERSION)" || \
+		{ echo "usage: make release VERSION=x.y.z"; exit 1; }
 	@$(MAKE) CONFIG=release VERSION=$(VERSION) bundle
 	@codesign -dvv "$(BUNDLE)" 2>&1 | grep -q "Authority=Developer ID" || \
 		{ echo "Refusing to package: not signed with a Developer ID."; exit 1; }
@@ -150,11 +152,13 @@ release: ## Build a signed, notarized DMG (VERSION=x.y.z)
 	@echo "Built $(DMG)"
 
 tap: ## Re-point the Homebrew cask at VERSION (publish does this already)
-	@test -n "$(VERSION)" || { echo "usage: make tap VERSION=x.y.z"; exit 1; }
+	@test "$(origin VERSION)" = "command line" && test -n "$(VERSION)" || \
+		{ echo "usage: make tap VERSION=x.y.z"; exit 1; }
 	scripts/update-tap.sh $(VERSION) "$(DMG)"
 
 publish: ## Tag, build, and ship a release + Homebrew cask (VERSION=x.y.z)
-	@test -n "$(VERSION)" || { echo "usage: make publish VERSION=x.y.z"; exit 1; }
+	@test "$(origin VERSION)" = "command line" && test -n "$(VERSION)" || \
+		{ echo "usage: make publish VERSION=x.y.z"; exit 1; }
 	@git diff --quiet HEAD || { echo "Working tree is dirty."; exit 1; }
 	@git tag --list 'v$(VERSION)' | grep -q . && \
 		{ echo "v$(VERSION) already exists."; exit 1; } || true
