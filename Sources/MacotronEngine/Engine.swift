@@ -4,6 +4,9 @@ import Foundation
 import os
 
 private let logger = Logger(subsystem: "io.statico.macotron", category: "engine")
+/// Plugin output gets its own category so `log show --predicate
+/// 'category == "plugin"'` is a clean feed of just what plugins printed.
+private let pluginLogger = Logger(subsystem: "io.statico.macotron", category: "plugin")
 
 /// Copy a C string with js_malloc — QuickJS frees module names with js_free,
 /// so plain strdup memory would crash the arena allocator.
@@ -269,12 +272,23 @@ public final class Engine {
             JS_NewCFunction(context, { ctx, thisVal, argc, argv -> JSValue in
                 guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
                 let msg = JSBridge.toString(ctx, argv[0]) ?? ""
+                let level = argc >= 2 ? (JSBridge.toString(ctx, argv[1]) ?? "") : ""
                 let opaque = JS_GetContextOpaque(ctx)
+                var plugin = ""
                 if let opaque {
                     let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
                     engine.logHandler?(msg)
+                    plugin = engine.currentEvaluatingFile ?? ""
                 }
-                logger.info("\(msg, privacy: .public)")
+                // Name the plugin, or `log show` gives a wall of anonymous lines.
+                // Errors and warnings go out at levels the log keeps by default;
+                // plain logs stay at info, which needs `log show --info`.
+                let line = plugin.isEmpty ? msg : "\(plugin): \(msg)"
+                switch level {
+                case "error": pluginLogger.error("\(line, privacy: .public)")
+                case "warn": pluginLogger.notice("\(line, privacy: .public)")
+                default: pluginLogger.info("\(line, privacy: .public)")
+                }
                 return QJS_Undefined()
             }, "$$__log", 1))
 

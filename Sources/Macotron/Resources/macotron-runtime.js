@@ -44,12 +44,13 @@ macotron.settings = {
     open: function() { $$__openSettings(); },
 };
 
-macotron.log = function() {
-    var args = Array.prototype.slice.call(arguments);
-    $$__log(args.map(function(a) {
+function $$__format(args) {
+    return Array.prototype.slice.call(args).map(function(a) {
         return typeof a === 'object' ? JSON.stringify(a) : String(a);
-    }).join(' '));
-};
+    }).join(' ');
+}
+
+macotron.log = function() { $$__log($$__format(arguments)); };
 
 macotron.sleep = function(ms) {
     return new Promise(function(resolve) { setTimeout(resolve, ms); });
@@ -57,9 +58,12 @@ macotron.sleep = function(ms) {
 
 // --- console shim ---
 
+// Levels map onto the system log: error and warn are kept by default, plain
+// logs are info and need `log show --info`.
 var console = {
-    log: function()   { macotron.log.apply(null, arguments); },
-    warn: function()  { macotron.log.apply(null, ['[WARN]'].concat(Array.prototype.slice.call(arguments))); },
-    error: function() { macotron.log.apply(null, ['[ERROR]'].concat(Array.prototype.slice.call(arguments))); },
-    info: function()  { macotron.log.apply(null, ['[INFO]'].concat(Array.prototype.slice.call(arguments))); },
+    log: function()   { $$__log($$__format(arguments)); },
+    info: function()  { $$__log($$__format(arguments)); },
+    warn: function()  { $$__log($$__format(arguments), 'warn'); },
+    error: function() { $$__log($$__format(arguments), 'error'); },
+    debug: function() { $$__log($$__format(arguments)); },
 };

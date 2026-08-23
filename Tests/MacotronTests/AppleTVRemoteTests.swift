@@ -75,9 +75,6 @@ struct AppleTVPluginTests {
             var posted = [];
             // The plugin defers discovery so the window can draw first. Hold the
             // callbacks so a test can run them when it wants to.
-            var timers = [];
-            globalThis.setTimeout = (fn) => { timers.push(fn); return timers.length; };
-            function runTimers() { var due = timers; timers = []; due.forEach((fn) => fn()); }
             var macotron = {
                 plugin: () => ({}),
                 command: (name, desc, fn) => { commands[name] = fn; },
@@ -103,7 +100,8 @@ struct AppleTVPluginTests {
     }
 
     /// The window has to be up before discovery runs, otherwise the 1.5s browse
-    /// blocks the main thread inside the click that opened it.
+    /// blocks the main thread inside the click that opened it. The page asks for
+    /// the list when its script runs, so a slow load cannot miss the answer.
     @Test("the panel opens before discovery runs")
     func opensBeforeDiscovery() throws {
         let result = try eval(#"""
@@ -125,7 +123,7 @@ struct AppleTVPluginTests {
     func emptyList() throws {
         let result = try eval(#"""
             commands["Apple TV Remote"]();
-            runTimers();
+            onMessage({ type: "ready" });
             JSON.stringify({ listCalls: listCalls, posted: posted, html: panel.html })
             """#, tvs: "[]")
         #expect(result.contains(#""listCalls":1"#))
@@ -140,7 +138,7 @@ struct AppleTVPluginTests {
             """#
         let result = try eval(#"""
             commands["Apple TV Remote"]();
-            runTimers();
+            onMessage({ type: "ready" });
             onMessage({ type: "key", key: "up" });
             JSON.stringify({ sent: sent, posted: posted, html: panel.html })
             """#, tvs: tvs)
@@ -159,7 +157,7 @@ struct AppleTVPluginTests {
             """#
         let result = try eval(#"""
             commands["Apple TV Remote"]();
-            runTimers();
+            onMessage({ type: "ready" });
             for (var i = 0; i < 8; i++) onMessage({ type: "key", key: "up" });
             JSON.stringify({ listCalls: listCalls, sent: sent.length, toasts: toasts })
             """#, tvs: tvs)

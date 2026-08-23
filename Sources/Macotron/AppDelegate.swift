@@ -106,7 +106,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menuBarManager = MenuBarManager()
         menuBarManager.onReload = { [weak self] in
-            self?.moduleManager.reloadAll()
+            guard let self else { return }
+            self.moduleManager.reloadAll()
+            // A reload cannot clear a changed file on its own — the source still
+            // needs approval — so go straight into the review the user meant.
+            if !self.moduleManager.pendingReview.isEmpty {
+                self.reviewPendingPlugins()
+            }
         }
         menuBarManager.onHiddenStatusChange = { [weak self] _ in
             self?.settingsState.refreshModules()
