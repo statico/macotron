@@ -170,7 +170,7 @@ public final class ModuleManager {
         defer { timer.step("eval") }
         if !approved {
             pendingReview.insert(filename)
-            logger.error("\(filename): on-disk source is not approved")
+            logger.error("\(filename, privacy: .public): on-disk source is not approved")
             return
         }
         pendingReview.remove(filename)
