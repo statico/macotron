@@ -66,7 +66,10 @@ function open() {
 #bar { display:flex; align-items:center; gap:8px; }
 #bar button { width:auto; flex:none; padding:2px 10px; }
 #title { flex:1; text-align:center; font-weight:600; }
-pre { margin:10px 0 0; font-size:13px; line-height:1.5; text-align:center; }
+/* Shrink-wrap the grid and centre the block, not each line: centring the
+   text moves a short last week ("30 31") out from under its weekdays. */
+pre { margin:10px auto 0; display:table; font-size:13px; line-height:1.5;
+      text-align:left; }
 pre b { color:var(--macotron-accent); }
 </style>
 <div id="bar">
