@@ -16,7 +16,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | brightness.js | display brightness/XDR | Toggle XDR |
 | browser-picker.js | url.setDefaultHandler / on / onFallback | (URL routing, browser picker) |
 | browser-profiles.js | url.open | Open GitHub in Safari |
-| calculator.js | panel | Calculator |
+| calculator.js | launcher.query + clipboard | (inline in the launcher) |
 | calendar.js | calendar.upcoming | Upcoming Events |
 | clipboard-history.js | clipboard.history, launcher.set, panel | Clipboard History |
 | clipboard-image.js | clipboard.setImage/paste/remove | Clipboard Images |

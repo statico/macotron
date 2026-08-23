@@ -226,7 +226,7 @@ struct PluginCatalogTests {
         #expect(targets.subtracting(catalog).isEmpty)
         #expect(catalog.subtracting(targets) == [
             "apple-tv.js", "bluetooth.js", "contacts.js", "eject.js", "headphone-pause.js",
-            "homekit.js", "markdown.js", "mic-mute.js", "network-path.js",
+            "homekit.js", "markdown.js", "mic-mute.js", "mini-calendar.js", "network-path.js",
             "profiles.js", "reminders.js", "screen-effects.js", "time-machine.js",
             "translate.js", "web-search.js", "world-clock.js",
         ])

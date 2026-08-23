@@ -1220,7 +1220,22 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             return false
         }
 
-        return Array(results.prefix(20))
+        // Live providers answer the query itself rather than matching a name, so
+        // they skip fuzzy ranking and lead. A calculator result belongs above a
+        // list of apps that happen to share a letter with the sum.
+        let live = (launcherModule?.liveHits(query: q) ?? []).map { hit in
+            SearchResult(
+                id: hit.id,
+                title: hit.title,
+                subtitle: hit.subtitle,
+                type: .plugin,
+                nsImage: hit.image,
+                kind: hit.kind,
+                isFavorite: favorites.contains(hit.id)
+            )
+        }
+
+        return Array((live + results).prefix(20))
     }
 
     private func result(
