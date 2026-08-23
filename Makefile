@@ -46,7 +46,7 @@ SIGN_FLAGS = $(if $(findstring Developer ID,$(SIGN_IDENTITY)),--options runtime,
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run bundle check clean cleanprefs release publish tap scan trace
+.PHONY: help version build run bundle check clean cleanprefs release publish tap scan trace
 
 ##@ General
 
@@ -54,6 +54,12 @@ help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\n\033[1mUsage:\033[0m\n  make \033[36m<target>\033[0m\n"} \
 		/^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2 } \
 		/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) }' $(MAKEFILE_LIST)
+
+version: ## Show the installed, released, and working-tree versions
+	@printf 'installed  %s\n' "$$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
+		"$(BUNDLE)/Contents/Info.plist" 2>/dev/null || echo 'not installed')"
+	@printf 'released   %s\n' "$$(git tag --list 'v*' --sort=-v:refname | head -1 || true)"
+	@printf 'tree       %s\n' "$$(git describe --tags --dirty 2>/dev/null || git rev-parse --short HEAD)"
 
 TRACE_LOG ?= tmp/log
 
