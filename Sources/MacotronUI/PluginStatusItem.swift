@@ -480,18 +480,35 @@ enum PluginMenu {
         }
     }
 
+    /// Name stamped on the image so a repaint can tell whether the icon really
+    /// changed. Prefixed so it cannot shadow a real named image.
+    static func imageStamp(_ symbol: String) -> String { "macotron.menu.\(symbol)" }
+
+    /// Symbol name for an icon, or nil when the icon is an emoji that belongs
+    /// in the title instead.
+    static func symbolName(_ icon: String?) -> String? {
+        guard let icon, icon.count > 2 else { return nil }
+        return icon
+    }
+
+    static func menuTitle(title: String, icon: String?) -> String {
+        guard let icon, icon.count <= 2 else { return title }
+        return "\(icon) \(title)"
+    }
+
     static func apply(title: String, icon: String?, to item: NSMenuItem) {
-        item.image = nil
-        if let icon {
-            if icon.count <= 2 {
-                item.title = "\(icon) \(title)"
-            } else {
-                item.title = title
-                item.image = NSImage(systemSymbolName: icon, accessibilityDescription: nil)
-            }
-        } else {
-            item.title = title
+        let text = menuTitle(title: title, icon: icon)
+        if item.title != text { item.title = text }
+        // Re-assigning the image of an item in an OPEN menu makes AppKit
+        // re-measure the image column and nudge the text right, so a plugin
+        // repainting every couple of seconds walks its row across the menu.
+        // Only touch the image when the icon actually changed.
+        let stamp = Self.symbolName(icon).map(imageStamp)
+        guard item.image?.name() != stamp else { return }
+        item.image = Self.symbolName(icon).flatMap {
+            NSImage(systemSymbolName: $0, accessibilityDescription: nil)
         }
+        if let stamp { item.image?.setName(stamp) }
     }
 
     private static func sameShape(_ menu: NSMenu, _ entries: [MenuBarEntry]) -> Bool {
