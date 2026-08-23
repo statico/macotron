@@ -34,6 +34,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     /// only a plugin declares, are never requested and so never appear in the
     /// System Settings lists.
     private var registeredPermissions: Set<Permission> = []
+
+    /// Last known missing set, refreshed by the permission poll. Checking is
+    /// slow enough (tens of milliseconds) that the launcher reads it instead.
+    private var missingPermissions: [Permission] = []
     private var permissionTimer: Timer?
     private var scanTask: Task<Void, Never>?
     private var didFinishLaunching = false
@@ -700,6 +704,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let required = requiredPermissions()
         let missing = Permissions.missing(from: required)
 
+        missingPermissions = missing
         let unregistered = missing.filter { !registeredPermissions.contains($0) }
         if !unregistered.isEmpty {
             registeredPermissions.formUnion(unregistered)
@@ -1047,6 +1052,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         case HostCommands.openSettingsID:
             openSettingsAction()
             return true
+        case HostCommands.fixPermissionsID:
+            settingsState.requestedTab = SettingsTab.permissions.rawValue
+            openSettingsAction()
+            return true
         default:
             return false
         }
@@ -1203,7 +1212,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let shortcuts = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
 
         if q.isEmpty {
-            return favorites.compactMap { id in
+            return permissionResult() + favorites.compactMap { id in
                 result(id: id, pluginHits: pluginHits, shortcuts: shortcuts, isFavorite: true)
             }
         }
@@ -1288,6 +1297,20 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         return Array((live + results).prefix(20))
+    }
+
+    /// Leads the empty-query list while Macotron is missing something it needs,
+    /// so a half-working install says so instead of just misbehaving.
+    private func permissionResult() -> [SearchResult] {
+        guard !missingPermissions.isEmpty else { return [] }
+        let names = missingPermissions.map(\.title).joined(separator: ", ")
+        return [SearchResult(
+            id: HostCommands.fixPermissionsID,
+            title: "Fix Macotron Permissions...",
+            subtitle: names,
+            type: .command,
+            warning: true
+        )]
     }
 
     private func result(
