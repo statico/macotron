@@ -9,7 +9,9 @@ private let searchLogger = Logger(subsystem: "io.statico.macotron", category: "s
 
 @MainActor
 final class AppSearchProvider {
-    struct AppEntry {
+    /// Built on a background queue and handed to the main actor once. The
+    /// icons are only read on main afterwards.
+    struct AppEntry: @unchecked Sendable {
         let name: String
         let bundleID: String
         let url: URL
@@ -18,13 +20,29 @@ final class AppSearchProvider {
 
     private var allApps: [AppEntry] = []
     private var lastRefresh: Date = .distantPast
+    private var refreshing = false
 
     init() {
         refresh()
     }
 
-    /// Refresh the list of installed applications
+    /// Rebuild the list in the background. Reading every bundle and its icon
+    /// costs ~130ms, which is a visible stall if it lands on a keystroke.
     func refresh() {
+        guard !refreshing else { return }
+        refreshing = true
+        lastRefresh = Date()
+        Task.detached(priority: .userInitiated) {
+            let entries = Self.scan()
+            await MainActor.run {
+                self.allApps = entries
+                self.lastRefresh = Date()
+                self.refreshing = false
+            }
+        }
+    }
+
+    nonisolated private static func scan() -> [AppEntry] {
         var seen = Set<String>()
         var entries: [AppEntry] = []
 
@@ -47,10 +65,10 @@ final class AppSearchProvider {
 
         AppCatalog.allBundles().forEach(add)
 
-        allApps = entries.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-        lastRefresh = Date()
+        return entries.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
+    /// Serves the list it has; a stale one refreshes behind the search.
     private func refreshIfStale() {
         if Date().timeIntervalSince(lastRefresh) > 30 {
             refresh()

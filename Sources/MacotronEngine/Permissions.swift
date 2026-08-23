@@ -47,8 +47,21 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         }
     }
 
+    /// Every refresh asks twice -- once to find what is missing, once to paint
+    /// the rows -- and a TCC answer is a ~5ms round trip. A second is short
+    /// enough that the 3s poll still notices a change promptly.
     @MainActor
     public var isGranted: Bool {
+        if let cached = Permissions.grantedCache[self], cached.at.timeIntervalSinceNow > -1 {
+            return cached.value
+        }
+        let value = checkGranted
+        Permissions.grantedCache[self] = (Date(), value)
+        return value
+    }
+
+    @MainActor
+    private var checkGranted: Bool {
         switch self {
         case .accessibility:
             return AXIsProcessTrusted()
@@ -123,6 +136,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     @MainActor
     @discardableResult
     public func request() -> Bool {
+        Permissions.grantedCache.removeAll()
         let openSettings: Bool
         switch self {
         case .accessibility:
@@ -166,6 +180,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
 
     @MainActor
     public func revoke() {
+        Permissions.grantedCache.removeAll()
         switch self {
         case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation, .menuBar:
             break
@@ -202,6 +217,9 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
 
 @MainActor
 public enum Permissions {
+    @MainActor
+    static var grantedCache: [Permission: (at: Date, value: Bool)] = [:]
+
     /// Always required, whether or not any plugin is installed. `.menuBar` is
     /// here so a plugin's item being switched off is reported like any other
     /// missing capability; `isAvailable` drops it when no plugin wants one.
