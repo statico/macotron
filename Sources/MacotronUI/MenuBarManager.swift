@@ -1,6 +1,9 @@
 // MenuBarManager.swift — NSStatusItem + dynamic NSMenu for menubar dropdown
 import AppKit
 import MacotronEngine
+import os
+
+private let logger = Logger(subsystem: "io.statico.macotron", category: "menubar")
 
 /// Small circle drawn over the status item glyph.
 private final class BadgeDotView: NSView {
@@ -146,6 +149,7 @@ public final class MenuBarManager: NSObject {
     public func setIconColor(_ raw: String?) {
         iconColorThisReload = true
         iconColor = PluginStatusItem.parseColor(raw)
+        logger.info("setIconColor \(raw ?? "nil", privacy: .public) parsed=\(self.iconColor != nil, privacy: .public)")
         refreshStatusImage()
     }
 
@@ -156,9 +160,19 @@ public final class MenuBarManager: NSObject {
         guard let button = statusItem.button else { return }
         if let symbolName {
             let base = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Macotron")
-            if let iconColor {
-                button.image = base?.withSymbolConfiguration(.init(paletteColors: [iconColor]))
-                button.image?.isTemplate = false
+            if let iconColor, let configured = base?.withSymbolConfiguration(
+                .init(paletteColors: [iconColor])
+            ) {
+                // Rasterize, as PluginStatusItem does: the status bar button
+                // re-applies its own symbol configuration to a symbol-backed
+                // image, which drops the palette color. A handler-backed image
+                // keeps the color we baked in.
+                let flat = NSImage(size: configured.size, flipped: false) { rect in
+                    configured.draw(in: rect)
+                    return true
+                }
+                flat.isTemplate = false
+                button.image = flat
             } else {
                 base?.isTemplate = true
                 button.image = base
@@ -167,6 +181,9 @@ public final class MenuBarManager: NSObject {
             button.image = MenuBarIcon.makeImage(tint: iconColor)
         }
         button.contentTintColor = nil
+        // A new image of the same size does not always mark the button dirty,
+        // which leaves an animated icon frozen on its first frame.
+        button.needsDisplay = true
 
         // Permission dot is a sibling; badging the image would force a
         // non-template icon and a fixed color.
