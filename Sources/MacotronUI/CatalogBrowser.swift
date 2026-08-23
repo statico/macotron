@@ -119,7 +119,10 @@ private struct CatalogInstallSheet: View {
                 Button(primaryLabel) {
                     install(override: state.scanReport?.needsOverride == true)
                 }
-                    .keyboardShortcut(.defaultAction)
+                    // Waiting on the scan takes the button off Return rather
+                    // than out of reach: the wait is a recommendation, not a
+                    // gate, so a user who does not want to wait can still act.
+                    .keyboardShortcut(state.scanning ? nil : .defaultAction)
                     .disabled(!canInstall)
             }
             .padding(.top, 4)
@@ -137,10 +140,12 @@ private struct CatalogInstallSheet: View {
         return override ? "Add Anyway" : "Add"
     }
 
-    /// A built-in needs no scan result to proceed; anything else waits for one.
+    /// A built-in needs no scan result to proceed, so its button stays live
+    /// while the scan runs -- it only loses Return. Reviewed bytes are a
+    /// different matter: `allowsInstall` refuses them without a matching
+    /// report, so leaving that button pressable would just be a dead button.
     private var canInstall: Bool {
-        if state.scanning { return false }
-        return state.scanReport != nil || state.installIsBuiltIn
+        state.scanReport != nil || state.installIsBuiltIn
     }
 
     @ViewBuilder
