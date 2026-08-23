@@ -7,6 +7,7 @@ public struct CatalogBrowser: View {
     var installedNames: Set<String>
     var onAdd: (CatalogPlugin) -> Void
     var onDetails: (CatalogPlugin) -> Void
+    var onAddAll: () -> Void
     @State private var query = ""
 
     public var body: some View {
@@ -25,7 +26,21 @@ public struct CatalogBrowser: View {
                     }
                 }
             }
+            if !missing.isEmpty {
+                Button(action: onAddAll) {
+                    Label(
+                        "I Feel Lucky, Add Everything! (\(missing.count))",
+                        systemImage: "sparkles"
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .controlSize(.large)
+            }
         }
+    }
+
+    private var missing: [CatalogPlugin] {
+        plugins.filter { !installedNames.contains($0.filename) }
     }
 
     private var filtered: [CatalogPlugin] {
