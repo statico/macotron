@@ -278,11 +278,13 @@ public enum Permissions {
     static func registerHelper() -> Bool {
         let service = helperService
         if service.status == .enabled { return false }
-        do {
-            try service.register()
-        } catch {
-            if service.status != .requiresApproval {
-                logger.error("Helper registration failed: \(error.localizedDescription)")
+        if let error = tryRegister(service) {
+            // launchd still holds the registration made by an older copy of the
+            // app, and answers EPERM rather than replacing it. Drop that one
+            // and register this app's helper in its place.
+            logger.error("Helper registration failed (\(service.status.rawValue)): \(error.localizedDescription)")
+            try? service.unregister()
+            if let error = tryRegister(service) {
                 let alert = NSAlert()
                 alert.messageText = "Could not install the background helper"
                 alert.informativeText = error.localizedDescription
@@ -292,6 +294,17 @@ public enum Permissions {
             }
         }
         return service.status != .enabled
+    }
+
+    /// The daemon lands in Login Items & Extensions switched off, so
+    /// `.requiresApproval` counts as success -- the user approves it there.
+    private static func tryRegister(_ service: SMAppService) -> Error? {
+        do {
+            try service.register()
+            return nil
+        } catch {
+            return service.status == .requiresApproval ? nil : error
+        }
     }
 
     static func unregisterHelper() {
