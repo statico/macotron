@@ -19,11 +19,39 @@ public final class LauncherModule: NativeModule {
     private var callbacks: [String: JSValue] = [:]
     private var hits: [String: [LauncherHit]] = [:]
     private var icons: [String: NSImage] = [:]
+    private var queries: [String: JSValue] = [:]
+
+    /// Live results are stored under `provider + liveSuffix` so they reuse the
+    /// static parsing and callback bookkeeping without leaking into `allHits`,
+    /// which feeds fuzzy matching and favorites.
+    private static let liveSuffix = "\u{1}live"
 
     public init() {}
 
     public func allHits() -> [LauncherHit] {
-        hits.keys.sorted().flatMap { hits[$0] ?? [] }
+        hits.keys.sorted()
+            .filter { !$0.hasSuffix(Self.liveSuffix) }
+            .flatMap { hits[$0] ?? [] }
+    }
+
+    /// Asks every registered `launcher.query` provider what it makes of the
+    /// current text. Runs on each keystroke, so providers must return fast.
+    public func liveHits(query: String) -> [LauncherHit] {
+        guard let engine, let ctx = engine.context, !queries.isEmpty else { return [] }
+        var out: [LauncherHit] = []
+        for provider in queries.keys.sorted() {
+            guard let callback = queries[provider] else { continue }
+            var arg: JSValue = JSBridge.newString(ctx, query)
+            let fn = JS_DupValue(ctx, callback)
+            let result = JS_Call(ctx, fn, QJS_Undefined(), 1, &arg)
+            JS_FreeValue(ctx, fn)
+            JS_FreeValue(ctx, arg)
+            let bucket = provider + Self.liveSuffix
+            replace(provider: bucket, items: result, ctx: ctx)
+            JS_FreeValue(ctx, result)
+            out.append(contentsOf: hits[bucket] ?? [])
+        }
+        return out
     }
 
     public func run(_ id: String) -> Bool {
@@ -56,6 +84,22 @@ public final class LauncherModule: NativeModule {
             return QJS_Undefined()
         }, "set", 2))
 
+        JS_SetPropertyStr(ctx, launcher, "query", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
+            guard let opaque = JS_GetContextOpaque(ctx) else { return QJS_Undefined() }
+            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            guard let mod = engine.configStore["__launcherModule"] as? LauncherModule,
+                  let provider = JSBridge.toString(ctx, argv[0]),
+                  JS_IsFunction(ctx, argv[1]) else {
+                return QJS_Undefined()
+            }
+            if let old = mod.queries.removeValue(forKey: provider) {
+                JS_FreeValue(ctx, old)
+            }
+            mod.queries[provider] = JS_DupValue(ctx, argv[1])
+            return QJS_Undefined()
+        }, "query", 2))
+
         JS_SetPropertyStr(ctx, launcher, "remove", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             guard let opaque = JS_GetContextOpaque(ctx) else { return QJS_Undefined() }
@@ -65,6 +109,7 @@ public final class LauncherModule: NativeModule {
                 return QJS_Undefined()
             }
             mod.drop(provider: provider, ctx: ctx)
+            mod.dropQuery(provider: provider, ctx: ctx)
             return QJS_Undefined()
         }, "remove", 1))
 
@@ -79,6 +124,10 @@ public final class LauncherModule: NativeModule {
             JS_FreeValue(ctx, cb)
         }
         callbacks.removeAll()
+        for (_, cb) in queries {
+            JS_FreeValue(ctx, cb)
+        }
+        queries.removeAll()
         hits.removeAll()
         engine = nil
     }
@@ -91,6 +140,13 @@ public final class LauncherModule: NativeModule {
             }
         }
         hits[provider] = nil
+    }
+
+    private func dropQuery(provider: String, ctx: OpaquePointer) {
+        if let callback = queries.removeValue(forKey: provider) {
+            JS_FreeValue(ctx, callback)
+        }
+        drop(provider: provider + Self.liveSuffix, ctx: ctx)
     }
 
     private func replace(provider: String, items: JSValue, ctx: OpaquePointer) {

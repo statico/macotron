@@ -396,6 +396,29 @@ declare const macotron: {
                 onClick?: () => void;
             }>
         ): void;
+        /**
+         * Answer the launcher's text directly instead of matching a fixed list.
+         * Runs on every keystroke, so return fast and return `[]` when the text
+         * is not yours. These results appear above the fuzzy-matched ones.
+         *
+         * @example
+         * macotron.launcher.query("calc", (q) => {
+         *     const n = Number(q);
+         *     return isFinite(n) ? [{ id: "n", title: String(n * 2), subtitle: "double" }] : [];
+         * });
+         */
+        query(
+            id: string,
+            handler: (query: string) => Array<{
+                id: string;
+                title: string;
+                subtitle?: string;
+                app?: string;
+                sfSymbol?: string;
+                kind?: string;
+                onClick?: () => void;
+            }>
+        ): void;
         remove(id: string): void;
     };
 
