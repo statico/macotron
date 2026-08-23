@@ -274,6 +274,16 @@ public final class MenuBarManager: NSObject {
         extraStatusItems[id]?.restore()
     }
 
+    /// How many items plugins asked for, and how many of those are not showing.
+    public func statusItemCounts() -> (total: Int, hidden: Int) {
+        let required = extraStatusItems.values.filter(\.required)
+        return (required.count, required.filter { !$0.isVisible }.count)
+    }
+
+    public func restoreAllStatus() {
+        extraStatusItems.values.filter(\.required).forEach { $0.restore() }
+    }
+
     private func statusVisibilityChanged(id: String, visible: Bool) {
         guard let item = extraStatusItems[id], item.required else { return }
         let changed = visible ? hiddenStatusIDs.remove(id) != nil : hiddenStatusIDs.insert(id).inserted

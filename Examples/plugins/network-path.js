@@ -51,6 +51,9 @@ function paint() {
     subtitle: pingMs == null ? "—" : Math.round(pingMs) + " ms",
     secondary: true,
     sfSymbol: "network",
+    // Rates change width as they cross 1K/1M, which shoves every item to the
+    // left of it around. Hold a width that fits the widest reading.
+    minWidth: 96,
   });
   macotron.checks([{
     title: "Interface",

@@ -16,6 +16,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     case microphone
     case helper
     case automation
+    case menuBar
 
     public var id: String { rawValue }
 
@@ -28,6 +29,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .microphone: return "Microphone"
         case .helper: return "Background Helper"
         case .automation: return "Automation"
+        case .menuBar: return "Menu Bar Items"
         }
     }
 
@@ -41,6 +43,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .microphone: return "Record audio from plugins."
         case .helper: return "Lets plugins control privileged features like fan control."
         case .automation: return "Control other apps through Apple events."
+        case .menuBar: return "Menu bar items plugins asked for are switched off."
         }
     }
 
@@ -61,6 +64,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             return Permissions.helperService.status == .enabled
         case .automation:
             return Permissions.isAutomationGranted
+        case .menuBar:
+            return Permissions.menuBarItems?().hidden == 0
         }
     }
 
@@ -72,6 +77,9 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         switch self {
         case .camera: return AVCaptureDevice.default(for: .video) != nil
         case .microphone: return AVCaptureDevice.default(for: .audio) != nil
+        // Nothing to show and nothing to warn about until a plugin asks for an
+        // item of its own.
+        case .menuBar: return (Permissions.menuBarItems?().total ?? 0) > 0
         default: return true
         }
     }
@@ -82,6 +90,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         switch self {
         case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation: return "Grant…"
         case .helper: return "Install…"
+        case .menuBar: return "Show…"
         }
     }
 
@@ -91,7 +100,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     public var isAutoRequestable: Bool {
         switch self {
         case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone: return true
-        case .helper, .automation: return false
+        case .helper, .automation, .menuBar: return false
         }
     }
 
@@ -99,7 +108,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     /// is ours to unregister.
     public var canRevoke: Bool {
         switch self {
-        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation: return false
+        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation, .menuBar: return false
         case .helper: return true
         }
     }
@@ -133,6 +142,11 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .automation:
             Permissions.requestAutomation()
             openSettings = true
+        case .menuBar:
+            // Put back whatever we can reach, then show the pane holding the
+            // switch we cannot flip ourselves.
+            Permissions.restoreMenuBarItems?()
+            openSettings = true
         }
         return openSettings
     }
@@ -140,7 +154,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     @MainActor
     public func revoke() {
         switch self {
-        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation:
+        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation, .menuBar:
             break
         case .helper:
             Permissions.unregisterHelper()
@@ -165,6 +179,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             urlString = "x-apple.systempreferences:com.apple.LoginItems-Settings.extension"
         case .automation:
             urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation"
+        case .menuBar:
+            urlString = "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension"
         }
         guard let url = URL(string: urlString) else { return }
         NSWorkspace.shared.open(url)
@@ -173,8 +189,18 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
 
 @MainActor
 public enum Permissions {
-    /// Always required, whether or not any plugin is installed.
-    public static let baseline: [Permission] = [.inputMonitoring, .accessibility, .automation]
+    /// Always required, whether or not any plugin is installed. `.menuBar` is
+    /// here so a plugin's item being switched off is reported like any other
+    /// missing capability; `isAvailable` drops it when no plugin wants one.
+    public static let baseline: [Permission] = [.inputMonitoring, .accessibility, .automation, .menuBar]
+
+    /// How many menu bar items plugins asked for, and how many of those macOS
+    /// is not showing — because the user dragged one out, or switched Macotron
+    /// off in System Settings › Menu Bar. Set by the app at startup.
+    public static var menuBarItems: (() -> (total: Int, hidden: Int))?
+
+    /// Put back the items that can be put back from here.
+    public static var restoreMenuBarItems: (() -> Void)?
 
     /// Map a plugin declaration string to a permission.
     public static func parse(_ name: String) -> Permission? {
@@ -191,6 +217,8 @@ public enum Permissions {
             return .microphone
         case "helper":
             return .helper
+        case "menubar", "menu-bar":
+            return .menuBar
         case "automation", "appleevents", "apple-events", "applescript":
             return .automation
         default:

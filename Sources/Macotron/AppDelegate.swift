@@ -116,6 +116,15 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         menuBarManager.onHiddenStatusChange = { [weak self] _ in
             self?.settingsState.refreshModules()
+            self?.refreshPermissions()
+        }
+        // Menu bar visibility reads like a permission: something outside
+        // Macotron decides it, and the fix is a switch in System Settings.
+        Permissions.menuBarItems = { [weak menuBarManager] in
+            menuBarManager?.statusItemCounts() ?? (0, 0)
+        }
+        Permissions.restoreMenuBarItems = { [weak menuBarManager] in
+            menuBarManager?.restoreAllStatus()
         }
         menuBarManager.onOpenConfig = { [weak self] in
             guard let self else { return }

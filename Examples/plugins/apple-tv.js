@@ -31,6 +31,7 @@ function remoteHTML() {
 .select { left: 50%; top: 50%; transform: translate(-50%,-50%); width: 58px; height: 58px;
   border-radius: 50%; background: var(--macotron-accent); color: var(--macotron-accent-text); font-size: 13px; }
 .row { display: flex; gap: 10px; justify-content: center; }
+.row + .row { margin-top: 10px; }
 .row button { min-width: 72px; padding: 10px 12px; border-radius: 12px;
   border: 1px solid var(--macotron-control-border); background: var(--macotron-control);
   color: var(--macotron-control-text); }
