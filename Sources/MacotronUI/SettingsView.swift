@@ -149,16 +149,21 @@ public enum SettingsTab: Int, CaseIterable {
 
 @MainActor
 public final class SettingsState: ObservableObject {
-    @Published public var launcherHotkey: String = "opt+space"
-    @Published public var showHotkeysHotkey: String = ""
+    @Published public var launcherHotkey: String = "opt+space" { didSet { claimsCache = nil } }
+    @Published public var showHotkeysHotkey: String = "" { didSet { claimsCache = nil } }
     @Published public var showDockIcon: Bool = true
     @Published public var showMenuBarIcon: Bool = true
     @Published public var launchAtLogin: Bool = false
     @Published public var appearance: AppearanceSetting = .system
     @Published public var textScale: Double = 1.0
     @Published public var launcherBackground: LauncherBackground = .translucent
-    @Published public var moduleSummaries: [ModuleSummary] = []
-    @Published public var appShortcuts: [AppShortcutSummary] = []
+    @Published public var moduleSummaries: [ModuleSummary] = [] { didSet { claimsCache = nil } }
+    @Published public var appShortcuts: [AppShortcutSummary] = [] { didSet { claimsCache = nil } }
+
+    /// Building the claim table walks every plugin, hotkey, and app shortcut,
+    /// and the plugin list asks for it once per row while it draws. Cache it and
+    /// let the four inputs above clear it.
+    var claimsCache: [ShortcutConflicts.Claim]?
     @Published public var requestedTab: Int?
     @Published public var requestedPlugin: String?
     @Published public var catalogPlugins: [CatalogPlugin] = []

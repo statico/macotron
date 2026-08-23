@@ -101,14 +101,17 @@ public enum ShortcutConflicts {
 
 extension SettingsState {
     var shortcutClaims: [ShortcutConflicts.Claim] {
+        if let claimsCache { return claimsCache }
         var table = CommandShortcuts()
         table.assign(commandId: HostCommands.showHotkeysID, combo: showHotkeysHotkey)
-        return ShortcutConflicts.claims(
+        let claims = StepTimer.measure("shortcut claims") { ShortcutConflicts.claims(
             launcher: launcherHotkey,
             apps: appShortcuts,
             modules: moduleSummaries,
             commandShortcuts: table
-        )
+        ) }
+        claimsCache = claims
+        return claims
     }
 
     func shortcutWarning(id: String, combo: String) -> String? {
