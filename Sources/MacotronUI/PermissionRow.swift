@@ -35,11 +35,21 @@ struct PermissionRow: View {
             .frame(width: Self.textWidth, alignment: .leading)
 
             if granted, permission.canRevoke {
-                Button("Remove") {
-                    permission.revoke()
-                    onChange?()
+                Menu("Installed") {
+                    if permission.canReinstall {
+                        Button("Reinstall…") {
+                            if permission.reinstall() { permission.openSystemSettings() }
+                            onChange?()
+                        }
+                    }
+                    Button("Remove") {
+                        permission.revoke()
+                        onChange?()
+                    }
                 }
+                .menuStyle(.button)
                 .controlSize(.small)
+                .fixedSize()
                 .frame(width: Self.actionWidth, alignment: .leading)
             } else if granted {
                 Text("Granted")

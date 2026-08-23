@@ -10,6 +10,9 @@ public enum MacotronHelperService {
 @objc public protocol MacotronHelperProtocol {
     func setFanFloor(_ percent: Int, reply: @escaping (String?) -> Void)
     func restoreFans(reply: @escaping (String?) -> Void)
+    /// Release the fans and exit, so the next call starts the helper the
+    /// installed app currently ships.
+    func shutdown(reply: @escaping (String?) -> Void)
 }
 
 public enum FanFloor {

@@ -113,6 +113,10 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         }
     }
 
+    /// Anything Macotron installs itself can be put back when it goes wrong,
+    /// or after the app is updated.
+    public var canReinstall: Bool { self == .helper }
+
     /// Ask macOS for the permission. This also registers Macotron in the
     /// matching System Settings list, so the user can find the toggle.
     /// Returns whether to open System Settings after the request.
@@ -149,6 +153,15 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             openSettings = true
         }
         return openSettings
+    }
+
+    /// Unregister and register again, so launchd picks up the helper the
+    /// installed app currently ships.
+    @MainActor
+    @discardableResult
+    public func reinstall() -> Bool {
+        revoke()
+        return request()
     }
 
     @MainActor
