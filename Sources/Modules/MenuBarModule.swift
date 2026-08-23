@@ -27,7 +27,8 @@ public protocol MenuBarModuleDelegate: AnyObject {
         sfSymbol: String?,
         imagePath: String?,
         onClick: (() -> Void)?,
-        menu: [MenuBarEntry]
+        menu: [MenuBarEntry],
+        required: Bool
     )
     func menuBarRemoveStatus(id: String)
     func menuBarRemoveAllStatus()
@@ -40,6 +41,10 @@ public final class MenuBarModule: NativeModule {
     public let name = "menubar"
 
     public weak var delegate: MenuBarModuleDelegate?
+
+    /// status id -> plugin filename, so Settings can show a missing item on the
+    /// page of the plugin that asked for it.
+    public var statusOwners: [String: String] = [:]
 
     /// Stored JS onClick callbacks keyed by menu item ID.
     /// Values are DupValue'd so QuickJS won't GC them.
@@ -136,6 +141,7 @@ public final class MenuBarModule: NativeModule {
             guard let id = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
 
             if let mod = engine.configStore["__menuBarModule"] as? MenuBarModule {
+                mod.statusOwners[id] = nil
                 mod.dropCallbacks(for: id, ctx: ctx)
                 mod.delegate?.menuBarRemoveStatus(id: id)
                 mod.delegate?.menuBarRemoveItem(id: id)
@@ -239,6 +245,11 @@ public final class MenuBarModule: NativeModule {
                 ? nil : JSBridge.toDouble(ctx, minWidthVal)
             JS_FreeValue(ctx, minWidthVal)
 
+            let requiredVal = JSBridge.getProperty(ctx, opts, "required")
+            let required = JSBridge.isUndefined(requiredVal) || JSBridge.isNull(requiredVal)
+                ? true : JSBridge.toBool(ctx, requiredVal)
+            JS_FreeValue(ctx, requiredVal)
+
             let sfVal = JSBridge.getProperty(ctx, opts, "sfSymbol")
             var sfSymbol: String? = JSBridge.isUndefined(sfVal) || JSBridge.isNull(sfVal)
                 ? nil : JSBridge.toString(ctx, sfVal)
@@ -266,6 +277,7 @@ public final class MenuBarModule: NativeModule {
             let onClickVal = JSBridge.getProperty(ctx, opts, "onClick")
 
             if let mod = engine.configStore["__menuBarModule"] as? MenuBarModule {
+                if let file = engine.currentEvaluatingFile { mod.statusOwners[id] = file }
                 mod.dropCallbacks(for: id, ctx: ctx)
                 let onClick: (() -> Void)? = mod.bindClick(ctx: ctx, from: onClickVal, key: id)
                 let menu = mod.readMenu(ctx: ctx, from: opts, prefix: id)
@@ -282,7 +294,8 @@ public final class MenuBarModule: NativeModule {
                     sfSymbol: sfSymbol,
                     imagePath: imagePath,
                     onClick: onClick,
-                    menu: menu
+                    menu: menu,
+                    required: required
                 )
             }
             JS_FreeValue(ctx, onClickVal)

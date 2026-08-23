@@ -16,10 +16,15 @@ struct SystemSettingsTests {
             var provider = "";
             var items = [];
             var opened = [];
+            var checkRows = [];
+            var toasts = [];
             var macotron = {
                 plugin: () => ({}),
                 launcher: { set: (id, rows) => { provider = id; items = rows; } },
-                url: { open: (u) => { opened.push(u); } }
+                url: { open: (u) => { opened.push(u); return true; } },
+                fs: { exists: () => true },
+                checks: (rows) => { checkRows = rows; },
+                notify: { toast: (t, b) => { toasts.push(b); } }
             };
             \(pluginSource)
             \(extra)
@@ -60,6 +65,16 @@ struct SystemSettingsTests {
             """#)
         #expect(result.contains("x-apple.systempreferences:com.apple.wifi-settings-extension"))
         #expect(result.contains("Privacy_LocationServices"))
+    }
+
+    @Test("a pane macOS will not open reports instead of failing quietly")
+    func reportsRefusedPane() throws {
+        let result = try eval(#"""
+            macotron.url.open = () => false;
+            items.find(i => i.title === "Wi-Fi").onClick();
+            JSON.stringify(toasts)
+            """#)
+        #expect(result.contains("Wi-Fi"))
     }
 
     @Test("aliases sit in the subtitle so launcher search can hit them")

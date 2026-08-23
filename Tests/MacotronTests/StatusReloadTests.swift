@@ -18,7 +18,7 @@ final class StatusReloadRecorder: MenuBarModuleDelegate {
     func menuBarSetStatus(
         id: String, title: String, subtitle: String?, color: String?, subtitleColor: String?,
         bold: Bool, italic: Bool, secondary: Bool, minWidth: Double?, sfSymbol: String?,
-        imagePath: String?, onClick: (() -> Void)?, menu: [MenuBarEntry]
+        imagePath: String?, onClick: (() -> Void)?, menu: [MenuBarEntry], required: Bool
     ) {}
     func menuBarRemoveStatus(id: String) {}
     func menuBarRemoveAllStatus() { removedAll += 1 }

@@ -41,17 +41,22 @@ struct MenuPluginsTests {
     func micMuteToggles() throws {
         let result = try eval(plugin: "mic-mute.js", mock: #"""
             var muted = false;
+            var controllable = true;
             var setCalls = [];
             var statusConfig = null;
+            var checkRows = [];
+            var toasts = [];
             var macotron = {
                 plugin: () => ({}),
                 on: () => {},
                 audio: {
                     input: () => ({ id: 7, name: "Mic", uid: "mic" }),
                     isMuted: () => muted,
-                    setMuted: (on, id) => { muted = on; setCalls.push({ on: on, id: id }); }
+                    setMuted: (on, id) => { muted = on; setCalls.push({ on: on, id: id }); return controllable; }
                 },
-                menubar: { status: (id, cfg) => { statusConfig = cfg; } }
+                menubar: { status: (id, cfg) => { statusConfig = cfg; } },
+                checks: (rows) => { checkRows = rows; },
+                notify: { toast: (t, b) => { toasts.push(b); } }
             };
             """#, extra: #"""
             statusConfig.onClick();
@@ -65,6 +70,38 @@ struct MenuPluginsTests {
         #expect(result.contains(#""color":"red""#))
         #expect(result.contains(#""on":true"#))
         #expect(result.contains(#""id":7"#))
+    }
+
+    /// Many built-in and USB mics expose no settable mute, and Core Audio just
+    /// reports the write as failed. Say so rather than pretending it worked.
+    @Test("a mic with no mute control reports instead of failing quietly")
+    func micMuteUnsupported() throws {
+        let result = try eval(plugin: "mic-mute.js", mock: #"""
+            var muted = false;
+            var controllable = false;
+            var setCalls = [];
+            var statusConfig = null;
+            var checkRows = [];
+            var toasts = [];
+            var macotron = {
+                plugin: () => ({}),
+                on: () => {},
+                audio: {
+                    input: () => ({ id: 7, name: "Mic", uid: "mic" }),
+                    isMuted: () => muted,
+                    setMuted: (on, id) => { setCalls.push({ on: on, id: id }); return controllable; }
+                },
+                menubar: { status: (id, cfg) => { statusConfig = cfg; } },
+                checks: (rows) => { checkRows = rows; },
+                notify: { toast: (t, b) => { toasts.push(b); } }
+            };
+            """#, extra: #"""
+            statusConfig.onClick();
+            JSON.stringify({ checks: checkRows, toasts: toasts, muted: muted })
+            """#)
+        #expect(result.contains(#""ok":false"#))
+        #expect(result.contains("no mute control"))
+        #expect(result.contains(#""muted":false"#))
     }
 
     @Test("headphones unplug pauses; HDMI to speakers does not")

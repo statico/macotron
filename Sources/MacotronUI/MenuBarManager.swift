@@ -234,10 +234,15 @@ public final class MenuBarManager: NSObject {
         sfSymbol: String?,
         imagePath: String?,
         onClick: (() -> Void)?,
-        menu: [MenuBarEntry] = []
+        menu: [MenuBarEntry] = [],
+        required: Bool = true
     ) {
         let extra = extraStatusItems[id] ?? PluginStatusItem(id: id)
         extraStatusItems[id] = extra
+        extra.required = required
+        extra.onVisibilityChange = { [weak self] id, visible in
+            self?.statusVisibilityChanged(id: id, visible: visible)
+        }
         statusRegistered?.insert(id)
         extra.apply(
             title: title,
@@ -257,11 +262,32 @@ public final class MenuBarManager: NSObject {
 
     public func removeStatus(id: String) {
         extraStatusItems.removeValue(forKey: id)?.remove()
+        if hiddenStatusIDs.remove(id) != nil { onHiddenStatusChange?(hiddenStatusIDs) }
+    }
+
+    /// Ids of items the user dragged out of the menu bar that their plugin
+    /// expects to be there.
+    public private(set) var hiddenStatusIDs: Set<String> = []
+    public var onHiddenStatusChange: ((Set<String>) -> Void)?
+
+    public func restoreStatus(id: String) {
+        extraStatusItems[id]?.restore()
+    }
+
+    private func statusVisibilityChanged(id: String, visible: Bool) {
+        guard let item = extraStatusItems[id], item.required else { return }
+        let changed = visible ? hiddenStatusIDs.remove(id) != nil : hiddenStatusIDs.insert(id).inserted
+        guard changed else { return }
+        logger.info("status \(id, privacy: .public) visible=\(visible, privacy: .public)")
+        onHiddenStatusChange?(hiddenStatusIDs)
     }
 
     public func removeAllStatus() {
         extraStatusItems.values.forEach { $0.remove() }
         extraStatusItems.removeAll()
+        guard !hiddenStatusIDs.isEmpty else { return }
+        hiddenStatusIDs.removeAll()
+        onHiddenStatusChange?(hiddenStatusIDs)
     }
 
     public func beginStatusReload() {
