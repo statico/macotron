@@ -91,3 +91,33 @@ struct PluginMenuTests {
         #expect(menu.items.map(\.title) == ["CPU 1%", "GPU 2%"])
     }
 }
+
+@Suite("PluginFilter")
+struct PluginFilterTests {
+    private func summary(_ title: String, _ file: String, _ description: String = "") -> ModuleSummary {
+        ModuleSummary(filename: file, title: title, description: description)
+    }
+
+    @Test("an empty query keeps everything")
+    func empty() {
+        #expect(PluginFilter.matches(summary("Fan", "fan.js"), query: "  "))
+    }
+
+    @Test("matches title, filename, and description, ignoring case")
+    func fields() {
+        let fan = summary("Fan Control", "fan.js", "Spin the fans up")
+        #expect(PluginFilter.matches(fan, query: "fan cont"))
+        #expect(PluginFilter.matches(fan, query: "FAN.JS"))
+        #expect(PluginFilter.matches(fan, query: "spin"))
+        #expect(!PluginFilter.matches(fan, query: "battery"))
+    }
+
+    @Test("a space cannot start a filter but can extend one")
+    func spaceHandling() {
+        #expect(!PluginFilter.accepts(" ", existing: ""))
+        #expect(PluginFilter.accepts(" ", existing: "fan"))
+        #expect(PluginFilter.accepts("f", existing: ""))
+        #expect(!PluginFilter.accepts("ab", existing: ""))
+        #expect(!PluginFilter.accepts("\t", existing: "fan"))
+    }
+}

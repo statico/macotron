@@ -267,7 +267,13 @@ public enum Permissions {
     static var isAutomationGranted: Bool {
         let target = NSAppleEventDescriptor(bundleIdentifier: "com.apple.systemevents")
         guard let desc = target.aeDesc else { return false }
-        return AEDeterminePermissionToAutomateTarget(desc, typeWildCard, typeWildCard, false) == noErr
+        let status = AEDeterminePermissionToAutomateTarget(desc, typeWildCard, typeWildCard, false)
+        // System Events is not always running, and then macOS answers
+        // procNotFound (-600) rather than saying anything about permission.
+        // Reading that as "missing" is what made the row sit orange until the
+        // Grant button launched System Events and it flipped green on its own.
+        // Only an explicit refusal counts.
+        return status != OSStatus(errAEEventNotPermitted)
     }
 
     static func requestAutomation() {
