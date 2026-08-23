@@ -3,6 +3,7 @@ import Foundation
 public enum HostCommands {
     public static let showHotkeysID = "macotron.show-hotkeys"
     public static let openSettingsID = "macotron.settings"
+    public static let openPluginsID = "macotron.plugins"
     /// Deliberately absent from `all`: the launcher only offers this row while a
     /// required permission is actually missing.
     public static let fixPermissionsID = "macotron.fix-permissions"
@@ -29,6 +30,11 @@ public enum HostCommands {
             id: openSettingsID,
             name: "Macotron Settings",
             description: "Open Macotron's own settings window"
+        ),
+        Definition(
+            id: openPluginsID,
+            name: "Macotron Plugins",
+            description: "Open the Plugins tab in Macotron's settings"
         ),
     ]
 
