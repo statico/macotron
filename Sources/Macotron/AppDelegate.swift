@@ -780,6 +780,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setHotReload(_ value: Bool) {
         moduleManager?.hotReload = value
         settingsState.hotReload = value
+        // Turning it on lifts the approval gate, so run the plugins that were
+        // held back instead of leaving them quarantined until the next launch.
+        if value {
+            moduleManager?.reloadAll()
+            settingsState.refreshModules()
+        }
         refreshIntegrity()
     }
 
