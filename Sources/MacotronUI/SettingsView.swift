@@ -264,7 +264,12 @@ public final class SettingsState: ObservableObject {
     /// Called on a timer and on every app switch, so only publish real changes.
     public func refreshPermissions() {
         let required = loadRequiredPermissions?() ?? Permissions.baseline
-        let granted = Set(required.filter(\.isGranted))
+        // A plugin page shows what its header declares, even while the plugin
+        // is disabled or waiting to be reviewed -- and those permissions are
+        // not in `required`, which only counts what is running. Check them too,
+        // or an installed helper reads as missing and its Install does nothing.
+        let shown = Set(moduleSummaries.flatMap(\.permissions)).subtracting(required)
+        let granted = Set((required + shown).filter(\.isGranted))
         if required != requiredPermissions { requiredPermissions = required }
         if granted != grantedPermissions { grantedPermissions = granted }
     }
