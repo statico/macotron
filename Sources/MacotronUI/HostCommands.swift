@@ -2,6 +2,7 @@ import Foundation
 
 public enum HostCommands {
     public static let showHotkeysID = "macotron.show-hotkeys"
+    public static let openSettingsID = "macotron.settings"
 
     public struct Definition: Equatable, Sendable {
         public let id: String
@@ -20,6 +21,11 @@ public enum HostCommands {
             id: showHotkeysID,
             name: "Show Hotkeys",
             description: "List every keyboard shortcut bound in Macotron"
+        ),
+        Definition(
+            id: openSettingsID,
+            name: "Macotron Settings",
+            description: "Open Macotron's own settings window"
         ),
     ]
 
