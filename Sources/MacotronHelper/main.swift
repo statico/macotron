@@ -35,6 +35,18 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
         reply(error)
     }
 
+    func shutdown(reply: @escaping (String?) -> Void) {
+        lock.lock()
+        log.info("shutdown requested")
+        floor = nil
+        startTimer(false)
+        _ = apply()
+        lock.unlock()
+        reply(nil)
+        // Let the reply travel before launchd notices we are gone.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { exit(0) }
+    }
+
     func restoreForFailsafe() {
         lock.lock()
         defer { lock.unlock() }

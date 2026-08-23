@@ -39,6 +39,7 @@ final class FanController: @unchecked Sendable {
     private let smc = SMCConnection()
     private var floor: Int?
     private var helperConnection: NSXPCConnection?
+    private var recycled = false
 
     func snapshot() -> FanSnapshot {
         lock.lock()
@@ -137,7 +138,25 @@ final class FanController: @unchecked Sendable {
         }
     }
 
-    private func call(_ body: (MacotronHelperProtocol, @escaping (String?) -> Void) -> Void) -> String? {
+    /// The daemon launchd has running was started from whatever app was
+    /// installed at the time, and it never re-execs. Ask the one from the
+    /// last app to quit the first time this app needs it, so the call after
+    /// it starts the helper this app ships.
+    private func recycleHelper() {
+        lock.lock()
+        let done = recycled
+        recycled = true
+        lock.unlock()
+        guard !done else { return }
+        _ = call({ $0.shutdown(reply: $1) }, recycling: true)
+        dropConnection()
+    }
+
+    private func call(
+        _ body: (MacotronHelperProtocol, @escaping (String?) -> Void) -> Void,
+        recycling: Bool = false
+    ) -> String? {
+        if !recycling { recycleHelper() }
         let reply = HelperReply()
         let proxy = connection().remoteObjectProxyWithErrorHandler { error in
             reply.finish(Self.displayError(error.localizedDescription))

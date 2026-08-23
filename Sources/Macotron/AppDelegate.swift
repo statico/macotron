@@ -457,6 +457,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         return s
     }
 
+    private func declaredPermissions(meta: [String: Any], header: PluginHeader.Info) -> [Permission] {
+        let running = (meta["permissions"] as? [Any] ?? []).compactMap {
+            ($0 as? String).flatMap(Permissions.parse)
+        }
+        return running.isEmpty ? header.permissions.compactMap(Permissions.parse) : running
+    }
+
     private func buildPluginSummaries() -> [ModuleSummary] {
         StepTimer.measure("buildPluginSummaries") { buildPluginSummariesBody() }
     }
@@ -562,9 +569,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 errorMessage: errorMsg,
                 isEnabled: isEnabled,
                 commands: commands,
-                permissions: (meta["permissions"] as? [Any] ?? []).compactMap {
-                    ($0 as? String).flatMap(Permissions.parse)
-                },
+                // A plugin that is disabled, or quarantined until its source is
+                // reviewed, never runs and so declares nothing at runtime. Its
+                // header still says what it needs, so read that instead.
+                permissions: declaredPermissions(meta: meta, header: header),
                 hiddenStatusItems: hiddenStatusItems(of: file.filename)
             ))
         }

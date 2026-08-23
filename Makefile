@@ -56,8 +56,10 @@ help: ## Show this help
 
 ##@ Build
 
+# SWIFT_FLAGS='--disable-sandbox' when make itself runs inside a sandbox:
+# SwiftPM cannot nest its own sandbox-exec inside one.
 build: ## Compile the debug binary
-	swift build -c $(CONFIG) --build-path $(BUILD_DIR)
+	swift build -c $(CONFIG) --build-path $(BUILD_DIR) $(SWIFT_FLAGS)
 
 bundle: build ## Create ~/Applications/Macotron.app
 	@mkdir -p "$(BUNDLE)/Contents/MacOS"
