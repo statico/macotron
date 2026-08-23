@@ -12,11 +12,19 @@ private let logger = Logger(subsystem: "io.statico.macotron", category: "window"
 struct SnapDrag {
     var start: CGPoint?
     var dragging = false
+    /// Where the frontmost window sat when this drag began, and whether it has
+    /// since moved. A drag that moves no window is not a window drag.
+    var windowOrigin: CGPoint?
+    var movedWindow = false
+    var lastWindowCheck: Date?
     static let slop: CGFloat = 8
 
     mutating func down(_ p: CGPoint) {
         start = p
         dragging = false
+        windowOrigin = nil
+        movedWindow = false
+        lastWindowCheck = nil
     }
 
     mutating func moved(_ p: CGPoint) {
@@ -24,10 +32,23 @@ struct SnapDrag {
         if hypot(p.x - start.x, p.y - start.y) > Self.slop { dragging = true }
     }
 
+    /// Feed the frontmost window's origin during a drag. The first sample is the
+    /// baseline; a later one past the slop means this really is a window drag.
+    mutating func sample(windowOrigin origin: CGPoint) {
+        guard let start = windowOrigin else {
+            windowOrigin = origin
+            return
+        }
+        if hypot(origin.x - start.x, origin.y - start.y) > Self.slop { movedWindow = true }
+    }
+
     mutating func up() -> Bool {
-        let ok = dragging
+        let ok = dragging && movedWindow
         start = nil
         dragging = false
+        windowOrigin = nil
+        movedWindow = false
+        lastWindowCheck = nil
         return ok
     }
 }
@@ -569,9 +590,29 @@ public final class WindowModule: NativeModule {
         }
     }
 
+    /// The event tap sees every left-drag on the machine, including a screenshot
+    /// selection or a text selection. Those must not raise the snap overlay, so
+    /// a drag only counts once the frontmost window has actually moved with it.
+    /// The origin is sampled on the first drag event rather than on mouse-down,
+    /// because macOS has not necessarily raised the clicked window by then.
+    private func trackDraggedWindow() {
+        if WindowSnapState.shared.drag.movedWindow { return }
+        let now = Date()
+        if let last = WindowSnapState.shared.drag.lastWindowCheck,
+           now.timeIntervalSince(last) < 0.08 {
+            return
+        }
+        WindowSnapState.shared.drag.lastWindowCheck = now
+        guard let win = Self.focusedAXWindow() else { return }
+        WindowSnapState.shared.drag.sample(windowOrigin: WindowAX.frame(win).origin)
+    }
+
     private func updateSnapPreview(at point: CGPoint) {
         if Self.hitsOwnWindow(point) { return }
-        guard snapEnabled, WindowSnapState.shared.drag.dragging else { return }
+        guard snapEnabled else { return }
+        trackDraggedWindow()
+        guard WindowSnapState.shared.drag.dragging,
+              WindowSnapState.shared.drag.movedWindow else { return }
         guard let hit = zone(at: point) else {
             SnapPreview.shared.hide()
             return
