@@ -268,6 +268,14 @@ public enum AppLaunch {
            shouldHide(bundleID: bundleID, frontmost: front.bundleIdentifier) {
             return front.hide()
         }
+        // Already running is the common case for a shortcut, and asking
+        // LaunchServices to open it again is a round trip through
+        // launchservicesd that can take hundreds of ms. Activating the process
+        // we already have is a direct call.
+        if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
+            running.unhide()
+            if running.activate(from: .current, options: [.activateAllWindows]) { return true }
+        }
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
             logger.error("app.open: no app found for \(bundleID)")
             return false
