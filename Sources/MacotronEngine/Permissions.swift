@@ -305,8 +305,10 @@ public enum Permissions {
             if let error = tryRegister(service) {
                 let alert = NSAlert()
                 alert.messageText = "Could not install the background helper"
-                alert.informativeText = error.localizedDescription
-                    + "\n\nSign Macotron with a Developer ID, then try Install again."
+                alert.informativeText = error.localizedDescription + "\n\n"
+                    + (MacotronHelperService.appReplacedOnDisk
+                        ? "Macotron was replaced on disk since it started. Quit and reopen it, then try Install again."
+                        : "Sign Macotron with a Developer ID, then try Install again.")
                 alert.runModal()
                 return false
             }
