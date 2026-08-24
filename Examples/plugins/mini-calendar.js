@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "Mini Calendar",
-    description: "Show today's weekday and date in the menu bar, and browse the month.",
+    description: "Show today's weekday and date in the menu bar, with the month in its menu.",
 });
 
 const DOW = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
@@ -25,97 +25,9 @@ function icon(date, ink) {
 </svg>`;
 }
 
-// `cal` right-aligns each day in two columns. Bold today's cell only.
-function markToday(text, month, year) {
-    const now = new Date();
-    if (month !== now.getMonth() + 1 || year !== now.getFullYear()) return text;
-    const day = String(now.getDate());
-    const pad = day.length === 1 ? " " : "";
-    return text.replace(new RegExp("(^|\\s)" + pad + day + "(?=\\s|$)", "m"), "$1<b>" + day + "</b>");
-}
-
-async function month(m, y) {
-    const r = await macotron.shell.run("cal", ["-h", String(m), String(y)]);
-    return markToday(r.stdout.replace(/\s+$/, ""), m, y);
-}
-
-let panelId = null;
-
-// The host emits panel:closed whichever way the window went away, so the
-// toggle stays honest even when the user closes it with Escape.
-macotron.on("panel:closed", (event) => {
-    if (event && event.id === panelId) panelId = null;
-});
-
-function toggle() {
-    if (panelId) {
-        macotron.panel.close(panelId);
-        panelId = null;
-        return;
-    }
-    open();
-}
-
-function open() {
-    const id = macotron.panel.open({
-        title: "Calendar",
-        width: 260,
-        height: 250,
-        glass: true,
-        html: `<style>
-#bar { display:flex; align-items:center; gap:8px; }
-#bar button { width:auto; flex:none; padding:2px 10px; }
-#title { flex:1; text-align:center; font-weight:600; }
-/* Shrink-wrap the grid and centre the block, not each line: centring the
-   text moves a short last week ("30 31") out from under its weekdays. */
-pre { margin:10px auto 0; display:table; font-size:13px; line-height:1.5;
-      text-align:left; }
-pre b { color:var(--macotron-accent); }
-</style>
-<div id="bar">
-  <button id="prev" class="secondary" type="button">‹</button>
-  <div id="title">…</div>
-  <button id="next" class="secondary" type="button">›</button>
-</div>
-<pre id="grid"></pre>
-<script>
-const send = (d) => window.webkit.messageHandlers.macotron.postMessage(d);
-document.getElementById("prev").onclick = () => send({ type: "nav", delta: -1 });
-document.getElementById("next").onclick = () => send({ type: "nav", delta: 1 });
-document.getElementById("title").onclick = () => send({ type: "nav", delta: 0 });
-window.__macotronReceive = (data) => {
-  if (!data) return;
-  document.getElementById("title").textContent = data.title;
-  document.getElementById("grid").innerHTML = data.text;
-};
-send({ type: "nav", delta: 0 });
-</script>`,
-    });
-
-    panelId = id;
-
-    const now = new Date();
-    let m = now.getMonth() + 1;
-    let y = now.getFullYear();
-
-    macotron.panel.onMessage(id, async (data) => {
-        if (!data || data.type !== "nav") return;
-        if (data.delta === 0) {
-            m = now.getMonth() + 1;
-            y = now.getFullYear();
-        } else {
-            m += data.delta;
-            if (m > 12) { m = 1; y += 1; }
-            if (m < 1) { m = 12; y -= 1; }
-        }
-        const text = await month(m, y);
-        macotron.panel.postMessage(id, { title: text.split("\n")[0].trim(), text });
-    });
-}
-
-// The month as a web page, so the dropdown can show the grid itself. `cal`
-// takes a shell round trip and the menu is built synchronously, so lay the
-// weeks out here instead.
+// The month as a web page: the menu itself is the calendar, so there is no
+// panel to open. `cal` would need a shell round trip and the menu is built
+// synchronously, so lay the weeks out here instead.
 function grid(now) {
     const first = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
     const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -138,7 +50,7 @@ function render() {
     macotron.menubar.status("mini-calendar", {
         title: "",
         svg: icon(now, macotron.system.darkMode() ? "#ffffff" : "#000000"),
-        onClick: toggle,
+        // No onClick, so a left-click drops the menu -- and the month with it.
         menu: [
             { title: now.toDateString() },
             { html: grid(now), width: 220, height: 130 },
@@ -151,4 +63,5 @@ function render() {
 render();
 macotron.every(60000, render);
 
-macotron.command("Calendar", "Browse this month", toggle);
+macotron.command("Open Calendar", "Open the Calendar app", () =>
+    macotron.app.launch("com.apple.iCal"));
