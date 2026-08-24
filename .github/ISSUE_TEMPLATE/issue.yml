@@ -1,0 +1,101 @@
+name: Report an issue or suggest something
+description: Bugs, ideas, and plugin suggestions all start here.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time — one form covers everything, so just fill
+        in the parts that apply and skip the rest.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of issue is this?
+      options:
+        - Bug — something does not work
+        - Feature or change — something could work better
+        - New built-in plugin — Macotron should ship this
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What's up?
+      description: |
+        For a bug: what you did, what you expected, and what happened instead.
+        For anything else: what you would like, and what you are trying to get
+        done. No need to be formal.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why_builtin
+    attributes:
+      label: Why should this plugin ship with Macotron?
+      description: |
+        Only for the plugin suggestions — skip this one otherwise.
+
+        Macotron plugins are just JavaScript, and writing your own is the point
+        of the app, so the built-in set stays small on purpose: things most
+        people want, that show off an API, or that are fiddly enough to be
+        worth getting right once. It also has to work on a stock Mac — host
+        APIs and Apple's own tools only, no Homebrew or npm.
+
+        So: who else wants this, and what makes it awkward to keep as a plugin
+        of your own? A rough sketch of the plugin is very welcome too.
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Macotron version
+      description: Settings → General, at the bottom. Bugs only.
+      placeholder: "0.2.3"
+    validations:
+      required: false
+
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      description: "`sw_vers -productVersion`. Bugs only."
+      placeholder: "26.0"
+    validations:
+      required: false
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: |
+        Enormously helpful for a bug, and not needed otherwise.
+
+        Macotron logs through the unified log, so nothing is written to a file
+        until you ask for it. Run this in Terminal, reproduce the problem, then
+        press Ctrl-C and paste what it printed:
+
+        ```sh
+        log stream --level info --style compact \
+          --predicate 'subsystem == "io.statico.macotron"' | tee /tmp/macotron.log
+        ```
+
+        It lands in `/tmp/macotron.log` too, if you would rather attach it.
+        From a clone of the repo, `make trace` is the same command and tees to
+        `tmp/log`.
+
+        Heads up: the log includes window and app names, plugin filenames, and
+        URLs your plugins open. Have a read before pasting.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: plugin
+    attributes:
+      label: Plugin source
+      description: If a plugin of yours is involved, paste it or link it.
+      render: javascript
+    validations:
+      required: false
