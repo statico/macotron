@@ -718,6 +718,20 @@ struct CatalogInstallScanTests {
         )
     }
 
+    @Test("an installed copy that drifts from the catalog offers an update")
+    func drift() {
+        let state = SettingsState()
+        state.catalogPlugins = [plugin("weather.js")]
+        let summary = { (hash: String) in
+            ModuleSummary(filename: "weather.js", description: "", sourceHash: hash)
+        }
+        #expect(state.catalogUpdate(for: summary("hash")) == nil)
+        #expect(state.catalogUpdate(for: summary("edited"))?.filename == "weather.js")
+        // A plugin the user wrote has no upstream to update from.
+        state.catalogPlugins = []
+        #expect(state.catalogUpdate(for: summary("edited")) == nil)
+    }
+
     @Test("installing a built-in does not kick off a scan")
     func builtInDoesNotScan() {
         let state = SettingsState()
