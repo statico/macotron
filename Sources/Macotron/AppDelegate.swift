@@ -714,7 +714,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshPermissions() }
+            MainActor.assumeIsolated {
+                Permissions.invalidate()
+                self?.refreshPermissions()
+            }
         }
 
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -722,7 +725,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshPermissions() }
+            MainActor.assumeIsolated {
+                Permissions.invalidate()
+                self?.refreshPermissions()
+            }
         }
     }
 
