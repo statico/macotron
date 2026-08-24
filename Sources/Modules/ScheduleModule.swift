@@ -174,8 +174,31 @@ public final class ScheduleModule: NativeModule {
         }, "stop", 0, JS_CFUNC_generic, Int32(jobID))
     }
 
+    /// Time spent in interval callbacks, per plugin, logged once a minute.
+    /// Idle CPU is nearly always a plugin ticking, and `sample` needs root, so
+    /// the app has to be able to say which plugin on its own.
+    private var spend: [String: TimeInterval] = [:]
+    private var spendSince = CFAbsoluteTimeGetCurrent()
+
+    private func account(_ file: String?, _ seconds: TimeInterval) {
+        spend[file ?? "unknown", default: 0] += seconds
+        let window = CFAbsoluteTimeGetCurrent() - spendSince
+        guard window >= 60 else { return }
+        let busy = spend.values.reduce(0, +)
+        let worst = spend.sorted { $0.value > $1.value }.prefix(5)
+            .map { "\($0.key) \(Int($0.value * 1000))ms" }
+            .joined(separator: ", ")
+        logger.notice(
+            "timers used \(String(format: "%.2f", busy / window * 100), privacy: .public)% of a core over \(Int(window))s: \(worst, privacy: .public)"
+        )
+        spend.removeAll()
+        spendSince = CFAbsoluteTimeGetCurrent()
+    }
+
     fileprivate func invokeJob(_ job: ScheduleJob) {
         guard let engine, !job.cancelled else { return }
+        let start = CFAbsoluteTimeGetCurrent()
+        defer { account(job.pluginFile, CFAbsoluteTimeGetCurrent() - start) }
         engine.withEvaluatingFile(job.pluginFile) {
             let result = JS_Call(engine.context, job.callback, QJS_Undefined(), 0, nil)
             if JS_IsException(result) {
