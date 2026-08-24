@@ -1,3 +1,4 @@
+import MacotronEngine
 import AppKit
 
 @MainActor
@@ -38,7 +39,7 @@ enum URLFallbackPicker {
         }
         alert.addButton(withTitle: "Cancel")
 
-        NSApp.activate(ignoringOtherApps: true)
+        AppActivation.activate("browser picker")
         let index = alert.runModal().rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
         guard items.indices.contains(index) else { return }
         open(url, items[index].bundleID)

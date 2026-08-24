@@ -265,7 +265,7 @@ final class URLSchemeEventReceiver: NSObject {
         alert.informativeText = info
         alert.addButton(withTitle: "Allow")
         alert.addButton(withTitle: "Cancel")
-        NSApp.activate(ignoringOtherApps: true)
+        AppActivation.activate("url scheme handler")
         return alert.runModal() == .alertFirstButtonReturn
     }
 

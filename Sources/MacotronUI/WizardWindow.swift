@@ -1,4 +1,5 @@
 // WizardWindow.swift — NSWindow wrapper for the first-run wizard
+import MacotronEngine
 import AppKit
 import SwiftUI
 
@@ -29,7 +30,7 @@ public final class WizardWindow {
 
     public func show() {
         if let window, window.isVisible {
-            NSApp.activate(ignoringOtherApps: true)
+            AppActivation.activate("setup wizard")
             window.makeKeyAndOrderFront(nil)
             return
         }
@@ -53,13 +54,13 @@ public final class WizardWindow {
         w.center()
         w.isReleasedWhenClosed = false
         w.level = .floating
-        NSApp.activate(ignoringOtherApps: true)
+        AppActivation.activate("setup wizard")
         w.makeKeyAndOrderFront(nil)
 
         // First launch starts as accessory; drop the floating level once we are key.
         DispatchQueue.main.async {
             w.level = .normal
-            NSApp.activate(ignoringOtherApps: true)
+            AppActivation.activate("setup wizard")
             w.makeKeyAndOrderFront(nil)
         }
 

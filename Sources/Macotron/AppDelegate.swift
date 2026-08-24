@@ -137,6 +137,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             NSWorkspace.shared.open(self.workspace.root)
         }
         menuBarManager.onToggleLauncher = { [weak self] in
+            self?.launcherPanel.showReason = "menu bar icon"
             self?.launcherPanel.toggle()
         }
         menuBarManager.onOpenSettings = { [weak self] in
@@ -303,7 +304,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.writeShowDockIcon = { [weak self] value in
             self?.writeUIValue("showDockIcon", value)
             NSApp.setActivationPolicy(value ? .regular : .accessory)
-            if value { NSApp.activate(ignoringOtherApps: true) }
+            if value { AppActivation.activate("dock icon turned on") }
         }
         settingsState.readShowMenuBarIcon = { [weak self] in
             self?.readUIValue("showMenuBarIcon") as? Bool ?? true
@@ -692,7 +693,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 keyCode: UInt32(parsed.keyCode),
                 carbonModifiers: parsed.carbonModifiers
             ) { [weak self] in
-                Task { @MainActor in self?.launcherPanel.toggle() }
+                Task { @MainActor in
+                    self?.launcherPanel.showReason = "hotkey \(combo)"
+                    self?.launcherPanel.toggle()
+                }
             }
         }
         menuBarManager.updateLauncherShortcut(combo)
@@ -715,9 +719,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
+                AppActivation.noteBecameActive()
                 Permissions.invalidate()
                 self?.refreshPermissions()
             }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { AppActivation.noteResignedActive() }
         }
 
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -1159,6 +1172,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 arguments: cmd.arguments
             )
             if !launcherPanel.isVisible {
+                launcherPanel.showReason = "command \(cmd.id) needs arguments"
                 launcherPanel.toggle()
             }
         }

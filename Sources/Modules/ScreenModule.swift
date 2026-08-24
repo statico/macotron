@@ -145,7 +145,7 @@ public final class ScreenModule: NativeModule {
             nonisolated(unsafe) let capturedCtx = ctx
 
             Task { @MainActor in
-                NSApp.activate(ignoringOtherApps: true)
+                AppActivation.activate("screen capture")
                 let color = await NSColorSampler().sample()
                 guard let pending = engine.claimPending(token) else { return }
                 let point = NSEvent.mouseLocation

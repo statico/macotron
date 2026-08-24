@@ -1,5 +1,6 @@
 // LauncherPanel.swift — Floating NSPanel for the launcher
 import AppKit
+import MacotronEngine
 
 private extension NSView {
     func firstEditableTextField() -> NSTextField? {
@@ -190,7 +191,11 @@ public final class LauncherPanel: NSPanel {
         pinHost()
     }
 
+    /// Why the launcher is being shown, for the activation log.
+    public var showReason: String = "unknown"
+
     private func reveal() {
+        AppActivation.note("launcher shown: \(showReason)")
         alphaValue = 1
         dismissOnResign = false
         orderFrontRegardless()

@@ -1,4 +1,5 @@
 // ScreenPicker.swift — drag a rectangle over the screen
+import MacotronEngine
 import AppKit
 
 @MainActor
@@ -18,7 +19,7 @@ final class ScreenRegionPicker {
     }
 
     private func start() {
-        NSApp.activate(ignoringOtherApps: true)
+        AppActivation.activate("screen picker")
         NSCursor.crosshair.push()
         overlays = NSScreen.screens.map { screen in
             let overlay = PickerOverlay(screen: screen) { [weak self] rect in
