@@ -1132,6 +1132,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleCommandShortcut(_ commandId: String) {
+        StepTimer.measure("command shortcut \(commandId)") { handleCommandShortcutBody(commandId) }
+    }
+
+    private func handleCommandShortcutBody(_ commandId: String) {
         if runHostCommand(commandId) {
             return
         }
