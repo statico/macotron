@@ -4,12 +4,12 @@ const opts = macotron.plugin({
   options: {
     showName: {
       type: "boolean",
-      label: "Show the output device name in the menu bar",
+      label: "Show Device Name",
       default: true,
     },
     maxLength: {
       type: "number",
-      label: "Shorten the name to this many characters",
+      label: "Max Name Length",
       default: 15,
     },
   },
