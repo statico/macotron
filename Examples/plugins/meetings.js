@@ -8,7 +8,7 @@ const opts = macotron.plugin({
             default: 12,
         },
         hide: {
-            type: "string",
+            type: "text",
             label: "Hide titles matching (one regex per line)",
             default: "personal\nOOO",
         },

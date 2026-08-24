@@ -1444,9 +1444,10 @@ struct ModuleOptionRow: View {
     @State private var numberValue: String = ""
     @State private var hotkeyValue: String = ""
     @State private var passwordValue: String = ""
+    @FocusState private var editing: Bool
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: option.type == "text" ? .top : .center, spacing: 12) {
             labelText
                 .frame(width: PluginForm.labelWidth, alignment: .leading)
             control
@@ -1539,6 +1540,22 @@ struct ModuleOptionRow: View {
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(option.isSet ? .green : .secondary)
             }
+        case "text":
+            // A TextEditor takes Return as a newline, so there is no onSubmit to
+            // save on. Commit when the field loses focus instead.
+            TextEditor(text: $stringValue)
+                .font(.system(size: 12, design: .monospaced))
+                .scrollContentBackground(.hidden)
+                .padding(4)
+                .frame(maxWidth: PluginForm.fieldMaxWidth, minHeight: 76)
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.secondary.opacity(0.3)))
+                .onAppear { stringValue = (option.currentValue as? String) ?? "" }
+                .focused($editing)
+                .onChange(of: editing) {
+                    guard !editing else { return }
+                    state.saveModuleOption?(filename, option.key, stringValue)
+                    state.refreshModules()
+                }
         case "file", "directory":
             HStack(spacing: 8) {
                 let path = (option.currentValue as? String) ?? ""

@@ -626,7 +626,7 @@ public final class PluginWorkspace {
         // opts.apiKey === resolved secret string (or "")
         ```
 
-        Option types: `string`, `boolean`, `number`, `keybinding`, `dropdown`
+        Option types: `string`, `text`, `boolean`, `number`, `keybinding`, `dropdown`
         (requires `choices: [{ value, label }]`), `password`, `file`, `directory`.
 
         Text, number, password, file, and directory options accept `placeholder`,

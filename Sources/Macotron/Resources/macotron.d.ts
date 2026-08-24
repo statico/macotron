@@ -814,6 +814,7 @@ declare const macotron: {
      *
      * Option types:
      * - "string"      — text field. Plugin sees the string value.
+     * - "text"        — multi-line text area, for values with one entry per line.
      * - "boolean"     — checkbox. Plugin sees true/false.
      * - "number"      — number field. Plugin sees a number.
      * - "keybinding"  — hotkey recorder. Plugin sees a combo like "cmd+shift+c".
@@ -878,6 +879,7 @@ declare const macotron: {
  */
 type MacotronPluginOption =
     | { type: "string"; label: string; default?: string; required?: boolean; placeholder?: string }
+    | { type: "text"; label: string; default?: string; required?: boolean; placeholder?: string }
     | { type: "boolean"; label: string; default?: boolean; required?: boolean }
     | { type: "number"; label: string; default?: number; required?: boolean; placeholder?: string }
     | { type: "keybinding"; label: string; default?: string; required?: boolean }
