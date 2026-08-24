@@ -50,9 +50,16 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     /// Every refresh asks twice -- once to find what is missing, once to paint
     /// the rows -- and a TCC answer is a ~5ms round trip. A second is short
     /// enough that the 3s poll still notices a change promptly.
+    ///
+    /// Asking launchd about the daemon costs 20ms, which is most of a refresh,
+    /// and the answer only changes when the user installs it here or switches
+    /// it off in Login Items. Both paths drop the cache, as does coming back
+    /// from another app, so a long life here costs no freshness.
+    private var cacheLife: TimeInterval { self == .helper ? 60 : 1 }
+
     @MainActor
     public var isGranted: Bool {
-        if let cached = Permissions.grantedCache[self], cached.at.timeIntervalSinceNow > -1 {
+        if let cached = Permissions.grantedCache[self], -cached.at.timeIntervalSinceNow < cacheLife {
             return cached.value
         }
         let value = checkGranted
@@ -219,6 +226,13 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
 public enum Permissions {
     @MainActor
     static var grantedCache: [Permission: (at: Date, value: Bool)] = [:]
+
+    /// Drop every cached answer, for when something outside Macotron may have
+    /// changed one -- coming back from System Settings, most of all.
+    @MainActor
+    public static func invalidate() {
+        grantedCache.removeAll()
+    }
 
     /// Always required, whether or not any plugin is installed. `.menuBar` is
     /// here so a plugin's item being switched off is reported like any other
