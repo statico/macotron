@@ -156,6 +156,9 @@ release: ## Build a signed, notarized DMG (VERSION=x.y.z)
 	fi
 	@if [ -z "$(ALLOW_UNNOTARIZED)" ]; then xcrun stapler validate "$(DMG)"; fi
 	@echo "Built $(DMG)"
+	@# A DMG on its own is not a release. Say so, unless publish called us.
+	@test $(MAKELEVEL) -gt 0 || echo \
+		"Not published: make publish VERSION=$(VERSION) tags it, uploads it, and updates the tap."
 
 tap: ## Re-point the Homebrew cask at VERSION (publish does this already)
 	@test "$(origin VERSION)" = "command line" && test -n "$(VERSION)" || \
