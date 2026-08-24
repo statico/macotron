@@ -1,15 +1,31 @@
-macotron.plugin({
+const opts = macotron.plugin({
   title: "Audio Menu Bar Widgets",
   description: "Switch speakers and mute volume from the menu bar.",
+  options: {
+    showName: {
+      type: "boolean",
+      label: "Show the output device name in the menu bar",
+      default: true,
+    },
+    maxLength: {
+      type: "number",
+      label: "Shorten the name to this many characters",
+      default: 15,
+    },
+  },
 });
 
 function outputs() {
   return macotron.audio.devices().filter((d) => d.output);
 }
 
+// The icon carries the widget on its own, so hiding the name leaves the
+// menu bar tidy rather than empty.
 function clip(name) {
+  if (!opts.showName) return "";
+  const max = Math.max(1, Number(opts.maxLength) || 15);
   name = name || "Audio";
-  return name.length > 15 ? name.slice(0, 14) + "…" : name;
+  return name.length > max ? name.slice(0, max - 1) + "…" : name;
 }
 
 function paint() {
