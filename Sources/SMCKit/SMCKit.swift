@@ -1,6 +1,7 @@
 import Darwin
 @preconcurrency import Foundation
 import IOKit
+import Security
 
 public enum MacotronHelperService {
     public static let plistName = "io.statico.macotron.helper.plist"
@@ -12,6 +13,17 @@ public enum MacotronHelperService {
     public static var identity: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         return "\(version) at \(Bundle.main.bundlePath)"
+    }
+
+    /// True when the bundle on disk no longer matches this running process --
+    /// the app was updated, or rebuilt over itself, since launch. In that state
+    /// macOS cannot validate this process against its signature, so the helper
+    /// rejects its XPC calls and launchd refuses to register the daemon.
+    /// Nothing works again until the app is relaunched.
+    public static var appReplacedOnDisk: Bool {
+        var me: SecCode?
+        guard SecCodeCopySelf([], &me) == errSecSuccess, let me else { return false }
+        return SecCodeCheckValidity(me, [], nil) == errSecCSStaticCodeChanged
     }
 }
 

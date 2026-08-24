@@ -148,6 +148,12 @@ public final class FanController: @unchecked Sendable {
     /// else is told to quit so the next call starts the one this app ships.
     public func checkHelper() {
         guard helperEnabled else { return }
+        // Shutting the helper down would fail the same validation the calls do,
+        // and the helper this app ships cannot start until the app restarts.
+        guard !MacotronHelperService.appReplacedOnDisk else {
+            logger.error("helper check: app replaced on disk since launch; relaunch to use the helper")
+            return
+        }
         let reply = HelperReply()
         let proxy = connection().remoteObjectProxyWithErrorHandler { error in
             reply.finish(Self.displayError(error.localizedDescription))
