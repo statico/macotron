@@ -120,6 +120,9 @@ check: bundle ## Typecheck load plugins (ARGS='plugins/foo.js' optional)
 
 # Tees to $(TRACE_LOG) because `log` refuses to run inside a sandbox: an agent
 # working in one can read the file even though it cannot run the command.
+# Macotron logs to the unified log, which `log show` can read back but a
+# sandboxed process cannot -- hence the tee. Same command as the one in the
+# bug report template, for people without a checkout.
 trace: ## Stream the app log to the terminal and tmp/log
 	@mkdir -p $(dir $(TRACE_LOG))
 	log stream --level info --style compact --predicate 'subsystem == "io.statico.macotron"' \
