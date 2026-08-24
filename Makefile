@@ -46,7 +46,7 @@ SIGN_FLAGS = $(if $(findstring Developer ID,$(SIGN_IDENTITY)),--options runtime,
 
 .DEFAULT_GOAL := help
 
-.PHONY: help version build run bundle check clean cleanprefs release publish tap scan trace
+.PHONY: help version build run bundle check clean cleanprefs release tap scan trace
 
 ##@ General
 
@@ -129,9 +129,27 @@ scan: ## Sweep built-in plugins + tmp/malware with the on-device scanner
 	swift run --build-path $(BUILD_DIR) PluginScan --runs $${SCAN_RUNS:-3} --concurrency $${SCAN_CONCURRENCY:-16} \
 		Examples/plugins --fail tmp/malware --out tmp/scan-sweep.jsonl $(ARGS)
 
-release: ## Build a signed, notarized DMG (VERSION=x.y.z)
+release: ## Tag, build, and ship a release + Homebrew cask (VERSION=x.y.z)
 	@test "$(origin VERSION)" = "command line" && test -n "$(VERSION)" || \
 		{ echo "usage: make release VERSION=x.y.z"; exit 1; }
+	@test -n "$(ALLOW_UNNOTARIZED)" || git diff --quiet HEAD || \
+		{ echo "Working tree is dirty."; exit 1; }
+	@# Whatever is about to be tagged has to be what everyone else can see.
+	@test -n "$(ALLOW_UNNOTARIZED)" || { \
+		git fetch --quiet origin main && \
+		test -z "$$(git rev-list origin/main..HEAD)" -a -z "$$(git rev-list HEAD..origin/main)"; \
+	} || { echo "main and origin/main have diverged. Push or pull first."; exit 1; }
+	@git tag --list 'v$(VERSION)' | grep -q . && \
+		{ echo "v$(VERSION) already exists."; exit 1; } || true
+	@mkdir -p $(BUILD_DIR)
+	@prev=$$(git tag --list 'v*' --sort=-v:refname | head -1); \
+		if [ -n "$$prev" ]; then \
+			git log --reverse --no-merges --pretty='- %s' $$prev..HEAD \
+				> $(BUILD_DIR)/notes.md; \
+		else \
+			echo "First release." > $(BUILD_DIR)/notes.md; \
+		fi
+	@echo "Release notes:"; sed 's/^/  /' $(BUILD_DIR)/notes.md
 	@$(MAKE) CONFIG=release VERSION=$(VERSION) bundle
 	@codesign -dvv "$(BUNDLE)" 2>&1 | grep -q "Authority=Developer ID" || \
 		{ echo "Refusing to package: not signed with a Developer ID."; exit 1; }
@@ -156,35 +174,18 @@ release: ## Build a signed, notarized DMG (VERSION=x.y.z)
 	fi
 	@if [ -z "$(ALLOW_UNNOTARIZED)" ]; then xcrun stapler validate "$(DMG)"; fi
 	@echo "Built $(DMG)"
-	@# A DMG on its own is not a release. Say so, unless publish called us.
-	@test $(MAKELEVEL) -gt 0 || echo \
-		"Not published: make publish VERSION=$(VERSION) tags it, uploads it, and updates the tap."
+	@# An unnotarized DMG is a local test build; nobody should download it.
+	@if [ -n "$(ALLOW_UNNOTARIZED)" ]; then echo "Not published: ALLOW_UNNOTARIZED."; else set -x; \
+		git tag -a v$(VERSION) -m "$(APP_NAME) $(VERSION)" && \
+		git push origin HEAD v$(VERSION) && \
+		gh release create v$(VERSION) "$(DMG)" --title "$(APP_NAME) $(VERSION)" \
+			--notes-file $(BUILD_DIR)/notes.md && \
+		scripts/update-tap.sh $(VERSION) "$(DMG)"; \
+	fi
 
-tap: ## Re-point the Homebrew cask at VERSION (publish does this already)
+tap: ## Re-point the Homebrew cask at VERSION (release does this already)
 	@test "$(origin VERSION)" = "command line" && test -n "$(VERSION)" || \
 		{ echo "usage: make tap VERSION=x.y.z"; exit 1; }
-	scripts/update-tap.sh $(VERSION) "$(DMG)"
-
-publish: ## Tag, build, and ship a release + Homebrew cask (VERSION=x.y.z)
-	@test "$(origin VERSION)" = "command line" && test -n "$(VERSION)" || \
-		{ echo "usage: make publish VERSION=x.y.z"; exit 1; }
-	@git diff --quiet HEAD || { echo "Working tree is dirty."; exit 1; }
-	@git tag --list 'v$(VERSION)' | grep -q . && \
-		{ echo "v$(VERSION) already exists."; exit 1; } || true
-	@mkdir -p $(BUILD_DIR)
-	@prev=$$(git tag --list 'v*' --sort=-v:refname | head -1); \
-		if [ -n "$$prev" ]; then \
-			git log --reverse --no-merges --pretty='- %s' $$prev..HEAD \
-				> $(BUILD_DIR)/notes.md; \
-		else \
-			echo "First release." > $(BUILD_DIR)/notes.md; \
-		fi
-	@echo "Release notes:"; sed 's/^/  /' $(BUILD_DIR)/notes.md
-	@$(MAKE) VERSION=$(VERSION) release
-	git tag -a v$(VERSION) -m "$(APP_NAME) $(VERSION)"
-	git push origin HEAD v$(VERSION)
-	gh release create v$(VERSION) "$(DMG)" --title "$(APP_NAME) $(VERSION)" \
-		--notes-file $(BUILD_DIR)/notes.md
 	scripts/update-tap.sh $(VERSION) "$(DMG)"
 
 ##@ Maintenance
