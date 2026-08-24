@@ -204,25 +204,28 @@ struct PluginCatalogTests {
         return Set(rows.compactMap { $0["filename"] as? String })
     }
 
-    @Test func legacyRenamesAreFrozenAtFiftySeven() {
+    @Test func legacyRenamesAreFrozenAtFiftyFive() {
         let renames = PluginCatalog.legacyRenames
-        #expect(renames.count == 57)
+        #expect(renames.count == 55)
         #expect(renames.keys.allSatisfy { $0.hasPrefix("demo-") && $0.hasSuffix(".js") })
         #expect(renames.allSatisfy { $1 == String($0.dropFirst("demo-".count)) })
     }
 
-    @Test func legacyRenamesExcludeConsolidatedScreenEffects() {
+    @Test func legacyRenamesExcludeConsolidatedPlugins() {
         let renames = PluginCatalog.legacyRenames
         #expect(renames["demo-night-vision.js"] == nil)
         #expect(renames["demo-gamma-black.js"] == nil)
         #expect(renames["demo-display-modes.js"] == nil)
         #expect(renames["demo-screen-effects.js"] == nil)
+        // browser-picker.js replaced both of these.
+        #expect(renames["demo-url-router.js"] == nil)
+        #expect(renames["demo-browser-profiles.js"] == nil)
     }
 
     @Test func legacyRenamesTargetShippedCatalogFilenames() throws {
         let catalog = try shippedCatalogFilenames()
         let targets = Set(PluginCatalog.legacyRenames.values)
-        #expect(targets.count == 57)
+        #expect(targets.count == 55)
         #expect(targets.subtracting(catalog).isEmpty)
         #expect(catalog.subtracting(targets) == [
             "apple-tv.js", "bluetooth.js", "contacts.js", "eject.js", "headphone-pause.js",
