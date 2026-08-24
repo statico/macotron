@@ -4,8 +4,10 @@ import CoreServices
 import CQuickJS
 import Foundation
 import MacotronEngine
+import OSLog
 
 private let macotronBundleID = "io.statico.macotron"
+private let logger = Logger(subsystem: "io.statico.macotron", category: "url")
 
 enum URLOpen {
     static func open(_ url: URL, bundleID: String?, profile: String? = nil) -> Bool {
@@ -173,6 +175,7 @@ final class URLSchemeEventReceiver: NSObject {
 
     func install(engine: Engine) {
         self.engine = engine
+        logger.info("URL handler installed, \(self.rules.count) rules")
         NSAppleEventManager.shared().setEventHandler(
             self,
             andSelector: #selector(handleGetURL(_:withReply:)),
@@ -200,11 +203,16 @@ final class URLSchemeEventReceiver: NSObject {
     }
 
     @objc func handleGetURL(_ event: NSAppleEventDescriptor, withReply reply: NSAppleEventDescriptor) {
-        guard let engine, !engine.dryRun else { return }
-        guard let urlString = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue,
-              let url = URL(string: urlString) else {
+        guard let engine, !engine.dryRun else {
+            logger.error("URL event dropped: no live engine")
             return
         }
+        guard let urlString = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue,
+              let url = URL(string: urlString) else {
+            logger.error("URL event dropped: no URL in event")
+            return
+        }
+        logger.debug("URL event \(urlString, privacy: .public), \(self.rules.count) rules")
 
         let scheme = url.scheme ?? ""
         let host = url.host ?? ""
