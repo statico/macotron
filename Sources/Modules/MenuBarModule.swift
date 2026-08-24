@@ -268,8 +268,11 @@ public final class MenuBarModule: NativeModule {
 
             if let png = SparklineImage.png(fromJS: ctx, opts: opts) {
                 let safe = id.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-")
-                let path = (NSTemporaryDirectory() as NSString).appendingPathComponent("macotron-status-\(safe).png")
-                if (try? png.write(to: URL(fileURLWithPath: path))) != nil {
+                // AppKit's own convention: a name ending in Template means a mask.
+                let suffix = png.template ? "Template" : ""
+                let path = (NSTemporaryDirectory() as NSString)
+                    .appendingPathComponent("macotron-status-\(safe)\(suffix).png")
+                if (try? png.data.write(to: URL(fileURLWithPath: path))) != nil {
                     imagePath = path
                 }
             }
