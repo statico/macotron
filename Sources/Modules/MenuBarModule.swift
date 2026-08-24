@@ -272,7 +272,12 @@ public final class MenuBarModule: NativeModule {
                 let suffix = png.template ? "Template" : ""
                 let path = (NSTemporaryDirectory() as NSString)
                     .appendingPathComponent("macotron-status-\(safe)\(suffix).png")
-                if (try? png.data.write(to: URL(fileURLWithPath: path))) != nil {
+                // Rewriting an identical image bumps its timestamp, which is
+                // how the status item tells a real repaint from a no-op tick.
+                let url = URL(fileURLWithPath: path)
+                if (try? Data(contentsOf: url)) == png.data {
+                    imagePath = path
+                } else if (try? png.data.write(to: url)) != nil {
                     imagePath = path
                 }
             }

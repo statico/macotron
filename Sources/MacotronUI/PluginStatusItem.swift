@@ -89,7 +89,9 @@ final class PluginStatusItem: NSObject {
         button.imagePosition = .noImage
         button.target = self
         button.action = #selector(clicked)
-        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        // Menu bar buttons act on the press, not the release: waiting for
+        // mouse-up is the "slight delay" every other item does not have.
+        button.sendAction(on: [.leftMouseDown, .rightMouseDown])
     }
 
     func apply(
@@ -116,10 +118,27 @@ final class PluginStatusItem: NSObject {
             dropdown = bar
             PluginMenu.sync(bar, to: menu, retaining: &menuKeep)
         }
-        item.menu = nil
+        // With no click handler the menu is the whole item, so hand it to
+        // AppKit: it anchors under the icon, highlights the button, and opens
+        // on the press. Doing it ourselves is what put the menu at the mouse.
+        item.menu = onClick == nil ? dropdown : nil
         let button = item.button
         button?.target = self
         button?.action = #selector(clicked)
+        // Plugins repaint on a timer whether or not anything moved, and the
+        // work below -- rasterize, compose, re-measure the item -- is the
+        // expensive half of a tick. Skip it when nothing would change.
+        var signature = [
+            title, subtitle ?? "", color ?? "", subtitleColor ?? "",
+            "\(bold)\(italic)\(secondary)", "\(minWidth ?? -1)",
+            sfSymbol ?? "", imagePath ?? "",
+        ].joined(separator: "|")
+        if let imagePath, let attrs = try? FileManager.default.attributesOfItem(atPath: imagePath) {
+            let stamp = (attrs[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
+            signature += "|\(attrs[.size] as? Int ?? 0)@\(stamp)"
+        }
+        if signature == lastSignature { return }
+
         let nsColor = Self.parseColor(color)
         let nsSubtitleColor = Self.parseColor(subtitleColor)
         let iconOnly = title.isEmpty && (subtitle ?? "").isEmpty
@@ -134,6 +153,7 @@ final class PluginStatusItem: NSObject {
             italic: italic,
             secondary: secondary
         )
+        reapplyPending = false
         if iconOnly {
             button?.image = image
             button?.imagePosition = .imageOnly
@@ -146,6 +166,7 @@ final class PluginStatusItem: NSObject {
             let windowHeight = button?.window?.frame.height ?? 0
             let height = windowHeight > 0 ? windowHeight : NSStatusBar.system.thickness
             if windowHeight <= 0 {
+                reapplyPending = true
                 scheduleReapply(
                     title: title, subtitle: subtitle, color: color,
                     subtitleColor: subtitleColor, bold: bold, italic: italic,
@@ -164,8 +185,13 @@ final class PluginStatusItem: NSObject {
             item.length = NSStatusItem.variableLength
         }
         button?.toolTip = subtitle.map { "\(title) — \($0)" } ?? title
+        // A layout measured against a zero-height window is provisional, so
+        // leave the door open for the reapply to redo it.
+        lastSignature = reapplyPending ? nil : signature
     }
 
+    private var lastSignature: String?
+    private var reapplyPending = false
     private var reapplyWork: DispatchWorkItem?
     private var reapplyAttempts = 0
 
@@ -203,14 +229,15 @@ final class PluginStatusItem: NSObject {
 
     @objc private func clicked() {
         let event = item.button?.window?.currentEvent ?? NSApp.currentEvent
-        let menuClick = event?.type == .rightMouseUp
+        let menuClick = event?.type == .rightMouseDown
             || event?.modifierFlags.contains(.control) == true
         if (menuClick || onClick == nil), let dropdown, let button = item.button {
-            if let event, event.type == .rightMouseUp || event.type == .leftMouseUp {
-                NSMenu.popUpContextMenu(dropdown, with: event, for: button)
-            } else {
-                dropdown.popUp(positioning: nil, at: NSPoint(x: 0, y: 0), in: button)
-            }
+            // Lend the menu to the status item for the length of the click so
+            // AppKit places it, then take it back so the next left-click still
+            // reaches onClick. performClick blocks until the menu closes.
+            item.menu = dropdown
+            button.performClick(nil)
+            item.menu = nil
             return
         }
         onClick?()
