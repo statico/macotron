@@ -20,7 +20,9 @@ function rowsHtml() {
             return (
                 '<button class="block' +
                 on +
-                '"><b>' +
+                '" onclick="pick(' +
+                i +
+                ')"><b>' +
                 esc(win.app) +
                 "</b> — " +
                 esc(win.title || "Untitled") +
@@ -48,7 +50,18 @@ function openPanel() {
             '<div id="list" class="grow scroll">' +
             (rowsHtml() || '<p class="muted">No windows</p>') +
             "</div>" +
-            "<script>window.__macotronReceive=function(d){if(d&&d.html)document.getElementById('list').innerHTML=d.html};</script>",
+            "<script>" +
+            "function pick(i){window.webkit.messageHandlers.macotron.postMessage({index:i})}" +
+            "window.__macotronReceive=function(d){if(d&&d.html)document.getElementById('list').innerHTML=d.html};" +
+            "</script>",
+    });
+
+    // Clicking a row skips the rest of the cycle. Option is still held at that
+    // point, so this has to switch on its own rather than wait for the release.
+    macotron.panel.onMessage(panelId, (msg) => {
+        if (!msg || typeof msg.index !== "number") return;
+        index = msg.index;
+        commit();
     });
 }
 
