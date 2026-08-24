@@ -1,6 +1,6 @@
 macotron.plugin({
     title: "Window Switcher",
-    description: "Hold Option and press Tab to switch windows.",
+    description: "Hold Option and press Tab to switch windows, or click a row.",
     permissions: ["accessibility", "inputMonitoring"],
 });
 
