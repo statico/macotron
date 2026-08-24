@@ -669,14 +669,14 @@ declare const macotron: {
             error?: string;
             fans: Array<{ index: number; rpm: number; min: number; max: number }>;
         };
-        /** `null` restores system default. Built-in fan plugin left-click uses 100. Returns `error` when not `controllable`. */
-        setFanFloor(percent: number | null): {
+        /** `null` restores system default. Built-in fan plugin left-click uses 100. Resolves with `error` when not `controllable`. */
+        setFanFloor(percent: number | null): Promise<{
             available: boolean;
             controllable: boolean;
             floor?: number;
             error?: string;
             fans: Array<{ index: number; rpm: number; min: number; max: number }>;
-        };
+        }>;
     };
 
     http: {

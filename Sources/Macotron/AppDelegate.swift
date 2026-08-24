@@ -65,6 +65,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         refreshPermissions()
 
+        // Off the launch path: this connects to the daemon, which launchd may
+        // have to start, and waits on the reply.
+        DispatchQueue.global(qos: .utility).async {
+            FanController.shared.checkHelper()
+        }
+
         let wizardDone = UserDefaults.standard.bool(forKey: AppDelegate.wizardCompletedKey)
         if !wizardDone || PluginWorkspace.resolveFromDefaults() == nil {
             showSetupWizard()

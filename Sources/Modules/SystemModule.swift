@@ -531,6 +531,9 @@ public final class SystemModule: NativeModule {
             return JSBridge.newObject(ctx, FocusStatus.snapshot())
         }, "focus", 0))
 
+        // Setting a floor is an XPC round trip to a daemon launchd may have to
+        // cold start, and the SMC writes inside it take a few hundred ms. On
+        // the JS thread that is a beachball, so this one hands back a promise.
         JS_SetPropertyStr(ctx, systemObj, "setFanFloor",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
@@ -538,9 +541,41 @@ public final class SystemModule: NativeModule {
             if let argv, argc >= 1, !JSBridge.isUndefined(argv[0]), !JS_IsNull(argv[0]) {
                 percent = Int(JSBridge.toInt32(ctx, argv[0]))
             }
-            let opaque = JS_GetContextOpaque(ctx)
-            let dryRun = opaque.map { Unmanaged<Engine>.fromOpaque($0).takeUnretainedValue().dryRun } ?? false
-            return JSBridge.newObject(ctx, FanController.shared.setFloor(percent, dryRun: dryRun).js)
+            var resolvingFuncs = [JSValue](repeating: QJS_Undefined(), count: 2)
+            let promise = JS_NewPromiseCapability(ctx, &resolvingFuncs)
+            let resolve = JS_DupValue(ctx, resolvingFuncs[0])
+            let reject = JS_DupValue(ctx, resolvingFuncs[1])
+            JS_FreeValue(ctx, resolvingFuncs[0])
+            JS_FreeValue(ctx, resolvingFuncs[1])
+
+            guard let opaque = JS_GetContextOpaque(ctx) else { return promise }
+            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            if engine.dryRun {
+                var arg = JSBridge.newObject(ctx, FanController.shared.setFloor(percent, dryRun: true).js)
+                _ = JS_Call(ctx, resolve, QJS_Undefined(), 1, &arg)
+                JS_FreeValue(ctx, resolve)
+                JS_FreeValue(ctx, reject)
+                JS_FreeValue(ctx, arg)
+                engine.drainJobQueue()
+                return promise
+            }
+
+            let token = engine.registerPending(resolve: resolve, reject: reject)
+            let requested = percent
+            nonisolated(unsafe) let capturedCtx = ctx
+            DispatchQueue.global(qos: .userInitiated).async {
+                let snapshot = FanController.shared.setFloor(requested, dryRun: false)
+                DispatchQueue.main.async {
+                    guard let pending = engine.claimPending(token) else { return }
+                    var arg = JSBridge.newObject(capturedCtx, snapshot.js)
+                    _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &arg)
+                    JS_FreeValue(capturedCtx, pending.resolve)
+                    JS_FreeValue(capturedCtx, pending.reject)
+                    JS_FreeValue(capturedCtx, arg)
+                    engine.drainJobQueue()
+                }
+            }
+            return promise
         }, "setFanFloor", 1))
 
         JS_SetPropertyStr(ctx, macotron, "system", systemObj)
