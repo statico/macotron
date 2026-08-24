@@ -197,17 +197,37 @@ public final class MenuBarManager: NSObject {
             return
         }
 
-        let dot = BadgeDotView()
-        dot.fill = showRed ? .systemRed : .systemOrange
-        dot.translatesAutoresizingMaskIntoConstraints = false
-        button.addSubview(dot)
+        // Hot reload is a mode, not a warning: give it a reload glyph so it
+        // does not read as the same "something is wrong" dot.
+        let hotReloadOnly = !showRed && pendingReviewCount == 0
+        let badge: NSView
+        let side: CGFloat
+        if hotReloadOnly, let glyph = NSImage(
+            systemSymbolName: "arrow.triangle.2.circlepath",
+            accessibilityDescription: "Hot Reload is on"
+        )?.withSymbolConfiguration(
+            NSImage.SymbolConfiguration(pointSize: 8, weight: .bold)
+                .applying(.init(paletteColors: [.systemOrange]))
+        ) {
+            let view = NSImageView(image: glyph)
+            view.imageScaling = .scaleProportionallyUpOrDown
+            badge = view
+            side = 9
+        } else {
+            let dot = BadgeDotView()
+            dot.fill = showRed ? .systemRed : .systemOrange
+            badge = dot
+            side = 6
+        }
+        badge.translatesAutoresizingMaskIntoConstraints = false
+        button.addSubview(badge)
         NSLayoutConstraint.activate([
-            dot.widthAnchor.constraint(equalToConstant: 6),
-            dot.heightAnchor.constraint(equalToConstant: 6),
-            dot.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -1),
-            dot.topAnchor.constraint(equalTo: button.topAnchor, constant: 4),
+            badge.widthAnchor.constraint(equalToConstant: side),
+            badge.heightAnchor.constraint(equalToConstant: side),
+            badge.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -1),
+            badge.topAnchor.constraint(equalTo: button.topAnchor, constant: 4),
         ])
-        badgeView = dot
+        badgeView = badge
         if showRed {
             button.toolTip = "Macotron needs permissions"
         } else if pendingReviewCount > 0 {

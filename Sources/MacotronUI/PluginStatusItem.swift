@@ -225,6 +225,9 @@ final class PluginStatusItem: NSObject {
         if let path, !path.isEmpty {
             let expanded = (path as NSString).expandingTildeInPath
             if let img = NSImage(contentsOfFile: expanded) {
+                // Same rule AppKit applies to bundled images: a file named
+                // ...Template is a mask, and the bar tints it to suit itself.
+                img.isTemplate = (expanded as NSString).deletingPathExtension.hasSuffix("Template")
                 return Self.thumbnail(img, length: iconSize)
             }
         }
@@ -258,7 +261,7 @@ final class PluginStatusItem: NSObject {
             source.draw(in: rect, from: .zero, operation: .copy, fraction: 1)
             return true
         }
-        out.isTemplate = false
+        out.isTemplate = source.isTemplate
         return out
     }
 

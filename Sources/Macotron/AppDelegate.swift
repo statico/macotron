@@ -883,19 +883,26 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             .sorted()
     }
 
-    private var lastPendingReview: Set<String> = []
+    private var announcedPendingReview = false
 
     private func refreshIntegrity() {
         let pending = moduleManager?.pendingReview ?? []
         settingsState.pendingReview = pending.sorted()
         // An edited plugin is quarantined and simply stops running, taking its
-        // menu bar item with it. The badge on the icon is too quiet for that,
-        // so say it out loud the first time each file lands in the queue.
-        let fresh = Set(pending).subtracting(lastPendingReview)
-        lastPendingReview = Set(pending)
-        if !fresh.isEmpty {
-            let names = fresh.sorted().joined(separator: ", ")
-            ToastHost.shared.flash("Not running until reviewed: \(names)")
+        // menu bar item with it. Say so once, at launch, where a notification
+        // waits in Notification Centre -- a toast on every edit interrupts the
+        // editing it is reporting on.
+        if !announcedPendingReview {
+            announcedPendingReview = true
+            if !pending.isEmpty {
+                NotifyModule.post(
+                    title: "Macotron",
+                    body: pending.count == 1
+                        ? "1 plugin has updated and needs review"
+                        : "\(pending.count) plugins have updated and need review",
+                    id: "macotron.pending-review"
+                )
+            }
         }
         if let dir = workspace?.pluginsDir,
            let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {

@@ -15,8 +15,13 @@ enum SparklineImage {
         return rep.representation(using: .png, properties: [:])
     }
 
+    /// The flag says whether the image should be a template -- a mask the menu
+    /// bar tints for the bar it is actually drawn on. Tahoe tints the bar from
+    /// the wallpaper, so it routinely disagrees with the app's appearance and
+    /// any baked-in ink is a coin flip. A sparkline with an explicit color
+    /// keeps that color; an SVG keeps its colors unless it asks to be a mask.
     @MainActor
-    static func png(fromJS ctx: OpaquePointer, opts: JSValue) -> Data? {
+    static func png(fromJS ctx: OpaquePointer, opts: JSValue) -> (data: Data, template: Bool)? {
         let sparkVal = JSBridge.getProperty(ctx, opts, "sparkline")
         defer { JS_FreeValue(ctx, sparkVal) }
         if JS_IsObject(sparkVal), !JSBridge.isUndefined(sparkVal), !JSBridge.isNull(sparkVal) {
@@ -43,14 +48,17 @@ enum SparklineImage {
             let color: String? = JSBridge.isUndefined(cVal) || JSBridge.isNull(cVal) ? nil : JSBridge.toString(ctx, cVal)
             JS_FreeValue(ctx, cVal)
             if let png = png(values: values, width: width, height: height, color: color) {
-                return png
+                return (png, color == nil)
             }
         }
 
         let svgVal = JSBridge.getProperty(ctx, opts, "svg")
         defer { JS_FreeValue(ctx, svgVal) }
         if let svg = JSBridge.toString(ctx, svgVal), let png = png(svg: svg) {
-            return png
+            let templateVal = JSBridge.getProperty(ctx, opts, "template")
+            defer { JS_FreeValue(ctx, templateVal) }
+            let template = JSBridge.toBool(ctx, templateVal)
+            return (png, template)
         }
         return nil
     }

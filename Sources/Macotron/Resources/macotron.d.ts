@@ -719,6 +719,14 @@ declare const macotron: {
                 required?: boolean;
                 sparkline?: { values: number[]; width?: number; height?: number; color?: string };
                 svg?: string;
+                /**
+                 * Treat `svg` as a mask the menu bar tints for its own
+                 * background, so the icon stays legible whatever the bar
+                 * looks like. Off by default, which keeps the SVG's own
+                 * colors -- use that only for an icon that is meant to be
+                 * colorful, since the bar's background is not predictable.
+                 */
+                template?: boolean;
                 onClick?: () => void;
                 /** Left-click runs `onClick` when set; right/ctrl-click opens this menu. */
                 menu?: MenuBarMenuItem[];

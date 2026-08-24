@@ -48,6 +48,15 @@ public final class NotifyModule: NativeModule {
         }
     }
 
+    /// A notification from the host itself, for something the user has to see
+    /// even when Macotron is not the app they are looking at.
+    nonisolated public static func post(title: String, body: String, id: String) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        deliver(UNNotificationRequest(identifier: id, content: content, trigger: nil))
+    }
+
     nonisolated private static func deliver(_ request: UNNotificationRequest) {
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in

@@ -13,15 +13,19 @@ const DOW = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 // middle to land the digits on it.
 const MID = 10.1;
 
-function icon(date, ink) {
+// Any solid color does: the icon ships as a template, so only its alpha
+// survives and the menu bar picks the ink.
+const INK = "#000000";
+
+function icon(date) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="18" viewBox="0 0 22 18">
 <mask id="k">
 <rect x="0" y="0" width="22" height="18" fill="white"/>
 <rect x="1.8" y="1.8" width="18.4" height="6.9" rx="1.9" fill="black"/>
 <text x="${MID}" y="16.3" font-family="Helvetica-Bold" font-size="9.2" text-anchor="middle" fill="black">${date.getDate()}</text>
 </mask>
-<rect x="0.5" y="0.5" width="21" height="17" rx="3.1" fill="${ink}" mask="url(#k)"/>
-<text x="${MID + 0.4}" y="7.35" font-family="Helvetica-Bold" font-size="5.7" text-anchor="middle" fill="${ink}">${DOW[date.getDay()]}</text>
+<rect x="0.5" y="0.5" width="21" height="17" rx="3.1" fill="${INK}" mask="url(#k)"/>
+<text x="${MID + 0.4}" y="7.35" font-family="Helvetica-Bold" font-size="5.7" text-anchor="middle" fill="${INK}">${DOW[date.getDay()]}</text>
 </svg>`;
 }
 
@@ -49,7 +53,11 @@ function render() {
     const now = new Date();
     macotron.menubar.status("mini-calendar", {
         title: "",
-        svg: icon(now, macotron.system.darkMode() ? "#ffffff" : "#000000"),
+        svg: icon(now),
+        // The bar is tinted from the wallpaper, so it disagrees with the
+        // appearance setting often enough that baked-in ink is a coin flip.
+        // As a mask, the bar tints it to suit whatever it is sitting on.
+        template: true,
         // No onClick, so a left-click drops the menu -- and the month with it.
         menu: [
             { title: now.toDateString() },
