@@ -4,7 +4,8 @@ const opts = macotron.plugin({
     options: {
         colorize: {
             type: "boolean",
-            label: "Colorize CPU and GPU by load",
+            label: "Colorize by load",
+            help: "Turns the numbers green, orange, then red as usage climbs.",
             default: true,
         },
     },

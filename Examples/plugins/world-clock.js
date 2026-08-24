@@ -3,9 +3,10 @@ const opts = macotron.plugin({
   description: "Show the time in several cities in the menu bar.",
   options: {
     zones: {
-      type: "string",
-      label: "Time zones (IANA, space-separated)",
-      default: "America/Los_Angeles America/New_York Europe/London UTC",
+      type: "text",
+      label: "Time zones",
+      help: "One IANA name per line, such as America/New_York.",
+      default: "America/Los_Angeles\nAmerica/New_York\nEurope/London\nUTC",
     },
   },
 });

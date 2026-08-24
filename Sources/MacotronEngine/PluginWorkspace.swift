@@ -634,7 +634,9 @@ public final class PluginWorkspace {
         so it can show live state such as the current system locale. Use it
         instead of writing the fallback into the label.
         Every option takes `label`, optional `default`, and optional `required`
-        (Settings shows a "Needs setup" hint while a required option is unset).
+        (Settings shows a "Needs setup" hint while a required option is unset),
+        and optional `help`, a sentence shown under the field. Keep `label` to
+        a few words and put the explanation in `help`.
 
         `password` options: the secret lives in the macOS Keychain. `settings.json`
         stores only a Keychain ref like `macotron.plugin.chat.js.apiKey`. Refs may

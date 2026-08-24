@@ -16,6 +16,12 @@ interface MenuBarMenuItem {
     /** Size of the `html` row in points. Defaults to 260 x 160. */
     width?: number;
     height?: number;
+    /**
+     * Draw these as buttons across one row. Unlike an ordinary row, clicking
+     * one runs its `onClick` and leaves the menu open, so a menu can be paged
+     * or stepped without closing.
+     */
+    buttons?: MenuBarMenuItem[];
 }
 
 interface HIDFilter {
@@ -884,17 +890,20 @@ declare const macotron: {
 /**
  * `placeholder` is the grey hint shown in an empty field. It is read when the
  * plugin loads, so it can describe live state — e.g. `macotron.system.locale().language`.
+ *
+ * `help` is a sentence shown under the field. Put the explanation there and
+ * keep `label` to a few words, rather than writing a sentence as the label.
  */
 type MacotronPluginOption =
-    | { type: "string"; label: string; default?: string; required?: boolean; placeholder?: string }
-    | { type: "text"; label: string; default?: string; required?: boolean; placeholder?: string }
-    | { type: "boolean"; label: string; default?: boolean; required?: boolean }
-    | { type: "number"; label: string; default?: number; required?: boolean; placeholder?: string }
-    | { type: "keybinding"; label: string; default?: string; required?: boolean }
-    | { type: "dropdown"; label: string; default?: string; required?: boolean; choices: Array<{ value: string; label: string }> }
-    | { type: "password"; label: string; required?: boolean; placeholder?: string }
-    | { type: "file"; label: string; default?: string; required?: boolean; placeholder?: string }
-    | { type: "directory"; label: string; default?: string; required?: boolean; placeholder?: string };
+    | { type: "string"; label: string; default?: string; required?: boolean; placeholder?: string; help?: string }
+    | { type: "text"; label: string; default?: string; required?: boolean; placeholder?: string; help?: string }
+    | { type: "boolean"; label: string; default?: boolean; required?: boolean; help?: string }
+    | { type: "number"; label: string; default?: number; required?: boolean; placeholder?: string; help?: string }
+    | { type: "keybinding"; label: string; default?: string; required?: boolean; help?: string }
+    | { type: "dropdown"; label: string; default?: string; required?: boolean; choices: Array<{ value: string; label: string }>; help?: string }
+    | { type: "password"; label: string; required?: boolean; placeholder?: string; help?: string }
+    | { type: "file"; label: string; default?: string; required?: boolean; placeholder?: string; help?: string }
+    | { type: "directory"; label: string; default?: string; required?: boolean; placeholder?: string; help?: string };
 
 interface AIChatMessage {
     role: "user" | "assistant";
