@@ -211,6 +211,13 @@ public struct WizardView: View {
                 onAdd: { permissions.addBuiltIn($0) },
                 onDetails: { permissions.beginInstall($0) }
             )
+            if permissions.missingCatalogCount > 0 {
+                Button("I Feel Lucky, Add Everything!") {
+                    permissions.addAllBuiltIn()
+                }
+                    .help("Add all \(permissions.missingCatalogCount) plugins you do not have yet")
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
         }
         .padding(24)
     }
