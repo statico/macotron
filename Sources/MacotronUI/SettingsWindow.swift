@@ -1,4 +1,5 @@
 // SettingsWindow.swift — NSWindow wrapper for the settings panel
+import MacotronEngine
 import AppKit
 import SwiftUI
 
@@ -67,13 +68,13 @@ public final class SettingsWindow {
     }
 
     private func bringToFront(_ window: NSWindow) {
-        NSApp.activate(ignoringOtherApps: true)
+        AppActivation.activate("settings window")
         window.makeKeyAndOrderFront(nil)
 
         // The status bar menu is still closing on this pass and takes focus back
         // with it, so ask again once it has gone.
         DispatchQueue.main.async {
-            NSApp.activate(ignoringOtherApps: true)
+            AppActivation.activate("settings window")
             window.makeKeyAndOrderFront(nil)
         }
     }

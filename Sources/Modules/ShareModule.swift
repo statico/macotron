@@ -123,7 +123,7 @@ public final class ShareModule: NativeModule {
         JS_FreeValue(ctx, urlVal)
 
         guard !items.isEmpty else { return false }
-        NSApp.activate(ignoringOtherApps: true)
+        AppActivation.activate("share sheet")
         host.show(items)
         return true
     }

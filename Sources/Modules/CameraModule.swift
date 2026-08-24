@@ -65,7 +65,7 @@ private final class CameraPreview: NSObject, NSWindowDelegate {
         panel.delegate = self
         self.session = session
         self.panel = panel
-        NSApp.activate(ignoringOtherApps: true)
+        AppActivation.activate("camera panel")
         panel.makeKeyAndOrderFront(nil)
         session.startRunning()
         return true

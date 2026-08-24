@@ -1,3 +1,4 @@
+import MacotronEngine
 import AppKit
 import AVFoundation
 import Vision
@@ -85,7 +86,7 @@ final class QRCameraPicker: NSObject {
         panel.contentView = root
         panel.delegate = self
         self.panel = panel
-        NSApp.activate(ignoringOtherApps: true)
+        AppActivation.activate("qr camera")
         panel.makeKeyAndOrderFront(nil)
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.keyCode == 53 {
@@ -164,7 +165,7 @@ enum QRWindow {
         }
         panel?.contentView = view
         panel?.setContentSize(size)
-        NSApp.activate(ignoringOtherApps: true)
+        AppActivation.activate("qr camera")
         panel?.makeKeyAndOrderFront(nil)
     }
 }
