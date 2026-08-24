@@ -121,6 +121,8 @@ public struct ModuleSummary: Identifiable {
     public let permissions: [Permission]
     /// Menu bar items this plugin asked for that the user has dragged out.
     public let hiddenStatusItems: [String]
+    /// Hash of the file on disk, to compare against the catalog copy.
+    public let sourceHash: String
 
     public var needsSetup: Bool { options.contains { $0.needsSetup } }
     public var hasFailedChecks: Bool { checks.contains { !$0.ok } }
@@ -130,7 +132,8 @@ public struct ModuleSummary: Identifiable {
                 options: [ModuleOption] = [], events: [String] = [],
                 hotkeys: [PluginCommandSummary] = [], hasErrors: Bool = false, errorMessage: String? = nil,
                 isEnabled: Bool = true, commands: [PluginCommandSummary] = [],
-                permissions: [Permission] = [], hiddenStatusItems: [String] = []) {
+                permissions: [Permission] = [], hiddenStatusItems: [String] = [],
+                sourceHash: String = "") {
         self.id = filename
         self.filename = filename
         self.title = title.isEmpty ? String(filename.dropLast(3)) : title
@@ -144,6 +147,7 @@ public struct ModuleSummary: Identifiable {
         self.errorMessage = errorMessage
         self.isEnabled = isEnabled
         self.hiddenStatusItems = hiddenStatusItems
+        self.sourceHash = sourceHash
         self.commands = commands
         self.permissions = permissions
     }
@@ -418,6 +422,15 @@ public final class SettingsState: ObservableObject {
     /// A verdict approves only the exact bytes it scanned. No report is fine only
     /// for built-ins, whose bytes ship inside the signed bundle; reviewed bytes
     /// came off disk and always need one.
+    /// The catalog copy of an installed plugin whose file no longer matches it,
+    /// so someone who copied a plugin out of the catalog can take a newer one.
+    public func catalogUpdate(for summary: ModuleSummary) -> CatalogPlugin? {
+        guard !summary.sourceHash.isEmpty,
+              let plugin = catalogPlugins.first(where: { $0.filename == summary.filename }),
+              plugin.bundleHash != summary.sourceHash else { return nil }
+        return plugin
+    }
+
     public func allowsInstall(of plugin: CatalogPlugin, override: Bool) -> Bool {
         guard let report = scanReport else { return installIsBuiltIn }
         guard report.matches(source: plugin.source) else { return false }
@@ -805,7 +818,8 @@ public struct SettingsView: View {
                                     } label: {
                                         PluginListRow(
                                             summary: summary,
-                                            hasShortcutConflict: state.pluginHasShortcutConflict(summary.filename)
+                                            hasShortcutConflict: state.pluginHasShortcutConflict(summary.filename),
+                                            hasUpdate: state.catalogUpdate(for: summary) != nil
                                         )
                                             .padding(.horizontal, 8)
                                             .padding(.vertical, 5)
@@ -1098,6 +1112,7 @@ struct ShortcutField: View {
 struct PluginListRow: View {
     let summary: ModuleSummary
     var hasShortcutConflict = false
+    var hasUpdate = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -1115,6 +1130,10 @@ struct PluginListRow: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(.orange)
+            } else if hasUpdate {
+                Image(systemName: "arrow.down.circle.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.blue)
             }
         }
         .padding(.vertical, 2)
@@ -1163,6 +1182,7 @@ struct PluginDetailView: View {
     let summary: ModuleSummary
     @ObservedObject var state: SettingsState
     @State private var showDeleteAlert = false
+    @State private var showUpdateAlert = false
     @StateObject private var command = CommandHeld()
 
     var body: some View {
@@ -1171,6 +1191,7 @@ struct PluginDetailView: View {
                 header
 
                 if state.pendingReview.contains(summary.filename) { reviewBox }
+                if let update = state.catalogUpdate(for: summary) { updateBox(update) }
                 if summary.hasErrors { errorBox }
                 if !summary.help.isEmpty { helpBox }
                 if !summary.permissions.isEmpty { permissionsSection }
@@ -1198,6 +1219,36 @@ struct PluginDetailView: View {
         } message: {
             Text("Delete \(summary.title)? This cannot be undone.")
         }
+        .alert("Update \(summary.title)?", isPresented: $showUpdateAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Update", role: .destructive) {
+                guard let plugin = state.catalogUpdate(for: summary) else { return }
+                state.onInstallCatalog?(plugin, true)
+                state.refreshModules()
+            }
+        } message: {
+            Text("This replaces \(summary.filename) with the copy that ships with Macotron. Any changes you made to the file are lost.")
+        }
+    }
+
+    /// The file differs from the copy in the catalog -- either the user edited
+    /// it, or Macotron shipped a newer one. Either way the fix is the same.
+    private func updateBox(_ plugin: CatalogPlugin) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            Image(systemName: "arrow.down.circle.fill")
+                .font(.system(size: 11))
+            Text("This copy differs from the one built into Macotron.")
+                .font(.system(size: 11))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            Button("Update…") { showUpdateAlert = true }
+                .controlSize(.small)
+        }
+        .foregroundStyle(.blue)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.blue.opacity(0.08))
+        .cornerRadius(6)
     }
 
     private var header: some View {

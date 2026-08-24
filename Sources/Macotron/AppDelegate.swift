@@ -616,7 +616,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 // reviewed, never runs and so declares nothing at runtime. Its
                 // header still says what it needs, so read that instead.
                 permissions: declaredPermissions(meta: meta, header: header),
-                hiddenStatusItems: hiddenStatusItems(of: file.filename)
+                hiddenStatusItems: hiddenStatusItems(of: file.filename),
+                sourceHash: PluginHash.sha256(
+                    file: workspace.pluginsDir.appending(path: file.filename)) ?? ""
             ))
         }
 
