@@ -1,8 +1,11 @@
 @preconcurrency import Foundation
+import os
 import ServiceManagement
 import SMCKit
 
-struct FanSnapshot {
+private let logger = Logger(subsystem: "io.statico.macotron", category: "helper")
+
+struct FanSnapshot: Sendable {
     var available: Bool
     var controllable: Bool
     var floor: Int?
@@ -32,8 +35,8 @@ struct FanSnapshot {
     }
 }
 
-final class FanController: @unchecked Sendable {
-    static let shared = FanController()
+public final class FanController: @unchecked Sendable {
+    public static let shared = FanController()
 
     private let lock = NSLock()
     private let smc = SMCConnection()
@@ -138,6 +141,47 @@ final class FanController: @unchecked Sendable {
         }
     }
 
+    /// Startup check for an installed helper: can launchd start it, does it
+    /// answer, and did it come from this copy of the app? Connecting is the
+    /// only way to know -- `SMAppService.status` reports the registration, not
+    /// the daemon. A matching helper needs no recycling on first use; anything
+    /// else is told to quit so the next call starts the one this app ships.
+    public func checkHelper() {
+        guard helperEnabled else { return }
+        let reply = HelperReply()
+        let proxy = connection().remoteObjectProxyWithErrorHandler { error in
+            reply.finish(Self.displayError(error.localizedDescription))
+        }
+        guard let helper = proxy as? MacotronHelperProtocol else {
+            logger.error("helper check: connection failed")
+            return
+        }
+        helper.identify { reply.finish(nil, value: $0) }
+        let error = reply.wait()
+        let running = reply.value
+        dropConnection()
+
+        if error == nil, running == MacotronHelperService.identity {
+            logger.info("helper check: running \(running ?? "", privacy: .public)")
+            lock.lock()
+            recycled = true
+            lock.unlock()
+            return
+        }
+        if let error {
+            // Installed but unreachable: a stale registration, a helper too old
+            // to answer, or one that will not start.
+            logger.error("helper check: \(error, privacy: .public)")
+        } else {
+            logger.error("""
+                helper check: running \(running ?? "", privacy: .public), \
+                app is \(MacotronHelperService.identity, privacy: .public)
+                """)
+        }
+        _ = call({ $0.shutdown(reply: $1) }, recycling: true)
+        dropConnection()
+    }
+
     /// The daemon launchd has running was started from whatever app was
     /// installed at the time, and it never re-execs. Ask the one from the
     /// last app to quit the first time this app needs it, so the call after
@@ -228,8 +272,9 @@ private final class HelperReply: @unchecked Sendable {
     private let semaphore = DispatchSemaphore(value: 0)
     private var completed = false
     private var error: String?
+    private var payload: String?
 
-    func finish(_ error: String?) {
+    func finish(_ error: String?, value: String? = nil) {
         lock.lock()
         guard !completed else {
             lock.unlock()
@@ -237,8 +282,16 @@ private final class HelperReply: @unchecked Sendable {
         }
         completed = true
         self.error = error
+        payload = value
         lock.unlock()
         semaphore.signal()
+    }
+
+    /// Whatever the reply carried, once `wait()` has returned.
+    var value: String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return payload
     }
 
     func wait() -> String? {

@@ -5,6 +5,14 @@ import IOKit
 public enum MacotronHelperService {
     public static let plistName = "io.statico.macotron.helper.plist"
     public static let machServiceName = "io.statico.macotron.helper"
+
+    /// Version and bundle path of the app this process was loaded from. The
+    /// daemon lives inside the app bundle, so both sides compute it the same
+    /// way: a mismatch means launchd is running a helper from another copy.
+    public static var identity: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        return "\(version) at \(Bundle.main.bundlePath)"
+    }
 }
 
 @objc public protocol MacotronHelperProtocol {
@@ -13,6 +21,9 @@ public enum MacotronHelperService {
     /// Release the fans and exit, so the next call starts the helper the
     /// installed app currently ships.
     func shutdown(reply: @escaping (String?) -> Void)
+    /// `MacotronHelperService.identity` as this daemon sees it. Doubles as a
+    /// ping: a helper too old to answer this fails the call instead.
+    func identify(reply: @escaping (String) -> Void)
 }
 
 public enum FanFloor {

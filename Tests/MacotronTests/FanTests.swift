@@ -28,12 +28,12 @@ struct FanTests {
                     }),
                     setFanFloor: (percent) => {
                         floor = percent;
-                        return {
+                        return Promise.resolve({
                             available: true,
                             controllable: true,
                             floor: percent,
                             fans: [{ index: 0, rpm: 2000, min: 1000, max: 5000 }]
-                        };
+                        });
                     }
                 },
                 menubar: { status: (id, cfg) => { statusConfig = cfg; } },
@@ -46,13 +46,16 @@ struct FanTests {
             \(pluginSource)
             statusConfig.onClick();
             statusConfig.onClick();
-            JSON.stringify(toasts)
             """
         let engine = Engine()
-        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
+        let (_, error) = engine.evaluate(harness, filename: pluginURL.path)
         #expect(error == nil)
+        // setFanFloor is a promise now, so the toasts land once the job queue
+        // has drained -- which the first evaluate does on its way out.
+        let (result, readError) = engine.evaluate("JSON.stringify(toasts)")
+        #expect(readError == nil)
         // The toast has to name the speed it set; "On" told the user nothing.
         #expect(result?.contains("\"body\":\"minimum speed: 100%\"") == true)
-        #expect(result?.contains("\"body\":\"Back to automatic speed\"") == true)
+        #expect(result?.contains("\"body\":\"Set to automatic speed\"") == true)
     }
 }

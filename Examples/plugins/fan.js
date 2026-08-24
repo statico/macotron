@@ -61,8 +61,8 @@ function render(s) {
     macotron.checks(checkRows(s));
 }
 
-function setFloor(percent) {
-    const s = macotron.system.setFanFloor(percent);
+async function setFloor(percent) {
+    const s = await macotron.system.setFanFloor(percent);
     render(s);
     if (s.error) {
         if (!s.controllable) {
@@ -72,7 +72,7 @@ function setFloor(percent) {
         macotron.notify.toast("Fan", s.error, { color: "error" });
         return;
     }
-    if (percent == null) macotron.notify.toast("Fan", "Back to automatic speed");
+    if (percent == null) macotron.notify.toast("Fan", "Set to automatic speed");
     else macotron.notify.toast("Fan", "minimum speed: " + percent + "%", { color: "success" });
 }
 

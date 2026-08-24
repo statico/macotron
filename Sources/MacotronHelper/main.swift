@@ -47,6 +47,10 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { exit(0) }
     }
 
+    func identify(reply: @escaping (String) -> Void) {
+        reply(MacotronHelperService.identity)
+    }
+
     func restoreForFailsafe() {
         lock.lock()
         defer { lock.unlock() }
