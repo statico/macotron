@@ -73,6 +73,29 @@ struct HotReloadSessionTests {
         #expect((ws.readSettings()["ui"] as? [String: Any])?["hotReload"] as? Bool != true)
     }
 
+    @Test("hot reload approves what it runs, so turning it off leaves no queue")
+    func hotReloadApprovesWhatItRuns() throws {
+        let (ws, dir) = try makeWorkspace()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        try "$$__registerCommand('cmd', 'cmd', function(){});"
+            .write(to: ws.pluginsDir.appending(path: "edited.js"), atomically: true, encoding: .utf8)
+
+        let previous = PluginTrust.store
+        PluginTrust.store = MemoryHashStore()
+        defer { PluginTrust.store = previous }
+
+        let engine = Engine()
+        let manager = ModuleManager(engine: engine, workspace: ws)
+        manager.hotReload = true
+        manager.reloadAll()
+
+        manager.hotReload = false
+        manager.reloadAll()
+        #expect(manager.pendingReview.isEmpty)
+        #expect(engine.commandRegistry["edited.js/cmd"] != nil)
+    }
+
     @Test("session toggle must not persist hotReload to settings.json")
     func sessionToggleDoesNotPersist() throws {
         let (ws, dir) = try makeWorkspace()

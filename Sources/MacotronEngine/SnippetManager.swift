@@ -165,13 +165,24 @@ public final class ModuleManager {
 
         let filename = file.lastPathComponent
         let timer = StepTimer(filename, category: "modules")
-        let approved = hotReload || PluginTrust.matches(filename: filename, source: source)
+        let trusted = PluginTrust.matches(filename: filename, source: source)
         timer.step("trust")
         defer { timer.step("eval") }
-        if !approved {
+        if !trusted, !hotReload {
             pendingReview.insert(filename)
             logger.error("\(filename, privacy: .public): on-disk source is not approved")
             return
+        }
+        // Hot reload runs whatever is on disk, so these bytes are reviewed by
+        // definition. Record that, or every file it ran queues up for review
+        // the moment hot reload goes back off.
+        if !trusted {
+            PluginTrust.approve(filename: filename, source: source)
+            PluginTrust.approveImports(
+                in: source,
+                importerDir: file.deletingLastPathComponent(),
+                baseDir: workspace.root
+            )
         }
         pendingReview.remove(filename)
 
