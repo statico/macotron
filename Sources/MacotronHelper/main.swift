@@ -192,8 +192,8 @@ final class HelperListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked 
         _ listener: NSXPCListener,
         shouldAcceptNewConnection connection: NSXPCConnection
     ) -> Bool {
-        guard validate(connection) else {
-            log.error("rejected unauthorized XPC client")
+        guard requireMacotron(connection) else {
+            log.error("rejected XPC client: cannot build the signing requirement")
             return false
         }
 
@@ -211,8 +211,14 @@ final class HelperListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked 
         return true
     }
 
-    private func validate(_ connection: NSXPCConnection) -> Bool {
-        // Runtime validation is required because any local process that finds the Mach service could otherwise drive the daemon as root.
+    /// Any local process that finds the Mach service could otherwise drive the
+    /// daemon as root, so every peer has to prove it is Macotron. XPC checks the
+    /// requirement against the peer's signature as the kernel recorded it at
+    /// launch; hand-rolling this with `SecCodeCheckValidity` re-reads the client
+    /// off disk instead, which fails whenever the app has been updated since it
+    /// started. Team ID comes from our own signature, so a rebuild under another
+    /// team stays self-consistent.
+    private func requireMacotron(_ connection: NSXPCConnection) -> Bool {
         // launchd starts us with a relative argv[0]; use the live pid path.
         var path = [CChar](repeating: 0, count: Int(4 * MAXPATHLEN))
         let pathLength = proc_pidpath(getpid(), &path, UInt32(path.count))
@@ -234,28 +240,9 @@ final class HelperListenerDelegate: NSObject, NSXPCListenerDelegate, @unchecked 
             log.error("validate: helper has no Team ID")
             return false
         }
-
-        let attributes = [kSecGuestAttributePid: connection.processIdentifier] as CFDictionary
-        var guest: SecCode?
-        guard SecCodeCopyGuestWithAttributes(nil, attributes, [], &guest) == errSecSuccess,
-              let guest else {
-            log.error("validate: no client code for pid \(connection.processIdentifier)")
-            return false
-        }
-
-        var requirement: SecRequirement?
-        let requirementString =
+        connection.setCodeSigningRequirement(
             #"anchor apple generic and identifier "io.statico.macotron" and certificate leaf[subject.OU] = \#(team)"#
-        guard SecRequirementCreateWithString(requirementString as CFString, [], &requirement) == errSecSuccess,
-              let requirement else {
-            log.error("validate: bad requirement")
-            return false
-        }
-        let status = SecCodeCheckValidity(guest, [], requirement)
-        if status != errSecSuccess {
-            log.error("validate: client failed requirement \(status)")
-            return false
-        }
+        )
         return true
     }
 
