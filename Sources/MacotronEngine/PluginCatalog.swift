@@ -80,7 +80,9 @@ public enum PluginCatalog {
     /// Every one-to-one rename Macotron shipped when built-in plugins dropped the
     /// `demo-` prefix. The list is closed: new catalog entries never need a rename,
     /// and `demo-night-vision.js`, `demo-gamma-black.js`, and `demo-display-modes.js`
-    /// stay put because `screen-effects.js` replaced all three.
+    /// stay put because `screen-effects.js` replaced all three, and
+    /// `demo-browser-profiles.js` and `demo-url-router.js` because
+    /// `browser-picker.js` replaced both.
     public static let legacyRenames: [String: String] = [
         "demo-ai-chat.js": "ai-chat.js",
         "demo-appearance.js": "appearance.js",
@@ -89,7 +91,6 @@ public enum PluginCatalog {
         "demo-battery.js": "battery.js",
         "demo-brightness.js": "brightness.js",
         "demo-browser-picker.js": "browser-picker.js",
-        "demo-browser-profiles.js": "browser-profiles.js",
         "demo-calculator.js": "calculator.js",
         "demo-calendar.js": "calendar.js",
         "demo-clipboard-history.js": "clipboard-history.js",
@@ -132,7 +133,6 @@ public enum PluginCatalog {
         "demo-spaces.js": "spaces.js",
         "demo-system-metrics.js": "system-metrics.js",
         "demo-system-settings.js": "system-settings.js",
-        "demo-url-router.js": "url-router.js",
         "demo-usb.js": "usb.js",
         "demo-weather.js": "weather.js",
         "demo-wifi.js": "wifi.js",

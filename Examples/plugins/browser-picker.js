@@ -1,25 +1,47 @@
 // APIs: url.setDefaultHandler, url.on, url.onFallback, url.open, panel
-macotron.plugin({
+const opts = macotron.plugin({
   title: "Browser Picker",
-  description: "Open YouTube in Safari, GitHub in Chrome, and ask which browser to use for other links.",
+  description: "Send links to the right browser by host, and ask which to use for the rest.",
+  options: {
+    rules: {
+      type: "text",
+      label: "Rules (host, then bundle ID)",
+      default: "youtube.com com.apple.Safari\ngithub.com com.google.Chrome",
+    },
+    browsers: {
+      type: "text",
+      label: "Ask me between (bundle ID, then name)",
+      default: "com.apple.Safari Safari\ncom.google.Chrome Chrome",
+    },
+  },
 });
+
+// Both options are "one entry per line, first word is the key".
+function pairs(text) {
+  return String(text || "")
+    .split("\n")
+    .map((line) => line.trim().split(/\s+/))
+    .filter(([key, value]) => key && value)
+    .map(([key, ...rest]) => [key, rest.join(" ")]);
+}
 
 macotron.url.setDefaultHandler("https");
 macotron.url.setDefaultHandler("mailto");
 
-macotron.url.on("https", "youtube.com", (ev) => {
-  macotron.url.open(ev.url, "com.apple.Safari");
-});
-
-macotron.url.on("https", "github.com", (ev) => {
-  macotron.url.open(ev.url, "com.google.Chrome");
-});
+for (const [host, bundleID] of pairs(opts.rules)) {
+  // Registering the bare host misses www., which is how half the web links.
+  for (const name of [host, "www." + host]) {
+    macotron.url.on("https", name, (ev) => macotron.url.open(ev.url, bundleID));
+  }
+}
 
 macotron.url.onFallback((ev) => {
+  const buttons = pairs(opts.browsers)
+    .map(([bundleID, name]) => `<button onclick='pick(${JSON.stringify(bundleID)})'>${name}</button>`)
+    .join(" ");
   const html = `
     <p>${ev.host}</p>
-    <button onclick='pick("com.apple.Safari")'>Safari</button>
-    <button onclick='pick("com.google.Chrome")'>Chrome</button>
+    ${buttons}
     <script>
       function pick(id) {
         window.webkit.messageHandlers.macotron.postMessage({ url: ${JSON.stringify(ev.url)}, bundleID: id });

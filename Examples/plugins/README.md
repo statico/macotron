@@ -14,8 +14,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | battery.js | system.battery | Battery |
 | bluetooth.js | network.bluetooth | (menu bar batteries) |
 | brightness.js | display brightness/XDR | Toggle XDR |
-| browser-picker.js | url.setDefaultHandler / on / onFallback | (URL routing, browser picker) |
-| browser-profiles.js | url.open | Open GitHub in Safari |
+| browser-picker.js | url.on / setDefaultHandler / panel | Route links by host, ask for the rest |
 | calculator.js | launcher.query + clipboard | (inline in the launcher) |
 | calendar.js | calendar.upcoming | Upcoming Events |
 | clipboard-history.js | clipboard.history, launcher.set, panel | Clipboard History |
@@ -71,7 +70,6 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | system-settings.js | launcher.set, url.open | (System Settings panes) |
 | time-machine.js | tmutil status | (Time Machine) |
 | translate.js | ax.selectedText + ai.local + panel | Translate Selection |
-| url-router.js | url.on / open | Open YouTube in Safari |
 | usb.js | usb.list, usb:changed, /usr/bin/say | USB Devices |
 | weather.js | http + menubar.status | Refresh Weather |
 | web-search.js | url.open, /usr/bin/open dict:// | Search Google, Search Wikipedia, Search Maps, Search YouTube, Search GitHub, Define |
