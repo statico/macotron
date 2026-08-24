@@ -4,10 +4,10 @@ Builds happen on this Mac, not in CI, so the Developer ID key never becomes a
 repository secret.
 
 ```sh
-make publish VERSION=0.2.0
+make release VERSION=0.2.0
 ```
 
-That does all of it: release build, bundle stamped with the version, DMG,
+That does all of it: a clean, pushed tree checked against origin/main, release build, bundle stamped with the version, DMG,
 notarization, git tag, GitHub release with notes from the commits since the
 last tag, and a new `Casks/macotron.rb` pushed to statico/homebrew-tap.
 
@@ -42,8 +42,8 @@ brew install statico/tap/macotron
 
 ## Pieces
 
-- `make release VERSION=x.y.z` builds and notarizes the DMG only. Useful to
-  test the packaging without tagging anything.
+- `ALLOW_UNNOTARIZED=1 make release VERSION=x.y.z` builds the DMG and stops
+  before tagging. Useful to test the packaging without shipping anything.
 - `make tap VERSION=x.y.z` rewrites the cask on its own, if a release went out
   and the tap did not.
 - `make bundle` still builds debug. `CONFIG=release` switches it.

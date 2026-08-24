@@ -1,5 +1,5 @@
 #!/bin/sh
-# Point the Homebrew cask at a published Macotron release. `make publish` runs
+# Point the Homebrew cask at a published Macotron release. `make release` runs
 # this last; rerun it by hand as `scripts/update-tap.sh 0.2.0 path/to.dmg` if a
 # release was published without it.
 #
