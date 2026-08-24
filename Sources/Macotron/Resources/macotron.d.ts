@@ -618,6 +618,13 @@ declare const macotron: {
             efficiencyCores: number;
         };
         locale(): { language: string; region: string; measurement: "metric" | "us" };
+        /**
+         * The time now in an IANA zone, e.g. `timeIn("Europe/London")` -> "18:42".
+         * There is no Intl in this runtime, so this is the way to format another
+         * zone. `format` is a DateFormatter pattern and defaults to "HH:mm".
+         * Returns "" for a zone macOS does not know.
+         */
+        timeIn(zone: string, format?: string): string;
         memory(): {
             total: number;
             used: number;

@@ -11,14 +11,30 @@ final class MenuWebView: NSView {
     private let webView: WKWebView
     private(set) var html: String
 
+    /// The size the plugin asked for. AppKit widens a menu row to the widest
+    /// item in the menu, and a page pinned to the left edge of that row reads
+    /// as misaligned, so keep the page its own width and centre it.
+    private var pageSize: NSSize
+
     init(html: String, size: NSSize) {
         webView = WKWebView(frame: NSRect(origin: .zero, size: size))
-        webView.autoresizingMask = [.width, .height]
         webView.setValue(false, forKey: "drawsBackground")
         self.html = html
+        self.pageSize = size
         super.init(frame: NSRect(origin: .zero, size: size))
         addSubview(webView)
         webView.loadHTMLString(Self.page(html), baseURL: nil)
+    }
+
+    override func layout() {
+        super.layout()
+        let width = min(pageSize.width, bounds.width)
+        webView.frame = NSRect(
+            x: ((bounds.width - width) / 2).rounded(),
+            y: 0,
+            width: width,
+            height: bounds.height
+        )
     }
 
     @available(*, unavailable)
@@ -27,8 +43,10 @@ final class MenuWebView: NSView {
     /// Reloading on every repaint would restart animations and refetch images,
     /// so only reload when the markup actually changed.
     func update(html: String, size: NSSize) {
-        if frame.size != size {
+        if pageSize != size {
+            pageSize = size
             setFrameSize(size)
+            needsLayout = true
         }
         guard html != self.html else { return }
         self.html = html

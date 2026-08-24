@@ -238,18 +238,13 @@ struct MenuPluginsTests {
     @Test("world clock paints each zone every 30s")
     func worldClock() throws {
         let result = try eval(plugin: "world-clock.js", mock: #"""
-            var Intl = {
-                DateTimeFormat: function(_, opts) {
-                    return { format: function() { return "09:41"; } };
-                }
-            };
             var statuses = [];
             var everyMs = 0;
             var macotron = {
-                plugin: () => ({ zones: "America/Los_Angeles Europe/London UTC" }),
+                plugin: () => ({ zones: "America/Los_Angeles\nEurope/London\nUTC" }),
                 menubar: { status: (id, cfg) => { statuses.push({ id: id, title: cfg.title, subtitle: cfg.subtitle, secondary: cfg.secondary, minWidth: cfg.minWidth }); } },
                 every: (ms) => { everyMs = ms; },
-                shell: { run: () => Promise.resolve({ stdout: "00:00" }) }
+                system: { timeIn: () => "09:41" }
             };
             """#, extra: #"""
             JSON.stringify({

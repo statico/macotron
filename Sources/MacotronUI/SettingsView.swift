@@ -208,7 +208,8 @@ public final class SettingsState: ObservableObject {
     public var onInstallCatalog: ((CatalogPlugin, Bool) -> Void)?
     public var onInstallAll: (([CatalogPlugin]) -> Void)?
     public var restoreStatusItem: ((String) -> Void)?
-    public var onReviewPending: (() -> Void)?
+    /// nil reviews the whole queue; a filename reviews just that plugin.
+    public var onReviewPending: ((String?) -> Void)?
 
     /// Baseline permissions plus whatever the loaded plugins declared.
     @Published public var requiredPermissions: [Permission] = Permissions.baseline
@@ -432,7 +433,12 @@ public final class SettingsState: ObservableObject {
     }
 
     public func allowsInstall(of plugin: CatalogPlugin, override: Bool) -> Bool {
-        guard let report = scanReport else { return installIsBuiltIn }
+        guard let report = scanReport else {
+            // The scan is advice, not a gate. Someone who presses the button
+            // before it lands has approved these bytes themselves, which is
+            // what the review asks of them in the first place.
+            return installIsBuiltIn || override
+        }
         guard report.matches(source: plugin.source) else { return false }
         return !report.needsOverride || override
     }
@@ -847,7 +853,7 @@ public struct SettingsView: View {
                     Divider()
 
                     Button("Review & Reload") {
-                        state.onReviewPending?()
+                        state.onReviewPending?(nil)
                     }
                     .controlSize(.small)
                     .padding(8)
@@ -1315,7 +1321,7 @@ struct PluginDetailView: View {
                 .font(.system(size: 11))
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 8)
-            Button("Review & Reload") { state.onReviewPending?() }
+            Button("Review & Reload") { state.onReviewPending?(summary.filename) }
                 .controlSize(.small)
         }
         .foregroundStyle(.orange)

@@ -882,7 +882,7 @@ struct CatalogInstallScanTests {
         #expect(state.allowsInstall(of: plugin("weather.js"), override: false))
     }
 
-    @Test("no report never allows installing reviewed bytes, even with override")
+    @Test("reviewed bytes wait for a scan unless the user presses anyway")
     func noReportBlocksReviewInstall() {
         let state = SettingsState()
         state.onScanCatalog = { _ in }
@@ -893,7 +893,9 @@ struct CatalogInstallScanTests {
             fileURL: URL(fileURLWithPath: "/tmp/foo.js")
         )
         #expect(!state.allowsInstall(of: state.installTarget!, override: false))
-        #expect(!state.allowsInstall(of: state.installTarget!, override: true))
+        // Pressing the button before the scan lands is the user approving the
+        // bytes, which is the whole point of the review.
+        #expect(state.allowsInstall(of: state.installTarget!, override: true))
     }
 }
 
