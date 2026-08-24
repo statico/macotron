@@ -227,8 +227,11 @@ public struct LauncherView: View {
                 .frame(minHeight: 0, maxHeight: .infinity)
                 .scrollBounceBehavior(.basedOnSize)
                 .onChange(of: selectedIndex) { _, newIndex in
+                    // No anchor: scroll only far enough to bring the row into
+                    // view. Anchoring pins the selection to one edge and moves
+                    // the list under it on every keypress.
                     if newIndex < results.count {
-                        proxy.scrollTo(results[newIndex].id, anchor: .top)
+                        proxy.scrollTo(results[newIndex].id)
                     }
                 }
             }
