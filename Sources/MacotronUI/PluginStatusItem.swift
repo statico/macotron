@@ -481,6 +481,7 @@ enum StatusLineStyle {
     }
 }
 
+@MainActor
 enum PluginMenu {
     final class Action: NSObject {
         let run: () -> Void

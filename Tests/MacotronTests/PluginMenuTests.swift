@@ -61,6 +61,7 @@ struct PluginMenuTests {
         #expect(menu.items.first?.title == "Plain")
     }
 
+    @MainActor
     @Test("menu items keep working after the host drops its action list")
     func itemsRetainActions() {
         var ran = false
@@ -79,6 +80,7 @@ struct PluginMenuTests {
         #expect(ran)
     }
 
+    @MainActor
     @Test("items without onClick stay enabled")
     func labelItemsEnabled() {
         var boxes: [PluginMenu.Action] = []
@@ -91,6 +93,7 @@ struct PluginMenuTests {
         #expect(item.action != nil)
     }
 
+    @MainActor
     @Test("sync updates titles on the same items")
     func syncUpdatesTitles() {
         var boxes: [PluginMenu.Action] = []
@@ -104,6 +107,7 @@ struct PluginMenuTests {
         #expect(menu.items[0].title == "CPU 2%")
     }
 
+    @MainActor
     @Test("sync rebuilds when the shape changes")
     func syncRebuildsShape() {
         var boxes: [PluginMenu.Action] = []
@@ -126,11 +130,13 @@ struct PluginFilterTests {
         ModuleSummary(filename: file, title: title, description: description)
     }
 
+    @MainActor
     @Test("an empty query keeps everything")
     func empty() {
         #expect(PluginFilter.matches(summary("Fan", "fan.js"), query: "  "))
     }
 
+    @MainActor
     @Test("matches title, filename, and description, ignoring case")
     func fields() {
         let fan = summary("Fan Control", "fan.js", "Spin the fans up")
@@ -140,6 +146,7 @@ struct PluginFilterTests {
         #expect(!PluginFilter.matches(fan, query: "battery"))
     }
 
+    @MainActor
     @Test("a space cannot start a filter but can extend one")
     func spaceHandling() {
         #expect(!PluginFilter.accepts(" ", existing: ""))
