@@ -1034,8 +1034,9 @@ public struct SettingsView: View {
         @ViewBuilder content: () -> Content
     ) -> some View {
         HStack(alignment: .center, spacing: PluginForm.rowSpacing) {
+            // Primary label colour, like every control label in System
+            // Settings. Secondary is for the notes under a control.
             Text(label)
-                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.trailing)
                 .frame(width: PluginForm.labelWidth, alignment: .trailing)
 
@@ -1074,7 +1075,6 @@ struct ShortcutField: View {
             if let label {
                 Text(label)
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
                     .lineLimit(2)
                     .frame(width: PluginForm.labelWidth, alignment: .leading)
                     .padding(.top, 6)
@@ -1576,7 +1576,6 @@ struct ModuleOptionRow: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(option.label)
                 .font(.system(size: 12))
-                .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             if option.needsSetup {
                 Text("Required")
