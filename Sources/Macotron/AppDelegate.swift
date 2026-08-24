@@ -389,8 +389,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.onInstallAll = { [weak self] plugins in
             self?.installCatalogPlugins(plugins)
         }
-        settingsState.onReviewPending = { [weak self] in
-            self?.reviewPendingPlugins()
+        settingsState.onReviewPending = { [weak self] only in
+            self?.reviewPendingPlugins(only: only)
         }
 
         settingsState.loadModuleSummaries = { [weak self] in
@@ -1010,15 +1010,24 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func reviewPendingPlugins() {
+    /// `only` reviews one plugin, for the button on that plugin's own page.
+    private func reviewPendingPlugins(only: String? = nil) {
         guard let workspace else { return }
         settingsState.requestedTab = SettingsTab.plugins.rawValue
         settingsWindow?.show()
+        reviewOnly = only
         presentNextReview(workspace: workspace)
     }
 
+    private var reviewOnly: String?
+
     private func presentNextReview(workspace: PluginWorkspace) {
-        guard let name = settingsState.pendingReview.first ?? moduleManager?.pendingReview.sorted().first else {
+        let queue = settingsState.pendingReview.first ?? moduleManager?.pendingReview.sorted().first
+        // Reviewing one plugin ends when that plugin does, rather than walking
+        // on into the rest of the queue.
+        let next = reviewOnly.map { settingsState.pendingReview.contains($0) ? $0 : nil } ?? queue
+        guard let name = next else {
+            reviewOnly = nil
             settingsState.installTarget = nil
             settingsState.isReviewing = false
             return

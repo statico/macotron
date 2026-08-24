@@ -19,27 +19,11 @@ function zoneLabel(zone) {
   return String(zone).split("/").pop().replace(/_/g, " ");
 }
 
-function formatTime(now, zone) {
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      timeZone: zone,
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(now);
-  } catch (_) {
-    return "";
-  }
-}
-
-async function paint() {
-  const now = new Date();
+function paint() {
   for (const zone of zones()) {
-    let title = formatTime(now, zone);
-    if (!title) {
-      const r = await macotron.shell.run("/usr/bin/env", ["TZ=" + zone, "/bin/date", "+%H:%M"]);
-      title = String((r && r.stdout) || "").trim();
-    }
+    // QuickJS has no Intl, so the zone conversion belongs to the host.
+    const title = macotron.system.timeIn(zone);
+    if (!title) continue;
     macotron.menubar.status("clock-" + zone, {
       title: title,
       subtitle: zoneLabel(zone),

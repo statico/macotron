@@ -116,14 +116,7 @@ private struct CatalogInstallSheet: View {
                     state.isReviewing = false
                 }
                     .keyboardShortcut(.cancelAction)
-                Button(primaryLabel) {
-                    install(override: state.scanReport?.needsOverride == true)
-                }
-                    // Waiting on the scan takes the button off Return rather
-                    // than out of reach: the wait is a recommendation, not a
-                    // gate, so a user who does not want to wait can still act.
-                    .keyboardShortcut(state.scanning ? nil : .defaultAction)
-                    .disabled(!canInstall)
+                primaryButton
             }
             .padding(.top, 4)
         }
@@ -140,12 +133,22 @@ private struct CatalogInstallSheet: View {
         return override ? "Add Anyway" : "Add"
     }
 
-    /// A built-in needs no scan result to proceed, so its button stays live
-    /// while the scan runs -- it only loses Return. Reviewed bytes are a
-    /// different matter: `allowsInstall` refuses them without a matching
-    /// report, so leaving that button pressable would just be a dead button.
-    private var canInstall: Bool {
-        state.scanReport != nil || state.installIsBuiltIn
+    /// Waiting on the scan is a recommendation, not a gate: the button stays
+    /// live and only stops looking like the obvious thing to press. It goes
+    /// back to being the default action once the scan comes back clean, so a
+    /// queue of reviews can be walked through on Return.
+    @ViewBuilder
+    private var primaryButton: some View {
+        let button = Button(primaryLabel) {
+            install(override: state.scanReport?.needsOverride ?? true)
+        }
+        if state.scanReport?.approved == true || (state.scanReport == nil && state.installIsBuiltIn) {
+            button
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+        } else {
+            button
+        }
     }
 
     @ViewBuilder

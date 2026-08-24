@@ -80,25 +80,16 @@ function grid(cells) {
 <div id="m">${DOW.map((d) => `<div class="dow">${d[0]}${d[1].toLowerCase()}</div>`).join("")}${cells}</div>`;
 }
 
-// Same trick the World Clock plugin uses: QuickJS has Intl, so the zone
-// conversion needs no shell round trip while the menu is being built.
-function clocks(now) {
+// QuickJS has no Intl, so the host does the zone conversion. An unknown zone
+// comes back empty and is dropped rather than showing a blank row.
+function clocks() {
     return String(opts.clocks || "")
         .split("\n")
         .map((line) => line.trim())
         .filter(Boolean)
-        .map((zone) => {
-            let time = "";
-            try {
-                time = new Intl.DateTimeFormat("en-GB", {
-                    timeZone: zone, hour: "2-digit", minute: "2-digit", hour12: false,
-                }).format(now);
-            } catch (_) {
-                return null;
-            }
-            return { title: `${zone.split("/").pop().replace(/_/g, " ")}  ${time}` };
-        })
-        .filter(Boolean);
+        .map((zone) => ({ zone, time: macotron.system.timeIn(zone) }))
+        .filter((c) => c.time)
+        .map((c) => ({ title: `${c.zone.split("/").pop().replace(/_/g, " ")}  ${c.time}` }));
 }
 
 function move(by) {
@@ -110,7 +101,7 @@ function render() {
     const now = new Date();
     const shown = shownMonth(now);
     const month = weeks(now, shown);
-    const clockRows = clocks(now);
+    const clockRows = clocks();
     macotron.menubar.status("mini-calendar", {
         title: "",
         svg: icon(now),

@@ -332,6 +332,28 @@ public final class SystemModule: NativeModule {
             ])
         }, "locale", 0))
 
+        // macotron.system.timeIn(zone, format?) -> "18:42" ("" if the zone is
+        // unknown). QuickJS ships without Intl, so a plugin that wants another
+        // zone has no way to do this itself short of spawning /bin/date.
+        JS_SetPropertyStr(ctx, systemObj, "timeIn",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+            guard let argv, argc >= 1, let name = JSBridge.toString(ctx, argv[0]),
+                  let zone = TimeZone(identifier: name) ?? TimeZone(abbreviation: name) else {
+                return JSBridge.newString(ctx, "")
+            }
+            var format = "HH:mm"
+            if argc >= 2, !JS_IsUndefined(argv[1]), !JS_IsNull(argv[1]),
+               let custom = JSBridge.toString(ctx, argv[1]), !custom.isEmpty {
+                format = custom
+            }
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = zone
+            formatter.dateFormat = format
+            return JSBridge.newString(ctx, formatter.string(from: Date()))
+        }, "timeIn", 2))
+
         // macotron.system.memory() -> {total, used, free}
         JS_SetPropertyStr(ctx, systemObj, "memory",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
