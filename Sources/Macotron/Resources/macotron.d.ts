@@ -254,7 +254,7 @@ declare const macotron: {
     };
 
     url: {
-        on(scheme: string, host: string, callback: (event: { url: string; scheme: string; host: string; path: string; query?: string; sourceBundle?: string }) => void): void;
+        on(scheme: string, host: string | RegExp, callback: (event: { url: string; scheme: string; host: string; path: string; query?: string; sourceBundle?: string }) => void): void;
         open(url: string, bundleID?: string, profile?: string): boolean;
         registerHandler(scheme: string): void;
         setDefaultHandler(scheme: string): boolean;

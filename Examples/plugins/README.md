@@ -14,7 +14,7 @@ Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need
 | battery.js | system.battery | Battery |
 | bluetooth.js | network.bluetooth | (menu bar batteries) |
 | brightness.js | display brightness/XDR | Toggle XDR |
-| browser-picker.js | url.on / setDefaultHandler / panel | Route links by host, ask for the rest |
+| browser-picker.js | url.on / setDefaultHandler / panel | Route by host or regex; ask or use a default |
 | calculator.js | launcher.query + clipboard | (inline in the launcher) |
 | calendar.js | calendar.upcoming | Upcoming Events |
 | clipboard-history.js | clipboard.history, launcher.set, panel | Clipboard History |

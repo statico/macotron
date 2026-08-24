@@ -60,6 +60,11 @@ struct URLRouteTests {
     func caseInsensitive() {
         #expect(URLRoute.pick([("HTTPS", "YouTube.com")], url: u("https://WWW.YOUTUBE.COM/watch")) == .match("YouTube.com"))
     }
+
+    @Test("missing explicit opener does not use the system default")
+    func missingExplicitOpener() {
+        #expect(URLOpen.applicationURL(bundleID: "io.statico.macotron.missing-app") == nil)
+    }
 }
 
 @Suite("URLEventGate")

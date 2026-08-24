@@ -1,5 +1,6 @@
 // AppDelegate.swift — NSApplicationDelegate, app lifecycle
 import AppKit
+import CoreServices
 import SwiftUI
 import MacotronEngine
 import MacotronUI
@@ -43,6 +44,15 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var didFinishLaunching = false
 
     private static let wizardCompletedKey = "wizardCompleted"
+
+    public func applicationWillFinishLaunching(_ notification: Notification) {
+        NSAppleEventManager.shared().setEventHandler(
+            self,
+            andSelector: #selector(handleGetURL(_:withReply:)),
+            forEventClass: AEEventClass(kInternetEventClass),
+            andEventID: AEEventID(kAEGetURL)
+        )
+    }
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
         setupMainMenu()
@@ -94,6 +104,31 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         guard didFinishLaunching, wizardWindow?.isVisible != true else { return true }
         openSettingsAction()
         return true
+    }
+
+    @objc private func handleGetURL(
+        _ event: NSAppleEventDescriptor,
+        withReply reply: NSAppleEventDescriptor
+    ) {
+        guard let urlString = event.paramDescriptor(
+            forKeyword: AEKeyword(keyDirectObject)
+        )?.stringValue,
+        let url = URL(string: urlString) else {
+            appLogger.error("URL event dropped: no URL in event")
+            return
+        }
+        URLSchemeModule.handle([url], sourceBundle: sourceBundle(from: event))
+    }
+
+    private func sourceBundle(from event: NSAppleEventDescriptor) -> String? {
+        guard let descriptor = event.attributeDescriptor(
+            forKeyword: AEKeyword(keySenderPIDAttr)
+        ) else {
+            return nil
+        }
+        let pid = pid_t(descriptor.int32Value)
+        guard pid > 0 else { return nil }
+        return NSRunningApplication(processIdentifier: pid)?.bundleIdentifier
     }
 
     // MARK: - Bootstrap

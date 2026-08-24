@@ -145,7 +145,7 @@ Host CSS defines system colors as variables: `--macotron-accent`, `--macotron-ac
 
 **Display modes:** `display.nightShift`, `trueTone`, and `grayscale` plus the matching `set*` calls.
 
-**URL fallback:** `url.setDefaultHandler("https")` and `url.onFallback`. A miss shows a picker.
+**URL routing:** `url.on("https", "example.com", callback)` matches the host and its subdomains. Pass a `RegExp` to match hosts by pattern. `url.onFallback` handles misses.
 
 **AX:** `ax.focused`, `selectedText`, `children`, `parent`, `press`, `setValue`, `find`.
 
