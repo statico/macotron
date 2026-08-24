@@ -1,15 +1,18 @@
 const opts = macotron.plugin({
     title: "Meetings Menu",
     description: "Show your next calendar event in the menu bar.",
+    permissions: ["calendar"],
     options: {
         hours: {
             type: "number",
-            label: "Look ahead (hours, at least rest of today)",
+            label: "Look ahead",
+            help: "Hours of calendar to show. The rest of today is always included.",
             default: 12,
         },
         hide: {
             type: "text",
-            label: "Hide titles matching (one regex per line)",
+            label: "Hide titles",
+            help: "One regular expression per line. Events whose title matches are skipped.",
             default: "personal\nOOO",
         },
     },

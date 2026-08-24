@@ -24,6 +24,7 @@ const opts = macotron.plugin({
     rules: {
       type: "text",
       label: "Rules",
+      help: "One per line: host browser. The host can be a JavaScript regex such as /^github\\./i.",
       default: "youtube.com safari\nyoutu.be safari",
     },
   },

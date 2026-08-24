@@ -378,8 +378,15 @@ public final class MenuBarModule: NativeModule {
                 let onClick = bindClick(ctx: ctx, from: onClickVal, key: key)
                 JS_FreeValue(ctx, onClickVal)
                 let nestedVal = JSBridge.getProperty(ctx, elem, "menu")
-                let children = parseMenu(ctx: ctx, nestedVal, prefix: key)
+                var children = parseMenu(ctx: ctx, nestedVal, prefix: key)
                 JS_FreeValue(ctx, nestedVal)
+                let buttonsVal = JSBridge.getProperty(ctx, elem, "buttons")
+                var inline = false
+                if JS_IsArray(buttonsVal) {
+                    children = parseMenu(ctx: ctx, buttonsVal, prefix: "\(key)!")
+                    inline = true
+                }
+                JS_FreeValue(ctx, buttonsVal)
                 let htmlVal = JSBridge.getProperty(ctx, elem, "html")
                 let html: String? = JSBridge.isUndefined(htmlVal) || JSBridge.isNull(htmlVal)
                     ? nil : JSBridge.toString(ctx, htmlVal)
@@ -390,6 +397,7 @@ public final class MenuBarModule: NativeModule {
                     onClick: onClick,
                     children: children,
                     html: html,
+                    inline: inline,
                     width: number(ctx, elem, "width") ?? 260,
                     height: number(ctx, elem, "height") ?? 160
                 ))

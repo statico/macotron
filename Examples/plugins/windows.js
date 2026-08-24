@@ -19,6 +19,7 @@ const opts = macotron.plugin({
         snapModifier: {
             type: "dropdown",
             label: "Alternate snap key",
+            help: "Hold this while dragging to snap to the alternate zones instead.",
             default: "shift",
             choices: [
                 { value: "none", label: "None" },
@@ -31,6 +32,7 @@ const opts = macotron.plugin({
         snapModifierLayout: {
             type: "dropdown",
             label: "Alternate snap zones",
+            help: "Used while the key above is held.",
             default: "thirds",
             choices: [
                 { value: "halves", label: "Halves" },

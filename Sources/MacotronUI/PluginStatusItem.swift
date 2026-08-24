@@ -548,6 +548,7 @@ enum PluginMenu {
             if entry.isSeparator { return item.isSeparatorItem }
             if item.isSeparatorItem { return false }
             if (entry.html != nil) != (item.view is MenuWebView) { return false }
+            if entry.inline != (item.view is MenuButtonRow) { return false }
             if entry.children.isEmpty {
                 return item.submenu == nil
             }
@@ -561,6 +562,14 @@ enum PluginMenu {
             if entry.isSeparator { continue }
             if let html = entry.html, let view = item.view as? MenuWebView {
                 view.update(html: html, size: size(entry))
+                continue
+            }
+            if let view = item.view as? MenuButtonRow {
+                view.update(
+                    titles: entry.children.map(\.title),
+                    actions: entry.children.map { $0.onClick ?? {} },
+                    width: size(entry).width
+                )
                 continue
             }
             apply(title: entry.title, icon: entry.icon, to: item)
@@ -581,6 +590,16 @@ enum PluginMenu {
             if let html = entry.html {
                 let row = NSMenuItem()
                 row.view = MenuWebView(html: html, size: size(entry))
+                menu.addItem(row)
+                continue
+            }
+            if entry.inline {
+                let row = NSMenuItem()
+                row.view = MenuButtonRow(
+                    titles: entry.children.map(\.title),
+                    actions: entry.children.map { $0.onClick ?? {} },
+                    width: size(entry).width
+                )
                 menu.addItem(row)
                 continue
             }

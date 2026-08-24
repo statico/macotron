@@ -67,10 +67,13 @@ public struct ModuleOption: Identifiable {
     /// Grey hint shown in an empty field. Plugins compute it at load, so it can
     /// describe live state such as the current system locale.
     public let placeholder: String
+    /// A sentence under the field. Keeps the label short enough to read as a
+    /// label instead of turning the form into prose.
+    public let help: String
 
     public init(key: String, label: String, type: String, defaultValue: Any, currentValue: Any,
                 required: Bool = false, isSet: Bool = true, choices: [ModuleOptionChoice] = [],
-                placeholder: String = "") {
+                placeholder: String = "", help: String = "") {
         self.id = key
         self.key = key
         self.label = label
@@ -81,6 +84,7 @@ public struct ModuleOption: Identifiable {
         self.isSet = isSet
         self.choices = choices
         self.placeholder = placeholder
+        self.help = help
     }
 
     /// Required but without a value — Settings surfaces a needs-setup hint.
@@ -1447,10 +1451,19 @@ struct ModuleOptionRow: View {
     @FocusState private var editing: Bool
 
     var body: some View {
-        HStack(alignment: option.type == "text" ? .top : .center, spacing: 12) {
+        HStack(alignment: option.type == "text" || !option.help.isEmpty ? .top : .center, spacing: 12) {
             labelText
                 .frame(width: PluginForm.labelWidth, alignment: .leading)
-            control
+            VStack(alignment: .leading, spacing: 4) {
+                control
+                if !option.help.isEmpty {
+                    Text(option.help)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: PluginForm.fieldMaxWidth, alignment: .leading)
+                }
+            }
             Spacer(minLength: 0)
         }
     }

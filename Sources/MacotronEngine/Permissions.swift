@@ -1,6 +1,7 @@
 // Permissions.swift — Check, request, and explain macOS privacy permissions
 @preconcurrency import ApplicationServices
 import AVFoundation
+import EventKit
 import AppKit
 import SMCKit
 import ServiceManagement
@@ -14,6 +15,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     case screenRecording
     case camera
     case microphone
+    case calendar
     case helper
     case automation
     case menuBar
@@ -27,6 +29,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .screenRecording: return "Screen Recording"
         case .camera: return "Camera"
         case .microphone: return "Microphone"
+        case .calendar: return "Calendars"
         case .helper: return "Background Helper"
         case .automation: return "Automation"
         case .menuBar: return "Menu Bar Items"
@@ -41,6 +44,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .screenRecording: return "Capture the screen for plugins that read it."
         case .camera: return "Scan a QR code or use the camera from a plugin."
         case .microphone: return "Record audio from plugins."
+        case .calendar: return "Read upcoming events for plugins that show them."
         case .helper: return "Lets plugins control privileged features like fan control."
         case .automation: return "Control other apps through Apple events."
         case .menuBar: return "Menu bar items plugins asked for are switched off."
@@ -80,6 +84,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             return AVCaptureDevice.authorizationStatus(for: .video) == .authorized
         case .microphone:
             return AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        case .calendar:
+            return EKEventStore.authorizationStatus(for: .event) == .fullAccess
         case .helper:
             return Permissions.helperService.status == .enabled
         case .automation:
@@ -108,7 +114,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     /// asking macOS for access, so it does not read as granting anything.
     public var actionTitle: String {
         switch self {
-        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation: return "Grant…"
+        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation, .calendar: return "Grant…"
         case .helper: return "Install…"
         case .menuBar: return "Show…"
         }
@@ -119,7 +125,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     /// for admin approval, so it needs an explicit user gesture behind it.
     public var isAutoRequestable: Bool {
         switch self {
-        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone: return true
+        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .calendar: return true
         case .helper, .automation, .menuBar: return false
         }
     }
@@ -128,7 +134,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     /// is ours to unregister.
     public var canRevoke: Bool {
         switch self {
-        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation, .menuBar: return false
+        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation, .menuBar, .calendar: return false
         case .helper: return true
         }
     }
@@ -162,6 +168,11 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
         case .microphone:
             AVCaptureDevice.requestAccess(for: .audio) { _ in }
             openSettings = true
+        case .calendar:
+            // The app only shows up in the Calendars list once it has asked,
+            // so a plugin that reads events silently is invisible there.
+            Permissions.calendarStore.requestFullAccessToEvents { _, _ in }
+            openSettings = true
         case .helper:
             openSettings = Permissions.registerHelper()
         case .automation:
@@ -189,7 +200,7 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
     public func revoke() {
         Permissions.grantedCache.removeAll()
         switch self {
-        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation, .menuBar:
+        case .inputMonitoring, .accessibility, .screenRecording, .camera, .microphone, .automation, .menuBar, .calendar:
             break
         case .helper:
             Permissions.unregisterHelper()
@@ -210,6 +221,8 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
             urlString = "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Camera"
         case .microphone:
             urlString = "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Microphone"
+        case .calendar:
+            urlString = "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Calendars"
         case .helper:
             urlString = "x-apple.systempreferences:com.apple.LoginItems-Settings.extension"
         case .automation:
@@ -224,6 +237,10 @@ public enum Permission: String, CaseIterable, Sendable, Identifiable {
 
 @MainActor
 public enum Permissions {
+    /// One store for the whole app: EventKit ties the authorization prompt to
+    /// the store that asks, and a throwaway one drops the answer with it.
+    public static let calendarStore = EKEventStore()
+
     @MainActor
     static var grantedCache: [Permission: (at: Date, value: Bool)] = [:]
 
@@ -260,6 +277,8 @@ public enum Permissions {
             return .camera
         case "microphone", "mic":
             return .microphone
+        case "calendar", "calendars", "events", "eventkit":
+            return .calendar
         case "helper":
             return .helper
         case "menubar", "menu-bar":

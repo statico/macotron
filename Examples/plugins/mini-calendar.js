@@ -1,9 +1,19 @@
-macotron.plugin({
+const opts = macotron.plugin({
     title: "Mini Calendar",
     description: "Show today's weekday and date in the menu bar, with the month in its menu.",
+    options: {
+        clocks: {
+            type: "text",
+            label: "World clocks",
+            help: "One IANA time zone per line, such as Europe/London. Shown under the month.",
+            default: "",
+        },
+    },
 });
 
 const DOW = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July",
+    "August", "September", "October", "November", "December"];
 
 // The bottom half is a filled block with the date knocked out of it, so the
 // number gets the whole width instead of leaving room for a border.
@@ -29,28 +39,78 @@ function icon(date) {
 </svg>`;
 }
 
+// Months away from this one. The buttons move it; Today puts it back.
+let offset = 0;
+const ROW = 18;
+
+function shownMonth(now) {
+    return new Date(now.getFullYear(), now.getMonth() + offset, 1);
+}
+
 // The month as a web page: the menu itself is the calendar, so there is no
 // panel to open. `cal` would need a shell round trip and the menu is built
 // synchronously, so lay the weeks out here instead.
-function grid(now) {
-    const first = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
-    const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+function weeks(now, shown) {
+    const lead = shown.getDay();
+    const days = new Date(shown.getFullYear(), shown.getMonth() + 1, 0).getDate();
+    const before = new Date(shown.getFullYear(), shown.getMonth(), 0).getDate();
+    const trail = (7 - ((lead + days) % 7)) % 7;
+    // Neighbouring days are dimmed rather than blank, so every row is a full
+    // week instead of a ragged edge.
     let cells = "";
-    for (let i = 0; i < first; i++) cells += "<div></div>";
+    for (let i = lead; i > 0; i--) cells += `<div class="off">${before - i + 1}</div>`;
     for (let d = 1; d <= days; d++) {
-        cells += `<div${d === now.getDate() ? ' class="today"' : ""}>${d}</div>`;
+        const today = d === now.getDate()
+            && shown.getMonth() === now.getMonth()
+            && shown.getFullYear() === now.getFullYear();
+        cells += `<div${today ? ' class="today"' : ""}>${d}</div>`;
     }
+    for (let d = 1; d <= trail; d++) cells += `<div class="off">${d}</div>`;
+    return { cells, rows: (lead + days + trail) / 7 };
+}
+
+function grid(cells) {
     return `<style>
 #m { display:grid; grid-template-columns:repeat(7, 1fr); text-align:center;
-     font-size:11px; line-height:18px; font-variant-numeric:tabular-nums; }
+     font-size:11px; line-height:${ROW}px; font-variant-numeric:tabular-nums; }
 #m .dow { opacity:0.5; font-size:9px; text-transform:uppercase; }
+#m .off { opacity:0.35; }
 #m .today { background:Highlight; color:HighlightText; border-radius:9px; }
 </style>
 <div id="m">${DOW.map((d) => `<div class="dow">${d[0]}${d[1].toLowerCase()}</div>`).join("")}${cells}</div>`;
 }
 
+// Same trick the World Clock plugin uses: QuickJS has Intl, so the zone
+// conversion needs no shell round trip while the menu is being built.
+function clocks(now) {
+    return String(opts.clocks || "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((zone) => {
+            let time = "";
+            try {
+                time = new Intl.DateTimeFormat("en-GB", {
+                    timeZone: zone, hour: "2-digit", minute: "2-digit", hour12: false,
+                }).format(now);
+            } catch (_) {
+                return null;
+            }
+            return { title: `${zone.split("/").pop().replace(/_/g, " ")}  ${time}` };
+        })
+        .filter(Boolean);
+}
+
+function move(by) {
+    offset += by;
+    render();
+}
+
 function render() {
     const now = new Date();
+    const shown = shownMonth(now);
+    const month = weeks(now, shown);
+    const clockRows = clocks(now);
     macotron.menubar.status("mini-calendar", {
         title: "",
         svg: icon(now),
@@ -60,8 +120,16 @@ function render() {
         template: true,
         // No onClick, so a left-click drops the menu -- and the month with it.
         menu: [
-            { title: now.toDateString() },
-            { html: grid(now), width: 220, height: 130 },
+            { title: `${MONTHS[shown.getMonth()]} ${shown.getFullYear()}` },
+            { html: grid(month.cells), width: 220, height: (month.rows + 1) * ROW + 6 },
+            // A button row keeps the menu open, so the month can be paged
+            // without the menu closing on every step.
+            { buttons: [
+                { title: "‹", onClick: () => move(-1) },
+                { title: "Today", onClick: () => move(-offset) },
+                { title: "›", onClick: () => move(1) },
+            ] },
+            ...(clockRows.length ? ["-", ...clockRows] : []),
             "-",
             { title: "Open Calendar…", onClick: () => macotron.app.launch("com.apple.iCal") },
         ],

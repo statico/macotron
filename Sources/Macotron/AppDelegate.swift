@@ -546,6 +546,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     let currentValue = fileSettings[key] ?? defaultValue
                     let required = def["required"] as? Bool ?? false
                     let placeholder = def["placeholder"] as? String ?? ""
+                    let help = def["help"] as? String ?? ""
 
                     let choices = ((def["choices"] as? [[String: Any]]) ?? []).compactMap { choice -> ModuleOptionChoice? in
                         guard let value = choice["value"] as? String,
@@ -570,7 +571,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                         key: key, label: label, type: type,
                         defaultValue: defaultValue, currentValue: currentValue,
                         required: required, isSet: isSet, choices: choices,
-                        placeholder: placeholder
+                        placeholder: placeholder, help: help
                     ))
                 }
             }
@@ -1046,6 +1047,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let editMenuItem = NSMenuItem()
         let editMenu = NSMenu(title: "Edit")
+        // A text field's undo stack is only reachable through these menu
+        // items: the field editor never sees the key equivalent otherwise.
+        editMenu.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        let redo = editMenu.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "z")
+        redo.keyEquivalentModifierMask = [.command, .shift]
+        editMenu.addItem(.separator())
         editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
         editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
         editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")

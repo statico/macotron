@@ -7,7 +7,9 @@ import MacotronEngine
 public final class CalendarModule: NativeModule {
     public let name = "calendar"
 
-    private static let store = EKEventStore()
+    /// Shared with Permissions: EventKit ties access to the store that asked,
+    /// and the Settings row and this module have to agree about who asked.
+    private static var store: EKEventStore { Permissions.calendarStore }
     private static var requestedAccess = false
 
     public init() {}
@@ -46,6 +48,7 @@ public final class CalendarModule: NativeModule {
             if !requestedAccess {
                 requestedAccess = true
                 store.requestFullAccessToEvents { _, _ in }
+                Permissions.invalidate()
             }
             return []
         case .fullAccess, .authorized:
