@@ -64,6 +64,8 @@ public final class FanController: @unchecked Sendable {
     private var claimed = true
     private var helperConnection: NSXPCConnection?
     private var recycled = false
+    /// Last failure per SMC key, so a repeating read logs once, not every tick.
+    private var readErrors: [String: String] = [:]
 
     func snapshot() -> FanSnapshot {
         lock.lock()
@@ -180,10 +182,30 @@ public final class FanController: @unchecked Sendable {
         return (0..<count).map { index in
             FanInfo(
                 index: index,
-                rpm: (try? smc.readRPM(key(index, "Ac"))) ?? 0,
-                min: (try? smc.readRPM(key(index, "Mn"))) ?? 0,
-                max: (try? smc.readRPM(key(index, "Mx"))) ?? 0
+                rpm: rpm(index, "Ac"),
+                min: rpm(index, "Mn"),
+                max: rpm(index, "Mx")
             )
+        }
+    }
+
+    /// A fan that cannot be read reports zero, which is indistinguishable in
+    /// the menu from a fan that is stopped. Say which key failed and why, once
+    /// per change: this runs on a two-second timer.
+    private func rpm(_ index: Int, _ suffix: String) -> Double {
+        let name = key(index, suffix)
+        do {
+            let value = try smc.readRPM(name)
+            if readErrors.removeValue(forKey: name) != nil {
+                logger.info("fan \(name, privacy: .public) readable again")
+            }
+            return value
+        } catch {
+            let text = error.localizedDescription
+            if readErrors.updateValue(text, forKey: name) != text {
+                logger.error("fan \(name, privacy: .public) unreadable: \(text, privacy: .public)")
+            }
+            return 0
         }
     }
 
