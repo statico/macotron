@@ -19,7 +19,7 @@ struct MeetingsTests {
             var macotron = {
                 plugin: () => ({ hours: 12, hide: "personal\\nOOO" }),
                 calendar: {
-                    upcoming: () => ([
+                    upcoming: () => Promise.resolve([
                         { id: "p", title: "Personal dentist", start: \(now + 600000), end: \(now + 1200000), allDay: false, location: "", calendar: "Home" },
                         { id: "o", title: "OOO", start: \(now), end: \(now + 86400000), allDay: true, location: "", calendar: "Work" },
                         { id: "s", title: "Standup", start: \(now + 3600000), end: \(now + 5400000), allDay: false, location: "", calendar: "Work" }
@@ -33,11 +33,15 @@ struct MeetingsTests {
                 notify: { toast: () => {} }
             };
             \(pluginSource)
-            JSON.stringify({ title: statusConfig.title, count: statusConfig.menu.length })
             """
         let engine = Engine()
-        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
+        // paint() is async now, so read the menu bar back only after
+        // evaluate() has drained the job queue that settles it.
+        let (_, error) = engine.evaluate(harness, filename: pluginURL.path)
         #expect(error == nil)
+        let (result, _) = engine.evaluate(
+            "JSON.stringify({ title: statusConfig.title, count: statusConfig.menu.length })",
+            filename: pluginURL.path)
         #expect(result?.contains("Standup") == true)
         #expect(result?.contains("Personal") != true)
     }

@@ -3,8 +3,8 @@ macotron.plugin({
     description: "Search your contacts from the launcher.",
 });
 
-function paint() {
-    const people = macotron.contacts.list();
+async function paint() {
+    const people = await macotron.contacts.list();
     macotron.launcher.set(
         "contacts",
         people.map((p) => ({
