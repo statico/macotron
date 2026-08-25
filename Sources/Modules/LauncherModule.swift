@@ -20,6 +20,14 @@ public final class LauncherModule: NativeModule {
     private var hits: [String: [LauncherHit]] = [:]
     private var icons: [String: NSImage] = [:]
     private var queries: [String: JSValue] = [:]
+    private var awaitGlue: JSValue?
+    private var push: JSValue?
+    private var generation: Int32 = 0
+    private var isCollecting = false
+
+    /// Called when a provider answers after `liveHits` has already returned, so
+    /// the launcher can refresh a list that would otherwise stay stale.
+    public var onLiveUpdate: (() -> Void)?
 
     /// Live results are stored under `provider + liveSuffix` so they reuse the
     /// static parsing and callback bookkeeping without leaking into `allHits`,
@@ -35,23 +43,65 @@ public final class LauncherModule: NativeModule {
     }
 
     /// Asks every registered `launcher.query` provider what it makes of the
-    /// current text. Runs on each keystroke, so providers must return fast.
+    /// current text. A provider may return rows directly or a Promise of them;
+    /// a Promise is never waited on, it pushes through `replace` when it
+    /// settles and `onLiveUpdate` tells the launcher to ask again.
     public func liveHits(query: String) -> [LauncherHit] {
         guard let engine, let ctx = engine.context, !queries.isEmpty else { return [] }
-        var out: [LauncherHit] = []
+        generation &+= 1
+        isCollecting = true
+        defer { isCollecting = false }
+        let buckets = queries.keys.sorted().map { $0 + Self.liveSuffix }
         for provider in queries.keys.sorted() {
             guard let callback = queries[provider] else { continue }
-            var arg: JSValue = JSBridge.newString(ctx, query)
-            let fn = JS_DupValue(ctx, callback)
-            let result = JS_Call(ctx, fn, QJS_Undefined(), 1, &arg)
-            JS_FreeValue(ctx, fn)
-            JS_FreeValue(ctx, arg)
+            let arg = JSBridge.newString(ctx, query)
             let bucket = provider + Self.liveSuffix
-            replace(provider: bucket, items: result, ctx: ctx)
+            let result = engine.callJS(
+                callback, [arg],
+                budget: Engine.inputBudget,
+                label: "launcher query \(provider)"
+            )
+            JS_FreeValue(ctx, arg)
+            guard let result else {
+                drop(provider: bucket, ctx: ctx)
+                continue
+            }
+            if isThenable(ctx, result) {
+                // The rows still in the bucket answer an older keystroke, so
+                // they go now rather than linger until this promise settles.
+                drop(provider: bucket, ctx: ctx)
+                awaitRows(ctx, engine: engine, promise: result, bucket: bucket)
+            } else {
+                replace(provider: bucket, items: result, ctx: ctx)
+            }
             JS_FreeValue(ctx, result)
-            out.append(contentsOf: hits[bucket] ?? [])
         }
-        return out
+        return buckets.flatMap { hits[$0] ?? [] }
+    }
+
+    private func isThenable(_ ctx: OpaquePointer, _ value: JSValue) -> Bool {
+        guard JS_IsObject(value) else { return false }
+        let then = JSBridge.getProperty(ctx, value, "then")
+        defer { JS_FreeValue(ctx, then) }
+        return JS_IsFunction(ctx, then)
+    }
+
+    private func awaitRows(_ ctx: OpaquePointer, engine: Engine, promise: JSValue, bucket: String) {
+        guard let glue = awaitGlue, let push else { return }
+        let args = [
+            JS_DupValue(ctx, push),
+            JS_DupValue(ctx, promise),
+            JSBridge.newString(ctx, bucket),
+            JSBridge.newInt32(ctx, generation),
+        ]
+        if let result = engine.callJS(glue, args, label: "launcher await \(bucket)") {
+            JS_FreeValue(ctx, result)
+        }
+        for arg in args { JS_FreeValue(ctx, arg) }
+    }
+
+    private func fingerprint(_ bucket: String) -> [String] {
+        (hits[bucket] ?? []).map { "\($0.id)\u{1}\($0.title)\u{1}\($0.subtitle)" }
     }
 
     public func run(_ id: String) -> Bool {
@@ -114,6 +164,37 @@ public final class LauncherModule: NativeModule {
             return QJS_Undefined()
         }, "remove", 1))
 
+        push = JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 3 else { return QJS_Undefined() }
+            guard let engine = Engine.of(ctx) else { return QJS_Undefined() }
+            guard let mod = engine.configStore["__launcherModule"] as? LauncherModule,
+                  let bucket = JSBridge.toString(ctx, argv[0]),
+                  JSBridge.toInt32(ctx, argv[2]) == mod.generation else {
+                return QJS_Undefined()
+            }
+            let before = mod.fingerprint(bucket)
+            mod.replace(provider: bucket, items: argv[1], ctx: ctx)
+            // Refreshing on an unchanged answer would ask the provider again,
+            // which would resolve again: the same rows end the round trip.
+            if !mod.isCollecting, before != mod.fingerprint(bucket) {
+                mod.onLiveUpdate?()
+            }
+            return QJS_Undefined()
+        }, "push", 3)
+
+        // A rejected provider hands `replace` a non-array, which clears the
+        // bucket, so one handler covers both outcomes.
+        engine.evaluate("""
+            globalThis.__macotronLauncherAwait = function (push, promise, bucket, gen) {
+                var settle = function (rows) { push(bucket, rows, gen); };
+                Promise.resolve(promise).then(settle, settle);
+            };
+            """, filename: "<launcher-await>")
+        awaitGlue = JSBridge.getProperty(ctx, global, "__macotronLauncherAwait")
+        let atom = JS_NewAtom(ctx, "__macotronLauncherAwait")
+        _ = JS_DeleteProperty(ctx, global, atom, 0)
+        JS_FreeAtom(ctx, atom)
+
         JS_SetPropertyStr(ctx, macotron, "launcher", launcher)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
@@ -129,6 +210,10 @@ public final class LauncherModule: NativeModule {
             JS_FreeValue(ctx, cb)
         }
         queries.removeAll()
+        if let glue = awaitGlue { JS_FreeValue(ctx, glue) }
+        awaitGlue = nil
+        if let push { JS_FreeValue(ctx, push) }
+        push = nil
         hits.removeAll()
         engine = nil
     }

@@ -58,6 +58,7 @@ public struct LauncherView: View {
     @ObservedObject private var session: LauncherSession
     @ObservedObject private var windowFrame: LauncherFrame
     @State private var results: [SearchResult] = []
+    @State private var appliedQuery = ""
     @State private var selectedIndex = 0
     @State private var argValues: [String: String] = [:]
     @State private var argError: String?
@@ -161,11 +162,14 @@ public struct LauncherView: View {
         }
         .frame(width: windowFrame.size.width, height: windowFrame.size.height, alignment: .top)
         .clipped()
-        .onChange(of: session.query) { _, newValue in
-            applySearch(newValue)
+        .task(id: SearchKey(query: session.query, revision: session.revision)) {
+            if let delay = Self.searchDelay(query: session.query, applied: appliedQuery) {
+                try? await Task.sleep(for: delay)
+                guard !Task.isCancelled else { return }
+            }
+            applySearch(session.query)
         }
         .onAppear {
-            applySearch(session.query)
             onHeightChange?(desiredHeight)
         }
         .onChange(of: session.pendingArgs?.commandId) { _, _ in
@@ -316,8 +320,25 @@ public struct LauncherView: View {
         )
     }
 
+    /// What `.task(id:)` watches: a keystroke or a late provider answer both
+    /// have to re-run the search, and the sleep below cancels with the old one.
+    private struct SearchKey: Equatable {
+        let query: String
+        let revision: Int
+    }
+
+    /// nil runs the search now. Typing waits, so a fast typist searches once
+    /// instead of once per letter; opening the launcher and the first letter
+    /// after it must not, or the launcher feels asleep. A refresh of the query
+    /// already on screen is not typing either.
+    static func searchDelay(query: String, applied: String) -> Duration? {
+        guard !applied.isEmpty, query != applied else { return nil }
+        return .milliseconds(80)
+    }
+
     private func applySearch(_ query: String) {
         results = onSearch?(query) ?? []
+        appliedQuery = query
         selectedIndex = 0
         isRecordingShortcut = false
     }
