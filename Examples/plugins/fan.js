@@ -1,8 +1,19 @@
-macotron.plugin({
+const opts = macotron.plugin({
     title: "Fan Control Menu",
     description: "Show fan speed in the menu bar, and keep fans from running slower than a set speed.",
     permissions: ["helper"],
-    help: "Click the fan icon in the menu bar to keep fans at least 50% or 100% speed, or return control to macOS.\n\nFan speed always shows. Setting a minimum speed needs the Macotron background helper — use Install on this page.",
+    help: "Click the fan icon in the menu bar to hold the fans at a minimum speed, or return control to macOS.\n\nFan speed always shows. Setting a minimum speed needs the Macotron background helper — use Install on this page.",
+    options: {
+        clickFloor: {
+            type: "dropdown",
+            label: "Menu bar click sets",
+            default: "100",
+            choices: [
+                { value: "50", label: "50%" },
+                { value: "100", label: "100%" },
+            ],
+        },
+    },
 });
 
 function snapshot() {
@@ -87,10 +98,15 @@ function toggle() {
         macotron.settings.open();
         return;
     }
-    setFloor(s.floor ? null : 100);
+    setFloor(s.floor ? null : Number(opts.clickFloor) || 100);
 }
 
 render(snapshot());
 macotron.every(2000, () => render(snapshot()));
 
 macotron.command("Toggle Fan 100%", "Hold fans at full speed, or restore system default", toggle);
+macotron.command("Fan 50%", "Hold fans at half speed, or restore system default", () => {
+    const s = snapshot();
+    if (!s.controllable) return toggle();
+    setFloor(s.floor === 50 ? null : 50);
+});
