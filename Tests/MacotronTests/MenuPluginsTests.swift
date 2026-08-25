@@ -189,7 +189,7 @@ struct MenuPluginsTests {
 
     @Test("translate empty selection toasts; success opens a panel")
     func translateSelection() throws {
-        let empty = try eval(plugin: "translate.js", mock: #"""
+        let emptyEngine = try load(plugin: "translate.js", mock: #"""
             var toast = null;
             var panels = [];
             var macotron = {
@@ -201,10 +201,10 @@ struct MenuPluginsTests {
                 ai: { local: () => ({ chat: () => Promise.resolve("hola") }) },
                 command: (name, desc, fn) => { macotron._cmd = fn; }
             };
-            """#, extra: #"""
-            macotron._cmd();
-            JSON.stringify({ toast: toast, panels: panels.length })
             """#)
+        // The command awaits the selection, so its toast lands a microtask later.
+        run(emptyEngine, "macotron._cmd()")
+        let empty = run(emptyEngine, #"JSON.stringify({ toast: toast, panels: panels.length })"#)
         #expect(empty.contains(#""title":"Cannot translate""#))
         #expect(empty.contains("No selected text"))
         #expect(empty.contains(#""color":"error""#))
