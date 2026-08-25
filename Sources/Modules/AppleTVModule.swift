@@ -3,6 +3,37 @@ import Foundation
 import MacotronEngine
 
 enum AppleTVRemote {
+    static let types = ["_companion-link._tcp", "_airplay._tcp"]
+
+    /// A browse runs for its whole timeout, so one per key press would leave the
+    /// remote unresponsive between presses. Apple TVs do not come and go by the
+    /// second, so a recent result is reused.
+    static let browseTTL: TimeInterval = 30
+
+    // ponytail: one lock for the whole cache; it guards two fields and is only
+    // taken around a browse, so contention is not worth a finer scheme.
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var cached: [[String: Any]] = []
+    nonisolated(unsafe) private static var browsedAt: Date?
+
+    /// Runs the browse on the calling thread when the cache is cold, so call it
+    /// from a promise's queue rather than the main thread.
+    static func devices() -> [[String: Any]] {
+        lock.lock()
+        if let browsedAt, Date().timeIntervalSince(browsedAt) < browseTTL, !cached.isEmpty {
+            defer { lock.unlock() }
+            return cached
+        }
+        lock.unlock()
+
+        let rows = merge(BonjourBrowse.browse(types: types, timeout: 1.5, dryRun: false))
+        lock.lock()
+        cached = rows
+        browsedAt = Date()
+        lock.unlock()
+        return rows
+    }
+
     static func merge(_ services: [[String: Any]]) -> [[String: Any]] {
         var seen = Set<String>()
         var out: [[String: Any]] = []
@@ -38,29 +69,9 @@ enum AppleTVRemote {
 public final class AppleTVModule: NativeModule {
     public let name = "appletv"
 
-    private var devices: [[String: Any]] = []
-    private var browsedAt: Date?
-
-    /// A browse parks the main thread in a nested run loop for its whole
-    /// timeout, so repeating one per key press beachballs the machine. Apple TVs
-    /// do not come and go by the second; reuse a recent result.
-    private static let browseTTL: TimeInterval = 30
-
-    fileprivate func cachedDevices() -> [[String: Any]]? {
-        guard let browsedAt, Date().timeIntervalSince(browsedAt) < Self.browseTTL,
-              !devices.isEmpty else { return nil }
-        return devices
-    }
-
-    fileprivate func store(_ rows: [[String: Any]]) {
-        devices = rows
-        browsedAt = Date()
-    }
-
     public init() {}
 
     public func register(in engine: Engine, options: [String: Any]) {
-        engine.configStore["__appletvModule"] = self
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
@@ -68,39 +79,26 @@ public final class AppleTVModule: NativeModule {
 
         JS_SetPropertyStr(ctx, obj, "list", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(JS_GetContextOpaque(ctx)).takeUnretainedValue()
-            let module = engine.configStore["__appletvModule"] as? AppleTVModule
-            if let cached = module?.cachedDevices() {
-                return JSBridge.newArray(ctx, cached.map { $0 as Any })
+            return JSBridge.promise(ctx, dryRun: [Any]()) {
+                .value(AppleTVRemote.devices().map { $0 as Any })
             }
-            let rows = AppleTVRemote.merge(BonjourBrowse.browse(
-                types: ["_companion-link._tcp", "_airplay._tcp"],
-                timeout: 1.5,
-                dryRun: engine.dryRun
-            ))
-            module?.store(rows)
-            return JSBridge.newArray(ctx, rows.map { $0 as Any })
         }, "list", 0))
 
         JS_SetPropertyStr(ctx, obj, "send", JS_NewCFunction(ctx, { ctx, _, argc, argv in
-            guard let ctx, let argv, argc >= 2,
+            guard let ctx else { return QJS_Undefined() }
+            let dry: [String: Any] = ["ok": true]
+            guard let argv, argc >= 2,
                   let id = JSBridge.toString(ctx, argv[0]),
                   let command = JSBridge.toString(ctx, argv[1]) else {
-                return JSBridge.newObject(ctx!, ["ok": false, "error": "No Apple TV"])
+                return JSBridge.promise(ctx, dryRun: dry) {
+                    .value(["ok": false, "error": "No Apple TV"] as [String: Any])
+                }
             }
-            let engine = Unmanaged<Engine>.fromOpaque(JS_GetContextOpaque(ctx)).takeUnretainedValue()
-            if engine.dryRun { return JSBridge.newObject(ctx, ["ok": true]) }
-            let module = engine.configStore["__appletvModule"] as? AppleTVModule
-            var devices = module?.cachedDevices() ?? []
-            if devices.isEmpty {
-                devices = AppleTVRemote.merge(BonjourBrowse.browse(
-                    types: ["_companion-link._tcp", "_airplay._tcp"],
-                    timeout: 1.5,
-                    dryRun: false
+            return JSBridge.promise(ctx, dryRun: dry) {
+                .value(AppleTVRemote.send(
+                    id: id, command: command, devices: AppleTVRemote.devices(), dryRun: false
                 ))
-                module?.store(devices)
             }
-            return JSBridge.newObject(ctx, AppleTVRemote.send(id: id, command: command, devices: devices, dryRun: false))
         }, "send", 2))
 
         JS_SetPropertyStr(ctx, macotron, "appletv", obj)

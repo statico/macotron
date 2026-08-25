@@ -17,17 +17,17 @@ public final class BonjourModule: NativeModule {
         JS_SetPropertyStr(ctx, obj, "browse", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             guard let argv, argc >= 1, let type = JSBridge.toString(ctx, argv[0]) else {
-                return JSBridge.newArray(ctx, [])
+                return JSBridge.promise(ctx, dryRun: [Any]()) { .value([Any]()) }
             }
             var timeout = 1.5
             if argc >= 2, let opts = JSBridge.jsToSwift(ctx, argv[1]) as? [String: Any] {
                 if let i = opts["timeout"] as? Int { timeout = Double(i) }
                 else if let d = opts["timeout"] as? Double { timeout = d }
             }
-            let dry = JS_GetContextOpaque(ctx).map {
-                Unmanaged<Engine>.fromOpaque($0).takeUnretainedValue().dryRun
-            } ?? false
-            return JSBridge.newArray(ctx, BonjourBrowse.browse(type: type, timeout: timeout, dryRun: dry).map { $0 as Any })
+            let seconds = timeout
+            return JSBridge.promise(ctx, dryRun: [Any]()) {
+                .value(BonjourBrowse.browse(type: type, timeout: seconds, dryRun: false).map { $0 as Any })
+            }
         }, "browse", 2))
 
         JS_SetPropertyStr(ctx, macotron, "bonjour", obj)
