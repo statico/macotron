@@ -41,6 +41,7 @@ public final class FanController: @unchecked Sendable {
     private let lock = NSLock()
     private let smc = SMCConnection()
     private var floor: Int?
+    private var claimed = true
     private var helperConnection: NSXPCConnection?
     private var recycled = false
 
@@ -82,6 +83,7 @@ public final class FanController: @unchecked Sendable {
         lock.lock()
         if error == nil {
             floor = requestedFloor
+            claimed = true
         }
         var result = snapshotLocked()
         lock.unlock()
@@ -92,6 +94,24 @@ public final class FanController: @unchecked Sendable {
             }
         }
         return result
+    }
+
+    /// A reload tears down JS state, but the floor is the user's choice about
+    /// hardware — hold it until the reloaded plugins claim it back.
+    func beginReload() {
+        lock.lock()
+        claimed = false
+        lock.unlock()
+    }
+
+    /// Nothing claimed the floor this time round: the plugin that set it is
+    /// gone or disabled, so give the fans back to macOS.
+    func endReload() {
+        lock.lock()
+        let stale = !claimed && floor != nil
+        lock.unlock()
+        guard stale else { return }
+        restoreIfNeeded()
     }
 
     func restoreIfNeeded() {

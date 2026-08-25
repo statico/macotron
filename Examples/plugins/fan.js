@@ -101,7 +101,11 @@ function toggle() {
     setFloor(s.floor ? null : Number(opts.clickFloor) || 100);
 }
 
-render(snapshot());
+const initial = snapshot();
+render(initial);
+// A reload wipes plugin state while the host keeps holding the fans, so claim
+// the floor back — unclaimed floors are released once loading finishes.
+if (initial.floor) macotron.system.setFanFloor(initial.floor);
 macotron.every(2000, () => render(snapshot()));
 
 macotron.command("Toggle Fan 100%", "Hold fans at full speed, or restore system default", toggle);
