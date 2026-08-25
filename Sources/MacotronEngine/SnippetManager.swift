@@ -313,7 +313,14 @@ public final class ModuleManager {
         logger.info("Watching \(path) for changes")
     }
 
-    public func handleDiskChange(_ paths: [String]) {
+    public func handleDiskChange(_ rawPaths: [String]) {
+        // Macotron writes into the workspace itself — localStorage and backups
+        // — and its own writes must not read as the user editing a plugin, or
+        // a plugin that stores anything reloads the world in a loop.
+        let ours = ["/data/", "/backups/"]
+        let paths = rawPaths.filter { path in !ours.contains { path.contains($0) } }
+        guard !paths.isEmpty else { return }
+
         if hotReload {
             reloadAll()
             return

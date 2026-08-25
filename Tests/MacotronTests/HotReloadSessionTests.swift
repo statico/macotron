@@ -23,6 +23,26 @@ struct HotReloadSessionTests {
         }
     }
 
+    @Test("Macotron's own writes into the workspace do not trigger a reload")
+    func ownWritesDoNotReload() throws {
+        let (ws, dir) = try makeWorkspace()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let engine = Engine()
+        let manager = ModuleManager(engine: engine, workspace: ws)
+        manager.hotReload = true
+
+        var reloads = 0
+        manager.onDidReload = { reloads += 1 }
+
+        let store = dir.appending(path: "data").appending(path: "localStorage.json")
+        manager.handleDiskChange([store.path(percentEncoded: false)])
+        #expect(reloads == 0)
+
+        manager.handleDiskChange([dir.appending(path: "backups/x.tar.gz").path(percentEncoded: false)])
+        #expect(reloads == 0)
+    }
+
     @Test("ui.hotReload in settings.json cannot bypass plugin trust")
     func settingsHotReloadCannotBypassTrust() throws {
         let (ws, dir) = try makeWorkspace()
