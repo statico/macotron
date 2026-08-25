@@ -422,15 +422,21 @@ public final class EventModule: NativeModule {
                 }
                 let obj = JSBridge.newObject(ctx, payload)
                 for listener in listeners {
-                    var arg = obj
-                    let ret = JS_Call(ctx, listener.callback, QJS_Undefined(), 1, &arg)
+                    // inputBudget, not the default: this runs inside the event
+                    // tap callback, so every millisecond here is a millisecond
+                    // of stalled input for the entire system.
+                    let ret = engine.callJS(
+                        listener.callback, [obj],
+                        budget: Engine.inputBudget, label: "event.on tap", drain: false
+                    )
+                    guard let ret else { continue }
                     if JS_IsBool(ret), JSBridge.toBool(ctx, ret) == false {
                         swallow = true
                     }
                     JS_FreeValue(ctx, ret)
                 }
                 JS_FreeValue(ctx, obj)
-                engine.drainJobQueue()
+                engine.drainJobQueue(budget: Engine.inputBudget)
             }
             if Thread.isMainThread {
                 MainActor.assumeIsolated(run)

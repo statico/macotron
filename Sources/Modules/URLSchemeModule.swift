@@ -185,7 +185,11 @@ fileprivate struct JSRegexRule {
         let test = JSBridge.getProperty(ctx, regex, "test")
         let host = JSBridge.newString(ctx, url.host ?? "")
         var args = [host]
-        let result = JS_Call(ctx, test, regex, 1, &args)
+        // Plugin-supplied regex on a plugin-supplied host: a catastrophically
+        // backtracking pattern would otherwise wedge main until the heat death.
+        let result = Engine.of(ctx)?.withDeadline(Engine.callbackBudget) {
+            JS_Call(ctx, test, regex, 1, &args)
+        } ?? JS_Call(ctx, test, regex, 1, &args)
         let matched = !JS_IsException(result) && JSBridge.toBool(ctx, result)
         JS_FreeValue(ctx, result)
         JS_FreeValue(ctx, host)
@@ -304,9 +308,9 @@ final class URLSchemeEventReceiver {
                     data: data
                 )
             } else if let fallback {
-                var args = [data]
-                _ = JS_Call(ctx, fallback, QJS_Undefined(), 1, &args)
-                engine.drainJobQueue()
+                if let result = engine.callJS(fallback, [data], label: "url fallback") {
+                    JS_FreeValue(ctx, result)
+                }
             } else {
                 logger.error("URL event has no route: \(urlString, privacy: .public)")
             }

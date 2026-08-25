@@ -114,13 +114,9 @@ public final class FileSystemModule: NativeModule {
                 "type": eventType,
             ])
 
-            var args = [eventObj]
-            let result = JS_Call(ctx, watcher.callback, QJS_Undefined(), 1, &args)
-            if JS_IsException(result) {
-                let errStr = JSBridge.getExceptionString(ctx)
-                logger.error("fs.watch callback error: \(errStr)")
+            if let result = engine.callJS(watcher.callback, [eventObj], label: "fs.watch") {
+                JS_FreeValue(ctx, result)
             }
-            JS_FreeValue(ctx, result)
             JS_FreeValue(ctx, eventObj)
         }
 

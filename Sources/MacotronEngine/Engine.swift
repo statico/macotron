@@ -45,6 +45,15 @@ public final class Engine {
     /// Semver of the plugin-facing JS API (`macotron.version.api`).
     nonisolated public static let apiVersion = "1.1.0"
 
+    /// Heap ceiling for all plugins together. Generous for scripting work, low
+    /// enough that a runaway allocation throws instead of swapping the Mac.
+    /// ponytail: one shared ceiling; per-plugin limits need per-plugin runtimes.
+    public static let memoryLimit = 512 * 1024 * 1024
+
+    /// JS stack ceiling. QuickJS turns an overrun into a catchable exception;
+    /// without it, deep recursion in a plugin crashes the process.
+    public static let stackLimit = 2 * 1024 * 1024
+
     public private(set) var runtime: OpaquePointer!
     public private(set) var context: OpaquePointer!
     public let eventBus = EventBus()
@@ -107,6 +116,13 @@ public final class Engine {
     /// When true, modules stub side effects (hotkeys, panels, notifications).
     public var dryRun = false
 
+    /// The engine that owns a context. Every module hand-rolls this Unmanaged
+    /// dance; it exists once here so new call sites do not have to.
+    public static func of(_ ctx: OpaquePointer?) -> Engine? {
+        guard let ctx, let opaque = JS_GetContextOpaque(ctx) else { return nil }
+        return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+    }
+
     public static func isDryRun(_ ctx: OpaquePointer?) -> Bool {
         guard let ctx, let opaque = JS_GetContextOpaque(ctx) else { return false }
         return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
@@ -120,6 +136,11 @@ public final class Engine {
 
     public init() {
         runtime = JS_NewRuntime()
+        // Unbounded by default. A plugin that allocates in a loop otherwise
+        // takes the whole app down with it, and deep recursion segfaults rather
+        // than throwing a catchable RangeError.
+        JS_SetMemoryLimit(runtime, Self.memoryLimit)
+        JS_SetMaxStackSize(runtime, Self.stackLimit)
         context = JS_NewContext(runtime)
         setupInterruptHandler()
         setupModuleLoader()
@@ -192,6 +213,63 @@ public final class Engine {
             },
             opaque
         )
+    }
+
+    // MARK: - Time Budgets
+
+    /// Plugin load and hot reload. Generous: a plugin may legitimately do real
+    /// setup work once.
+    public static let loadBudget: TimeInterval = 5
+
+    /// Anything a plugin runs in response to something happening — a command,
+    /// a timer, an event, a menu click, a promise handler.
+    public static let callbackBudget: TimeInterval = 5
+
+    /// CGEvent tap listeners. macOS disables a tap that does not answer fast
+    /// enough, and until it does the whole system's input is stalled, so this
+    /// one is deliberately far tighter than the rest.
+    public static let inputBudget: TimeInterval = 0.25
+
+    /// Run `body` with an interrupt deadline in force. Nested entries keep the
+    /// tighter of the two: a tap listener that fires a command must not be able
+    /// to buy itself a fresh five seconds.
+    public func withDeadline<T>(_ seconds: TimeInterval, _ body: () -> T) -> T {
+        let previous = interruptDeadline
+        let deadline = Date().addingTimeInterval(seconds)
+        interruptDeadline = previous.map { min($0, deadline) } ?? deadline
+        defer { interruptDeadline = previous }
+        return body()
+    }
+
+    /// Call a plugin function under a time budget, log any exception, and drain
+    /// the microtask queue behind it. Every native -> JS callback goes through
+    /// here: the deadline is useless if one entry point can skip it, and a
+    /// silently swallowed exception is how a plugin stops working with no trace.
+    ///
+    /// Returns the call's result, which the caller owns and must free, or nil if
+    /// the call threw (including when the deadline interrupted it).
+    @discardableResult
+    public func callJS(
+        _ fn: JSValue,
+        _ args: [JSValue] = [],
+        budget: TimeInterval? = nil,
+        label: @autoclosure () -> String = "callback",
+        drain: Bool = true
+    ) -> JSValue? {
+        let result = withDeadline(budget ?? Self.callbackBudget) { () -> JSValue in
+            var argv = args
+            return argv.withUnsafeMutableBufferPointer { buf in
+                JS_Call(context, fn, QJS_Undefined(), Int32(buf.count), buf.baseAddress)
+            }
+        }
+        if drain { drainJobQueue(budget: budget) }
+        guard !JS_IsException(result) else {
+            let text = label()
+            let err = JSBridge.getExceptionString(context)
+            logger.error("\(text, privacy: .public): \(err, privacy: .public)")
+            return nil
+        }
+        return result
     }
 
     // MARK: - Interrupt Handler
@@ -493,8 +571,12 @@ public final class Engine {
             MainActor.assumeIsolated {
                 guard let self else { return }
                 self.withEvaluatingFile(pluginFile) {
-                    _ = JS_Call(self.context, protectedCallback, QJS_Undefined(), 0, nil)
-                    self.drainJobQueue()
+                    let label = repeats ? "setInterval" : "setTimeout"
+                    if let result = self.callJS(
+                        protectedCallback, label: "\(pluginFile ?? "timer"): \(label)"
+                    ) {
+                        JS_FreeValue(self.context, result)
+                    }
                 }
                 if !repeats {
                     JS_FreeValue(self.context, protectedCallback)
@@ -582,12 +664,24 @@ public final class Engine {
 
     // MARK: - Job Queue
 
-    /// Drain the QuickJS microtask/Promise queue
-    public func drainJobQueue() {
-        var ctx: OpaquePointer?
-        while true {
-            let ret = JS_ExecutePendingJob(runtime, &ctx)
-            if ret <= 0 { break }
+    /// Drain the QuickJS microtask/Promise queue.
+    ///
+    /// This is where `.then` handlers actually run — `JS_Call(resolve, ...)`
+    /// only queues them — so the budget has to cover this loop or every one of
+    /// the ~20 native promise bridges would be an unpoliced way back into JS.
+    public func drainJobQueue(budget: TimeInterval? = nil) {
+        withDeadline(budget ?? Self.callbackBudget) {
+            var ctx: OpaquePointer?
+            while true {
+                let ret = JS_ExecutePendingJob(runtime, &ctx)
+                if ret <= 0 { break }
+                // A promise chain that re-arms itself never returns <= 0, so the
+                // interrupt deadline alone would not stop it: check it here too.
+                if let deadline = interruptDeadline, Date() > deadline {
+                    logger.error("job queue interrupted: still draining past its budget")
+                    break
+                }
+            }
         }
     }
 
@@ -601,12 +695,10 @@ public final class Engine {
     /// Evaluate JS code, auto-detecting ES modules. Returns (result, error).
     @discardableResult
     public func evaluate(_ js: String, filename: String = "<eval>") -> (String?, String?) {
-        // Set a 5-second interrupt deadline for user code
-        interruptDeadline = Date().addingTimeInterval(5)
-        defer { interruptDeadline = nil }
-
-        let result = js.withCString { cStr in
-            QJS_EvalAutoDetect(context, cStr, js.utf8.count, filename)
+        let result = withDeadline(Self.loadBudget) {
+            js.withCString { cStr in
+                QJS_EvalAutoDetect(context, cStr, js.utf8.count, filename)
+            }
         }
         drainJobQueue()
 
@@ -627,16 +719,11 @@ public final class Engine {
     public func invokeCommand(_ id: String, args: [String: Any] = [:]) -> Bool {
         guard let cmd = commandRegistry[id] else { return false }
         withEvaluatingFile(cmd.pluginFile) {
-            var arg = JSBridge.newObject(context, args)
-            let result = JS_Call(context, cmd.callback, QJS_Undefined(), 1, &arg)
-            JS_FreeValue(context, arg)
-            if JS_IsException(result) {
-                let errStr = JSBridge.getExceptionString(context)
-                logger.error("Command \(id): \(errStr, privacy: .public)")
-            } else {
+            let arg = JSBridge.newObject(context, args)
+            if let result = callJS(cmd.callback, [arg], label: "command \(id)") {
                 JS_FreeValue(context, result)
             }
-            drainJobQueue()
+            JS_FreeValue(context, arg)
         }
         return true
     }
@@ -656,11 +743,10 @@ public final class Engine {
     /// Evaluate cached bytecode. Returns (result, error).
     @discardableResult
     public func evaluateBytecode(_ data: Data, filename: String = "<bytecode>") -> (String?, String?) {
-        interruptDeadline = Date().addingTimeInterval(5)
-        defer { interruptDeadline = nil }
-
-        let result = data.withUnsafeBytes { rawBuf in
-            QJS_EvalBytecode(context, rawBuf.baseAddress!.assumingMemoryBound(to: UInt8.self), data.count)
+        let result = withDeadline(Self.loadBudget) {
+            data.withUnsafeBytes { rawBuf in
+                QJS_EvalBytecode(context, rawBuf.baseAddress!.assumingMemoryBound(to: UInt8.self), data.count)
+            }
         }
         drainJobQueue()
 

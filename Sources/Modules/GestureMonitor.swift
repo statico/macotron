@@ -159,9 +159,9 @@ final class GestureMonitor: @unchecked Sendable {
             guard let engine = self.engine, let ctx = engine.context else { return }
             let obj = JSBridge.newObject(ctx, payload.jsObject)
             for listener in listeners {
-                var arg = obj
-                let ret = JS_Call(ctx, listener.callback, QJS_Undefined(), 1, &arg)
-                JS_FreeValue(ctx, ret)
+                if let ret = engine.callJS(listener.callback, [obj], label: "gesture", drain: false) {
+                    JS_FreeValue(ctx, ret)
+                }
             }
             JS_FreeValue(ctx, obj)
             engine.drainJobQueue()

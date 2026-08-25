@@ -57,9 +57,10 @@ public final class LauncherModule: NativeModule {
     public func run(_ id: String) -> Bool {
         guard let engine, let ctx = engine.context, let cb = callbacks[id] else { return false }
         let fn = JS_DupValue(ctx, cb)
-        _ = JS_Call(ctx, fn, QJS_Undefined(), 0, nil)
+        if let result = engine.callJS(fn, label: "launcher run \(id)") {
+            JS_FreeValue(ctx, result)
+        }
         JS_FreeValue(ctx, fn)
-        engine.drainJobQueue()
         return true
     }
 
