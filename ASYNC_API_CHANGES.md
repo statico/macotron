@@ -88,3 +88,16 @@ Resolved values are unchanged; only the wrapper is new.
 | `macotron.system.gpu()` | `MTLCreateSystemDefaultDevice` plus one IORegistry property copy. Microseconds. |
 | `macotron.system.fans()` | Two to six SMC reads over `IOConnectCallStructMethod`, each well under a millisecond. `setFanFloor` is the one that goes to the privileged helper, and it is already a promise. |
 | `macotron.system.battery()`, `cpu()`, `memory()`, `disk()`, `focus()` | IOKit / mach / `URLResourceValues` reads, all in process. |
+
+# Async API changes
+
+## `macotron.launcher.query(id, fn)`
+
+`fn(query)` may now return a `Promise` of rows as well as a row array. The
+launcher does not wait on it: the keystroke is answered with whatever is ready,
+and the rows are pushed into the launcher when the promise settles, exactly as
+`macotron.launcher.set()` does. A promise that settles for a query the user has
+already typed past is discarded. A rejected promise clears that provider's rows.
+
+`macotron.d.ts` needs `query`'s callback return type widened to
+`LauncherHit[] | Promise<LauncherHit[]>`.
