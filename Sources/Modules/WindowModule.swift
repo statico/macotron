@@ -54,12 +54,33 @@ struct SnapDrag {
 }
 
 /// Global state for the snap CGEvent tap callback (C function pointer cannot capture).
+/// The callback runs on the shared tap thread, so everything it touches is behind a lock;
+/// `module` is the exception, reached only after a hop to main.
 private final class WindowSnapState: @unchecked Sendable {
     weak var module: WindowModule?
-    var eventTap: CFMachPort?
-    var drag = SnapDrag()
-    var flags: CGEventFlags = []
     static let shared = WindowSnapState()
+
+    private let lock = NSLock()
+    private var _tap: CFMachPort?
+    private var _drag = SnapDrag()
+    private var _flags: CGEventFlags = []
+
+    var tap: CFMachPort? {
+        get { lock.lock(); defer { lock.unlock() }; return _tap }
+        set { lock.lock(); _tap = newValue; lock.unlock() }
+    }
+
+    var flags: CGEventFlags {
+        get { lock.lock(); defer { lock.unlock() }; return _flags }
+        set { lock.lock(); _flags = newValue; lock.unlock() }
+    }
+
+    /// Keep the body short: the tap callback blocks on this lock for every drag event.
+    func withDrag<T>(_ body: (inout SnapDrag) -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return body(&_drag)
+    }
 }
 
 @MainActor
@@ -203,7 +224,7 @@ public final class WindowModule: NativeModule {
         snapCorner = 80
         snapGap = 0
         WindowSnapState.shared.module = nil
-        WindowSnapState.shared.eventTap = nil
+        WindowSnapState.shared.tap = nil
         WindowSnapState.shared.flags = []
     }
 
@@ -491,7 +512,7 @@ public final class WindowModule: NativeModule {
             | (1 << CGEventType.flagsChanged.rawValue)
         let callback: CGEventTapCallBack = { _, type, event, _ -> Unmanaged<CGEvent>? in
             if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-                if let tap = WindowSnapState.shared.eventTap {
+                if let tap = WindowSnapState.shared.tap {
                     CGEvent.tapEnable(tap: tap, enable: true)
                 }
                 return Unmanaged.passRetained(event)
@@ -500,20 +521,20 @@ public final class WindowModule: NativeModule {
             let point = NSEvent.mouseLocation
             switch type {
             case .leftMouseDown:
-                WindowSnapState.shared.drag.down(point)
+                WindowSnapState.shared.withDrag { $0.down(point) }
             case .leftMouseDragged:
-                WindowSnapState.shared.drag.moved(point)
+                WindowSnapState.shared.withDrag { $0.moved(point) }
                 DispatchQueue.main.async {
-                    WindowSnapState.shared.module?.updateSnapPreview(at: NSEvent.mouseLocation)
+                    WindowSnapState.shared.module?.updateSnapPreview(at: point)
                 }
             case .flagsChanged:
                 DispatchQueue.main.async {
-                    WindowSnapState.shared.module?.updateSnapPreview(at: NSEvent.mouseLocation)
+                    WindowSnapState.shared.module?.updateSnapPreview(at: point)
                 }
             case .leftMouseUp:
-                let dragging = WindowSnapState.shared.drag.up()
+                let dragging = WindowSnapState.shared.withDrag { $0.up() }
                 DispatchQueue.main.async {
-                    WindowSnapState.shared.module?.finishSnap(at: NSEvent.mouseLocation, dragging: dragging)
+                    WindowSnapState.shared.module?.finishSnap(at: point, dragging: dragging)
                 }
             default:
                 break
@@ -535,10 +556,10 @@ public final class WindowModule: NativeModule {
             return false
         }
 
-        WindowSnapState.shared.eventTap = eventTap
+        WindowSnapState.shared.tap = eventTap
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
         if let runLoopSource {
-            CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+            EventTapThread.shared.add(runLoopSource)
         }
         CGEvent.tapEnable(tap: eventTap, enable: true)
         return true
@@ -550,12 +571,12 @@ public final class WindowModule: NativeModule {
             CFMachPortInvalidate(eventTap)
         }
         if let runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+            EventTapThread.shared.remove(runLoopSource)
         }
         eventTap = nil
         runLoopSource = nil
-        WindowSnapState.shared.eventTap = nil
-        WindowSnapState.shared.drag = SnapDrag()
+        WindowSnapState.shared.tap = nil
+        WindowSnapState.shared.withDrag { $0 = SnapDrag() }
         WindowSnapState.shared.flags = []
         SnapPreview.shared.hide()
     }
@@ -596,23 +617,24 @@ public final class WindowModule: NativeModule {
     /// The origin is sampled on the first drag event rather than on mouse-down,
     /// because macOS has not necessarily raised the clicked window by then.
     private func trackDraggedWindow() {
-        if WindowSnapState.shared.drag.movedWindow { return }
         let now = Date()
-        if let last = WindowSnapState.shared.drag.lastWindowCheck,
-           now.timeIntervalSince(last) < 0.08 {
-            return
+        let due = WindowSnapState.shared.withDrag { drag -> Bool in
+            if drag.movedWindow { return false }
+            if let last = drag.lastWindowCheck, now.timeIntervalSince(last) < 0.08 { return false }
+            drag.lastWindowCheck = now
+            return true
         }
-        WindowSnapState.shared.drag.lastWindowCheck = now
-        guard let win = Self.focusedAXWindow() else { return }
-        WindowSnapState.shared.drag.sample(windowOrigin: WindowAX.frame(win).origin)
+        guard due, let win = Self.focusedAXWindow() else { return }
+        let origin = WindowAX.frame(win).origin
+        WindowSnapState.shared.withDrag { $0.sample(windowOrigin: origin) }
     }
 
     private func updateSnapPreview(at point: CGPoint) {
         if Self.hitsOwnWindow(point) { return }
         guard snapEnabled else { return }
         trackDraggedWindow()
-        guard WindowSnapState.shared.drag.dragging,
-              WindowSnapState.shared.drag.movedWindow else { return }
+        let live = WindowSnapState.shared.withDrag { $0.dragging && $0.movedWindow }
+        guard live else { return }
         guard let hit = zone(at: point) else {
             SnapPreview.shared.hide()
             return

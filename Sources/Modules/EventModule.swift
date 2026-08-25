@@ -461,6 +461,10 @@ public final class EventModule: NativeModule {
         EventTapState.shared.eventTap = tap
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
         runLoopSource = source
+        // Stays on main, unlike the native-only taps on EventTapThread: this callback has to
+        // answer swallow/pass, and the answer comes from JS that can only run on main. Off
+        // main it would still block on main.sync, and that wait is unbounded — inputBudget
+        // only starts once the block is running, not while it queues behind a busy main thread.
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
     }

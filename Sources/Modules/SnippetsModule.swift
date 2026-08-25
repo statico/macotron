@@ -5,6 +5,8 @@ import CoreGraphics
 import CQuickJS
 import MacotronEngine
 
+/// Only ever touched on the main actor: the tap callback reaches the module through a
+/// hop to main, so the tap thread never reads this.
 private final class SnippetsTapState: @unchecked Sendable {
     weak var module: SnippetsModule?
 
@@ -141,7 +143,7 @@ public final class SnippetsModule: NativeModule {
 
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
         if let runLoopSource {
-            CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+            EventTapThread.shared.add(runLoopSource)
         }
         CGEvent.tapEnable(tap: eventTap, enable: true)
     }
@@ -153,7 +155,7 @@ public final class SnippetsModule: NativeModule {
 
     private func teardownEventTap() {
         if let runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+            EventTapThread.shared.remove(runLoopSource)
         }
         if let eventTap {
             CGEvent.tapEnable(tap: eventTap, enable: false)
