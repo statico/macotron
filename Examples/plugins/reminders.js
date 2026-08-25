@@ -14,8 +14,8 @@ function dueText(due) {
     return new Date(due).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
-function paint() {
-    const items = macotron.reminders.list().slice(0, 8);
+async function paint() {
+    const items = (await macotron.reminders.list()).slice(0, 8);
     const next = items[0];
     const menu = items.map((item) => ({
         title: item.title,

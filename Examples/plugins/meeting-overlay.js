@@ -9,9 +9,9 @@ function esc(s) {
     return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 }
 
-function tick() {
+async function tick() {
     const now = Date.now();
-    const events = macotron.calendar.upcoming({ hours: 1 });
+    const events = await macotron.calendar.upcoming({ hours: 1 });
     for (const event of events) {
         if (event.allDay || shown.has(event.id)) continue;
         const until = event.start - now;

@@ -16,29 +16,25 @@ public final class NotesModule: NativeModule {
 
         JS_SetPropertyStr(ctx, notes, "list", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            if let opaque = JS_GetContextOpaque(ctx),
-               Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun {
-                return JSBridge.newArray(ctx, [])
+            return JSBridge.promise(ctx, dryRun: [Any]()) {
+                .value(NotesList.visible(NotesStore.list()).map { note in
+                    [
+                        "id": note.id,
+                        "title": note.title,
+                        "folder": note.folder,
+                    ] as [String: Any]
+                })
             }
-            return JSBridge.newArray(ctx, NotesList.visible(NotesStore.list()).map { note in
-                [
-                    "id": note.id,
-                    "title": note.title,
-                    "folder": note.folder,
-                ] as [String: Any]
-            })
         }, "list", 0))
 
         JS_SetPropertyStr(ctx, notes, "open", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]) else {
                 return QJS_Undefined()
             }
-            if let opaque = JS_GetContextOpaque(ctx),
-               Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun {
-                return QJS_Undefined()
+            return JSBridge.promise(ctx) {
+                NotesStore.open(id)
+                return .value(NSNull())
             }
-            NotesStore.open(id)
-            return QJS_Undefined()
         }, "open", 1))
 
         JS_SetPropertyStr(ctx, macotron, "notes", notes)

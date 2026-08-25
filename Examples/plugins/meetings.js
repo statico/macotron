@@ -58,11 +58,12 @@ function hoursUntilTomorrow() {
     return Math.max((end - now) / 3600000, 0.25);
 }
 
-function upcoming() {
+async function upcoming() {
     const regs = patterns(opts.hide);
     const configured = Number(opts.hours);
     const hours = configured > 0 ? Math.max(configured, hoursUntilTomorrow()) : hoursUntilTomorrow();
-    return macotron.calendar.upcoming({ hours }).filter((event) => !hidden(event, regs));
+    const events = await macotron.calendar.upcoming({ hours });
+    return events.filter((event) => !hidden(event, regs));
 }
 
 function nextTimed(events) {
@@ -112,8 +113,8 @@ function menu(events, next) {
     return rows;
 }
 
-function paint() {
-    const events = upcoming();
+async function paint() {
+    const events = await upcoming();
     const next = nextTimed(events);
     macotron.menubar.status("meetings", {
         title: next ? clip(next.title || "Untitled", 22) : "No meetings",
@@ -128,8 +129,8 @@ function paint() {
 paint();
 macotron.every(30000, paint);
 
-macotron.command("Next Meeting", "Show the next calendar event", () => {
-    const next = nextTimed(upcoming());
+macotron.command("Next Meeting", "Show the next calendar event", async () => {
+    const next = nextTimed(await upcoming());
     macotron.notify.toast(
         next ? next.title || "Untitled" : "No meetings",
         next ? timeLabel(next.start, next.end) : "Nothing in the next " + (opts.hours || 12) + " hours"
