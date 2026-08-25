@@ -1105,7 +1105,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.addModule(SystemModule())
         engine.addModule(DisplayModule())
         engine.addModule(HTTPModule())
-        engine.addModule(LocalStorageModule())
+        engine.addModule(LocalStorageModule(configDir: workspace.root.path(percentEncoded: false)))
         engine.addModule(KeychainModule())
 
         let menuBarModule = MenuBarModule()
