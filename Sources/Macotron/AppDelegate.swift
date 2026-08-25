@@ -86,6 +86,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             showSetupWizard()
         } else {
             nagAboutPermissionsIfStillMissing()
+            // Macotron has no window of its own, so a launch is otherwise
+            // silent — show the launcher once as proof it is running.
+            launcherPanel?.showReason = "app launch"
+            launcherPanel?.toggle()
         }
 
         didFinishLaunching = true

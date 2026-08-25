@@ -472,7 +472,6 @@ public struct SettingsView: View {
     @State private var selectedTab: SettingsTab
     @State private var selectedPlugin: String?
     @State private var pluginFilter = ""
-    @State private var pluginFilterHide: Task<Void, Never>?
     @State private var showCatalog = false
     @State private var showNewPlugin = false
     @FocusState private var pluginListFocused: Bool
@@ -883,7 +882,6 @@ public struct SettingsView: View {
         .focusable()
         .focused($pluginListFocused)
         .focusEffectDisabled()
-        .overlay(alignment: .bottom) { pluginFilterOverlay }
         .onKeyPress(.upArrow) { handlePluginArrow(-1) }
         .onKeyPress(.downArrow) { handlePluginArrow(1) }
         .onKeyPress(.escape) {
@@ -894,7 +892,6 @@ public struct SettingsView: View {
         .onKeyPress(.delete) {
             guard !pluginFilter.isEmpty else { return .ignored }
             pluginFilter.removeLast()
-            pluginFilter.isEmpty ? clearPluginFilter() : armPluginFilterHide()
             return .handled
         }
         .onKeyPress { press in typePluginFilter(press) }
@@ -908,32 +905,36 @@ public struct SettingsView: View {
     }
 
     private var pluginSidebarActions: some View {
-        HStack(spacing: 8) {
-            Button("Catalog") {
-                showCatalog = true
-            }
-            .buttonStyle(.bordered)
-            .frame(maxWidth: .infinity)
-            .help("Browse and add plugins from the catalog")
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Button("Catalog") {
+                    showCatalog = true
+                }
+                .buttonStyle(.bordered)
+                .help("Browse and add plugins from the catalog")
 
-            Menu {
-                ForEach(PluginAuthoring.agents) { tool in
-                    Button(tool.name) { launchAuthoringTool(tool) }
+                Menu {
+                    ForEach(PluginAuthoring.agents) { tool in
+                        Button(tool.name) { launchAuthoringTool(tool) }
+                    }
+                    Divider()
+                    ForEach(PluginAuthoring.editors) { tool in
+                        Button(tool.name) { launchAuthoringTool(tool) }
+                    }
+                    Divider()
+                    Button("Empty Plugin…") { showNewPlugin = true }
+                    Button("Open Plugins Folder") { state.openPluginsFolder?() }
+                } label: {
+                    Text("Create")
                 }
-                Divider()
-                ForEach(PluginAuthoring.editors) { tool in
-                    Button(tool.name) { launchAuthoringTool(tool) }
-                }
-                Divider()
-                Button("Empty Plugin…") { showNewPlugin = true }
-                Button("Open Plugins Folder") { state.openPluginsFolder?() }
-            } label: {
-                Text("Create")
-                    .frame(maxWidth: .infinity)
+                .menuStyle(.borderedButton)
+                .fixedSize()
+                .help("Create a plugin with an editor or agent")
+
+                Spacer(minLength: 0)
             }
-            .menuStyle(.borderedButton)
-            .frame(maxWidth: .infinity)
-            .help("Create a plugin with an editor or agent")
+
+            PluginSearchField(text: $pluginFilter)
         }
         .padding(8)
     }
@@ -972,33 +973,6 @@ public struct SettingsView: View {
         state.moduleSummaries.filter { PluginFilter.matches($0, query: pluginFilter) }
     }
 
-    /// Finder-style: typing anywhere in the list floats a filter that fades on
-    /// its own, so finding a plugin never costs a trip to a search field.
-    @ViewBuilder
-    private var pluginFilterOverlay: some View {
-        if !pluginFilter.isEmpty {
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                Text(pluginFilter)
-                    .font(.system(size: 13, weight: .medium))
-                if filteredPlugins.isEmpty {
-                    Text("no matches")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.orange)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.regularMaterial, in: Capsule())
-            .overlay(Capsule().strokeBorder(.separator))
-            .shadow(radius: 8, y: 2)
-            .padding(.bottom, 16)
-            .transition(.opacity)
-        }
-    }
-
     private func typePluginFilter(_ press: KeyPress) -> KeyPress.Result {
         guard !press.modifiers.contains(.command), !press.modifiers.contains(.control),
               !(NSApp.keyWindow?.firstResponder is NSTextView),
@@ -1007,23 +981,11 @@ public struct SettingsView: View {
         if let first = filteredPlugins.first, !filteredPlugins.contains(where: { $0.filename == selectedPlugin }) {
             selectedPlugin = first.filename
         }
-        armPluginFilterHide()
         return .handled
     }
 
-    private func armPluginFilterHide() {
-        pluginFilterHide?.cancel()
-        pluginFilterHide = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(2.5))
-            guard !Task.isCancelled else { return }
-            clearPluginFilter()
-        }
-    }
-
     private func clearPluginFilter() {
-        pluginFilterHide?.cancel()
-        pluginFilterHide = nil
-        withAnimation(.easeOut(duration: 0.15)) { pluginFilter = "" }
+        pluginFilter = ""
     }
 
     /// Prefer the first plugin that needs setup; otherwise keep the current
@@ -1689,3 +1651,37 @@ struct ModuleOptionRow: View {
     }
 }
 
+
+/// NSSearchField, not a TextField: the clear button, the magnifier, and the
+/// Escape-clears behaviour are what the HIG asks for and all of it ships.
+private struct PluginSearchField: NSViewRepresentable {
+    @Binding var text: String
+
+    func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
+
+    func makeNSView(context: Context) -> NSSearchField {
+        let field = NSSearchField()
+        field.placeholderString = "Filter plugins"
+        field.controlSize = .small
+        field.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        field.sendsSearchStringImmediately = true
+        field.delegate = context.coordinator
+        return field
+    }
+
+    func updateNSView(_ field: NSSearchField, context: Context) {
+        context.coordinator.text = $text
+        if field.stringValue != text { field.stringValue = text }
+    }
+
+    final class Coordinator: NSObject, NSSearchFieldDelegate {
+        var text: Binding<String>
+
+        init(text: Binding<String>) { self.text = text }
+
+        func controlTextDidChange(_ note: Notification) {
+            guard let field = note.object as? NSSearchField else { return }
+            text.wrappedValue = field.stringValue
+        }
+    }
+}
