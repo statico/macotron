@@ -14,6 +14,11 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     private var modeKey = "F0Md"
     private var timer: DispatchSourceTimer?
     private var forced: Set<Int> = []
+    private var lastPeek: [Int: Date] = [:]
+    /// How often a held fan is handed back to macOS to ask what it wants. The
+    /// question is about heat, which moves in tens of seconds, and the answer
+    /// costs a brief dip in speed, so it is not worth asking often.
+    private static let peekInterval: TimeInterval = 30
 
     func setFanFloor(_ percent: Int, reply: @escaping (String?) -> Void) {
         lock.lock()
@@ -100,12 +105,13 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     private func applyFloor(_ percent: Int, fans: [FanInfo]) throws {
         for fan in fans {
             let floorRPM = FanFloor.rpm(percent: percent, min: fan.min, max: fan.max)
-            // A forced fan sits at exactly our target, so a floor is also a
-            // ceiling: while the machine is working hard macOS may want more
-            // air than the floor asks for, and holding it there cooks the Mac.
-            // Compare against what macOS itself is asking for and stay out of
-            // its way whenever it wants more.
-            let demand = systemDemand(fan.index)
+            // A forced fan sits at exactly our target, so a partial floor is
+            // also a ceiling: while the machine works hard macOS may want more
+            // air than the floor asks for, and holding it down there cooks the
+            // Mac. Ask what macOS wants and stay out of its way when it wants
+            // more. A floor at full speed cannot be a ceiling, so it never has
+            // to ask — which matters, because asking costs a handback.
+            let demand = floorRPM < fan.max ? systemDemand(fan.index, floor: floorRPM) : nil
             let force = FanFloor.shouldForce(demand: demand, floor: floorRPM)
             log.info(
                 "fan \(fan.index, privacy: .public) rpm=\(Int(fan.rpm), privacy: .public) demand=\(demand.map { String(Int($0)) } ?? "?", privacy: .public) target=\(Int(floorRPM), privacy: .public) \(force ? "force" : "auto", privacy: .public)"
@@ -122,20 +128,31 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
 
     /// What macOS itself wants this fan to do. Only auto mode answers honestly
     /// — in manual mode the target key reads back the floor we wrote — so a
-    /// forced fan goes back to auto for a beat first. thermalmonitord decides
-    /// on a 100ms cadence, and the fan cannot spin down meaningfully in the
-    /// time this takes, so the handback is inaudible.
-    private func systemDemand(_ index: Int) -> Double? {
-        let manual = forced.contains(index) || (try? smc.readUInt8(modeKeyFor(index))) == 1
-        if manual {
-            guard (try? writeMode(index, 0)) != nil else { return nil }
-            Thread.sleep(forTimeInterval: 0.25)
+    /// forced fan has to be handed back first, and these fans spin down fast
+    /// enough to hear. So: seldom, and only until thermalmonitord has written
+    /// a number of its own, which it does on a 100ms cadence. A reading that
+    /// still equals our own floor is not an answer; nil keeps the floor.
+    private func systemDemand(_ index: Int, floor: Double) -> Double? {
+        guard forced.contains(index) else { return try? smc.readRPM(key(index, "Tg")) }
+
+        let now = Date()
+        guard now.timeIntervalSince(lastPeek[index] ?? .distantPast) >= Self.peekInterval else {
+            return nil
         }
-        return try? smc.readRPM(key(index, "Tg"))
+        lastPeek[index] = now
+
+        guard (try? writeMode(index, 0)) != nil else { return nil }
+        for _ in 0..<10 {
+            Thread.sleep(forTimeInterval: 0.1)
+            guard let value = try? smc.readRPM(key(index, "Tg")) else { continue }
+            if abs(value - floor) >= 1 { return value }
+        }
+        return nil
     }
 
     private func restoreAuto(count: Int) throws {
         forced.removeAll()
+        lastPeek.removeAll()
         for index in 0..<count {
             try writeMode(index, 0)
         }
