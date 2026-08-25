@@ -146,8 +146,15 @@ public final class FanController: @unchecked Sendable {
     /// only way to know -- `SMAppService.status` reports the registration, not
     /// the daemon. A matching helper needs no recycling on first use; anything
     /// else is told to quit so the next call starts the one this app ships.
+    ///
+    /// The XPC round trip waits on a semaphore for up to 15 seconds, so this
+    /// answers immediately and reports what it found to the log.
     public func checkHelper() {
         guard helperEnabled else { return }
+        DispatchQueue.global(qos: .utility).async { self.checkHelperNow() }
+    }
+
+    private func checkHelperNow() {
         // Shutting the helper down would fail the same validation the calls do,
         // and the helper this app ships cannot start until the app restarts.
         guard !MacotronHelperService.appReplacedOnDisk else {

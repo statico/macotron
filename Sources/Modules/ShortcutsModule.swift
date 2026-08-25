@@ -16,17 +16,22 @@ public final class ShortcutsModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let shortcuts = JS_NewObject(ctx)
 
+        // Both shell out to /usr/bin/shortcuts: listing waits on Shortcuts.app's
+        // database, and running waits on the whole shortcut to finish.
         JS_SetPropertyStr(ctx, shortcuts, "list", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            return JSBridge.newArray(ctx, ShortcutsCLI.list())
+            return JSBridge.promise(ctx, dryRun: [Any]()) {
+                .value(ShortcutsCLI.list())
+            }
         }, "list", 0))
 
         JS_SetPropertyStr(ctx, shortcuts, "run", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let name = JSBridge.toString(ctx, argv[0]) else {
                 return JSBridge.newBool(ctx!, false)
             }
-            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
-            return JSBridge.newBool(ctx, ShortcutsCLI.runShortcut(name).ok)
+            return JSBridge.promise(ctx, dryRun: true) {
+                .value(ShortcutsCLI.runShortcut(name).ok)
+            }
         }, "run", 1))
 
         JS_SetPropertyStr(ctx, macotron, "shortcuts", shortcuts)

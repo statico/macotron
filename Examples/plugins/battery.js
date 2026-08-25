@@ -97,8 +97,8 @@ function menu(s) {
     return rows;
 }
 
-function enableLowPowerMode() {
-    const r = macotron.system.setLowPowerMode(true);
+async function enableLowPowerMode() {
+    const r = await macotron.system.setLowPowerMode(true);
     if (r && r.error) {
         macotron.notify.toast("Low Power Mode", r.error, { color: "error" });
         return;

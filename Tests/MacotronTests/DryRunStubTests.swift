@@ -111,8 +111,12 @@ struct DryRunStubTests {
     @Test("shortcuts.run reports success without spawning")
     func shortcutsRun() {
         let engine = dryEngine([ShortcutsModule()])
-        let (result, error) = engine.evaluate("macotron.shortcuts.run('Does Not Exist')")
+        let (_, error) = engine.evaluate("""
+            globalThis.out = null;
+            macotron.shortcuts.run('Does Not Exist').then(ok => { globalThis.out = ok; });
+            """)
         #expect(error == nil)
+        let (result, _) = engine.evaluate("globalThis.out")
         #expect(result == "true")
     }
 

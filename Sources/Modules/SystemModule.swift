@@ -470,35 +470,37 @@ public final class SystemModule: NativeModule {
             if let argv, argc > 0, !JS_IsUndefined(argv[0]), !JS_IsNull(argv[0]) {
                 limit = max(0, Int(JSBridge.toInt32(ctx, argv[0])))
             }
+            let wanted = limit
+            return JSBridge.promise(ctx, dryRun: [Any]()) {
+                let proc = Process()
+                proc.executableURL = URL(fileURLWithPath: "/bin/ps")
+                proc.arguments = ["-Ao", "pid,pcpu,comm", "-r"]
+                let pipe = Pipe()
+                proc.standardOutput = pipe
+                proc.standardError = FileHandle.nullDevice
+                do {
+                    try proc.run()
+                    proc.waitUntilExit()
+                } catch {
+                    return .value([Any]())
+                }
 
-            let proc = Process()
-            proc.executableURL = URL(fileURLWithPath: "/bin/ps")
-            proc.arguments = ["-Ao", "pid,pcpu,comm", "-r"]
-            let pipe = Pipe()
-            proc.standardOutput = pipe
-            proc.standardError = FileHandle.nullDevice
-            do {
-                try proc.run()
-                proc.waitUntilExit()
-            } catch {
-                return JSBridge.newArray(ctx, [])
+                let text = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                var results: [Any] = []
+                for line in text.split(separator: "\n").dropFirst() {
+                    if results.count >= wanted { break }
+                    let parts = line.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+                    guard parts.count >= 3,
+                          let pid = Int(parts[0]),
+                          let cpu = Double(parts[1]) else { continue }
+                    results.append([
+                        "name": parts.dropFirst(2).joined(separator: " "),
+                        "pid": pid,
+                        "cpu": cpu
+                    ] as [String: Any])
+                }
+                return .value(results)
             }
-
-            let text = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-            var results: [Any] = []
-            for line in text.split(separator: "\n").dropFirst() {
-                if results.count >= limit { break }
-                let parts = line.split(whereSeparator: { $0.isWhitespace }).map(String.init)
-                guard parts.count >= 3,
-                      let pid = Int(parts[0]),
-                      let cpu = Double(parts[1]) else { continue }
-                results.append([
-                    "name": parts.dropFirst(2).joined(separator: " "),
-                    "pid": pid,
-                    "cpu": cpu
-                ] as [String: Any])
-            }
-            return JSBridge.newArray(ctx, results)
         }, "processes", 1))
 
         JS_SetPropertyStr(ctx, systemObj, "gpu",
@@ -524,9 +526,10 @@ public final class SystemModule: NativeModule {
                 return QJS_ThrowTypeError(ctx, "setLowPowerMode requires a boolean")
             }
             let enabled = JSBridge.toBool(ctx, argv[0])
-            let opaque = JS_GetContextOpaque(ctx)
-            let dryRun = opaque.map { Unmanaged<Engine>.fromOpaque($0).takeUnretainedValue().dryRun } ?? false
-            return JSBridge.newObject(ctx, LowPowerMode.set(enabled, dryRun: dryRun))
+            // osascript raises an authorization prompt and waits for the user.
+            return JSBridge.promise(ctx, dryRun: LowPowerMode.set(enabled, dryRun: true)) {
+                .value(LowPowerMode.set(enabled, dryRun: false))
+            }
         }, "setLowPowerMode", 1))
 
         JS_SetPropertyStr(ctx, systemObj, "darkMode",
@@ -542,9 +545,10 @@ public final class SystemModule: NativeModule {
                 return QJS_ThrowTypeError(ctx, "setDarkMode requires a boolean")
             }
             let on = JSBridge.toBool(ctx, argv[0])
-            let opaque = JS_GetContextOpaque(ctx)
-            let dryRun = opaque.map { Unmanaged<Engine>.fromOpaque($0).takeUnretainedValue().dryRun } ?? false
-            return JSBridge.newObject(ctx, DarkMode.set(on, dryRun: dryRun))
+            // The SkyLight path is instant, but the osascript fallback is not.
+            return JSBridge.promise(ctx, dryRun: DarkMode.set(on, dryRun: true)) {
+                .value(DarkMode.set(on, dryRun: false))
+            }
         }, "setDarkMode", 1))
 
         JS_SetPropertyStr(ctx, systemObj, "focus",
@@ -563,41 +567,10 @@ public final class SystemModule: NativeModule {
             if let argv, argc >= 1, !JSBridge.isUndefined(argv[0]), !JS_IsNull(argv[0]) {
                 percent = Int(JSBridge.toInt32(ctx, argv[0]))
             }
-            var resolvingFuncs = [JSValue](repeating: QJS_Undefined(), count: 2)
-            let promise = JS_NewPromiseCapability(ctx, &resolvingFuncs)
-            let resolve = JS_DupValue(ctx, resolvingFuncs[0])
-            let reject = JS_DupValue(ctx, resolvingFuncs[1])
-            JS_FreeValue(ctx, resolvingFuncs[0])
-            JS_FreeValue(ctx, resolvingFuncs[1])
-
-            guard let opaque = JS_GetContextOpaque(ctx) else { return promise }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            if engine.dryRun {
-                var arg = JSBridge.newObject(ctx, FanController.shared.setFloor(percent, dryRun: true).js)
-                _ = JS_Call(ctx, resolve, QJS_Undefined(), 1, &arg)
-                JS_FreeValue(ctx, resolve)
-                JS_FreeValue(ctx, reject)
-                JS_FreeValue(ctx, arg)
-                engine.drainJobQueue()
-                return promise
-            }
-
-            let token = engine.registerPending(resolve: resolve, reject: reject)
             let requested = percent
-            nonisolated(unsafe) let capturedCtx = ctx
-            DispatchQueue.global(qos: .userInitiated).async {
-                let snapshot = FanController.shared.setFloor(requested, dryRun: false)
-                DispatchQueue.main.async {
-                    guard let pending = engine.claimPending(token) else { return }
-                    var arg = JSBridge.newObject(capturedCtx, snapshot.js)
-                    _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &arg)
-                    JS_FreeValue(capturedCtx, pending.resolve)
-                    JS_FreeValue(capturedCtx, pending.reject)
-                    JS_FreeValue(capturedCtx, arg)
-                    engine.drainJobQueue()
-                }
+            return JSBridge.promise(ctx, dryRun: FanController.shared.setFloor(percent, dryRun: true).js) {
+                .value(FanController.shared.setFloor(requested, dryRun: false).js)
             }
-            return promise
         }, "setFanFloor", 1))
 
         JS_SetPropertyStr(ctx, macotron, "system", systemObj)

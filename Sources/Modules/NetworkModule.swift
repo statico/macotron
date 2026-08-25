@@ -24,36 +24,52 @@ public final class NetworkModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let network = JS_NewObject(ctx)
 
+        // networksetup is three subprocesses deep for a full Wi-Fi snapshot, so
+        // every reader of it hands back a promise rather than stalling the menu.
         JS_SetPropertyStr(ctx, network, "wifiSSID", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            if let ssid = NetworkControl.currentSSID() {
-                return JSBridge.newString(ctx, ssid)
+            return JSBridge.promise(ctx, dryRun: NSNull()) {
+                .of(NetworkControl.currentSSID())
             }
-            return QJS_Null()
         }, "wifiSSID", 0))
 
         JS_SetPropertyStr(ctx, network, "wifi", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            return JSBridge.newObject(ctx, NetworkControl.wifi())
+            return JSBridge.promise(ctx, dryRun: NetworkModule.noWifi) {
+                .value(NetworkControl.wifi())
+            }
         }, "wifi", 0))
 
         JS_SetPropertyStr(ctx, network, "setWifi", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let on = JSBridge.toBool(ctx, argv[0])
-            return JSBridge.newObject(ctx, NetworkControl.setWifi(on, dryRun: NetworkModule.dryRun(ctx)))
+            return JSBridge.promise(ctx, dryRun: NetworkControl.setWifi(on, dryRun: true)) {
+                .value(NetworkControl.setWifi(on, dryRun: false))
+            }
         }, "setWifi", 1))
 
         JS_SetPropertyStr(ctx, network, "bluetooth", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            return JSBridge.newObject(ctx, BluetoothRadio.snapshot())
+            return JSBridge.promise(ctx, dryRun: NetworkModule.noBluetooth) {
+                let batteries = BluetoothBattery.cached()
+                // The paired-device list is an IOBluetooth query that wants the
+                // main thread; it is cheap once the batteries are already read.
+                return .value(DispatchQueue.main.sync {
+                    BluetoothRadio.snapshot(batteries: batteries)
+                })
+            }
         }, "bluetooth", 0))
 
+        // Flipping the radio is a dlsym'd IOBluetooth call, not a subprocess:
+        // it stays synchronous.
         JS_SetPropertyStr(ctx, network, "setBluetooth", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let on = JSBridge.toBool(ctx, argv[0])
             return JSBridge.newObject(ctx, BluetoothRadio.set(on, dryRun: NetworkModule.dryRun(ctx)))
         }, "setBluetooth", 1))
 
+        // Reading the mode is a defaults lookup; only writing it has to kill
+        // sharingd, so only the setter is a promise.
         JS_SetPropertyStr(ctx, network, "airDrop", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newObject(ctx, NetworkControl.airDrop())
@@ -62,7 +78,9 @@ public final class NetworkModule: NativeModule {
         JS_SetPropertyStr(ctx, network, "setAirDrop", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let mode = JSBridge.toString(ctx, argv[0]) ?? ""
-            return JSBridge.newObject(ctx, NetworkControl.setAirDrop(mode, dryRun: NetworkModule.dryRun(ctx)))
+            return JSBridge.promise(ctx, dryRun: NetworkControl.setAirDrop(mode, dryRun: true)) {
+                .value(NetworkControl.setAirDrop(mode, dryRun: false))
+            }
         }, "setAirDrop", 1))
 
         JS_SetPropertyStr(ctx, network, "interfaces", JS_NewCFunction(ctx, { ctx, _, _, _ in
@@ -81,7 +99,10 @@ public final class NetworkModule: NativeModule {
             if argc >= 1, let argv, let given = JSBridge.toString(ctx, argv[0]), !given.isEmpty {
                 host = given
             }
-            return JSBridge.newObject(ctx, NetworkControl.ping(host))
+            let target = host
+            return JSBridge.promise(ctx, dryRun: ["ms": NSNull(), "host": target] as [String: Any]) {
+                .value(NetworkControl.ping(target))
+            }
         }, "ping", 1))
 
         JS_SetPropertyStr(ctx, macotron, "network", network)
@@ -89,7 +110,7 @@ public final class NetworkModule: NativeModule {
         JS_FreeValue(ctx, global)
 
         guard !engine.dryRun else { return }
-        lastWifi = NetworkModule.wifiKey()
+        poll()
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.poll() }
         }
@@ -102,8 +123,21 @@ public final class NetworkModule: NativeModule {
     }
 
     private func poll() {
-        let key = NetworkModule.wifiKey()
-        if let last = lastWifi, last.on == key.on, last.ssid == key.ssid { return }
+        // Sampling costs three networksetup runs; on main that is a stutter
+        // every five seconds for a value that rarely changes.
+        DispatchQueue.global(qos: .utility).async {
+            let key = NetworkModule.wifiKey()
+            Task { @MainActor [weak self] in self?.emit(key) }
+        }
+    }
+
+    private func emit(_ key: (on: Bool, ssid: String?)) {
+        // The first sample is only the seed later ones are compared against.
+        guard let last = lastWifi else {
+            lastWifi = key
+            return
+        }
+        if last.on == key.on, last.ssid == key.ssid { return }
         lastWifi = key
         guard let engine, let ctx = engine.context else { return }
 
@@ -117,6 +151,11 @@ public final class NetworkModule: NativeModule {
         engine.eventBus.emit("wifi:changed", engine: engine, data: data)
         JS_FreeValue(ctx, data)
     }
+
+    /// What `--check` sees instead of a real radio: the same shape the host
+    /// returns on a Mac with no Wi-Fi or Bluetooth hardware.
+    private static let noWifi: [String: Any] = ["available": false, "on": false]
+    private static let noBluetooth: [String: Any] = ["on": false, "devices": [Any]()]
 
     private static func wifiKey() -> (on: Bool, ssid: String?) {
         let snap = NetworkControl.wifi()
