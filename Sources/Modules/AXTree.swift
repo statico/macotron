@@ -62,6 +62,17 @@ enum AXAttrs {
 }
 
 enum AXTree {
+    /// An app that is busy, beachballing, or stopped in a debugger answers no AX
+    /// request at all, and the default timeout parks the caller for six seconds
+    /// per read. Set this on every element we create; children of an app element
+    /// inherit the app's timeout.
+    static let messagingTimeout: Float = 0.15
+
+    private static func timed(_ el: AXUIElement) -> AXUIElement {
+        AXUIElementSetMessagingTimeout(el, messagingTimeout)
+        return el
+    }
+
     static func string(_ el: AXUIElement, _ attr: CFString) -> String {
         var ref: CFTypeRef?
         guard AXUIElementCopyAttributeValue(el, attr, &ref) == .success else { return "" }
@@ -97,22 +108,31 @@ enum AXTree {
     }
 
     static func focused() -> AXUIElement? {
-        let sys = AXUIElementCreateSystemWide()
+        let sys = timed(AXUIElementCreateSystemWide())
         var ref: CFTypeRef?
         guard AXUIElementCopyAttributeValue(sys, kAXFocusedUIElementAttribute as CFString, &ref) == .success,
               let el = ref else {
             return nil
         }
-        return (el as! AXUIElement)
+        return timed(el as! AXUIElement)
     }
 
-    static func selectedText() -> String? {
+    /// How long to keep asking a web-content tree that is still building itself.
+    /// Tunable because it is a race against another process's scheduler: too
+    /// short and a busy Chrome returns nothing at all.
+    static let selectionPollInterval: TimeInterval = 0.05
+    static let selectionPollAttempts = 6
+
+    /// Blocks for up to `selectionPollInterval * selectionPollAttempts`; call it
+    /// off the main thread. `frontmostPID` is read by the caller because
+    /// NSWorkspace is main-thread-only.
+    static func selectedText(frontmostPID: pid_t?) -> String? {
         if let text = focusedSelectedText() { return text }
-        guard enableWebContentAccessibility() else { return nil }
+        guard let frontmostPID, enableWebContentAccessibility(pid: frontmostPID) else { return nil }
         // Chromium builds the tree on a background thread once asked, so the
         // first read after enabling usually still comes back empty.
-        for _ in 0..<6 {
-            Thread.sleep(forTimeInterval: 0.05)
+        for _ in 0..<selectionPollAttempts {
+            Thread.sleep(forTimeInterval: selectionPollInterval)
             if let text = focusedSelectedText() { return text }
         }
         return nil
@@ -128,12 +148,9 @@ enum AXTree {
     /// until a client asks for it, so a selection in a page reads as empty. Ask
     /// once per process; apps that do not support the attribute just say no.
     /// Reports whether this call was the one that turned the tree on.
-    private static func enableWebContentAccessibility() -> Bool {
-        guard let app = NSWorkspace.shared.frontmostApplication else { return false }
-        let pid = app.processIdentifier
-        guard !manualAccessibilityPIDs.contains(pid) else { return false }
-        manualAccessibilityPIDs.insert(pid)
-        let el = AXUIElementCreateApplication(pid)
+    private static func enableWebContentAccessibility(pid: pid_t) -> Bool {
+        guard claimPID(pid) else { return false }
+        let el = timed(AXUIElementCreateApplication(pid))
         let result = AXUIElementSetAttributeValue(el, "AXManualAccessibility" as CFString, kCFBooleanTrue)
         return result == .success
     }
@@ -141,6 +158,15 @@ enum AXTree {
     // ponytail: no AXEnhancedUserInterface fallback for older Electron builds —
     // that flag breaks window resizing in native apps that also accept it.
     nonisolated(unsafe) private static var manualAccessibilityPIDs: Set<pid_t> = []
+    private static let pidLock = NSLock()
+
+    /// True the first time an app is seen. Locked because selection reads now
+    /// run off the main thread and two can land at once.
+    private static func claimPID(_ pid: pid_t) -> Bool {
+        pidLock.lock()
+        defer { pidLock.unlock() }
+        return manualAccessibilityPIDs.insert(pid).inserted
+    }
 
     static func press(_ el: AXUIElement) -> Bool {
         AXUIElementPerformAction(el, kAXPressAction as CFString) == .success
@@ -167,9 +193,9 @@ enum AXTree {
 
     private static func searchRoot() -> AXUIElement {
         if let app = NSWorkspace.shared.frontmostApplication {
-            return AXUIElementCreateApplication(app.processIdentifier)
+            return timed(AXUIElementCreateApplication(app.processIdentifier))
         }
-        return AXUIElementCreateSystemWide()
+        return timed(AXUIElementCreateSystemWide())
     }
 
     private static func walk(_ el: AXUIElement, role: String?, title: String?) -> AXUIElement? {
