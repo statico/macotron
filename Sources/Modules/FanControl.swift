@@ -98,12 +98,6 @@ public final class FanController: @unchecked Sendable {
             error = call { $0.restoreFans(reply: $1) }
         }
 
-        // Let go of the daemon once nothing is held, so it can exit and the
-        // next call starts whatever helper the current app ships.
-        if requestedFloor == nil, error == nil {
-            dropConnection()
-        }
-
         lock.lock()
         if error == nil {
             floor = requestedFloor
@@ -111,6 +105,14 @@ public final class FanController: @unchecked Sendable {
         }
         var result = snapshotLocked()
         lock.unlock()
+
+        // Let go of the daemon once nothing is held, so it can exit and the
+        // next call starts whatever helper the current app ships. Record the
+        // new floor first: dropping the connection is what releases the fans,
+        // so it must see that nothing is held any more.
+        if requestedFloor == nil, error == nil {
+            dropConnection()
+        }
         if let error {
             result.error = Self.displayError(error)
             if Self.helperUnreachable(error) {
@@ -295,6 +297,15 @@ public final class FanController: @unchecked Sendable {
 
     private func dropConnection() {
         lock.lock()
+        // A held floor rides on this connection: the helper hands the fans
+        // back the moment its last client goes away. The startup helper check
+        // ends in a drop, and it finishes whenever it finishes -- often just
+        // after fan.js has claimed its floor back, which is how a restart lost
+        // the floor it had just restored.
+        guard floor == nil else {
+            lock.unlock()
+            return
+        }
         let connection = helperConnection
         helperConnection = nil
         lock.unlock()
