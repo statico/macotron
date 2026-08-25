@@ -5,9 +5,6 @@ import CoreGraphics
 import Foundation
 import MacotronEngine
 import ScreenCaptureKit
-import os
-
-private let logger = Logger(subsystem: "io.statico.macotron", category: "screen")
 
 private final class CaptureResultBox: @unchecked Sendable {
     var base64: String?
@@ -40,15 +37,10 @@ public final class ScreenModule: NativeModule {
                 JS_FreeValue(ctx, sel)
             }
 
-            let opaque = JS_GetContextOpaque(ctx)
-            if let opaque {
-                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-                if engine.dryRun {
-                    return JSBridge.newString(ctx, "")
-                }
-            }
-
             if selection {
+                guard let engine = Engine.of(ctx) else { return QJS_Undefined() }
+                if engine.dryRun { return JSBridge.newString(ctx, "") }
+
                 var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
                 let promise = JS_NewPromiseCapability(ctx, &resolving)
                 let resolve = JS_DupValue(ctx, resolving[0])
@@ -56,8 +48,6 @@ public final class ScreenModule: NativeModule {
                 JS_FreeValue(ctx, resolving[0])
                 JS_FreeValue(ctx, resolving[1])
 
-                guard let opaque else { return promise }
-                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
                 let token = engine.registerPending(resolve: resolve, reject: reject)
                 nonisolated(unsafe) let capturedCtx = ctx
 
@@ -94,30 +84,23 @@ public final class ScreenModule: NativeModule {
                 return promise
             }
 
-            let box = CaptureResultBox()
-            let semaphore = DispatchSemaphore(value: 0)
-
-            Task.detached {
-                do {
-                    box.base64 = try await captureDisplayPNG()
-                } catch {
-                    box.error = "Screen capture failed: \(error.localizedDescription)"
+            // ScreenCaptureKit is async-only, so someone has to wait for it: the
+            // promise's worker thread, never the main thread.
+            return JSBridge.promise(ctx, dryRun: "") {
+                let box = CaptureResultBox()
+                let done = DispatchSemaphore(value: 0)
+                Task.detached {
+                    do {
+                        box.base64 = try await captureDisplayPNG()
+                    } catch {
+                        box.error = error.localizedDescription
+                    }
+                    done.signal()
                 }
-                semaphore.signal()
+                done.wait()
+                if let error = box.error { return .failure("screen.capture failed: \(error)") }
+                return .value(box.base64 ?? "")
             }
-
-            let waitResult = semaphore.wait(timeout: .now() + 5)
-            if waitResult == .timedOut {
-                logger.error("Screen capture timed out")
-                return JSBridge.newString(ctx, "")
-            }
-
-            if let error = box.error {
-                logger.error("Screen capture error: \(error)")
-                return JSBridge.newString(ctx, "")
-            }
-
-            return JSBridge.newString(ctx, box.base64 ?? "")
         }, "capture", 1))
 
         JS_SetPropertyStr(ctx, screenObj, "pickColor",
