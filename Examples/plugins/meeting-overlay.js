@@ -3,7 +3,21 @@ macotron.plugin({
     description: "Show a full-screen overlay one minute before a timed calendar event, with a QR code to join.",
 });
 
-const shown = new Set();
+const KEY = "meeting-overlay.shown";
+
+// Dismissals outlive a reload: without this, editing any plugin in the minute
+// before a meeting puts the overlay back up for one already waved away.
+// Events are keyed by start time so the list prunes itself.
+const shown = new Map(Object.entries(JSON.parse(localStorage.getItem(KEY) || "{}")));
+
+function remember(id, start) {
+    shown.set(id, start);
+    const now = Date.now();
+    for (const [key, at] of shown) {
+        if (at < now) shown.delete(key);
+    }
+    localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(shown)));
+}
 
 function esc(s) {
     return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -16,7 +30,7 @@ async function tick() {
         if (event.allDay || shown.has(event.id)) continue;
         const until = event.start - now;
         if (until <= 0 || until > 60000) continue;
-        shown.add(event.id);
+        remember(event.id, event.start);
         const url = event.url || "";
         const html =
             `<style>

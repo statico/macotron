@@ -4,6 +4,11 @@ Copy into your Macotron workdir `plugins/` to try. Most register launcher comman
 
 Built-in plugins use only `macotron.*` and Apple-shipped tools. They do not need Homebrew or other extra apps.
 
+Plugin variables are lost on every reload and every restart, so a plugin saves
+what the user chose in `localStorage` and claims it back at load — see
+`fan.js`, `power.js`, `pomodoro.js`. Options declared in `macotron.plugin()`
+are saved by the host already.
+
 | File | APIs | Commands |
 |---|---|---|
 | ai-chat.js | panel + ai.local/claude/gemini | AI Chat |

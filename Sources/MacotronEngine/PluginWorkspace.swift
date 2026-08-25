@@ -654,6 +654,31 @@ public final class PluginWorkspace {
         ]);
         ```
 
+        ## Remembering state
+
+        Plugin variables do not survive. Editing any plugin reloads all of them,
+        and quitting the app clears the lot, so every choice the user made -- a
+        mode, a toggle, a deadline, a list they built up -- belongs in
+        `localStorage`: write it when it changes, read it back at load. Options
+        declared in `macotron.plugin()` are already saved by the host; do not
+        copy those into `localStorage`. Do not save what the system can be asked
+        for either (volume, battery, current network) -- read those at load.
+
+        ```js
+        const KEY = "pomodoro.session"; // one store for all plugins: prefix keys
+
+        let until = JSON.parse(localStorage.getItem(KEY) || "null");
+
+        function start(ms) {
+          until = Date.now() + ms;
+          localStorage.setItem(KEY, JSON.stringify(until));
+        }
+        ```
+
+        Host state a plugin was holding is dropped on reload as well -- a sleep
+        assertion, a fan-speed floor -- so claim it back at load from what was
+        saved, and do it quietly: the notification was read the first time.
+
         ## settings.json schema
 
         ```json

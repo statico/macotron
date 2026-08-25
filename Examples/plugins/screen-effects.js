@@ -5,7 +5,12 @@ macotron.plugin({
 });
 
 const DIM = 0.35;
-let gammaMode = "off";
+const KEY = "screen-effects.gamma";
+
+// The host hands the gamma table back to macOS whenever plugins reload, so a
+// dimmed or red screen would quietly go back to normal on an unrelated edit.
+// Remember the mode and put it back on.
+let gammaMode = localStorage.getItem(KEY) || "off";
 
 function rgb(v) {
     return { red: v, green: v, blue: v };
@@ -26,6 +31,7 @@ function applyGamma() {
 function toggleGammaMode(mode) {
     const active = gammaMode === mode;
     gammaMode = active ? "off" : mode;
+    localStorage.setItem(KEY, gammaMode);
     applyGamma();
     if (mode === "night-vision") {
         macotron.notify.toast("Night vision", active ? "Off" : "On", { color: active ? undefined : "success" });
@@ -86,3 +92,5 @@ macotron.command("Toggle Grayscale", "Force the display to grayscale", () => {
     }
     report("Grayscale", macotron.display.setGrayscale(!cur.on));
 });
+
+if (gammaMode !== "off") applyGamma();
