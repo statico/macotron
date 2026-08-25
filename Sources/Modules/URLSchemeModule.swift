@@ -261,6 +261,7 @@ final class URLSchemeEventReceiver {
     private func dispatch(_ url: URL, sourceBundle: String?) {
         guard let engine, !engine.dryRun else {
             logger.error("URL event dropped: no live engine")
+            Self.reportNoRoute(url)
             return
         }
         let urlString = url.absoluteString
@@ -313,9 +314,20 @@ final class URLSchemeEventReceiver {
                 }
             } else {
                 logger.error("URL event has no route: \(urlString, privacy: .public)")
+                Self.reportNoRoute(url)
             }
         }
         JS_FreeValue(ctx, data)
+    }
+
+    /// Macotron is the default handler but nothing routes the link, so it would
+    /// otherwise vanish with only a log line to show for it.
+    static func reportNoRoute(_ url: URL) {
+        let scheme = url.scheme?.lowercased() ?? ""
+        let title = scheme == "http" || scheme == "https"
+            ? "No plugin defines a default browser"
+            : "No plugin handles \(scheme): links"
+        NotifyModule.post(title: title, body: url.absoluteString, id: "url-no-route")
     }
 
     private func confirmEvent(url: URL, sourceBundle: String?) -> Bool {
