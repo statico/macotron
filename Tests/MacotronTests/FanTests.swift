@@ -17,6 +17,11 @@ struct FanTests {
             var statusConfig = null;
             var floor = null;
             var toasts = [];
+            var stored = {};
+            var localStorage = {
+                getItem: (key) => (key in stored ? stored[key] : null),
+                setItem: (key, value) => { stored[key] = String(value); }
+            };
             var macotron = {
                 plugin: () => ({}),
                 system: {

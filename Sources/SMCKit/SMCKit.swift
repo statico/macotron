@@ -39,6 +39,14 @@ public enum MacotronHelperService {
 }
 
 public enum FanFloor {
+    /// A floor only holds while macOS wants less air than we do — otherwise the
+    /// floor would pin the fan below what cooling needs. An unreadable demand
+    /// keeps the floor, since that is the state the user asked for.
+    public static func shouldForce(demand: Double?, floor: Double) -> Bool {
+        guard let demand else { return true }
+        return demand < floor
+    }
+
     public static func rpm(percent: Int, min: Double, max: Double) -> Double {
         let lo = Swift.min(min, max)
         let hi = Swift.max(min, max)

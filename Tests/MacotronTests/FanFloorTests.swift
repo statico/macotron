@@ -27,4 +27,12 @@ struct FanFloorTests {
         #expect(FanController.displayError(long) == "Macotron helper is not installed")
         #expect(FanController.displayError("macOS thermal manager held the fans") == "macOS thermal manager held the fans")
     }
+
+    @Test("a floor yields to macOS asking for more air, and holds otherwise")
+    func floorIsNotACeiling() {
+        #expect(FanFloor.shouldForce(demand: 2000, floor: 3000))
+        #expect(!FanFloor.shouldForce(demand: 4200, floor: 3000))
+        // Nothing readable: keep the floor the user asked for.
+        #expect(FanFloor.shouldForce(demand: nil, floor: 3000))
+    }
 }
