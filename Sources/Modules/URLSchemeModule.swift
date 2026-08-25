@@ -29,35 +29,6 @@ enum URLOpen {
     }
 }
 
-/// LaunchServices activates the handler app to deliver a URL event, so Macotron
-/// lands one Cmd-Tab away from the app the link was clicked in — the position
-/// the user expects that app itself to be in. Step out of the switcher for the
-/// handoff and step back once nothing of ours is on screen any more. A menu bar
-/// app (Dock icon off) is never in the switcher and skips all of this, which is
-/// what Velja and Browserosaurus do by simply never being regular apps.
-@MainActor
-enum URLHandoff {
-    private static var restore: Task<Void, Never>?
-
-    static func leaveSwitcher() {
-        guard NSApp.activationPolicy() == .regular,
-              !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain })
-        else { return }
-        NSApp.setActivationPolicy(.accessory)
-        restore?.cancel()
-        restore = Task { @MainActor in
-            // The link may have opened a picker panel, so wait for the user to
-            // be done with us rather than flicking the Dock icon under them.
-            for _ in 0..<20 {
-                try? await Task.sleep(for: .seconds(1))
-                if Task.isCancelled { return }
-                if !NSApp.isActive { break }
-            }
-            NSApp.setActivationPolicy(.regular)
-        }
-    }
-}
-
 @MainActor
 public final class URLSchemeModule: NativeModule {
     public let name = "url"
@@ -306,7 +277,6 @@ final class URLSchemeEventReceiver {
             return
         }
 
-        URLHandoff.leaveSwitcher()
 
         var payload: [String: Any] = [
             "url": urlString,

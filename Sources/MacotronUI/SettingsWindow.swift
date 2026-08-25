@@ -53,10 +53,7 @@ public final class SettingsWindow {
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                // Only revert to accessory mode if the user doesn't want a dock icon
-                if !(self?.settingsState.showDockIcon ?? true) {
-                    NSApp.setActivationPolicy(.accessory)
-                }
+                NSApp.setActivationPolicy(.accessory)
                 if let obs = self?.closeObserver {
                     NotificationCenter.default.removeObserver(obs)
                     self?.closeObserver = nil

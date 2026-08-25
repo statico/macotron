@@ -337,14 +337,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             return table.combo(for: HostCommands.showHotkeysID)
         }
 
-        settingsState.readShowDockIcon = { [weak self] in
-            self?.readUIValue("showDockIcon") as? Bool ?? true
-        }
-        settingsState.writeShowDockIcon = { [weak self] value in
-            self?.writeUIValue("showDockIcon", value)
-            NSApp.setActivationPolicy(value ? .regular : .accessory)
-            if value { AppActivation.activate("dock icon turned on") }
-        }
         settingsState.readShowMenuBarIcon = { [weak self] in
             self?.readUIValue("showMenuBarIcon") as? Bool ?? true
         }
@@ -860,8 +852,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func applyUIPrefsFromSettings() {
-        let showDock = readUIValue("showDockIcon") as? Bool ?? true
-        NSApp.setActivationPolicy(showDock ? .regular : .accessory)
+        // Macotron lives in the menu bar and the launcher. Staying an accessory
+        // app keeps it out of the Dock and out of Cmd-Tab, so handling a link
+        // never displaces the app the link was clicked in. A window shown from
+        // Settings borrows .regular for as long as it is open.
+        NSApp.setActivationPolicy(.accessory)
         AppearanceSetting.parse(readUIValue("appearance")).apply()
         let rawScale = readUIValue("textScale") as? Double ?? 1.0
         launcherPrefs.textScale = CGFloat(LauncherPrefs.snapTextScale(rawScale))
@@ -1181,6 +1176,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         case HostCommands.openPluginsID:
             settingsState.requestedTab = SettingsTab.plugins.rawValue
             openSettingsAction()
+            return true
+        case HostCommands.quitID:
+            launcherPanel?.dismiss()
+            NSApp.terminate(nil)
             return true
         case HostCommands.fixPermissionsID:
             settingsState.requestedTab = SettingsTab.permissions.rawValue

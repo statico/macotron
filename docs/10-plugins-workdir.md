@@ -27,7 +27,6 @@ Example:
 {
   "launcher": { "hotkey": "opt+space" },
   "ui": {
-    "showDockIcon": true,
     "showMenuBarIcon": true,
     "appearance": "system",
     "textScale": 1.0,
