@@ -5,7 +5,7 @@ const opts = macotron.plugin({
         clocks: {
             type: "text",
             label: "World clocks",
-            help: "One IANA time zone per line, such as Europe/London. Shown under the month.",
+            help: "One IANA time zone per line, such as Europe/London. Each may be renamed with 'Zone = Label'. Shown under the month.",
             default: "",
         },
     },
@@ -42,6 +42,7 @@ function icon(date) {
 // Months away from this one. The buttons move it; Today puts it back.
 let offset = 0;
 const ROW = 18;
+const CLOCK_ROW = 17;
 
 function shownMonth(now) {
     return new Date(now.getFullYear(), now.getMonth() + offset, 1);
@@ -69,27 +70,42 @@ function weeks(now, shown) {
     return { cells, rows: (lead + days + trail) / 7 };
 }
 
-function grid(cells) {
+function grid(cells, clockRows) {
     return `<style>
 #m { display:grid; grid-template-columns:repeat(7, 1fr); text-align:center;
      font-size:11px; line-height:${ROW}px; font-variant-numeric:tabular-nums; }
 #m .dow { opacity:0.5; font-size:9px; text-transform:uppercase; }
 #m .off { opacity:0.35; }
 #m .today { background:Highlight; color:HighlightText; border-radius:9px; }
+#c { margin-top:6px; border-top:1px solid color-mix(in srgb, canvastext 15%, transparent);
+     padding-top:5px; display:grid; grid-template-columns:1fr auto; gap:0 12px;
+     font-size:11px; line-height:${CLOCK_ROW}px; font-variant-numeric:tabular-nums; }
+#c .t { text-align:right; opacity:0.75; }
 </style>
-<div id="m">${DOW.map((d) => `<div class="dow">${d[0]}${d[1].toLowerCase()}</div>`).join("")}${cells}</div>`;
+<div id="m">${DOW.map((d) => `<div class="dow">${d[0]}${d[1].toLowerCase()}</div>`).join("")}${cells}</div>
+${clockRows.length ? `<div id="c">${clockRows.map((c) => `<div>${esc(c.label)}</div><div class="t">${esc(c.time)}</div>`).join("")}</div>` : ""}`;
+}
+
+function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
 }
 
 // QuickJS has no Intl, so the host does the zone conversion. An unknown zone
 // comes back empty and is dropped rather than showing a blank row.
+// "Europe/London" titles itself London; "Europe/London = Home" says Home.
 function clocks() {
     return String(opts.clocks || "")
         .split("\n")
         .map((line) => line.trim())
         .filter(Boolean)
-        .map((zone) => ({ zone, time: macotron.system.timeIn(zone) }))
-        .filter((c) => c.time)
-        .map((c) => ({ title: `${c.zone.split("/").pop().replace(/_/g, " ")}  ${c.time}` }));
+        .map((line) => {
+            const [zone, label] = line.split("=").map((part) => part.trim());
+            return {
+                label: label || zone.split("/").pop().replace(/_/g, " "),
+                time: macotron.system.timeIn(zone),
+            };
+        })
+        .filter((c) => c.time);
 }
 
 function move(by) {
@@ -112,7 +128,12 @@ function render() {
         // No onClick, so a left-click drops the menu -- and the month with it.
         menu: [
             { title: `${MONTHS[shown.getMonth()]} ${shown.getFullYear()}` },
-            { html: grid(month.cells), width: 220, height: (month.rows + 1) * ROW + 6 },
+            {
+                html: grid(month.cells, clockRows),
+                width: 220,
+                height: (month.rows + 1) * ROW + 6
+                    + (clockRows.length ? clockRows.length * CLOCK_ROW + 12 : 0),
+            },
             // A button row keeps the menu open, so the month can be paged
             // without the menu closing on every step.
             { buttons: [
@@ -120,7 +141,6 @@ function render() {
                 { title: "Today", onClick: () => move(-offset) },
                 { title: "›", onClick: () => move(1) },
             ] },
-            ...(clockRows.length ? ["-", ...clockRows] : []),
             "-",
             { title: "Open Calendar…", onClick: () => macotron.app.launch("com.apple.iCal") },
         ],
