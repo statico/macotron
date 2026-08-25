@@ -77,7 +77,7 @@ struct BatteryTests {
                         source: "battery",
                         lowPowerMode: false
                     }),
-                    setLowPowerMode: (on) => { setArg = on; return { ok: true, lowPowerMode: on }; }
+                    setLowPowerMode: (on) => { setArg = on; return Promise.resolve({ ok: true, lowPowerMode: on }); }
                 },
                 menubar: { status: (id, cfg) => { statusConfig = cfg; } },
                 url: { open: () => {} },
@@ -87,16 +87,18 @@ struct BatteryTests {
             };
             \(pluginSource)
             var row = statusConfig.menu.find((item) => item.title && item.title.indexOf("Low Power Mode") === 0);
+            var hasClick = typeof row.onClick === "function";
             row.onClick();
-            JSON.stringify({
-                setArg: setArg,
-                toast: toast,
-                hasClick: typeof row.onClick === "function"
-            })
             """
         let engine = Engine()
-        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
+        let (_, error) = engine.evaluate(harness, filename: pluginURL.path)
         #expect(error == nil)
+        // setLowPowerMode is a promise now, so the toast lands once the job
+        // queue has drained -- which the first evaluate does on its way out.
+        let (result, readError) = engine.evaluate("""
+            JSON.stringify({ setArg: setArg, toast: toast, hasClick: hasClick })
+            """)
+        #expect(readError == nil)
         #expect(result?.contains("\"hasClick\":true") == true)
         #expect(result?.contains("\"setArg\":true") == true)
         #expect(result?.contains("\"title\":\"Low Power Mode\"") == true)

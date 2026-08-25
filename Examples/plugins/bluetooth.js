@@ -8,8 +8,9 @@ function clip(name) {
   return name.length > 12 ? name.slice(0, 11) + "…" : name;
 }
 
-function paint() {
-  const devices = (macotron.network.bluetooth().devices || []).slice().sort((a, b) => {
+async function paint() {
+  const bt = await macotron.network.bluetooth();
+  const devices = (bt.devices || []).slice().sort((a, b) => {
     if (a.connected !== b.connected) return a.connected ? -1 : 1;
     return (a.name || "").localeCompare(b.name || "");
   });

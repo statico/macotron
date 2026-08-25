@@ -145,7 +145,7 @@ struct MenuPluginsTests {
             var macotron = {
                 plugin: () => ({ homeSSID: "HomeNet", workSSID: "Office" }),
                 on: (ev, fn) => { handler = fn; },
-                network: { wifi: () => wifi },
+                network: { wifi: () => Promise.resolve(wifi) },
                 system: { setDarkMode: (on) => { dark = on; return { ok: true, darkMode: on }; } },
                 notify: { toast: (title, body) => { toasts.push({ title: title, body: body }); } }
             };
