@@ -62,15 +62,12 @@ function paint() {
   }]);
 }
 
-function refreshPing() {
-  const r = macotron.network.ping();
+async function refreshPing() {
+  const r = await macotron.network.ping();
   pingMs = r && r.ms != null ? r.ms : null;
 }
 
-refreshPing();
+refreshPing().then(paint);
 paint();
 macotron.every(2000, paint);
-macotron.every(12_000, () => {
-  refreshPing();
-  paint();
-});
+macotron.every(12_000, () => refreshPing().then(paint));

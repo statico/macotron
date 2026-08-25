@@ -21,8 +21,12 @@ function apply(ssid) {
 }
 
 function check(info) {
-  apply((info && info.ssid) || (macotron.network.wifi() || {}).ssid);
+  if (info && info.ssid) {
+    apply(info.ssid);
+    return;
+  }
+  macotron.network.wifi().then((w) => apply(w && w.ssid));
 }
 
 macotron.on("wifi:changed", check);
-check(macotron.network.wifi());
+check();
