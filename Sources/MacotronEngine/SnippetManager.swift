@@ -346,19 +346,29 @@ public final class ModuleManager {
     }
 
     public func handleDiskChange(_ rawPaths: [String]) {
-        // Macotron writes into the workspace itself — localStorage and backups
-        // — and its own writes must not read as the user editing a plugin, or
-        // a plugin that stores anything reloads the world in a loop.
-        let ours = ["/data/", "/backups/"]
+        // Macotron writes into the workspace itself — localStorage, backups,
+        // the bytecode and metadata caches — and its own writes must not read
+        // as the user editing a plugin. `.cache/` is the sharp one: reloadAll
+        // writes it, so a reload triggered by it schedules the next reload,
+        // and the app spins for as long as the watcher is running.
+        let ours = ["/data/", "/backups/", "/.cache/"]
         let paths = rawPaths.filter { path in !ours.contains { path.contains($0) } }
         guard !paths.isEmpty else { return }
 
-        if hotReload {
-            reloadAll()
-            return
-        }
         let pluginChanges = paths.filter {
             $0.hasSuffix(".js") && $0.contains("/plugins/")
+        }
+        let settingsChanged = paths.contains { $0.hasSuffix("settings.json") }
+        // Hot reload means "run what is on disk", not "reload on any write in
+        // the workspace": only a plugin or the settings are worth a reload.
+        if hotReload {
+            if !pluginChanges.isEmpty {
+                reloadAll()
+            } else if settingsChanged {
+                engine.configStore = workspace.readSettings()
+                onDidReload?()
+            }
+            return
         }
         if !pluginChanges.isEmpty {
             var added = false
@@ -371,7 +381,6 @@ public final class ModuleManager {
             }
             if added { onPendingReviewChange?() }
         }
-        let settingsChanged = paths.contains { $0.hasSuffix("settings.json") }
         if settingsChanged {
             engine.configStore = workspace.readSettings()
             onDidReload?()
