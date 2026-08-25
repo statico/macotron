@@ -1,3 +1,4 @@
+import AppKit
 import ApplicationServices
 import CQuickJS
 import Foundation
@@ -28,9 +29,12 @@ public final class AXModule: NativeModule {
 
         JS_SetPropertyStr(ctx, ax, "selectedText", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            if AXModule.dryRun(ctx) { return QJS_Null() }
-            guard let text = AXTree.selectedText() else { return QJS_Null() }
-            return JSBridge.newString(ctx, text)
+            // NSWorkspace only answers on the main thread; the polling read that
+            // needs the pid does not run there.
+            let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier
+            return JSBridge.promise(ctx, dryRun: NSNull()) {
+                .of(AXTree.selectedText(frontmostPID: pid))
+            }
         }, "selectedText", 0))
 
         JS_SetPropertyStr(ctx, ax, "children", JS_NewCFunction(ctx, { ctx, _, argc, argv in
