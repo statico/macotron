@@ -64,5 +64,21 @@
     </array>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright 2026. All rights reserved.</string>
+    <!-- Sparkle self-updates. The feed is site/appcast.xml in this repo, which
+         Vercel serves at the domain root. The public key's other half lives in
+         the login keychain of the Mac that runs `make release`. -->
+    <key>SUFeedURL</key>
+    <string>https://macotron.statico.io/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>5EsMP78hecRMzlBFPezwdT5YlzP1OKifKlWGeE6X1KM=</string>
+    <!-- Check daily without asking first. Without this Sparkle interrupts the
+         first launch to ask whether it may check at all. -->
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <!-- Check the signature before mounting. Sparkle otherwise hands an
+         unverified disk image to hdiutil, so a hijacked feed would get the
+         kernel to parse an attacker's file before anything rejects it. -->
+    <key>SUVerifyUpdateBeforeExtraction</key>
+    <true/>
 </dict>
 </plist>

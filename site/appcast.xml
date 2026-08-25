@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sparkle update feed, served at https://macotron.statico.io/appcast.xml.
+     scripts/update-appcast.sh adds an item per release; do not edit by hand. -->
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+    <channel>
+        <title>Macotron</title>
+        <link>https://macotron.statico.io/appcast.xml</link>
+        <description>Macotron releases</description>
+        <language>en</language>
+        <!-- newest first -->
+    </channel>
+</rss>

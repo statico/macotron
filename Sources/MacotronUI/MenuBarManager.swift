@@ -58,6 +58,9 @@ public final class MenuBarManager: NSObject {
     private var hotReload = false
     private var pendingReviewCount = 0
 
+    /// Update version the menu was last built with, so it is rebuilt once.
+    private var shownUpdateVersion: String?
+
     /// Dot overlay on the status button.
     private var badgeView: NSView?
 
@@ -65,6 +68,7 @@ public final class MenuBarManager: NSObject {
     public var onOpenConfig: (() -> Void)?
     public var onToggleLauncher: (() -> Void)?
     public var onOpenSettings: (() -> Void)?
+    public var onCheckForUpdates: (() -> Void)?
     public var onOpenPermissions: (() -> Void)?
     public var onToggleHotReload: ((Bool) -> Void)?
     public var onReviewPending: (() -> Void)?
@@ -436,6 +440,16 @@ public final class MenuBarManager: NSObject {
         openConfig.image = Self.menuSymbol("folder")
         menu.addItem(openConfig)
 
+        let pending = Updater.pendingVersion
+        let updates = NSMenuItem(
+            title: pending.map { "Update to \($0)..." } ?? "Check for Updates...",
+            action: #selector(checkForUpdatesAction),
+            keyEquivalent: ""
+        )
+        updates.target = self
+        updates.image = Self.menuSymbol(pending == nil ? "arrow.down.circle" : "sparkles")
+        menu.addItem(updates)
+
         let settings = NSMenuItem(title: "Settings...", action: #selector(openSettingsAction), keyEquivalent: "")
         settings.target = self
         settings.image = Self.menuSymbol("gearshape")
@@ -549,6 +563,10 @@ public final class MenuBarManager: NSObject {
         onOpenSettings?()
     }
 
+    @objc private func checkForUpdatesAction() {
+        onCheckForUpdates?()
+    }
+
     @objc private func toggleHotReloadAction() {
         onToggleHotReload?(!hotReload)
     }
@@ -561,5 +579,11 @@ public final class MenuBarManager: NSObject {
 extension MenuBarManager: NSMenuDelegate {
     public func menuNeedsUpdate(_ menu: NSMenu) {
         StepTimer.measure("menuNeedsUpdate") { onMenuWillOpen?() }
+        // A scheduled check can find an update at any time, and nothing else
+        // rebuilds the menu when it does.
+        if shownUpdateVersion != Updater.pendingVersion {
+            shownUpdateVersion = Updater.pendingVersion
+            rebuildMenu()
+        }
     }
 }
