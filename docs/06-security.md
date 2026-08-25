@@ -34,6 +34,12 @@ The first check calls the system request API for each missing permission. That c
 
 **Not sandboxed.** Distribution is a direct `.dmg` download (notarized). A Homebrew cask is optional and is not required to run Macotron.
 
+## Updates
+
+Macotron updates itself with Sparkle. It checks daily, the menu has **Check for Updates...**, and Settings > General has **Check for updates automatically**.
+
+The feed lives at `https://macotron.statico.io/appcast.xml` and is fetched over HTTPS, but that is not what makes it trustworthy. Every DMG in the feed carries an EdDSA signature, and the app only installs one that verifies against the public key baked into its own signed `Info.plist`. A hijacked feed or a swapped download cannot install anything. The private half never leaves the release Mac's login keychain; see `docs/releasing.md`.
+
 ## Secrets
 
 Store secrets in the macOS Keychain through `macotron.keychain`. Do not put API keys in plugin source, `settings.json`, or git history.
@@ -136,3 +142,4 @@ Commit often on `main`. Do not commit secrets.
 | Plugin file rewritten on disk | SHA-256 in Keychain. Mismatch does not execute unless Hot Reload is on or the user overrides after a scan |
 | Screen or clipboard sent to models | Structured delimiters plus ignore-instructions framing |
 | `macotron://` deep links from other apps | Confirmation alert before dispatch. Payloads documented as untrusted |
+| Tampered update or hijacked feed | EdDSA signature on every DMG, checked against the public key in the signed app bundle |

@@ -58,6 +58,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         setupMainMenu()
 
         engine = Engine()
+        Updater.start()
 
         // Wired before bootstrap so the wizard can show permissions even when no
         // workspace exists yet.
@@ -183,6 +184,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.launcherPanel.orderOut(nil)
             self?.settingsWindow.show()
         }
+        menuBarManager.onCheckForUpdates = { Updater.checkForUpdates() }
         menuBarManager.onOpenPermissions = { [weak self] in
             guard let self else { return }
             self.launcherPanel.orderOut(nil)
@@ -347,6 +349,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.readLaunchAtLogin = { LaunchAtLogin.isEnabled }
         settingsState.writeLaunchAtLogin = { value in
             LaunchAtLogin.setEnabled(value)
+        }
+        settingsState.readAutomaticUpdates = { Updater.automaticallyChecks }
+        settingsState.writeAutomaticUpdates = { value in
+            Updater.automaticallyChecks = value
         }
         settingsState.readAppearance = { [weak self] in
             AppearanceSetting.parse(self?.readUIValue("appearance"))

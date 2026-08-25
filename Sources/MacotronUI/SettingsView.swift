@@ -180,6 +180,7 @@ public final class SettingsState: ObservableObject {
     @Published public var showHotkeysHotkey: String = "" { didSet { claimsCache = nil } }
     @Published public var showMenuBarIcon: Bool = true
     @Published public var launchAtLogin: Bool = false
+    @Published public var automaticUpdates: Bool = true
     @Published public var appearance: AppearanceSetting = .system
     @Published public var textScale: Double = 1.0
     @Published public var launcherBackground: LauncherBackground = .translucent
@@ -221,6 +222,8 @@ public final class SettingsState: ObservableObject {
     public var writeShowMenuBarIcon: ((Bool) -> Void)?
     public var readLaunchAtLogin: (() -> Bool)?
     public var writeLaunchAtLogin: ((Bool) -> Void)?
+    public var readAutomaticUpdates: (() -> Bool)?
+    public var writeAutomaticUpdates: ((Bool) -> Void)?
     public var readAppearance: (() -> AppearanceSetting)?
     public var writeAppearance: ((AppearanceSetting) -> Void)?
     public var readTextScale: (() -> Double)?
@@ -253,6 +256,7 @@ public final class SettingsState: ObservableObject {
         showHotkeysHotkey = readShowHotkeysHotkey?() ?? ""
         showMenuBarIcon = readShowMenuBarIcon?() ?? true
         launchAtLogin = readLaunchAtLogin?() ?? false
+        automaticUpdates = readAutomaticUpdates?() ?? true
         appearance = readAppearance?() ?? .system
         textScale = readTextScale?() ?? 1.0
         launcherBackground = readLauncherBackground?() ?? .translucent
@@ -320,6 +324,11 @@ public final class SettingsState: ObservableObject {
                 alert.runModal()
             }
         }
+    }
+
+    public func setAutomaticUpdates(_ value: Bool) {
+        writeAutomaticUpdates?(value)
+        automaticUpdates = readAutomaticUpdates?() ?? value
     }
 
     public func selectAppearance(_ value: AppearanceSetting) {
@@ -679,6 +688,14 @@ public struct SettingsView: View {
                     Toggle("Open Macotron when you log in", isOn: Binding(
                         get: { state.launchAtLogin },
                         set: { state.toggleLaunchAtLogin($0) }
+                    ))
+                    .toggleStyle(.checkbox)
+                }
+
+                formRow("Updates") {
+                    Toggle("Check for updates automatically", isOn: Binding(
+                        get: { state.automaticUpdates },
+                        set: { state.setAutomaticUpdates($0) }
                     ))
                     .toggleStyle(.checkbox)
                 }

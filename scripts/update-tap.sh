@@ -12,6 +12,22 @@ dmg=${2:?usage: update-tap.sh VERSION DMG}
 sha=$(shasum -a 256 "$dmg" | cut -d' ' -f1)
 tap=${TAP_DIR:-/tmp/macotron-build/tap}
 
+# `brew upgrade` skips a cask that says auto_updates, and 0.2.7 and earlier have
+# no Sparkle in them. So the first release that ships Sparkle has to go out
+# without the stanza -- otherwise brew stops upgrading people who are still on a
+# build that cannot update itself, and both channels close at once. Every
+# release after it hands the job over to Sparkle.
+first_sparkle_release=0.2.8
+if [ "$version" = "$first_sparkle_release" ]; then
+  auto_updates=""
+else
+  auto_updates="  # Macotron updates itself with Sparkle. Without this, brew would offer an
+  # upgrade the app has already installed, then disagree about what is there.
+  auto_updates true
+
+"
+fi
+
 rm -rf "$tap"
 git clone -q git@github.com:statico/homebrew-tap.git "$tap"
 mkdir -p "$tap/Casks"
@@ -31,12 +47,13 @@ cask "macotron" do
     strategy :github_latest
   end
 
-  depends_on macos: :sequoia
+${auto_updates}  depends_on macos: :sequoia
 
   app "Macotron.app"
 
   zap trash: [
     "~/Library/Application Support/Macotron",
+    "~/Library/Caches/io.statico.macotron",
     "~/Library/Preferences/io.statico.macotron.plist",
     "~/Library/Saved Application State/io.statico.macotron.savedState",
   ]

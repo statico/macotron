@@ -43,6 +43,13 @@ endif
 
 # Hardened runtime is required alongside a Developer ID, and notarization later.
 SIGN_FLAGS = $(if $(findstring Developer ID,$(SIGN_IDENTITY)),--options runtime,)
+# Ad-hoc is the fallback everywhere, so nested code has one identity to use.
+SIGN = $(if $(SIGN_IDENTITY),$(SIGN_IDENTITY),-)
+
+# Sparkle arrives as a prebuilt XCFramework next to the command-line tools that
+# sign updates. SwiftPM only unpacks it; embedding and signing are on us.
+SPARKLE_DIR = $(BUILD_DIR)/artifacts/sparkle/Sparkle
+SPARKLE_FRAMEWORK = $(SPARKLE_DIR)/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework
 
 .DEFAULT_GOAL := help
 
@@ -67,8 +74,10 @@ TRACE_LOG ?= tmp/log
 
 # SWIFT_FLAGS='--disable-sandbox' when make itself runs inside a sandbox:
 # SwiftPM cannot nest its own sandbox-exec inside one.
+# --disable-keychain: with more than one github.com entry in the login keychain
+# SwiftPM hangs forever downloading Sparkle instead of fetching it anonymously.
 build: ## Compile the debug binary
-	swift build -c $(CONFIG) --build-path $(BUILD_DIR) $(SWIFT_FLAGS)
+	swift build -c $(CONFIG) --build-path $(BUILD_DIR) --disable-keychain $(SWIFT_FLAGS)
 
 bundle: build ## Create ~/Applications/Macotron.app
 	@mkdir -p "$(BUNDLE)/Contents/MacOS"
@@ -92,6 +101,22 @@ bundle: build ## Create ~/Applications/Macotron.app
 	@/bin/rm -f "$(BUNDLE)/Contents/Resources/Catalog/"*.js
 	@cp Resources/Catalog/catalog.json "$(BUNDLE)/Contents/Resources/Catalog/"
 	@cp Examples/plugins/*.js "$(BUNDLE)/Contents/Resources/Catalog/"
+	@test -d "$(SPARKLE_FRAMEWORK)" || \
+		{ echo "Missing $(SPARKLE_FRAMEWORK). Run make build first."; exit 1; }
+	@mkdir -p "$(BUNDLE)/Contents/Frameworks"
+	@rm -rf "$(BUNDLE)/Contents/Frameworks/Sparkle.framework"
+	@ditto "$(SPARKLE_FRAMEWORK)" "$(BUNDLE)/Contents/Frameworks/Sparkle.framework"
+	@# Sparkle ships signed by the Sparkle project. Notarization wants our
+	@# Developer ID on every binary, and codesign seals nested code first, so
+	@# the helpers have to be re-signed before the framework wrapping them.
+	@sparkle="$(BUNDLE)/Contents/Frameworks/Sparkle.framework/Versions/B"; \
+	test -d "$$sparkle" || { echo "Sparkle.framework has no Versions/B."; exit 1; }; \
+	for nested in "$$sparkle"/XPCServices/*.xpc "$$sparkle/Updater.app" "$$sparkle/Autoupdate"; do \
+		[ -e "$$nested" ] || continue; \
+		codesign --force --sign "$(SIGN)" $(SIGN_FLAGS) "$$nested"; \
+	done; \
+	codesign --force --sign "$(SIGN)" $(SIGN_FLAGS) \
+		"$(BUNDLE)/Contents/Frameworks/Sparkle.framework"
 	@if [ -n "$(SIGN_IDENTITY)" ]; then \
 		codesign --force --sign "$(SIGN_IDENTITY)" $(SIGN_FLAGS) \
 			"$(BUNDLE)/Contents/MacOS/$(HELPER_NAME)"; \
@@ -150,7 +175,7 @@ release: ## Tag, build, and ship a release + Homebrew cask (VERSION=x.y.z)
 			git log --reverse --no-merges --pretty='- %s' $$prev..HEAD \
 				> $(BUILD_DIR)/notes.md; \
 		else \
-			echo "First release." > $(BUILD_DIR)/notes.md; \
+			echo "- First release." > $(BUILD_DIR)/notes.md; \
 		fi
 	@echo "Release notes:"; sed 's/^/  /' $(BUILD_DIR)/notes.md
 	@$(MAKE) CONFIG=release VERSION=$(VERSION) bundle
@@ -178,11 +203,19 @@ release: ## Tag, build, and ship a release + Homebrew cask (VERSION=x.y.z)
 	@if [ -z "$(ALLOW_UNNOTARIZED)" ]; then xcrun stapler validate "$(DMG)"; fi
 	@echo "Built $(DMG)"
 	@# An unnotarized DMG is a local test build; nobody should download it.
+	@# The appcast has to be signed after stapling, which rewrites the DMG, and
+	@# committed before the tag so the tag matches what the feed describes. The
+	@# branch is pushed last because that deploys the feed, and a feed that
+	@# names a DMG GitHub has not finished uploading is a 404 for everyone.
 	@if [ -n "$(ALLOW_UNNOTARIZED)" ]; then echo "Not published: ALLOW_UNNOTARIZED."; else set -x; \
+		SPARKLE_DIR=$(SPARKLE_DIR) scripts/update-appcast.sh $(VERSION) "$(DMG)" $(BUILD_DIR)/notes.md && \
+		git add site/appcast.xml && \
+		git commit -qm "Appcast for $(VERSION)" -- site/appcast.xml && \
 		git tag -a v$(VERSION) -m "$(APP_NAME) $(VERSION)" && \
-		git push origin HEAD v$(VERSION) && \
+		git push origin v$(VERSION) && \
 		gh release create v$(VERSION) "$(DMG)" --title "$(APP_NAME) $(VERSION)" \
 			--notes-file $(BUILD_DIR)/notes.md && \
+		git push origin HEAD && \
 		scripts/update-tap.sh $(VERSION) "$(DMG)"; \
 	fi
 

@@ -4,6 +4,11 @@ import PackageDescription
 let package = Package(
     name: "Macotron",
     platforms: [.macOS(.v15)],
+    dependencies: [
+        // Self-updates. Ships as a prebuilt XCFramework, so `make bundle` copies
+        // and signs Sparkle.framework into the app.
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.8.0"),
+    ],
     targets: [
         // QuickJS C library (quickjs-ng amalgam build)
         .target(
@@ -32,7 +37,10 @@ let package = Package(
         // UI (LauncherPanel + MenuBar + SwiftUI views)
         .target(
             name: "MacotronUI",
-            dependencies: ["MacotronEngine"],
+            dependencies: [
+                "MacotronEngine",
+                .product(name: "Sparkle", package: "Sparkle"),
+            ],
             path: "Sources/MacotronUI"
         ),
 
@@ -82,6 +90,14 @@ let package = Package(
             resources: [
                 .copy("Resources/macotron-runtime.js"),
                 .copy("Resources/macotron.d.ts"),
+            ],
+            linkerSettings: [
+                // `make bundle` copies Sparkle.framework into the app, so the
+                // executable has to look there for it at launch.
+                .unsafeFlags([
+                    "-Xlinker", "-rpath",
+                    "-Xlinker", "@executable_path/../Frameworks",
+                ]),
             ]
         ),
 

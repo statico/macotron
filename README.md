@@ -23,6 +23,8 @@ Pick one:
 - [Download for macOS](https://github.com/statico/macotron/releases/latest)
 - `brew install statico/tap/macotron`
 
+Either way, Macotron updates itself after that. It checks daily and asks before installing anything; **Check for Updates...** in the menu checks right now, and Settings > General turns the automatic check off.
+
 ## Quickstart
 
 1. Download, install, and open Macotron
@@ -96,6 +98,8 @@ Shell commands require approval the first time they're run.
 
 Plugins can define secrets that are stored in the Keychain instead of on disk.
 
+Updates are signed. Macotron only installs one that verifies against the key inside the copy you already have, so a hijacked download can't replace it.
+
 ## Contributing
 
 Due to the hopelessness of reviewing code contributions in the AI era, pull requests have been disabled. Instead, file an issue to report a bug or request a feature.
@@ -123,10 +127,11 @@ Macotron is MIT licensed. See [LICENSE](LICENSE).
 | Component | Location | License |
 |---|---|---|
 | [QuickJS-ng](https://github.com/quickjs-ng/quickjs), the JavaScript engine | `Vendor/quickjs-ng/` | MIT |
+| [Sparkle](https://sparkle-project.org), the self-update framework | Swift package, embedded in the app bundle | MIT |
 
 QuickJS-ng is the only vendored dependency. It ships here as an amalgamated `quickjs-amalgam.c` plus headers, with the upstream copyright notices intact in the source: Fabrice Bellard, Charlie Gordon, Ben Noordhuis, Saúl Ibarra Corretgé, and Marcin Kolny. The vendored version is whatever `QJS_VERSION_*` in `Vendor/quickjs-ng/include/quickjs.h` says. `quickjs-swift-helpers.c` is Macotron's own shim, not upstream code.
 
-Everything else is first-party Swift or an Apple-shipped framework. There are no Swift package dependencies, no npm, and no Homebrew.
+Everything else is first-party Swift or an Apple-shipped framework. Sparkle is the only Swift package dependency. No npm, no Homebrew.
 
 ### AI Disclaimer
 
