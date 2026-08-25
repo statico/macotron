@@ -68,6 +68,8 @@ final class PluginStatusItem: NSObject {
 
     var isVisible: Bool { item.isVisible }
 
+    var autosaveName: String? { item.autosaveName }
+
     func restore() {
         item.isVisible = true
     }
@@ -75,6 +77,12 @@ final class PluginStatusItem: NSObject {
     init(id: String) {
         self.id = id
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        // Unnamed items are saved under their creation index -- "Item-3" --
+        // and plugins paint in whatever order they finish loading, so every
+        // launch handed an item somebody else's remembered slot. Two items
+        // claiming one slot leaves one of them undrawn while AppKit still
+        // reports it visible, which reads as "my menu bar item vanished".
+        item.autosaveName = "macotron-\(id)"
         super.init()
         visibility = item.observe(\.isVisible, options: [.new]) { [weak self] item, _ in
             let visible = item.isVisible
