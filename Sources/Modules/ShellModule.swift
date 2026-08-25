@@ -57,93 +57,41 @@ public final class ShellModule: NativeModule {
                 }
             }
 
-            // Create promise
-            var resolvingFuncs = [JSValue](repeating: QJS_Undefined(), count: 2)
-            let promise = JS_NewPromiseCapability(ctx, &resolvingFuncs)
-            let resolve = JS_DupValue(ctx, resolvingFuncs[0])
-            let reject = JS_DupValue(ctx, resolvingFuncs[1])
-            JS_FreeValue(ctx, resolvingFuncs[0])
-            JS_FreeValue(ctx, resolvingFuncs[1])
-
-            // Retrieve engine reference
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return promise }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            if engine.dryRun {
-                let resultObj = JS_NewObject(ctx)
-                JSBridge.setProperty(ctx, resultObj, "stdout", JSBridge.newString(ctx, ""))
-                JSBridge.setProperty(ctx, resultObj, "stderr", JSBridge.newString(ctx, ""))
-                JSBridge.setProperty(ctx, resultObj, "exitCode", JSBridge.newInt32(ctx, 0))
-                var resultArg = resultObj
-                _ = JS_Call(ctx, resolve, QJS_Undefined(), 1, &resultArg)
-                JS_FreeValue(ctx, resolve)
-                JS_FreeValue(ctx, reject)
-                JS_FreeValue(ctx, resultObj)
-                engine.drainJobQueue()
-                return promise
-            }
-            let token = engine.registerPending(resolve: resolve, reject: reject)
+            let dryResult: [String: Any] = ["stdout": "", "stderr": "", "exitCode": 0]
             let capturedArgs = args
-            nonisolated(unsafe) let capturedCtx = ctx
-
-            DispatchQueue.global(qos: .userInitiated).async {
-                do {
-                    let process = Process()
-                    process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-                    // Build full command line: command + args
-                    var fullCmd = command
-                    for arg in capturedArgs {
-                        // Simple shell-escape: wrap each arg in single quotes
-                        let escaped = arg.replacingOccurrences(of: "'", with: "'\\''")
-                        fullCmd += " '\(escaped)'"
-                    }
-                    process.arguments = ["-c", fullCmd]
-
-                    let stdoutPipe = Pipe()
-                    let stderrPipe = Pipe()
-                    process.standardOutput = stdoutPipe
-                    process.standardError = stderrPipe
-
-                    try process.run()
-                    process.waitUntilExit()
-
-                    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-                    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-                    let stdoutStr = String(data: stdoutData, encoding: .utf8) ?? ""
-                    let stderrStr = String(data: stderrData, encoding: .utf8) ?? ""
-                    let exitCode = process.terminationStatus
-
-                    DispatchQueue.main.async {
-                        guard let pending = engine.claimPending(token) else { return }
-                        let resultObj = JS_NewObject(capturedCtx)
-                        JSBridge.setProperty(capturedCtx, resultObj, "stdout",
-                                             JSBridge.newString(capturedCtx, stdoutStr))
-                        JSBridge.setProperty(capturedCtx, resultObj, "stderr",
-                                             JSBridge.newString(capturedCtx, stderrStr))
-                        JSBridge.setProperty(capturedCtx, resultObj, "exitCode",
-                                             JSBridge.newInt32(capturedCtx, exitCode))
-
-                        var resultArg = resultObj
-                        _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &resultArg)
-                        JS_FreeValue(capturedCtx, pending.resolve)
-                        JS_FreeValue(capturedCtx, pending.reject)
-                        JS_FreeValue(capturedCtx, resultObj)
-                        engine.drainJobQueue()
-                    }
-                } catch {
-                    DispatchQueue.main.async {
-                        guard let pending = engine.claimPending(token) else { return }
-                        var errArg = JSBridge.newString(capturedCtx, "shell.run failed: \(error.localizedDescription)")
-                        _ = JS_Call(capturedCtx, pending.reject, QJS_Undefined(), 1, &errArg)
-                        JS_FreeValue(capturedCtx, pending.resolve)
-                        JS_FreeValue(capturedCtx, pending.reject)
-                        JS_FreeValue(capturedCtx, errArg)
-                        engine.drainJobQueue()
-                    }
+            return JSBridge.promise(ctx, dryRun: dryResult) {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+                var fullCmd = command
+                for arg in capturedArgs {
+                    // Simple shell-escape: wrap each arg in single quotes
+                    let escaped = arg.replacingOccurrences(of: "'", with: "'\\''")
+                    fullCmd += " '\(escaped)'"
                 }
-            }
+                process.arguments = ["-c", fullCmd]
 
-            return promise
+                let stdoutPipe = Pipe()
+                let stderrPipe = Pipe()
+                process.standardOutput = stdoutPipe
+                process.standardError = stderrPipe
+
+                do {
+                    try process.run()
+                } catch {
+                    return .failure("shell.run failed: \(error.localizedDescription)")
+                }
+                // Read before waiting: a command that fills the 64K pipe buffer
+                // blocks on write forever if nobody is draining it.
+                let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+                let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                process.waitUntilExit()
+
+                return .value([
+                    "stdout": String(data: stdoutData, encoding: .utf8) ?? "",
+                    "stderr": String(data: stderrData, encoding: .utf8) ?? "",
+                    "exitCode": Int(process.terminationStatus),
+                ] as [String: Any])
+            }
         }, "run", 2))
         JS_SetPropertyStr(ctx, macotron, "shell", shellObj)
 

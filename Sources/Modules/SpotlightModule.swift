@@ -95,44 +95,15 @@ public final class SpotlightModule: NativeModule {
                 kind = opts["kind"] as? String
             }
 
-            var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
-            let promise = JS_NewPromiseCapability(ctx, &resolving)
-            let resolve = JS_DupValue(ctx, resolving[0])
-            let reject = JS_DupValue(ctx, resolving[1])
-            JS_FreeValue(ctx, resolving[0])
-            JS_FreeValue(ctx, resolving[1])
-
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return promise }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            nonisolated(unsafe) let capturedCtx = ctx
-
-            if engine.dryRun || SpotlightSearch.queryString(queryString, kind: kind) == nil {
-                var value = JSBridge.newArray(ctx, [])
-                _ = JS_Call(ctx, resolve, QJS_Undefined(), 1, &value)
-                JS_FreeValue(ctx, value)
-                JS_FreeValue(ctx, resolve)
-                JS_FreeValue(ctx, reject)
-                engine.drainJobQueue()
-                return promise
-            }
-
             let searchFolder = folder
             let searchKind = kind
-            let token = engine.registerPending(resolve: resolve, reject: reject)
-            DispatchQueue.global(qos: .userInitiated).async {
-                let rows = SpotlightSearch.run(queryString, folder: searchFolder, kind: searchKind)
-                DispatchQueue.main.async {
-                    guard let pending = engine.claimPending(token) else { return }
-                    var value = JSBridge.newArray(capturedCtx, rows.map { $0 as Any })
-                    _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
-                    JS_FreeValue(capturedCtx, value)
-                    JS_FreeValue(capturedCtx, pending.resolve)
-                    JS_FreeValue(capturedCtx, pending.reject)
-                    engine.drainJobQueue()
-                }
+            guard SpotlightSearch.queryString(queryString, kind: kind) != nil else {
+                return JSBridge.promise(ctx, dryRun: [Any]()) { .value([Any]()) }
             }
-            return promise
+            return JSBridge.promise(ctx, dryRun: [Any]()) {
+                .value(SpotlightSearch.run(queryString, folder: searchFolder, kind: searchKind)
+                    .map { $0 as Any })
+            }
         }, "search", 2))
 
         JS_SetPropertyStr(ctx, macotronObj, "spotlight", spotlightObj)
