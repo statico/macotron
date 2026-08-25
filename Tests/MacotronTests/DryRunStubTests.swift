@@ -22,11 +22,15 @@ struct DryRunStubTests {
         let engine = dryEngine([ShellModule()])
         let (_, error) = engine.evaluate("""
             globalThis.out = null;
-            macotron.shell.run('touch', ['\(marker)']).then(r => { globalThis.out = JSON.stringify(r); });
+            macotron.shell.run('touch', ['\(marker)']).then(r => {
+              // Field-by-field, not JSON.stringify: property order is not part
+              // of the contract and asserting it just breaks on a refactor.
+              globalThis.out = [r.stdout, r.stderr, r.exitCode].join('|');
+            });
             """)
         #expect(error == nil)
         let (result, _) = engine.evaluate("globalThis.out")
-        #expect(result == #"{"stdout":"","stderr":"","exitCode":0}"#)
+        #expect(result == "||0")
         #expect(!FileManager.default.fileExists(atPath: marker))
     }
 
