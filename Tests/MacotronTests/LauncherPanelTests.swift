@@ -37,3 +37,24 @@ struct LauncherPanelTests {
         #expect(center.alphaComponent > 0.5)
     }
 }
+
+@MainActor
+@Suite("LauncherSearchDebounce")
+struct LauncherSearchDebounceTests {
+    @Test("opening the launcher and the first letter after it search at once")
+    func firstKeystrokeIsInstant() {
+        #expect(LauncherView.searchDelay(query: "", applied: "") == nil)
+        #expect(LauncherView.searchDelay(query: "s", applied: "") == nil)
+    }
+
+    @Test("further typing waits")
+    func typingWaits() {
+        #expect(LauncherView.searchDelay(query: "sa", applied: "s") == .milliseconds(80))
+        #expect(LauncherView.searchDelay(query: "", applied: "s") == .milliseconds(80))
+    }
+
+    @Test("a refresh of the query already on screen does not wait")
+    func refreshIsInstant() {
+        #expect(LauncherView.searchDelay(query: "safari", applied: "safari") == nil)
+    }
+}
