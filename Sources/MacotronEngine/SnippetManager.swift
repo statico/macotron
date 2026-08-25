@@ -91,6 +91,37 @@ public final class ModuleManager {
         saveModuleSettings(settings)
     }
 
+    // MARK: - Remembered metadata
+
+    /// A disabled plugin is never evaluated, so it declares no title, options
+    /// or permissions this time round -- and its Settings page came up bare,
+    /// which reads as "switching it off threw my settings away" even though
+    /// the values were still in settings.json. Keep what each plugin declared
+    /// the last time it loaded, and show that while it is off.
+    private var metadataCache: URL { cacheDir.appending(path: "plugin-meta.json") }
+
+    public func rememberMetadata(_ metadata: [String: [String: Any]]) {
+        var stored = rememberedMetadata()
+        for (filename, meta) in metadata {
+            stored[filename] = meta
+        }
+        guard JSONSerialization.isValidJSONObject(stored) else { return }
+        do {
+            let data = try JSONSerialization.data(withJSONObject: stored, options: [.sortedKeys, .prettyPrinted])
+            try data.write(to: metadataCache, options: .atomic)
+        } catch {
+            logger.error("Failed to save plugin metadata: \(error)")
+        }
+    }
+
+    public func rememberedMetadata() -> [String: [String: Any]] {
+        guard let data = try? Data(contentsOf: metadataCache),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: [String: Any]] else {
+            return [:]
+        }
+        return dict
+    }
+
     /// Filenames the user disabled in Settings. Disabled plugins stay on disk
     /// but are never evaluated.
     public func disabledPlugins() -> Set<String> {
@@ -150,6 +181,7 @@ public final class ModuleManager {
         timer.step("\(pluginFiles.count) plugins")
 
         engine.notifyModulesDidReload()
+        rememberMetadata(engine.moduleMetadata)
         timer.step("modulesDidReload")
         logger.info("Loaded \(pluginFiles.count) plugins. Ready.")
         onDidReload?()

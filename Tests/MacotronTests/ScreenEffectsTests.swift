@@ -17,6 +17,12 @@ struct ScreenEffectsTests {
         let url = pluginURL()
         let pluginSource = try String(contentsOf: url, encoding: .utf8)
         let harness = """
+            var store = {};
+            var localStorage = {
+                getItem: (k) => (k in store ? store[k] : null),
+                setItem: (k, v) => { store[k] = String(v); },
+                removeItem: (k) => { delete store[k]; }
+            };
             var calls = [];
             var commands = {};
             var toasts = [];

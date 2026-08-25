@@ -512,6 +512,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             uniquingKeysWith: { first, _ in first }
         )
         let metadata = engine.moduleMetadata
+        // A disabled plugin declares nothing this run; fall back to what it
+        // declared last time so its options stay on the page.
+        let remembered = moduleManager.rememberedMetadata()
         let settingsJSON = workspace.readSettings()
         let settings = settingsJSON["pluginSettings"] as? [String: [String: Any]] ?? [:]
         let disabled = Set(settingsJSON["disabledPlugins"] as? [String] ?? [])
@@ -523,7 +526,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             let isEnabled = !disabled.contains(file.filename)
             let events = isEnabled ? (engine.pluginEvents[file.filename] ?? []) : []
 
-            let meta = metadata[file.filename] ?? [:]
+            let meta = metadata[file.filename] ?? remembered[file.filename] ?? [:]
             let metaTitle = nonEmptyString(meta["title"])
             let metaDescription = nonEmptyString(meta["description"])
             let header = (metaTitle == nil || metaDescription == nil)
