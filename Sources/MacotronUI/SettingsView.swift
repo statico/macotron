@@ -1151,14 +1151,16 @@ struct PluginDetailView: View {
                 if !summary.checks.isEmpty { checksSection }
                 if !summary.hiddenStatusItems.isEmpty { hiddenStatusSection }
 
-                if !summary.isEnabled {
-                    disabledHint
-                } else {
+                if !summary.isEnabled { disabledHint }
+                if summary.isEnabled {
                     if !summary.hotkeys.isEmpty { hotkeysSection }
                     if !summary.commands.isEmpty { commandsSection }
-                    if !summary.options.isEmpty { settingsSection }
-                    if !summary.events.isEmpty { eventsSection }
                 }
+                // Settings stay editable while a plugin is off: they are the
+                // user's, not the plugin's, and a switched-off plugin is often
+                // switched off precisely to be set up before it runs.
+                if !summary.options.isEmpty { settingsSection }
+                if summary.isEnabled, !summary.events.isEmpty { eventsSection }
             }
             .padding(20)
         }
@@ -1453,6 +1455,9 @@ struct ModuleOptionRow: View {
     @State private var hotkeyValue: String = ""
     @State private var passwordValue: String = ""
     @FocusState private var editing: Bool
+    /// Pending debounced save. Typing used to be committed on Return alone, so
+    /// a value typed and then clicked away from was simply dropped.
+    @State private var pendingSave: DispatchWorkItem?
 
     var body: some View {
         HStack(alignment: option.type == "text" || !option.help.isEmpty ? .top : .center, spacing: 12) {
@@ -1470,6 +1475,30 @@ struct ModuleOptionRow: View {
             }
             Spacer(minLength: 0)
         }
+    }
+
+    /// Save `value`, once the user has stopped typing for `after` seconds.
+    /// Every save reloads every plugin, so an unchanged value saves nothing.
+    private func commit(_ value: Any, after delay: TimeInterval = 0) {
+        pendingSave?.cancel()
+        pendingSave = nil
+        if let text = value as? String, text == (option.currentValue as? String) ?? "" { return }
+        // Through JSON and JS a number arrives as Int, Double or NSNumber, and
+        // a mismatch here would save on every appearance -- and every save
+        // reloads, which brings the field straight back round.
+        if let number = value as? Double,
+           let current = option.currentValue as? NSNumber,
+           current.doubleValue == number { return }
+        let work = DispatchWorkItem {
+            state.saveModuleOption?(filename, option.key, value)
+            state.refreshModules()
+        }
+        guard delay > 0 else {
+            work.perform()
+            return
+        }
+        pendingSave = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
     }
 
     @ViewBuilder
@@ -1490,11 +1519,16 @@ struct ModuleOptionRow: View {
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 80)
                 .onAppear { numberValue = "\(option.currentValue)" }
+                .focused($editing)
+                .onChange(of: numberValue) {
+                    if let num = Double(numberValue) { commit(num, after: 1.2) }
+                }
+                .onChange(of: editing) {
+                    guard !editing, let num = Double(numberValue) else { return }
+                    commit(num)
+                }
                 .onSubmit {
-                    if let num = Double(numberValue) {
-                        state.saveModuleOption?(filename, option.key, num)
-                        state.refreshModules()
-                    }
+                    if let num = Double(numberValue) { commit(num) }
                 }
         case "keybinding":
             VStack(alignment: .leading, spacing: 4) {
@@ -1570,8 +1604,7 @@ struct ModuleOptionRow: View {
                 .focused($editing)
                 .onChange(of: editing) {
                     guard !editing else { return }
-                    state.saveModuleOption?(filename, option.key, stringValue)
-                    state.refreshModules()
+                    commit(stringValue)
                 }
         case "file", "directory":
             HStack(spacing: 8) {
@@ -1595,10 +1628,15 @@ struct ModuleOptionRow: View {
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: PluginForm.fieldMaxWidth)
                 .onAppear { stringValue = (option.currentValue as? String) ?? "" }
-                .onSubmit {
-                    state.saveModuleOption?(filename, option.key, stringValue)
-                    state.refreshModules()
+                .focused($editing)
+                // Typing settles into a save, so a changed value takes effect
+                // without a trip to the keyboard's Return key.
+                .onChange(of: stringValue) { commit(stringValue, after: 1.2) }
+                .onChange(of: editing) {
+                    guard !editing else { return }
+                    commit(stringValue)
                 }
+                .onSubmit { commit(stringValue) }
         }
     }
 
