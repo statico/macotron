@@ -852,11 +852,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func applyUIPrefsFromSettings() {
-        // Macotron lives in the menu bar and the launcher. Staying an accessory
-        // app keeps it out of the Dock and out of Cmd-Tab, so handling a link
-        // never displaces the app the link was clicked in. A window shown from
-        // Settings borrows .regular for as long as it is open.
-        NSApp.setActivationPolicy(.accessory)
         AppearanceSetting.parse(readUIValue("appearance")).apply()
         let rawScale = readUIValue("textScale") as? Double ?? 1.0
         launcherPrefs.textScale = CGFloat(LauncherPrefs.snapTextScale(rawScale))
