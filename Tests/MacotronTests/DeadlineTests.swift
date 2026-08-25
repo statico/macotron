@@ -101,3 +101,37 @@ struct DeadlineTests {
         #expect(error != nil)
     }
 }
+
+@MainActor
+@Suite("Recovery after an interrupt")
+struct DeadlineRecoveryTests {
+    /// An interrupt leaves a pending exception on the context. If that is not
+    /// cleared, every later call inherits it and the plugin looks dead rather
+    /// than merely slow — so the engine has to be fully usable afterwards.
+    @Test("the engine still works after a plugin is interrupted")
+    func engineRecovers() {
+        let engine = Engine()
+        engine.evaluate("globalThis.spin = function () { while (true) {} };")
+        let global = JS_GetGlobalObject(engine.context)
+        let spin = JSBridge.getProperty(engine.context, global, "spin")
+        JS_FreeValue(engine.context, global)
+
+        #expect(engine.callJS(spin, budget: 0.2, label: "spin") == nil)
+        JS_FreeValue(engine.context, spin)
+
+        let (result, error) = engine.evaluate("2 + 2")
+        #expect(error == nil, "engine unusable after an interrupt: \(error ?? "")")
+        #expect(result == "4")
+    }
+
+    @Test("a second plugin still runs after the first one is interrupted")
+    func siblingPluginSurvives() {
+        let engine = Engine()
+        engine.evaluate(Engine.isolatedPlugin("while (true) {}"))
+        let (result, error) = engine.evaluate(Engine.isolatedPlugin("globalThis.ok = 'yes';"))
+        #expect(error == nil)
+        #expect(result != nil)
+        let (value, _) = engine.evaluate("globalThis.ok")
+        #expect(value == "yes")
+    }
+}
