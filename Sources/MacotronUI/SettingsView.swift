@@ -178,7 +178,6 @@ public enum SettingsTab: Int, CaseIterable {
 public final class SettingsState: ObservableObject {
     @Published public var launcherHotkey: String = "opt+space" { didSet { claimsCache = nil } }
     @Published public var showHotkeysHotkey: String = "" { didSet { claimsCache = nil } }
-    @Published public var showDockIcon: Bool = true
     @Published public var showMenuBarIcon: Bool = true
     @Published public var launchAtLogin: Bool = false
     @Published public var appearance: AppearanceSetting = .system
@@ -218,8 +217,6 @@ public final class SettingsState: ObservableObject {
     public var readHotkey: (() -> String)?
     public var writeHotkey: ((String) -> Void)?
     public var readShowHotkeysHotkey: (() -> String)?
-    public var readShowDockIcon: (() -> Bool)?
-    public var writeShowDockIcon: ((Bool) -> Void)?
     public var readShowMenuBarIcon: (() -> Bool)?
     public var writeShowMenuBarIcon: ((Bool) -> Void)?
     public var readLaunchAtLogin: (() -> Bool)?
@@ -254,7 +251,6 @@ public final class SettingsState: ObservableObject {
     public func load() {
         launcherHotkey = readHotkey?() ?? "opt+space"
         showHotkeysHotkey = readShowHotkeysHotkey?() ?? ""
-        showDockIcon = readShowDockIcon?() ?? true
         showMenuBarIcon = readShowMenuBarIcon?() ?? true
         launchAtLogin = readLaunchAtLogin?() ?? false
         appearance = readAppearance?() ?? .system
@@ -302,11 +298,6 @@ public final class SettingsState: ObservableObject {
     public func saveShowHotkeysHotkey() {
         saveCommandShortcut?(HostCommands.showHotkeysID, showHotkeysHotkey)
         showHotkeysHotkey = readShowHotkeysHotkey?() ?? ""
-    }
-
-    public func toggleDockIcon(_ value: Bool) {
-        showDockIcon = value
-        writeShowDockIcon?(value)
     }
 
     public func toggleMenuBarIcon(_ value: Bool) {
@@ -692,22 +683,12 @@ public struct SettingsView: View {
                     .toggleStyle(.checkbox)
                 }
 
-                formRow("Dock Icon") {
-                    Toggle("Show Dock icon", isOn: Binding(
-                        get: { state.showDockIcon },
-                        set: { state.toggleDockIcon($0) }
-                    ))
-                    .toggleStyle(.checkbox)
-                    .disabled(!state.showMenuBarIcon)
-                }
-
                 formRow("Menu Bar Icon") {
                     Toggle("Show in menu bar", isOn: Binding(
                         get: { state.showMenuBarIcon },
                         set: { state.toggleMenuBarIcon($0) }
                     ))
                     .toggleStyle(.checkbox)
-                    .disabled(!state.showDockIcon)
                 }
 
                 formRow("Hot Reload") {

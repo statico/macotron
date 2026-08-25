@@ -420,7 +420,6 @@ public final class PluginWorkspace {
     public static let defaultSettings: [String: Any] = [
         "launcher": ["hotkey": "opt+space"],
         "ui": [
-            "showDockIcon": true,
             "showMenuBarIcon": true,
             "appearance": "system",
             "textScale": 1.0,
@@ -661,7 +660,6 @@ public final class PluginWorkspace {
         {
           "launcher": { "hotkey": "opt+space" },
           "ui": {
-            "showDockIcon": true,
             "showMenuBarIcon": true,
             "appearance": "system",
             "textScale": 1.0,
