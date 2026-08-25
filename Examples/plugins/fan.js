@@ -113,9 +113,10 @@ const saved = initial.floor ?? JSON.parse(localStorage.getItem(KEY) || "null");
 if (saved) macotron.system.setFanFloor(saved).then(render);
 macotron.every(2000, () => render(snapshot()));
 
-macotron.command("Toggle Fan 100%", "Hold fans at full speed, or restore system default", toggle);
-macotron.command("Fan 50%", "Hold fans at half speed, or restore system default", () => {
+macotron.command("Toggle Fan 50%", "Hold fans at half speed, or restore system default", () => {
     const s = snapshot();
     if (!s.controllable) return toggle();
     setFloor(s.floor === 50 ? null : 50);
 });
+macotron.command("Toggle Fan 100%", "Hold fans at full speed, or restore system default", toggle);
+
