@@ -264,6 +264,10 @@ public final class MenuBarManager: NSObject {
             self?.statusVisibilityChanged(id: id, visible: visible)
         }
         statusRegistered?.insert(id)
+        // An item dragged out stays out across launches, so it can come up
+        // hidden; the observer above only fires on a change and would never
+        // mention it.
+        statusVisibilityChanged(id: id, visible: extra.isVisible)
         extra.apply(
             title: title,
             subtitle: subtitle,
