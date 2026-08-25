@@ -22,6 +22,10 @@ final class MenuWebView: NSView {
         self.html = html
         self.pageSize = size
         super.init(frame: NSRect(origin: .zero, size: size))
+        // AppKit widens a menu to its widest row but leaves a custom view at
+        // the width it was made with, so the page sat against the left edge of
+        // a wider menu. Track the width and centre the page inside it.
+        autoresizingMask = [.width]
         addSubview(webView)
         webView.loadHTMLString(Self.page(html), baseURL: nil)
     }
@@ -76,6 +80,9 @@ final class MenuButtonRow: NSView {
 
     init(titles: [String], actions: [() -> Void], width: CGFloat) {
         super.init(frame: NSRect(x: 0, y: 0, width: width, height: 26))
+        // Spread the buttons across the menu's real width, not the width the
+        // plugin guessed (see MenuWebView).
+        autoresizingMask = [.width]
         update(titles: titles, actions: actions, width: width)
     }
 
