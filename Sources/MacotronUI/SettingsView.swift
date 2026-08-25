@@ -284,6 +284,10 @@ public final class SettingsState: ObservableObject {
     }
 
     public func refreshModules() {
+        // The app bundle can be replaced under a running app, and a catalog
+        // read once at launch then hands "Update" the copy that shipped with
+        // the old bundle.
+        catalogPlugins = PluginCatalog.load()
         moduleSummaries = loadModuleSummaries?() ?? []
     }
 
