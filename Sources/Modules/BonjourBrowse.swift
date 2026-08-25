@@ -44,6 +44,10 @@ private final class BonjourCollector: NSObject, NetServiceBrowserDelegate, NetSe
     private var services: [NetService] = []
     private(set) var rows: [[String: Any]] = []
 
+    /// Blocks its thread for the whole timeout, so callers must be off the main
+    /// one. NetServiceBrowser reports through the run loop of the thread that
+    /// started the search, which is why this spins one rather than sleeping:
+    /// a sleeping thread would collect nothing.
     func search(types: [String], timeout: TimeInterval) {
         for type in types {
             let browser = NetServiceBrowser()
