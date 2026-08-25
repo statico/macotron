@@ -200,14 +200,9 @@ public final class ScheduleModule: NativeModule {
         let start = CFAbsoluteTimeGetCurrent()
         defer { account(job.pluginFile, CFAbsoluteTimeGetCurrent() - start) }
         engine.withEvaluatingFile(job.pluginFile) {
-            let result = JS_Call(engine.context, job.callback, QJS_Undefined(), 0, nil)
-            if JS_IsException(result) {
-                let errStr = JSBridge.getExceptionString(engine.context)
-                logger.error("Schedule job \(job.id): \(errStr, privacy: .public)")
-            } else {
+            if let result = engine.callJS(job.callback, label: "schedule job \(job.id)") {
                 JS_FreeValue(engine.context, result)
             }
-            engine.drainJobQueue()
         }
     }
 

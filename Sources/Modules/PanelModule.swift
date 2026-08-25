@@ -208,8 +208,10 @@ public final class PanelModule: NativeModule {
         let payload = JSBridge.anyToJS(ctx, normalized)
 
         for cb in globalCallbacks + (perIdCallbacks[panelId] ?? []) {
-            var arg = JS_DupValue(ctx, payload)
-            _ = JS_Call(ctx, cb, QJS_Undefined(), 1, &arg)
+            let arg = JS_DupValue(ctx, payload)
+            if let result = engine.callJS(cb, [arg], label: "panel.onMessage", drain: false) {
+                JS_FreeValue(ctx, result)
+            }
             JS_FreeValue(ctx, arg)
         }
         JS_FreeValue(ctx, payload)

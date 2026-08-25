@@ -34,17 +34,28 @@ public final class EventBus {
     }
 
     /// Emit an event, calling all registered callbacks
-    public func emit(_ event: String, engine: Engine, data: JSValue? = nil) {
+    /// Emit an event, calling all registered callbacks.
+    ///
+    /// `budget` overrides the default time each listener gets before the engine
+    /// interrupts it — pass `Engine.inputBudget` from anything on an input path.
+    public func emit(
+        _ event: String,
+        engine: Engine,
+        data: JSValue? = nil,
+        budget: TimeInterval? = nil
+    ) {
         guard let callbacks = listeners[event] else { return }
         for listener in callbacks {
-            if let data {
-                var args = [data]
-                _ = JS_Call(engine.context, listener.callback, QJS_Undefined(), 1, &args)
-            } else {
-                _ = JS_Call(engine.context, listener.callback, QJS_Undefined(), 0, nil)
-            }
+            let result = engine.callJS(
+                listener.callback,
+                data.map { [$0] } ?? [],
+                budget: budget,
+                label: "event \(event)",
+                drain: false
+            )
+            if let result { JS_FreeValue(engine.context, result) }
         }
-        engine.drainJobQueue()
+        engine.drainJobQueue(budget: budget)
     }
 
     /// Whether any callback is registered for an event

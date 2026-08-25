@@ -335,9 +335,10 @@ public final class MenuBarModule: NativeModule {
             guard let cb = self.callbacks[key] else { return }
             engine.withEvaluatingFile(pluginFile) {
                 let fn = JS_DupValue(ctx, cb)
-                _ = JS_Call(ctx, fn, QJS_Undefined(), 0, nil)
+                if let result = engine.callJS(fn, label: "menubar click \(key)") {
+                    JS_FreeValue(ctx, result)
+                }
                 JS_FreeValue(ctx, fn)
-                engine.drainJobQueue()
             }
         }
     }
