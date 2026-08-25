@@ -3,8 +3,8 @@ macotron.plugin({
     description: "Find Apple TVs on your network and open a remote.",
     help: "Macotron finds Apple TVs over Bonjour, but sending a key needs Companion "
         + "pairing, which is not implemented yet, so the remote reports \"not paired\". "
-        + "Discovery holds the app still for about a second, so it runs once per open "
-        + "and the result is reused for 30 seconds.",
+        + "Discovery takes about a second, so it runs once per open and the result is "
+        + "reused for 30 seconds.",
 });
 
 function esc(s) {
@@ -92,27 +92,31 @@ function open() {
         glass: true,
         html: remoteHTML(),
     });
-    // Discovery parks the main thread for its whole timeout, so it waits until
-    // the page says it is up. The result is reused for 30 seconds by the host.
+    // Discovery takes about a second, so it starts once the page says it is up
+    // and the answer arrives later. The result is reused for 30 seconds by the
+    // host.
     let tvs = [];
     let warned = false;
     macotron.panel.onMessage(id, (msg) => {
         if (!msg) return;
         if (msg.type === "ready") {
-            tvs = macotron.appletv.list().map((t) => ({ id: esc(t.id), name: esc(t.name) }));
-            macotron.panel.postMessage(id, { tvs });
+            macotron.appletv.list().then((found) => {
+                tvs = found.map((t) => ({ id: esc(t.id), name: esc(t.name) }));
+                macotron.panel.postMessage(id, { tvs });
+            });
             return;
         }
         if (msg.type !== "key") return;
         const target = msg.id || (tvs[0] && tvs[0].id);
         if (!target) return;
-        const result = macotron.appletv.send(target, msg.key);
-        if (result && result.ok) return;
-        // Say it once rather than swallowing every press.
-        if (warned) return;
-        warned = true;
-        macotron.notify.toast("Apple TV", result && result.error ? result.error : "Could not send", {
-            color: "error",
+        macotron.appletv.send(target, msg.key).then((result) => {
+            if (result && result.ok) return;
+            // Say it once rather than swallowing every press.
+            if (warned) return;
+            warned = true;
+            macotron.notify.toast("Apple TV", result && result.error ? result.error : "Could not send", {
+                color: "error",
+            });
         });
     });
 }

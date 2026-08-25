@@ -1,4 +1,4 @@
-// HTTPModule.swift — macotron.http: synchronous HTTP client (get/post/put/delete)
+// HTTPModule.swift — macotron.http: HTTP client (get/post/put/delete)
 import CQuickJS
 import Foundation
 import MacotronEngine
@@ -19,28 +19,28 @@ public final class HTTPModule: NativeModule {
 
         let httpObj = JS_NewObject(ctx)
 
-        // macotron.http.get(url, opts?) → {status, body, headers}
+        // macotron.http.get(url, opts?) → Promise<{status, body, headers}>
         JS_SetPropertyStr(ctx, httpObj, "get",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             return HTTPModule.performRequest(ctx: ctx, method: "GET", argc: argc, argv: argv, hasBody: false)
         }, "get", 2))
 
-        // macotron.http.post(url, body, opts?) → {status, body, headers}
+        // macotron.http.post(url, body, opts?) → Promise<{status, body, headers}>
         JS_SetPropertyStr(ctx, httpObj, "post",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             return HTTPModule.performRequest(ctx: ctx, method: "POST", argc: argc, argv: argv, hasBody: true)
         }, "post", 3))
 
-        // macotron.http.put(url, body, opts?) → {status, body, headers}
+        // macotron.http.put(url, body, opts?) → Promise<{status, body, headers}>
         JS_SetPropertyStr(ctx, httpObj, "put",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             return HTTPModule.performRequest(ctx: ctx, method: "PUT", argc: argc, argv: argv, hasBody: true)
         }, "put", 3))
 
-        // macotron.http.delete(url, opts?) → {status, body, headers}
+        // macotron.http.delete(url, opts?) → Promise<{status, body, headers}>
         JS_SetPropertyStr(ctx, httpObj, "delete",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
@@ -54,8 +54,16 @@ public final class HTTPModule: NativeModule {
 
     // MARK: - Shared Request Implementation
 
-    /// Perform a synchronous HTTP request using a semaphore.
-    /// This blocks the calling thread until the response arrives or timeout.
+    /// A failed request resolves with status 0 rather than rejecting: plugins
+    /// already branch on the status code, so one check covers a 500 and a dead
+    /// network alike.
+    nonisolated private static func failed(_ message: String) -> [String: Any] {
+        ["status": 0, "body": message, "headers": [String: Any]()]
+    }
+
+    /// Reads the arguments on the main thread — they are JS values, and the
+    /// context is untouchable from the promise's queue — then hands the finished
+    /// URLRequest to the network off-thread.
     @MainActor
     private static func performRequest(
         ctx: OpaquePointer,
@@ -64,22 +72,11 @@ public final class HTTPModule: NativeModule {
         argv: UnsafeMutablePointer<JSValue>,
         hasBody: Bool
     ) -> JSValue {
-        if Engine.isDryRun(ctx) {
-            return JSBridge.newObject(ctx, [
-                "status": 0,
-                "body": "",
-                "headers": [String: Any]()
-            ])
-        }
-        // Parse URL (always first argument)
+        let dry = failed("")
         guard let urlString = JSBridge.toString(ctx, argv[0]),
               let url = URL(string: urlString) else {
             logger.error("http.\(method.lowercased()): invalid URL")
-            return JSBridge.newObject(ctx, [
-                "status": 0,
-                "body": "Invalid URL",
-                "headers": [String: Any]()
-            ])
+            return JSBridge.promise(ctx, dryRun: dry) { .value(failed("Invalid URL")) }
         }
 
         var request = URLRequest(url: url)
@@ -130,13 +127,21 @@ public final class HTTPModule: NativeModule {
             JS_FreeValue(ctx, timeoutVal)
         }
 
-        // Perform synchronous request
+        let finished = request
+        return JSBridge.promise(ctx, dryRun: dry) {
+            send(finished, method: method, url: urlString)
+        }
+    }
+
+    /// Blocks its queue on a semaphore. URLSession's async API is out of reach —
+    /// the promise bridge hands out a synchronous closure — and the wait costs
+    /// nothing now that it happens off the main thread.
+    nonisolated private static func send(_ request: URLRequest, method: String, url: String) -> BridgeResult {
         nonisolated(unsafe) var responseData: Data?
         nonisolated(unsafe) var httpResponse: HTTPURLResponse?
         nonisolated(unsafe) var requestError: String?
 
         let semaphore = DispatchSemaphore(value: 0)
-
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error {
                 requestError = error.localizedDescription
@@ -148,44 +153,27 @@ public final class HTTPModule: NativeModule {
         }
         task.resume()
 
-        // Wait with timeout
-        let timeoutSeconds = request.timeoutInterval + 5
-        let waitResult = semaphore.wait(timeout: .now() + timeoutSeconds)
-
-        if waitResult == .timedOut {
+        // Belt and braces: URLSession enforces timeoutInterval itself, but a
+        // wait that never returns would hold this queue's thread forever.
+        if semaphore.wait(timeout: .now() + request.timeoutInterval + 5) == .timedOut {
             task.cancel()
-            logger.error("http.\(method.lowercased()): request timed out for \(urlString)")
-            return JSBridge.newObject(ctx, [
-                "status": 0,
-                "body": "Request timed out",
-                "headers": [String: Any]()
-            ])
+            logger.error("http.\(method.lowercased()): request timed out for \(url)")
+            return .value(failed("Request timed out"))
         }
 
         if let error = requestError {
             logger.error("http.\(method.lowercased()): \(error)")
-            return JSBridge.newObject(ctx, [
-                "status": 0,
-                "body": error,
-                "headers": [String: Any]()
-            ])
+            return .value(failed(error))
         }
 
-        let statusCode = httpResponse?.statusCode ?? 0
-        let bodyString = responseData.flatMap { String(data: $0, encoding: .utf8) } ?? ""
-
-        // Convert response headers to a dict
         var headerDict: [String: Any] = [:]
-        if let allHeaders = httpResponse?.allHeaderFields {
-            for (key, value) in allHeaders {
-                headerDict["\(key)"] = "\(value)"
-            }
+        for (key, value) in httpResponse?.allHeaderFields ?? [:] {
+            headerDict["\(key)"] = "\(value)"
         }
-
-        let result = JS_NewObject(ctx)
-        JS_SetPropertyStr(ctx, result, "status", JSBridge.newInt32(ctx, Int32(statusCode)))
-        JS_SetPropertyStr(ctx, result, "body", JSBridge.newString(ctx, bodyString))
-        JS_SetPropertyStr(ctx, result, "headers", JSBridge.newObject(ctx, headerDict))
-        return result
+        return .value([
+            "status": httpResponse?.statusCode ?? 0,
+            "body": responseData.flatMap { String(data: $0, encoding: .utf8) } ?? "",
+            "headers": headerDict,
+        ] as [String: Any])
     }
 }
