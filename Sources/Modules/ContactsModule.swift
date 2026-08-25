@@ -29,9 +29,11 @@ enum ContactsList {
 public final class ContactsModule: NativeModule {
     public let name = "contacts"
 
-    private static let store = CNContactStore()
+    /// One store for the app: Contacts ties the granted access to the store
+    /// that asked, and the enumeration below runs it off the main thread.
+    private nonisolated(unsafe) static let store = CNContactStore()
     private static var requestedAccess = false
-    private static let keys: [CNKeyDescriptor] = [
+    private nonisolated(unsafe) static let keys: [CNKeyDescriptor] = [
         CNContactIdentifierKey as CNKeyDescriptor,
         CNContactGivenNameKey as CNKeyDescriptor,
         CNContactFamilyNameKey as CNKeyDescriptor,
@@ -51,18 +53,16 @@ public final class ContactsModule: NativeModule {
 
         JS_SetPropertyStr(ctx, contacts, "list", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            if Engine.isDryRun(ctx) { return JSBridge.newArray(ctx, []) }
-            return JSBridge.newArray(ctx, ContactsModule.fetch(query: ""))
+            return ContactsModule.fetchPromise(ctx, query: "")
         }, "list", 0))
 
         JS_SetPropertyStr(ctx, contacts, "search", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
-            if Engine.isDryRun(ctx) { return JSBridge.newArray(ctx, []) }
             var query = ""
             if let argv, argc >= 1 {
                 query = JSBridge.toString(ctx, argv[0]) ?? ""
             }
-            return JSBridge.newArray(ctx, ContactsModule.fetch(query: query))
+            return ContactsModule.fetchPromise(ctx, query: query)
         }, "search", 1))
 
         JS_SetPropertyStr(ctx, macotron, "contacts", contacts)
@@ -70,20 +70,31 @@ public final class ContactsModule: NativeModule {
         JS_FreeValue(ctx, global)
     }
 
-    private static func fetch(query: String) -> [Any] {
+    /// The permission prompt has to be raised on the main thread; only the
+    /// enumeration behind it moves off.
+    private static func fetchPromise(_ ctx: OpaquePointer, query: String) -> JSValue {
+        guard Engine.isDryRun(ctx) || authorized() else {
+            return JSBridge.promise(ctx) { .value([Any]()) }
+        }
+        return JSBridge.promise(ctx, dryRun: [Any]()) { .value(fetch(query: query)) }
+    }
+
+    private static func authorized() -> Bool {
         switch CNContactStore.authorizationStatus(for: .contacts) {
         case .notDetermined:
             if !requestedAccess {
                 requestedAccess = true
                 store.requestAccess(for: .contacts) { _, _ in }
             }
-            return []
+            return false
         case .denied, .restricted:
-            return []
+            return false
         default:
-            break
+            return true
         }
+    }
 
+    private nonisolated static func fetch(query: String) -> [Any] {
         let request = CNContactFetchRequest(keysToFetch: keys)
         var rows: [Any] = []
         try? store.enumerateContacts(with: request) { contact, _ in

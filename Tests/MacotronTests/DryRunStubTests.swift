@@ -206,8 +206,12 @@ struct DryRunStubTests {
     @Test("calendar.upcoming returns empty without requesting access")
     func calendar() {
         let engine = dryEngine([CalendarModule()])
-        let (result, error) = engine.evaluate("JSON.stringify(macotron.calendar.upcoming())")
+        let (_, error) = engine.evaluate("""
+            globalThis.out = null;
+            macotron.calendar.upcoming().then(r => { globalThis.out = JSON.stringify(r); });
+            """)
         #expect(error == nil)
+        let (result, _) = engine.evaluate("globalThis.out")
         #expect(result == "[]")
     }
 }

@@ -20,7 +20,7 @@ struct RemindersMenuTests {
             var macotron = {
                 plugin: () => ({}),
                 reminders: {
-                    list: () => ([
+                    list: () => Promise.resolve([
                         { id: "1", title: "Buy milk", due: Date.now() + 3600000, completed: false, list: "Groceries" },
                         { id: "2", title: "Call dentist", due: null, completed: false, list: "Personal" }
                     ]),
@@ -32,11 +32,14 @@ struct RemindersMenuTests {
             };
             function prompt() { return promptText; }
             \(pluginSource)
-            \(extra)
             """
         let engine = Engine()
-        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
+        // paint() is async now, so the harness has to settle before the
+        // assertion reads what it painted: evaluate() drains the job queue.
+        let (_, error) = engine.evaluate(harness, filename: pluginURL.path)
         #expect(error == nil)
+        let (result, extraError) = engine.evaluate(extra, filename: pluginURL.path)
+        #expect(extraError == nil)
         return result ?? ""
     }
 
