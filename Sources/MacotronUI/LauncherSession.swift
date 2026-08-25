@@ -18,7 +18,15 @@ public final class LauncherSession: ObservableObject {
     @Published public var pendingArgs: PendingArgs?
     @Published public var query = ""
 
+    /// Bumped when results that already arrived are known to be stale — an
+    /// async launcher provider answering after its keystroke, say.
+    @Published public var revision = 0
+
     public init() {}
+
+    public func refresh() {
+        revision &+= 1
+    }
 
     public func reset() {
         query = ""

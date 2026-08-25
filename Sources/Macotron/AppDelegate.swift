@@ -1134,6 +1134,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.addModule(ShareModule())
         engine.addModule(ShortcutsModule())
         let launcher = LauncherModule()
+        launcher.onLiveUpdate = { [weak self] in
+            guard let self, self.launcherPanel.isVisible else { return }
+            self.launcherSession.refresh()
+        }
         launcherModule = launcher
         engine.addModule(launcher)
         engine.addModule(NotesModule())
@@ -1335,8 +1339,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private func searchBody(_ query: String) -> [SearchResult] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         let pluginHits = launcherModule?.allHits() ?? []
-        let favorites = Self.favoriteIDs(from: workspace.readSettings()["launcherFavorites"])
-        let shortcuts = CommandShortcuts.load(from: workspace.readSettings()["commandShortcuts"])
+        let settings = workspace.readSettings()
+        let favorites = Self.favoriteIDs(from: settings["launcherFavorites"])
+        let shortcuts = CommandShortcuts.load(from: settings["commandShortcuts"])
 
         if q.isEmpty {
             return permissionResult() + favorites.compactMap { id in
