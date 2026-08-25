@@ -41,6 +41,28 @@ struct HotReloadSessionTests {
 
         manager.handleDiskChange([dir.appending(path: "backups/x.tar.gz").path(percentEncoded: false)])
         #expect(reloads == 0)
+
+        // reloadAll writes this one, so treating it as an edit is a reload
+        // that schedules the next reload, forever.
+        let meta = dir.appending(path: ".cache").appending(path: "plugin-meta.json")
+        manager.handleDiskChange([meta.path(percentEncoded: false)])
+        #expect(reloads == 0)
+    }
+
+    @Test("hot reload ignores a workspace write that is not a plugin")
+    func hotReloadOnlyFollowsPlugins() throws {
+        let (ws, dir) = try makeWorkspace()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let engine = Engine()
+        let manager = ModuleManager(engine: engine, workspace: ws)
+        manager.hotReload = true
+
+        var reloads = 0
+        manager.onDidReload = { reloads += 1 }
+
+        manager.handleDiskChange([dir.appending(path: "notes.md").path(percentEncoded: false)])
+        #expect(reloads == 0)
     }
 
     @Test("ui.hotReload in settings.json cannot bypass plugin trust")
