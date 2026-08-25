@@ -10,8 +10,13 @@ private let logger = Logger(subsystem: "io.statico.macotron", category: "localSt
 public final class LocalStorageModule: NativeModule {
     public let name = "localStorage"
 
+    /// Where the JSON store lives. Nil keeps storage in memory, which is what
+    /// the dry-run checker wants and what every plugin using localStorage got
+    /// by accident until the host started passing this in.
+    private let configDir: String?
+
     public var defaultOptions: [String: Any] {
-        [:] // "configDir" must be supplied externally
+        configDir.map { ["configDir": $0] } ?? [:]
     }
 
     /// In-memory mirror of the JSON store
@@ -20,7 +25,9 @@ public final class LocalStorageModule: NativeModule {
     /// Path to the backing JSON file
     private var filePath: URL?
 
-    public init() {}
+    public init(configDir: String? = nil) {
+        self.configDir = configDir
+    }
 
     // MARK: - NativeModule
 
