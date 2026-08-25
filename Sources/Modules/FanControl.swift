@@ -59,10 +59,14 @@ public final class FanController: @unchecked Sendable {
     public static let shared = FanController()
 
     private let lock = NSLock()
+    /// Held across the one-time helper check, so it happens once even when the
+    /// startup check and the first fan call arrive together.
+    private let checkLock = NSLock()
     private let smc = SMCConnection()
     private var floor: Int?
     private var claimed = true
     private var helperConnection: NSXPCConnection?
+    /// Whether the running daemon has been checked against this app once.
     private var recycled = false
     /// Last failure per SMC key, so a repeating read logs once, not every tick.
     private var readErrors: [String: String] = [:]
@@ -219,7 +223,21 @@ public final class FanController: @unchecked Sendable {
     /// answers immediately and reports what it found to the log.
     public func checkHelper() {
         guard helperEnabled else { return }
-        DispatchQueue.global(qos: .utility).async { self.checkHelperNow() }
+        DispatchQueue.global(qos: .utility).async { self.ensureCurrentHelper() }
+    }
+
+    /// Run the check above once, whoever asks for it first: the startup check
+    /// and the first call that needs the helper race otherwise, and both used
+    /// to shut the daemon down.
+    private func ensureCurrentHelper() {
+        checkLock.lock()
+        defer { checkLock.unlock() }
+        lock.lock()
+        let done = recycled
+        recycled = true
+        lock.unlock()
+        guard !done else { return }
+        checkHelperNow()
     }
 
     private func checkHelperNow() {
@@ -240,15 +258,16 @@ public final class FanController: @unchecked Sendable {
         helper.identify { reply.finish(nil, value: $0) }
         let error = reply.wait()
         let running = reply.value
-        dropConnection()
 
         if error == nil, running == MacotronHelperService.identity {
             logger.info("helper check: running \(running ?? "", privacy: .public)")
-            lock.lock()
-            recycled = true
-            lock.unlock()
+            // Keep the connection. The helper hands the fans back and exits
+            // when its last client goes, so dropping it here would kill the
+            // daemon a fan call is about to start again -- and, once a floor
+            // was set on the way out, kill the floor with it.
             return
         }
+        dropConnection()
         if let error {
             // Installed but unreachable: a stale registration, a helper too old
             // to answer, or one that will not start.
@@ -261,27 +280,18 @@ public final class FanController: @unchecked Sendable {
         }
         _ = call({ $0.shutdown(reply: $1) }, recycling: true)
         dropConnection()
-    }
-
-    /// The daemon launchd has running was started from whatever app was
-    /// installed at the time, and it never re-execs. Ask the one from the
-    /// last app to quit the first time this app needs it, so the call after
-    /// it starts the helper this app ships.
-    private func recycleHelper() {
-        lock.lock()
-        let done = recycled
-        recycled = true
-        lock.unlock()
-        guard !done else { return }
-        _ = call({ $0.shutdown(reply: $1) }, recycling: true)
-        dropConnection()
+        // The helper answers `shutdown` and only then exits, so for a moment
+        // launchd still routes to a process that is on its way out. A floor
+        // set in that window is applied by a daemon that dies holding it.
+        // ponytail: a fixed settle beats plumbing a pid through `identify`.
+        Thread.sleep(forTimeInterval: 0.5)
     }
 
     private func call(
         _ body: (MacotronHelperProtocol, @escaping (String?) -> Void) -> Void,
         recycling: Bool = false
     ) -> String? {
-        if !recycling { recycleHelper() }
+        if !recycling { ensureCurrentHelper() }
         let reply = HelperReply()
         let proxy = connection().remoteObjectProxyWithErrorHandler { error in
             reply.finish(Self.displayError(error.localizedDescription))
