@@ -1,3 +1,23 @@
+// FanControl.swift — the app's side of fan control.
+//
+// Reading fans needs no privileges and happens here directly over the SMC.
+// Anything that writes goes to the helper daemon over XPC, and this class is
+// the only thing that talks to it: it owns the connection, remembers which
+// floor is being held, and decides when the fans go back to macOS.
+//
+// The floor outlives a plugin reload on purpose. A reload tears down every
+// plugin and rebuilds it, but the floor is a decision the user made about
+// hardware, and it should no more be dropped by a reload than the screen
+// brightness would be. So a reload marks it unclaimed rather than releasing
+// it, the reloaded plugins get a chance to claim it back — `fan.js` does that
+// by re-applying whatever floor it finds — and only a floor nobody claimed is
+// handed back, which is what happens when the plugin holding it is deleted or
+// switched off. See `beginReload` / `endReload`.
+//
+// The floor is released for real in three cases: the user asks for it, the
+// helper is being uninstalled, or Macotron goes away entirely — that last one
+// is the helper's own failsafe, not ours, since a crash gets no chance to
+// clean up after itself.
 @preconcurrency import Foundation
 import os
 import ServiceManagement
@@ -51,6 +71,10 @@ public final class FanController: @unchecked Sendable {
         return snapshotLocked()
     }
 
+    /// Ask the helper to hold a floor, or nil to hand the fans back. The
+    /// connection is dropped once nothing is held so the daemon can exit,
+    /// which also means the next call starts whatever helper the installed app
+    /// currently ships rather than one left over from an older build.
     func setFloor(_ percent: Int?, dryRun: Bool) -> FanSnapshot {
         let requestedFloor = percent.flatMap { $0 > 0 ? min(100, $0) : nil }
         lock.lock()

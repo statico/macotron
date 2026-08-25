@@ -1,3 +1,12 @@
+// Fan control: a menu bar readout, and a floor the fans may not run below.
+//
+// The floor itself lives in the host — this plugin only asks for one — but
+// two things about it are this plugin's job. It re-applies the floor at load,
+// which is what claims it back after a reload (an unclaimed floor is released
+// once loading finishes, so deleting this plugin does release the fans). And
+// it remembers the last floor in localStorage, because when Macotron quits
+// the helper's failsafe returns the fans to macOS, so a restart would
+// otherwise come back with no floor at all.
 const opts = macotron.plugin({
     title: "Fan Control Menu",
     description: "Show fan speed in the menu bar, and keep fans from running slower than a set speed.",

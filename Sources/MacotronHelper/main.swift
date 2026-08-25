@@ -1,3 +1,35 @@
+// main.swift — the privileged half of fan control.
+//
+// Fan speed can be read by anyone, but writing it needs root, so everything
+// that writes lives here in the launchd daemon and the app talks to it over
+// XPC. The SMC keys, per fan index N:
+//
+//   FNAc  current rpm            FNMn / FNMx  the firmware's own rpm limits
+//   FNTg  target rpm             FNMd         mode: 0 auto, 1 manual, 3 system
+//   Ftst  diagnostic unlock, machine-wide
+//
+// The name of the mode key varies by machine (`FNMd` or `FNmd`), so it is
+// probed once rather than assumed, and every rpm value is a little-endian
+// float.
+//
+// What Macotron offers is a *floor*: the fans may not run slower than the
+// user asked for, and macOS decides everything above that line. Holding a
+// floor means taking a fan into manual mode and writing the floor as its
+// target, which has two consequences this file spends most of its length on:
+//
+//   1. A fan in manual mode does exactly what it is told, so the floor is
+//      also a ceiling. macOS cannot ramp past it however hot the machine
+//      gets. `systemDemand` exists to notice that and get out of the way.
+//   2. Manual mode is not ours by right. From the M3 generation on, the
+//      thermal manager parks the fans in mode 3 and the firmware refuses the
+//      mode write with SMC error 0x82 — hence `unlock` and the `Ftst` dance.
+//
+// Everything here re-asserts itself on a 2s timer, because the state is not
+// ours to keep: sleep/wake clears `Ftst`, and the thermal manager can take a
+// fan back at any point. The same timer is what makes the failsafes work —
+// see `restoreForFailsafe`, which hands the fans back to macOS the moment the
+// last client disconnects, so a crashed or quit Macotron can never leave a
+// Mac with its fans pinned.
 import Darwin
 import Foundation
 import Security
@@ -67,6 +99,11 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
         }
     }
 
+    /// The floor is re-applied on a timer for as long as one is held, because
+    /// nothing about manual mode survives on its own: sleep/wake clears the
+    /// unlock, and the thermal manager can reclaim a fan whenever it likes.
+    /// Re-asserting is also what notices a machine that has grown hot enough
+    /// to want more air than the floor.
     private func startTimer(_ enabled: Bool) {
         timer?.cancel()
         timer = nil
@@ -150,6 +187,9 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
         return nil
     }
 
+    /// Give every fan back to macOS. Mode 0 is what the machine boots with;
+    /// `Ftst` is cleared too, so we leave nothing diagnostic switched on
+    /// behind us.
     private func restoreAuto(count: Int) throws {
         forced.removeAll()
         lastPeek.removeAll()
@@ -162,6 +202,12 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
         }
     }
 
+    /// Take a fan into manual mode. The firmware may simply allow it, and on
+    /// machines whose thermal manager holds the fans it will not: the way
+    /// through is `Ftst`, the diagnostic flag, after which the mode write
+    /// starts being accepted — usually within a second or two, hence the
+    /// retry loop rather than a single attempt. Failing that, the floor
+    /// genuinely cannot be held and the error says so.
     private func unlock(_ index: Int) throws {
         let mode = try? smc.readUInt8(modeKeyFor(index))
         if mode == 1 { return }
@@ -186,6 +232,9 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
         throw SMCError.thermalLock
     }
 
+    /// Which spelling of the mode key this Mac uses. Cheap enough to redo on
+    /// every apply, and it means a machine that names it `FNmd` needs no
+    /// special case anywhere else.
     private func probeModeKey() throws {
         if (try? smc.readUInt8("F0Md")) != nil {
             modeKey = "F0Md"
