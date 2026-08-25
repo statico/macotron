@@ -23,7 +23,6 @@ public final class CalendarModule: NativeModule {
         JS_SetPropertyStr(ctx, calendar, "upcoming",
                           JS_NewCFunction(ctx, { ctx, _, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
-            if Engine.isDryRun(ctx) { return JSBridge.newArray(ctx, []) }
 
             var hours = 24.0
             if let argv, argc > 0, !JS_IsUndefined(argv[0]), !JS_IsNull(argv[0]) {
@@ -34,7 +33,16 @@ public final class CalendarModule: NativeModule {
                 JS_FreeValue(ctx, value)
             }
 
-            return JSBridge.newArray(ctx, CalendarModule.upcoming(hours: hours))
+            // The permission prompt has to be raised on the main thread; only
+            // the fetch behind it moves off.
+            guard Engine.isDryRun(ctx) || CalendarModule.authorized() else {
+                return JSBridge.promise(ctx) { .value([Any]()) }
+            }
+            nonisolated(unsafe) let store = CalendarModule.store
+            let window = hours
+            return JSBridge.promise(ctx, dryRun: [Any]()) {
+                .value(CalendarModule.upcoming(store: store, hours: window))
+            }
         }, "upcoming", 1))
 
         JS_SetPropertyStr(ctx, macotron, "calendar", calendar)
@@ -42,7 +50,7 @@ public final class CalendarModule: NativeModule {
         JS_FreeValue(ctx, global)
     }
 
-    private static func upcoming(hours: Double) -> [Any] {
+    private static func authorized() -> Bool {
         switch EKEventStore.authorizationStatus(for: .event) {
         case .notDetermined:
             if !requestedAccess {
@@ -50,13 +58,17 @@ public final class CalendarModule: NativeModule {
                 store.requestFullAccessToEvents { _, _ in }
                 Permissions.invalidate()
             }
-            return []
+            return false
         case .fullAccess, .authorized:
-            break
+            return true
         default:
-            return []
+            return false
         }
+    }
 
+    /// Apple's guidance for this synchronous fetch is to keep it off the main
+    /// thread; the store is shared, so the granted access comes with it.
+    private nonisolated static func upcoming(store: EKEventStore, hours: Double) -> [Any] {
         let start = Date()
         let end = start.addingTimeInterval(max(0, hours) * 3600)
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)

@@ -3,8 +3,8 @@ macotron.plugin({
     description: "Search Apple Notes from the launcher.",
 });
 
-function paint() {
-    const notes = macotron.notes.list();
+async function paint() {
+    const notes = await macotron.notes.list();
     macotron.launcher.set(
         "notes",
         notes.map((n) => ({

@@ -16,14 +16,13 @@ struct LauncherSearchTests {
     private func eval(plugin: String, mock: String, extra: String) throws -> String {
         let url = pluginURL(plugin)
         let source = try String(contentsOf: url, encoding: .utf8)
-        let harness = """
-            \(mock)
-            \(source)
-            \(extra)
-            """
         let engine = Engine()
-        let (result, error) = engine.evaluate(harness, filename: url.path)
+        // A plugin that paints from a promise only settles once evaluate()
+        // drains the job queue, so `extra` has to run after that, not with it.
+        let (_, error) = engine.evaluate("\(mock)\n\(source)", filename: url.path)
         #expect(error == nil)
+        let (result, extraError) = engine.evaluate(extra, filename: url.path)
+        #expect(extraError == nil)
         return result ?? ""
     }
 
@@ -35,10 +34,10 @@ struct LauncherSearchTests {
             var macotron = {
                 plugin: () => ({}),
                 every: () => {},
-                contacts: { list: () => [
+                contacts: { list: () => Promise.resolve([
                     { id: "1", name: "Ada", emails: ["ada@example.com"], phones: [], organization: "" },
                     { id: "2", name: "Bob", emails: [], phones: ["555-0100"], organization: "Acme" }
-                ] },
+                ]) },
                 launcher: { set: (_, rows) => { items = rows; } },
                 url: { open: (url) => { opened.push(url); } },
                 notify: { toast: () => {} }

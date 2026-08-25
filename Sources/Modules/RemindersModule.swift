@@ -7,7 +7,9 @@ import MacotronEngine
 public final class RemindersModule: NativeModule {
     public let name = "reminders"
 
-    private static let store = EKEventStore()
+    /// One store for the app: EventKit ties the granted access to the store
+    /// that asked, and the fetch below runs it off the main thread.
+    private nonisolated(unsafe) static let store = EKEventStore()
     private static var requestedAccess = false
 
     public init() {}
@@ -34,7 +36,16 @@ public final class RemindersModule: NativeModule {
                 }
                 JS_FreeValue(ctx, completedVal)
             }
-            return JSBridge.newArray(ctx, RemindersModule.list(days: days, completed: completed, dryRun: remindersDryRun(ctx)))
+            // The permission prompt has to be raised on the main thread; only
+            // the fetch behind it moves off.
+            guard Engine.isDryRun(ctx) || RemindersModule.authorized() else {
+                return JSBridge.promise(ctx) { .value([Any]()) }
+            }
+            let window = days
+            let wantCompleted = completed
+            return JSBridge.promise(ctx, dryRun: [Any]()) {
+                .value(RemindersModule.list(days: window, completed: wantCompleted))
+            }
         }, "list", 1))
 
         JS_SetPropertyStr(ctx, reminders, "add", JS_NewCFunction(ctx, { ctx, _, argc, argv in
@@ -57,7 +68,8 @@ public final class RemindersModule: NativeModule {
             let listVal = JSBridge.getProperty(ctx, argv[0], "list")
             let list = JSBridge.toString(ctx, listVal)
             JS_FreeValue(ctx, listVal)
-            return JSBridge.newObject(ctx, RemindersModule.add(title: title, due: due, list: list, dryRun: remindersDryRun(ctx)))
+            return JSBridge.newObject(ctx, RemindersModule.add(
+                title: title, due: due, list: list, dryRun: Engine.isDryRun(ctx)))
         }, "add", 1))
 
         JS_SetPropertyStr(ctx, reminders, "complete", JS_NewCFunction(ctx, { ctx, _, argc, argv in
@@ -69,7 +81,8 @@ public final class RemindersModule: NativeModule {
             if argc >= 2, !JS_IsUndefined(argv[1]), !JS_IsNull(argv[1]) {
                 on = JSBridge.toBool(ctx, argv[1])
             }
-            return JSBridge.newObject(ctx, RemindersModule.complete(id: id, on: on, dryRun: remindersDryRun(ctx)))
+            return JSBridge.newObject(ctx, RemindersModule.complete(
+                id: id, on: on, dryRun: Engine.isDryRun(ctx)))
         }, "complete", 2))
 
         JS_SetPropertyStr(ctx, macotron, "reminders", reminders)
@@ -92,9 +105,7 @@ public final class RemindersModule: NativeModule {
         }
     }
 
-    private static func list(days: Double?, completed: Bool, dryRun: Bool) -> [Any] {
-        if dryRun { return [] }
-        guard authorized() else { return [] }
+    private nonisolated static func list(days: Double?, completed: Bool) -> [Any] {
         let calendars = store.calendars(for: .reminder)
         let predicate = completed
             ? store.predicateForCompletedReminders(withCompletionDateStarting: nil, ending: nil, calendars: calendars)
@@ -140,7 +151,7 @@ public final class RemindersModule: NativeModule {
         }
     }
 
-    private static func item(_ reminder: EKReminder) -> ReminderItem {
+    private nonisolated static func item(_ reminder: EKReminder) -> ReminderItem {
         ReminderItem(
             id: reminder.calendarItemIdentifier,
             title: reminder.title ?? "",
@@ -150,21 +161,16 @@ public final class RemindersModule: NativeModule {
         )
     }
 
-    private static func fetch(_ predicate: NSPredicate) -> [EKReminder] {
-        var result: [EKReminder]?
+    /// EventKit answers on a queue of its own, so waiting here costs nothing but
+    /// this background queue — which is the whole point of getting off main.
+    private nonisolated static func fetch(_ predicate: NSPredicate) -> [EKReminder] {
+        let done = DispatchSemaphore(value: 0)
+        nonisolated(unsafe) var result: [EKReminder] = []
         store.fetchReminders(matching: predicate) { reminders in
             result = reminders ?? []
+            done.signal()
         }
-        let deadline = Date().addingTimeInterval(2)
-        while result == nil && Date() < deadline {
-            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
-        }
-        return result ?? []
+        done.wait()
+        return result
     }
-}
-
-@MainActor
-private func remindersDryRun(_ ctx: OpaquePointer) -> Bool {
-    guard let opaque = JS_GetContextOpaque(ctx) else { return false }
-    return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
 }
