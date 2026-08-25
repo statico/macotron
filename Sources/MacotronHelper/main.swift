@@ -100,22 +100,38 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     private func applyFloor(_ percent: Int, fans: [FanInfo]) throws {
         for fan in fans {
             let floorRPM = FanFloor.rpm(percent: percent, min: fan.min, max: fan.max)
-            // Once we force a fan its reported rpm is our own target, not what the
-            // system wants. Re-deciding from rpm therefore flips it back to auto on
-            // the very next tick, the fan coasts down, and we force it again: the
-            // audible spin up/down. Stay forced until the floor is lifted.
-            let force = percent >= 100 || forced.contains(fan.index) || fan.rpm + 80 < floorRPM
+            // A forced fan sits at exactly our target, so a floor is also a
+            // ceiling: while the machine is working hard macOS may want more
+            // air than the floor asks for, and holding it there cooks the Mac.
+            // Compare against what macOS itself is asking for and stay out of
+            // its way whenever it wants more.
+            let demand = systemDemand(fan.index)
+            let force = FanFloor.shouldForce(demand: demand, floor: floorRPM)
             log.info(
-                "fan \(fan.index, privacy: .public) rpm=\(Int(fan.rpm), privacy: .public) target=\(Int(floorRPM), privacy: .public) \(force ? "force" : "auto", privacy: .public)"
+                "fan \(fan.index, privacy: .public) rpm=\(Int(fan.rpm), privacy: .public) demand=\(demand.map { String(Int($0)) } ?? "?", privacy: .public) target=\(Int(floorRPM), privacy: .public) \(force ? "force" : "auto", privacy: .public)"
             )
             if force {
                 try unlock(fan.index)
                 try smc.writeRPM(key(fan.index, "Tg"), floorRPM)
                 forced.insert(fan.index)
             } else {
-                try writeMode(fan.index, 0)
+                forced.remove(fan.index)
             }
         }
+    }
+
+    /// What macOS itself wants this fan to do. Only auto mode answers honestly
+    /// — in manual mode the target key reads back the floor we wrote — so a
+    /// forced fan goes back to auto for a beat first. thermalmonitord decides
+    /// on a 100ms cadence, and the fan cannot spin down meaningfully in the
+    /// time this takes, so the handback is inaudible.
+    private func systemDemand(_ index: Int) -> Double? {
+        let manual = forced.contains(index) || (try? smc.readUInt8(modeKeyFor(index))) == 1
+        if manual {
+            guard (try? writeMode(index, 0)) != nil else { return nil }
+            Thread.sleep(forTimeInterval: 0.25)
+        }
+        return try? smc.readRPM(key(index, "Tg"))
     }
 
     private func restoreAuto(count: Int) throws {
@@ -130,11 +146,17 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     }
 
     private func unlock(_ index: Int) throws {
-        if (try? smc.readUInt8(modeKeyFor(index))) == 1 { return }
-        if (try? writeMode(index, 1)) != nil,
+        let mode = try? smc.readUInt8(modeKeyFor(index))
+        if mode == 1 { return }
+        // Mode 3 is the thermal manager holding the fan, and the firmware
+        // rejects a plain mode write while it does. Only mode 0 is worth
+        // asking politely; from mode 3 go straight for the diagnostic unlock.
+        if mode != 3,
+           (try? writeMode(index, 1)) != nil,
            (try? smc.readUInt8(modeKeyFor(index))) == 1 {
             return
         }
+        log.info("fan \(index, privacy: .public) held in mode \(mode.map(String.init) ?? "?", privacy: .public), unlocking")
         _ = try? smc.writeUInt8("Ftst", 1)
         didUnlock = true
         for _ in 0..<40 {
