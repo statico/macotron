@@ -8,7 +8,13 @@ import MacotronEngine
 
 private final class ClipboardPlainTapState: @unchecked Sendable {
     static let shared = ClipboardPlainTapState()
-    var eventTap: CFMachPort?
+    private let lock = NSLock()
+    private var eventTap: CFMachPort?
+
+    var tap: CFMachPort? {
+        get { lock.lock(); defer { lock.unlock() }; return eventTap }
+        set { lock.lock(); eventTap = newValue; lock.unlock() }
+    }
 }
 
 @MainActor
@@ -210,7 +216,7 @@ public final class ClipboardModule: NativeModule {
         guard pasteTap == nil else { return true }
         let callback: CGEventTapCallBack = { _, type, event, _ in
             if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-                if let tap = ClipboardPlainTapState.shared.eventTap {
+                if let tap = ClipboardPlainTapState.shared.tap {
                     CGEvent.tapEnable(tap: tap, enable: true)
                 }
                 return Unmanaged.passRetained(event)
@@ -218,7 +224,10 @@ public final class ClipboardModule: NativeModule {
             if type == .keyDown {
                 let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
                 if keyCode == Int64(kVK_ANSI_V), event.flags.contains(.maskCommand) {
-                    ClipboardPlain.applyCurrentText()
+                    // NSPasteboard is not thread safe and the history poll owns it on main,
+                    // so the rewrite goes there. It has to finish before the paste lands,
+                    // hence sync; only the paste keystroke pays for a busy main thread.
+                    DispatchQueue.main.sync { ClipboardPlain.applyCurrentText() }
                 }
             }
             return Unmanaged.passRetained(event)
@@ -233,10 +242,10 @@ public final class ClipboardModule: NativeModule {
             userInfo: nil
         )
         guard let pasteTap else { return false }
-        ClipboardPlainTapState.shared.eventTap = pasteTap
+        ClipboardPlainTapState.shared.tap = pasteTap
         pasteTapSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, pasteTap, 0)
         if let pasteTapSource {
-            CFRunLoopAddSource(CFRunLoopGetMain(), pasteTapSource, .commonModes)
+            EventTapThread.shared.add(pasteTapSource)
         }
         CGEvent.tapEnable(tap: pasteTap, enable: true)
         return true
@@ -248,11 +257,11 @@ public final class ClipboardModule: NativeModule {
             CFMachPortInvalidate(pasteTap)
         }
         if let pasteTapSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), pasteTapSource, .commonModes)
+            EventTapThread.shared.remove(pasteTapSource)
         }
         pasteTap = nil
         pasteTapSource = nil
-        ClipboardPlainTapState.shared.eventTap = nil
+        ClipboardPlainTapState.shared.tap = nil
     }
 
     private var historyEnabled: Bool {
