@@ -1,6 +1,7 @@
 import Carbon.HIToolbox
 import CoreGraphics
 import Foundation
+import MacotronEngine
 import os
 
 private let logger = Logger(subsystem: "io.statico.macotron", category: "hyperKey")
@@ -57,6 +58,12 @@ private final class HyperKeyTapState: @unchecked Sendable {
     var mapper = HyperKeyMapper(kind: .caps)
     var eventTap: CFMachPort?
     var enabled = false
+
+    var tap: CFMachPort? {
+        lock.lock()
+        defer { lock.unlock() }
+        return eventTap
+    }
 }
 
 final class HyperKey {
@@ -101,7 +108,7 @@ final class HyperKey {
 
         let callback: CGEventTapCallBack = { _, type, event, _ in
             if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-                if let tap = HyperKeyTapState.shared.eventTap {
+                if let tap = HyperKeyTapState.shared.tap {
                     CGEvent.tapEnable(tap: tap, enable: true)
                 }
                 return Unmanaged.passRetained(event)
@@ -145,10 +152,12 @@ final class HyperKey {
             return false
         }
 
+        state.lock.lock()
         state.eventTap = eventTap
+        state.lock.unlock()
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
         if let runLoopSource {
-            CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+            EventTapThread.shared.add(runLoopSource)
         }
         CGEvent.tapEnable(tap: eventTap, enable: true)
         return true
@@ -156,7 +165,7 @@ final class HyperKey {
 
     private func teardown() {
         if let runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+            EventTapThread.shared.remove(runLoopSource)
         }
         if let eventTap {
             CGEvent.tapEnable(tap: eventTap, enable: false)
