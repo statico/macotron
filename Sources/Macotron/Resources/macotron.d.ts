@@ -24,6 +24,17 @@ interface MenuBarMenuItem {
     buttons?: MenuBarMenuItem[];
 }
 
+interface LauncherItem {
+    id: string;
+    title: string;
+    subtitle?: string;
+    /** Bundle ID, e.g. `com.apple.Notes`. */
+    app?: string;
+    sfSymbol?: string;
+    kind?: string;
+    onClick?: () => void;
+}
+
 interface HIDFilter {
     vendorID?: number;
     productID?: number;
@@ -228,7 +239,7 @@ declare const macotron: {
     };
 
     screen: {
-        capture(opts?: { windowID?: number; selection?: boolean }): Promise<string> | string;
+        capture(opts?: { windowID?: number; selection?: boolean }): Promise<string>;
         /** System magnifier eyedropper. Resolves null if cancelled. Coords are Cocoa screen points. */
         pickColor(): Promise<{
             hex: string;
@@ -321,35 +332,35 @@ declare const macotron: {
 
     network: {
         /** Current SSID, or null when Wi-Fi is off or disconnected. */
-        wifiSSID(): string | null;
-        wifi(): { available: boolean; on: boolean; ssid?: string };
-        setWifi(on: boolean): { ok: boolean; available: boolean; on: boolean; ssid?: string; error?: string };
-        bluetooth(): {
+        wifiSSID(): Promise<string | null>;
+        wifi(): Promise<{ available: boolean; on: boolean; ssid?: string }>;
+        setWifi(on: boolean): Promise<{ ok: boolean; available: boolean; on: boolean; ssid?: string; error?: string }>;
+        bluetooth(): Promise<{
             on: boolean;
             devices: Array<{ name: string; address: string; connected: boolean; battery?: number }>;
-        };
+        }>;
         setBluetooth(on: boolean): { ok: boolean; on: boolean; error?: string };
         /** AirDrop discovery. `contacts` is Contacts Only. */
         airDrop(): { mode: "off" | "contacts" | "everyone" };
-        setAirDrop(mode: "off" | "contacts" | "everyone"): {
+        setAirDrop(mode: "off" | "contacts" | "everyone"): Promise<{
             ok: boolean;
             mode: "off" | "contacts" | "everyone";
             error?: string;
-        };
+        }>;
         interfaces(): Array<{ name: string; ip: string }>;
         counters(): Array<{ name: string; ip?: string; bytesIn: number; bytesOut: number }>;
-        ping(host?: string): { ms: number | null; host: string; error?: string };
+        ping(host?: string): Promise<{ ms: number | null; host: string; error?: string }>;
     };
 
     /** `timeout` is seconds (default 1.5). Types may omit `local.` */
     bonjour: {
-        browse(type: string, opts?: { timeout?: number }): Array<{
+        browse(type: string, opts?: { timeout?: number }): Promise<Array<{
             name: string;
             type: string;
             host: string;
             port: number;
             txt: Record<string, string>;
-        }>;
+        }>>;
     };
 
     udp: {
@@ -359,11 +370,11 @@ declare const macotron: {
     };
 
     appletv: {
-        list(): Array<{ id: string; name: string; host: string; port: number; type: string }>;
+        list(): Promise<Array<{ id: string; name: string; host: string; port: number; type: string }>>;
         send(
             id: string,
             command: "up" | "down" | "left" | "right" | "select" | "menu" | "home" | "play" | "pause" | "playpause"
-        ): { ok: boolean; error?: string };
+        ): Promise<{ ok: boolean; error?: string }>;
     };
 
     idle: {
@@ -399,23 +410,16 @@ declare const macotron: {
     };
 
     launcher: {
-        set(
-            id: string,
-            items: Array<{
-                id: string;
-                title: string;
-                subtitle?: string;
-                /** Bundle ID, e.g. `com.apple.Notes`. */
-                app?: string;
-                sfSymbol?: string;
-                kind?: string;
-                onClick?: () => void;
-            }>
-        ): void;
+        set(id: string, items: LauncherItem[]): void;
         /**
          * Answer the launcher's text directly instead of matching a fixed list.
          * Runs on every keystroke, so return fast and return `[]` when the text
          * is not yours. These results appear above the fuzzy-matched ones.
+         *
+         * A promise is allowed, but the launcher does not wait on it: the
+         * keystroke is answered with whatever is ready and late rows are pushed
+         * in when it settles, so a stale answer is dropped and a rejection
+         * clears this provider's rows.
          *
          * @example
          * macotron.launcher.query("calc", (q) => {
@@ -425,26 +429,18 @@ declare const macotron: {
          */
         query(
             id: string,
-            handler: (query: string) => Array<{
-                id: string;
-                title: string;
-                subtitle?: string;
-                app?: string;
-                sfSymbol?: string;
-                kind?: string;
-                onClick?: () => void;
-            }>
+            handler: (query: string) => LauncherItem[] | Promise<LauncherItem[]>
         ): void;
         remove(id: string): void;
     };
 
     notes: {
-        list(): Array<{ id: string; title: string; folder: string }>;
-        open(id: string): void;
+        list(): Promise<Array<{ id: string; title: string; folder: string }>>;
+        open(id: string): Promise<void>;
     };
 
     contacts: {
-        list(): Array<{
+        list(): Promise<Array<{
             id: string;
             name: string;
             first: string;
@@ -452,8 +448,8 @@ declare const macotron: {
             organization: string;
             emails: string[];
             phones: string[];
-        }>;
-        search(query: string): Array<{
+        }>>;
+        search(query: string): Promise<Array<{
             id: string;
             name: string;
             first: string;
@@ -461,7 +457,7 @@ declare const macotron: {
             organization: string;
             emails: string[];
             phones: string[];
-        }>;
+        }>>;
     };
 
     app: {
@@ -522,12 +518,12 @@ declare const macotron: {
     };
 
     shortcuts: {
-        list(): string[];
-        run(name: string): boolean;
+        list(): Promise<string[]>;
+        run(name: string): Promise<boolean>;
     };
 
     calendar: {
-        upcoming(opts?: { hours?: number }): Array<{
+        upcoming(opts?: { hours?: number }): Promise<Array<{
             id: string;
             title: string;
             start: number;
@@ -536,17 +532,17 @@ declare const macotron: {
             location: string;
             calendar: string;
             url: string;
-        }>;
+        }>>;
     };
 
     reminders: {
-        list(opts?: { days?: number; completed?: boolean }): Array<{
+        list(opts?: { days?: number; completed?: boolean }): Promise<Array<{
             id: string;
             title: string;
             due: number | null;
             completed: boolean;
             list: string;
-        }>;
+        }>>;
         add(row: { title: string; due?: number; list?: string }): { ok: boolean; id?: string; error?: string };
         complete(id: string, on?: boolean): { ok: boolean; error?: string };
     };
@@ -572,7 +568,7 @@ declare const macotron: {
 
     ax: {
         focused(): { id: number; role: string; title: string; value: string; frame: { x: number; y: number; width: number; height: number } } | null;
-        selectedText(): string | null;
+        selectedText(): Promise<string | null>;
         children(id: number): Array<{ id: number; role: string; title: string; value: string; frame: { x: number; y: number; width: number; height: number } }>;
         parent(id: number): { id: number; role: string; title: string; value: string; frame: { x: number; y: number; width: number; height: number } } | null;
         press(id: number): boolean;
@@ -653,19 +649,19 @@ declare const macotron: {
             lowPowerMode: boolean;
         };
         /** Needs an admin password. `pmset` Low Power Mode for battery and adapter. */
-        setLowPowerMode(enabled: boolean): {
+        setLowPowerMode(enabled: boolean): Promise<{
             ok: boolean;
             lowPowerMode: boolean;
             error?: string;
-        };
+        }>;
         /** System appearance, not Macotron's own Settings theme. */
         darkMode(): boolean;
-        setDarkMode(on: boolean): { ok: boolean; darkMode: boolean; error?: string };
+        setDarkMode(on: boolean): Promise<{ ok: boolean; darkMode: boolean; error?: string }>;
         /** Whether a Focus mode (Do Not Disturb, Sleep, Work, …) is on. */
         focus(): { focused: boolean };
         disk(): { total: number; free: number; used: number };
         network(): { bytesIn: number; bytesOut: number };
-        processes(limit?: number): Array<{ name: string; pid: number; cpu: number }>;
+        processes(limit?: number): Promise<Array<{ name: string; pid: number; cpu: number }>>;
         gpu(): { name: string; usage: number } | null;
         /**
          * Fan floor. `available` means this Mac has fans, so RPM can be read;
