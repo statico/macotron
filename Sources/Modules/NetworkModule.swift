@@ -157,7 +157,9 @@ public final class NetworkModule: NativeModule {
     private static let noWifi: [String: Any] = ["available": false, "on": false]
     private static let noBluetooth: [String: Any] = ["on": false, "devices": [Any]()]
 
-    private static func wifiKey() -> (on: Bool, ssid: String?) {
+    /// nonisolated: this only shells out to networksetup, and the 5s poll
+    /// samples it from a background queue.
+    private nonisolated static func wifiKey() -> (on: Bool, ssid: String?) {
         let snap = NetworkControl.wifi()
         return (snap["on"] as? Bool ?? false, snap["ssid"] as? String)
     }
