@@ -287,7 +287,11 @@ public final class SystemModule: NativeModule {
     public init() {}
 
     public func cleanup() {
-        FanController.shared.restoreIfNeeded()
+        FanController.shared.beginReload()
+    }
+
+    public func didReload() {
+        FanController.shared.endReload()
     }
 
     public func register(in engine: Engine, options: [String: Any]) {
