@@ -188,8 +188,11 @@ enum NetworkRate {
 }
 
 enum BluetoothRadio {
-    static func snapshot() -> [String: Any] {
-        ["on": isOn(), "devices": devices()]
+    /// `batteries` comes from `BluetoothBattery.cached()`, which shells out to
+    /// system_profiler for over a second. The caller fetches it off the main
+    /// thread and hands it in, leaving this a cheap IOBluetooth query.
+    static func snapshot(batteries: [String: Int]) -> [String: Any] {
+        ["on": isOn(), "devices": devices(batteries)]
     }
 
     static func set(_ on: Bool, dryRun: Bool) -> [String: Any] {
@@ -207,11 +210,10 @@ enum BluetoothRadio {
         powerGet?() == 1
     }
 
-    private static func devices() -> [Any] {
+    private static func devices(_ batteries: [String: Int]) -> [Any] {
         guard let paired = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice] else {
             return []
         }
-        let batteries = BluetoothBattery.cached()
         return paired.map { device -> [String: Any] in
             let name = device.name ?? device.addressString ?? ""
             let address = device.addressString ?? ""
