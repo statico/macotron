@@ -74,15 +74,17 @@ struct DryRunStubTests {
     @Test("http methods return a stub without hitting the network")
     func http() {
         let engine = dryEngine([HTTPModule()])
-        let (result, error) = engine.evaluate("""
-            JSON.stringify([
+        let (_, error) = engine.evaluate("""
+            globalThis.out = null;
+            Promise.all([
                 macotron.http.get('http://127.0.0.1:1/'),
                 macotron.http.post('http://127.0.0.1:1/', '{}'),
                 macotron.http.put('http://127.0.0.1:1/', '{}'),
                 macotron.http.delete('http://127.0.0.1:1/'),
-            ].map(r => r.status))
+            ]).then(rs => { globalThis.out = JSON.stringify(rs.map(r => r.status)); });
             """)
         #expect(error == nil)
+        let (result, _) = engine.evaluate("globalThis.out")
         #expect(result == "[0,0,0,0]")
     }
 
