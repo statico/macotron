@@ -693,11 +693,17 @@ public struct SettingsView: View {
                 }
 
                 formRow("Updates") {
-                    Toggle("Check for updates automatically", isOn: Binding(
-                        get: { state.automaticUpdates },
-                        set: { state.setAutomaticUpdates($0) }
-                    ))
-                    .toggleStyle(.checkbox)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle("Check for updates automatically", isOn: Binding(
+                            get: { state.automaticUpdates },
+                            set: { state.setAutomaticUpdates($0) }
+                        ))
+                        .toggleStyle(.checkbox)
+                        Button(Updater.pendingVersion.map { "Update to \($0)..." }
+                            ?? "Check Now") {
+                            Updater.checkForUpdates()
+                        }
+                    }
                 }
 
                 formRow("Menu Bar Icon") {
