@@ -104,6 +104,29 @@ jobs:
           subject-path: /tmp/macotron-build/Macotron-${{ inputs.version }}.dmg
           sbom-path: ${{ runner.temp }}/sbom.spdx.json
 
+      # Temporary: the appcast script fails in CI with no output at all.
+      - name: Trace the appcast script
+        env:
+          SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -u
+          sp=/tmp/macotron-build/artifacts/sparkle/Sparkle
+          "$sp/bin/sign_update" --help > /dev/null 2>&1
+          echo "sign_update --help exit=$?"
+          echo "$SPARKLE_KEY" > "$RUNNER_TEMP/sparkle.key"
+          wc -c < "$RUNNER_TEMP/sparkle.key"
+          t=$(mktemp -d)
+          mkdir -p "$t/site" "$t/scripts"
+          cp site/appcast.xml "$t/site/"
+          cp scripts/update-appcast.sh "$t/scripts/"
+          cd "$t"
+          SPARKLE_DIR="$sp" SPARKLE_KEY_FILE="$RUNNER_TEMP/sparkle.key" \
+            sh -x scripts/update-appcast.sh "$VERSION" \
+            "/tmp/macotron-build/Macotron-$VERSION.dmg" \
+            /tmp/macotron-build/notes.md
+          echo "trace exit=$?"
+
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
