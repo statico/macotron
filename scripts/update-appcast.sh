@@ -25,11 +25,17 @@ fi
 
 # Prints the enclosure attributes ready to paste: edSignature and length.
 # A CI runner has no login keychain, so it points at the exported key instead.
+# sign_update reports its errors on stdout, so capture both and check the
+# result rather than letting a command substitution swallow the reason.
 if [ -n "${SPARKLE_KEY_FILE:-}" ]; then
-  attrs=$("$sign_update" --ed-key-file "$SPARKLE_KEY_FILE" "$dmg")
+  attrs=$("$sign_update" --ed-key-file "$SPARKLE_KEY_FILE" "$dmg" 2>&1) || true
 else
-  attrs=$("$sign_update" "$dmg")
+  attrs=$("$sign_update" "$dmg" 2>&1) || true
 fi
+case "$attrs" in
+  *edSignature*) ;;
+  *) echo "$attrs" >&2; echo "sign_update did not sign $dmg." >&2; exit 1 ;;
+esac
 
 # Sparkle renders <description> as HTML, so the commit lines need escaping and
 # the leading "- " turned into list markup.
