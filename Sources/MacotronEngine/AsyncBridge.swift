@@ -99,3 +99,43 @@ extension JSBridge {
         engine.drainJobQueue()
     }
 }
+
+extension JSBridge {
+    /// A promise settled later, from the main thread, by whoever holds the
+    /// returned closure. `promise` covers work that runs; this covers work that
+    /// is waited for — a device report, a callback, an event — where there is
+    /// nothing to put on a background queue.
+    ///
+    /// The closure is a no-op after the first call, and after `reset()` has
+    /// rejected the promise out from under it.
+    @MainActor
+    public static func deferred(
+        _ ctx: OpaquePointer,
+        dryRun: Any? = nil
+    ) -> (promise: JSValue, settle: @MainActor (BridgeResult) -> Void) {
+        var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
+        let promise = JS_NewPromiseCapability(ctx, &resolving)
+        let resolve = JS_DupValue(ctx, resolving[0])
+        let reject = JS_DupValue(ctx, resolving[1])
+        JS_FreeValue(ctx, resolving[0])
+        JS_FreeValue(ctx, resolving[1])
+
+        guard let engine = Engine.of(ctx) else {
+            JS_FreeValue(ctx, resolve)
+            JS_FreeValue(ctx, reject)
+            return (promise, { _ in })
+        }
+
+        if engine.dryRun {
+            settle(ctx, engine: engine, resolve: resolve, reject: reject, with: .of(dryRun))
+            return (promise, { _ in })
+        }
+
+        let token = engine.registerPending(resolve: resolve, reject: reject)
+        return (promise, { outcome in
+            guard let pending = engine.claimPending(token) else { return }
+            settle(ctx, engine: engine,
+                   resolve: pending.resolve, reject: pending.reject, with: outcome)
+        })
+    }
+}
