@@ -28,14 +28,21 @@ public struct CatalogBrowser: View {
         }
     }
 
+    /// Fuzzy, so "wgrid" finds "Window Grid". Featured order is kept while the
+    /// query is empty and score order takes over once it is not.
     private var filtered: [CatalogPlugin] {
-        let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return plugins }
-        return plugins.filter {
-            $0.title.lowercased().contains(q)
-                || $0.filename.lowercased().contains(q)
-                || $0.description.lowercased().contains(q)
-        }
+        return plugins
+            .compactMap { plugin -> (CatalogPlugin, Int)? in
+                guard let score = FuzzyMatch.best(
+                    query: q,
+                    targets: [plugin.title, plugin.filename, plugin.description]
+                ) else { return nil }
+                return (plugin, score)
+            }
+            .sorted { $0.1 > $1.1 }
+            .map(\.0)
     }
 }
 
@@ -85,6 +92,12 @@ private struct CatalogInstallSheet: View {
                 .font(.title3.weight(.semibold))
             Text(plugin.description)
                 .foregroundStyle(.secondary)
+            if let origin = plugin.origin {
+                CommunityProvenance(origin: origin)
+            }
+            if let reason = PluginBlocklist.reason(hash: plugin.bundleHash) {
+                scanBanner("hand.raised.fill", "Blocked by Macotron: \(reason)", .red)
+            }
             if let overwrite = state.overwrite {
                 Text(overwrite == .modified
                      ? "This replaces a plugin you already edited."
@@ -108,8 +121,13 @@ private struct CatalogInstallSheet: View {
             scanStatus
             HStack {
                 Button("View Source…") {
-                    NSWorkspace.shared.open(plugin.fileURL)
+                    if let fileURL = plugin.fileURL {
+                        NSWorkspace.shared.open(fileURL)
+                    } else if let origin = plugin.origin {
+                        NSWorkspace.shared.open(origin.sourceURL)
+                    }
                 }
+                .disabled(plugin.fileURL == nil && plugin.origin == nil)
                 Spacer()
                 Button("Cancel") {
                     state.installTarget = nil
@@ -139,6 +157,13 @@ private struct CatalogInstallSheet: View {
     /// queue of reviews can be walked through on Return.
     @ViewBuilder
     private var primaryButton: some View {
+        if PluginBlocklist.reason(hash: plugin.bundleHash) == nil {
+            liveButton
+        }
+    }
+
+    @ViewBuilder
+    private var liveButton: some View {
         let button = Button(primaryLabel) {
             install(override: state.scanReport?.needsOverride ?? true)
         }
@@ -159,7 +184,7 @@ private struct CatalogInstallSheet: View {
                     .controlSize(.small)
                 Text("Scanning with Apple Intelligence…")
             }
-        } else if state.scanReport == nil, state.installIsBuiltIn {
+        } else if state.scanReport == nil, state.installIsBuiltIn, plugin.origin == nil {
             HStack(alignment: .center, spacing: 8) {
                 scanBanner(
                     "checkmark.circle.fill",
@@ -224,6 +249,11 @@ private struct CatalogInstallSheet: View {
     }
 
     private func install(override: Bool) {
+        // Clear the Update badge here: the write happens in the app delegate,
+        // and the list would otherwise keep offering an update already taken.
+        if let repo = plugin.origin?.repo, state.allowsInstall(of: plugin, override: override) {
+            state.communityUpdates.remove(repo)
+        }
         state.onInstallCatalog?(plugin, override)
         if !state.isReviewing {
             state.installTarget = nil

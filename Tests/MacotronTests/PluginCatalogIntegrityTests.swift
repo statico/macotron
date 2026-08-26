@@ -266,7 +266,7 @@ struct PluginCatalogTests {
         #expect(plugins[0].title == "Weather")
         #expect(plugins[0].highlighted)
         #expect(plugins[0].permissions == [.accessibility])
-        #expect(plugins[0].fileURL.lastPathComponent == "weather.js")
+        #expect(plugins[0].fileURL?.lastPathComponent == "weather.js")
     }
 
     @MainActor

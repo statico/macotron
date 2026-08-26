@@ -82,9 +82,11 @@ The app seeds `README.md` once if the file is missing. Humans and agents can edi
 
 ## Plugins
 
-Plugins are `.js` files under `plugins/`. Each file registers hotkeys and hooks at load time. Community plugins can use the GitHub topic `macotron-plugin`:
+Plugins are `.js` files under `plugins/`. Each file registers hotkeys and hooks at load time.
 
-https://github.com/topics/macotron-plugin
+Community plugins come from GitHub repositories that carry the topic
+`macotron-plugin`. Settings → Plugins → Catalog → **Community** searches for
+them. See `docs/11-community-plugins.md`.
 
 Plugins must run on a stock Mac. Use `macotron.*` and Apple-shipped CLI tools only. Do not depend on Homebrew, npm, or other third-party binaries.
 
