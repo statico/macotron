@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.3.2</title>
+            <sparkle:version>0.3.2</sparkle:version>
+            <sparkle:shortVersionString>0.3.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Wed, 26 Aug 2026 20:55:38 +0000</pubDate>
+            <description><![CDATA[<ul><li>Let the community publish plugins with a GitHub topic</li><li>Tell people how to publish a community plugin</li><li>Settle on macotron-plugin-&lt;name&gt; for community repos</li><li>Put the version in the release run name</li><li>Say out loud that this is a beta</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.3.2/Macotron-0.3.2.dmg" type="application/octet-stream" sparkle:edSignature="7D0pS3UMupKRuFbEeJ+9nC4dV0ixtyodsXSihhT9GLz3uNvtYZJPv6/GxfH7KTxdidqGdqXxqxocYQyzuiXlBg==" length="9193079" />
+        </item>
+        <item>
             <title>0.3.1</title>
             <sparkle:version>0.3.1</sparkle:version>
             <sparkle:shortVersionString>0.3.1</sparkle:shortVersionString>
