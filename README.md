@@ -88,6 +88,17 @@ If you have Hot Reloading turned on, changing the plugin source will take effect
 
 You can read [a concise description of the API](https://macotron.statico.io/#api), the [full API reference](https://github.com/statico/macotron/blob/main/Sources/Macotron/Resources/macotron.d.ts), or [browse the default plugins](https://github.com/statico/macotron/blob/main/Examples/plugins/README.md). Or just, y'know, let your agent do that for you or whatever.
 
+### Sharing Plugins
+
+**Settings → Plugins → Catalog → Community** lists every GitHub repo tagged [`macotron-plugin`](https://github.com/topics/macotron-plugin). To get yours in there:
+
+1. One plugin per repo, one `.js` file in the root, named after the repo. A `macotron-` prefix on the repo name gets dropped, so `macotron-cleanshot` can hold `cleanshot.js`.
+2. Add the `macotron-plugin` topic.
+
+That's the whole process. There's no index to update, no PR to file, and no review queue to wait on. [macotron-cleanshot](https://github.com/statico/macotron-cleanshot) is a working example.
+
+Nothing installs or updates itself. Macotron downloads the source, scans it, shows you who wrote it, and waits for you to say yes.
+
 ## Security
 
 Hotkeys and window control need Accessibility and Input Monitoring. Screen capture needs Screen Recording. Fan control needs a system helper app installed. It's a little scary, but Macotron tries to only ask for additional permissions when an enabled plugin needs them.
