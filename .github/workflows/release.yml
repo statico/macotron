@@ -67,10 +67,16 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          echo "$API_KEY" | base64 --decode > "$RUNNER_TEMP/asc.p8"
-          # The usual mistake is pasting the .p8 itself instead of base64 of it.
-          grep -q "BEGIN PRIVATE KEY" "$RUNNER_TEMP/asc.p8" || \
-            { echo "APPLE_API_KEY_P8 did not decode to a .p8 key."; exit 1; }
+          # The secret is either the .p8 itself or base64 of it. Take both.
+          if printf '%s' "$API_KEY" | grep -q "BEGIN PRIVATE KEY"; then
+            printf '%s\n' "$API_KEY" > "$RUNNER_TEMP/asc.p8"
+          else
+            echo "$API_KEY" | base64 --decode > "$RUNNER_TEMP/asc.p8"
+          fi
+          grep -q "BEGIN PRIVATE KEY" "$RUNNER_TEMP/asc.p8" || { \
+            echo "APPLE_API_KEY_P8 is neither a .p8 key nor base64 of one."; \
+            echo "Paste the file, or base64 -i AuthKey_KEYID.p8 | pbcopy."; \
+            exit 1; }
           NOTARY_KEY="$RUNNER_TEMP/asc.p8" make dmg VERSION="$VERSION"
           rm "$RUNNER_TEMP/asc.p8"
 
