@@ -510,7 +510,20 @@ declare const macotron: {
         close(id: string): void;
         sendOutput(id: string, data: number[] | string, opts?: { length?: number }): { ok: boolean; written?: number; error?: string };
         sendFeature(id: string, data: number[] | string, opts?: { length?: number }): { ok: boolean; written?: number; error?: string };
-        readInput(id: string, opts?: { reportId?: number; length?: number }): number[] | null;
+        /**
+         * Wait for the next input report on the interrupt pipe, the way
+         * `hid_read` does — what a device answers a query with. Reports queue
+         * from the moment `open` returns, so a reply that beats this call is
+         * not lost. Resolves `null` if nothing arrives before `timeout`
+         * (default 1000 ms). While `listen` is on, reports arrive as
+         * `hid:input` events instead.
+         */
+        readInput(
+            id: string,
+            opts?: { timeout?: number }
+        ): Promise<{ id: string; reportId: number; data: number[] } | null>;
+        /** Control GetReport for an input report. Most devices never answer it. */
+        readInputReport(id: string, opts?: { reportId?: number; length?: number }): number[] | null;
         readFeature(id: string, reportId: number, opts?: { length?: number }): number[] | null;
         listen(id: string): { ok: boolean; error?: string };
         unlisten(id: string): void;
