@@ -580,8 +580,11 @@ public final class PluginWorkspace {
         `await macotron.hid.readInput(id, { timeout: 500 })` waits for the next
         input report on the interrupt pipe — what the device answers a query
         with — and resolves `{ id, reportId, data }`, or `null` on timeout. Use
-        it for request/response protocols. Use `listen(id)` plus the `hid:input`
-        event for a device that reports on its own (a button, a dial).
+        it for request/response protocols: reports queue from the moment `open`
+        returns, so a reply that beats your `readInput` call is not lost. Use
+        `listen(id)` plus the `hid:input` event for a device that reports on its
+        own (a button, a dial); while listening, reports are delivered as events
+        instead of queued.
         `readFeature` and `readInputReport` are control GetReports; most devices
         never answer the input one.
         `macotron.qr.detect({ image|path })`, `qr.scan({ camera|screenshot })`,

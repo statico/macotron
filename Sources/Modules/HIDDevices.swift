@@ -275,15 +275,21 @@ enum HIDDevices {
 }
 
 final class HIDOpenDevice: @unchecked Sendable {
+    /// A request/response device answers within microseconds of the write, so
+    /// a read that arms itself afterwards loses the race. The interrupt
+    /// callback runs from `open` and unread reports queue here, the way
+    /// hidapi's read thread does. Oldest goes first when it is full.
+    private static let queueLimit = 64
+
     let id: String
     let device: IOHIDDevice
     weak var engine: Engine?
     private var buffer: UnsafeMutablePointer<UInt8>?
     private var bufferLen = 0
-    /// `listen()` fans every report out as `hid:input`; `read()` takes one off
-    /// the wire and stops. Both ride the same callback, so the callback stays
-    /// registered while either wants it.
+    /// `listen()` fans every report out as `hid:input`. While it is on, reports
+    /// are delivered rather than queued: an event consumer is already reading.
     private var emitting = false
+    private var queue: [(reportId: UInt32, data: [UInt8])] = []
     private var waiters: [(token: UInt64, settle: @MainActor (BridgeResult) -> Void)] = []
     private var nextWaiter: UInt64 = 0
 
@@ -291,33 +297,38 @@ final class HIDOpenDevice: @unchecked Sendable {
         self.id = id
         self.device = device
         self.engine = engine
+        schedule()
     }
 
     deinit {
         MainActor.assumeIsolated { failWaiters("device closed") }
-        emitting = false
         unschedule()
         IOHIDDeviceClose(device, IOOptionBits(kIOHIDOptionsTypeNone))
     }
 
     func listen() -> (ok: Bool, error: String?) {
-        guard schedule() else { return (false, "no buffer") }
+        guard buffer != nil else { return (false, "no buffer") }
         emitting = true
+        queue.removeAll()
         return (true, nil)
     }
 
     func stopListen() {
         emitting = false
-        unscheduleIfIdle()
     }
 
-    /// Wait for the next input report on the interrupt pipe, the way
-    /// `hid_read` does. A control GetReport is a different transfer and most
-    /// devices never answer it: see `HIDDevices.getReport`.
+    /// Wait for the next input report on the interrupt pipe, the way `hid_read`
+    /// does. A control GetReport is a different transfer and most devices never
+    /// answer it: see `HIDDevices.getReport`.
     @MainActor
     func read(timeout: TimeInterval, settle: @escaping @MainActor (BridgeResult) -> Void) {
-        guard schedule() else {
+        guard buffer != nil else {
             settle(.failure("could not schedule the device"))
+            return
+        }
+        if !queue.isEmpty {
+            let report = queue.removeFirst()
+            settle(.value(payload(reportId: report.reportId, data: report.data)))
             return
         }
         let token = nextWaiter
@@ -327,9 +338,7 @@ final class HIDOpenDevice: @unchecked Sendable {
             guard let self, let index = self.waiters.firstIndex(where: { $0.token == token }) else {
                 return
             }
-            let waiter = self.waiters.remove(at: index)
-            waiter.settle(.value(NSNull()))
-            self.unscheduleIfIdle()
+            self.waiters.remove(at: index).settle(.value(NSNull()))
         }
     }
 
@@ -340,28 +349,24 @@ final class HIDOpenDevice: @unchecked Sendable {
         for waiter in pending { waiter.settle(.failure(message)) }
     }
 
-    private func schedule() -> Bool {
-        if buffer == nil {
-            let size = HIDDevices.maxReport(device, kIOHIDReportTypeInput)
-            buffer = .allocate(capacity: size)
-            bufferLen = size
-            guard let buffer else { return false }
-            IOHIDDeviceScheduleWithRunLoop(
-                device, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
-            IOHIDDeviceRegisterInputReportCallback(
-                device,
-                buffer,
-                bufferLen,
-                hidInputReport,
-                Unmanaged.passUnretained(self).toOpaque()
-            )
-        }
-        return buffer != nil
+    private func payload(reportId: UInt32, data: [UInt8]) -> [String: Any] {
+        ["id": id, "reportId": Int(reportId), "data": data.map { Int($0) }]
     }
 
-    private func unscheduleIfIdle() {
-        guard !emitting, waiters.isEmpty else { return }
-        unschedule()
+    private func schedule() {
+        let size = HIDDevices.maxReport(device, kIOHIDReportTypeInput)
+        let allocated = UnsafeMutablePointer<UInt8>.allocate(capacity: size)
+        buffer = allocated
+        bufferLen = size
+        IOHIDDeviceScheduleWithRunLoop(
+            device, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
+        IOHIDDeviceRegisterInputReportCallback(
+            device,
+            allocated,
+            bufferLen,
+            hidInputReport,
+            Unmanaged.passUnretained(self).toOpaque()
+        )
     }
 
     private func unschedule() {
@@ -378,22 +383,18 @@ final class HIDOpenDevice: @unchecked Sendable {
         MainActor.assumeIsolated {
             // FIFO, like a single reader on a pipe: one report answers one read.
             if !waiters.isEmpty {
-                let waiter = waiters.removeFirst()
-                waiter.settle(.value([
-                    "id": id,
-                    "reportId": Int(reportId),
-                    "data": data.map { Int($0) },
-                ] as [String: Any]))
-                unscheduleIfIdle()
+                waiters.removeFirst().settle(.value(payload(reportId: reportId, data: data)))
+                return
             }
-            guard emitting, let engine, let ctx = engine.context else { return }
-            let payload = JSBridge.newObject(ctx, [
-                "id": id,
-                "reportId": Int(reportId),
-                "data": data.map { Int($0) },
-            ])
-            engine.eventBus.emit("hid:input", engine: engine, data: payload)
-            JS_FreeValue(ctx, payload)
+            guard emitting else {
+                queue.append((reportId, data))
+                if queue.count > Self.queueLimit { queue.removeFirst() }
+                return
+            }
+            guard let engine, let ctx = engine.context else { return }
+            let value = JSBridge.newObject(ctx, payload(reportId: reportId, data: data))
+            engine.eventBus.emit("hid:input", engine: engine, data: value)
+            JS_FreeValue(ctx, value)
         }
     }
 }
