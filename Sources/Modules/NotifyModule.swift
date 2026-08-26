@@ -15,6 +15,14 @@ private final class NotifyPresenter: NSObject, UNUserNotificationCenterDelegate 
     ) async -> UNNotificationPresentationOptions {
         [.banner, .list, .sound]
     }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        let id = response.notification.request.identifier
+        await MainActor.run { NotifyModule.onTap[id]?() }
+    }
 }
 
 @MainActor
@@ -47,6 +55,10 @@ public final class NotifyModule: NativeModule {
         default: return .deliver
         }
     }
+
+    /// What to run when the user clicks one of the host's own notifications,
+    /// keyed by the identifier passed to `post`.
+    public static var onTap: [String: () -> Void] = [:]
 
     /// A notification from the host itself, for something the user has to see
     /// even when Macotron is not the app they are looking at.
