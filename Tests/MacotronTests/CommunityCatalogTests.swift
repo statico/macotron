@@ -6,6 +6,8 @@ import Testing
 struct CommunityCatalogTests {
     @Test("repository names become plain plugin filenames")
     func filenames() {
+        #expect(CommunityCatalog.filename(forRepo: "macotron-plugin-weather") == "weather.js")
+        // The old names still resolve, so repos that predate the convention work.
         #expect(CommunityCatalog.filename(forRepo: "macotron-weather") == "weather.js")
         #expect(CommunityCatalog.filename(forRepo: "Window-Grid") == "window-grid.js")
         #expect(CommunityCatalog.filename(forRepo: "tidy-plugin") == "tidy.js")
@@ -17,12 +19,12 @@ struct CommunityCatalogTests {
     @Test("download probes the repository name first")
     func candidateOrder() {
         let entry = CommunityEntry(
-            repo: "statico/macotron-weather", title: "Weather", summary: "",
+            repo: "statico/macotron-plugin-weather", title: "Weather", summary: "",
             stars: 3, pushedAt: nil, defaultBranch: "main",
-            homepage: URL(string: "https://github.com/statico/macotron-weather")!
+            homepage: URL(string: "https://github.com/statico/macotron-plugin-weather")!
         )
         #expect(CommunityCatalog.candidates(for: entry)
-            == ["macotron-weather.js", "weather.js", "plugin.js", "index.js"])
+            == ["weather.js", "macotron-plugin-weather.js", "plugin.js", "index.js"])
         #expect(entry.filename == "weather.js")
         #expect(entry.owner == "statico")
     }
@@ -31,9 +33,9 @@ struct CommunityCatalogTests {
     func parseSearch() throws {
         let payload = """
         {"items": [
-          {"full_name": "a/macotron-notes", "name": "macotron-notes", "description": "Take notes.",
+          {"full_name": "a/macotron-plugin-notes", "name": "macotron-plugin-notes", "description": "Take notes.",
            "stargazers_count": 12, "pushed_at": "2026-08-01T10:00:00Z",
-           "default_branch": "main", "html_url": "https://github.com/a/macotron-notes"},
+           "default_branch": "main", "html_url": "https://github.com/a/macotron-plugin-notes"},
           {"full_name": "b/dead", "name": "dead", "archived": true, "default_branch": "main",
            "html_url": "https://github.com/b/dead"},
           {"name": "no-full-name", "default_branch": "main", "html_url": "https://x"}
@@ -42,7 +44,7 @@ struct CommunityCatalogTests {
         let entries = CommunityCatalog.parse(searchPayload: Data(payload.utf8))
         #expect(entries.count == 1)
         let entry = try #require(entries.first)
-        #expect(entry.repo == "a/macotron-notes")
+        #expect(entry.repo == "a/macotron-plugin-notes")
         #expect(entry.title == "Notes")
         #expect(entry.stars == 12)
         #expect(entry.pushedAt != nil)

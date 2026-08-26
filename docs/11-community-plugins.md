@@ -8,18 +8,20 @@ Settings → Plugins → Catalog → **Community** shows the list.
 
 ## Rules for an author
 
-1. Put one plugin in the repository. One plugin, one repository.
-2. Put the `.js` file in the root of the repository.
-3. Name the file after the repository. `macotron-weather` holds
-   `macotron-weather.js`. The app also accepts `weather.js`, `plugin.js`, or
-   `index.js`.
+1. Name the repository `macotron-plugin-<name>`.
+2. Put one plugin in the repository. One plugin, one repository.
+3. Put the `.js` file in the root, named `<name>.js`. The app also accepts the
+   full repository name, `plugin.js`, or `index.js`.
 4. Add the topic `macotron-plugin` to the repository.
 5. Write `title` and `description` in `macotron.plugin({...})`. The app shows
    those, not the GitHub description.
 
+`macotron-plugin-weather` holds `weather.js` and installs as `weather.js`. The
+app removes a `macotron-plugin-` prefix, and it still accepts the older
+`macotron-` prefix and a `-plugin` suffix.
+
 The repository description, the star count, and the last push date come from
-the search result. Macotron installs the plugin as `weather.js`: the app
-removes a `macotron-` prefix and a `-plugin` suffix from the repository name.
+the search result.
 
 ## Why there is no index
 
