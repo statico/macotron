@@ -195,12 +195,24 @@ dmg: ## Build, sign, and notarize the DMG only (VERSION=x.y.z)
 	@$(MAKE) CONFIG=release VERSION=$(VERSION) bundle
 	@codesign -dvv "$(BUNDLE)" 2>&1 | grep -q "Authority=Developer ID" || \
 		{ echo "Refusing to package: not signed with a Developer ID."; exit 1; }
-	@rm -rf $(BUILD_DIR)/dmg && mkdir -p $(BUILD_DIR)/dmg
+	@rm -rf $(BUILD_DIR)/dmg && mkdir -p $(BUILD_DIR)/dmg/.background
 	@cp -R "$(BUNDLE)" $(BUILD_DIR)/dmg/
 	@ln -s /Applications $(BUILD_DIR)/dmg/Applications
-	@rm -f "$(DMG)"
+	@# Finder picks the size it needs out of a multi-resolution TIFF, so the
+	@# background stays sharp on a Retina display.
+	@swift scripts/dmg-background.swift $(BUILD_DIR)/bg.png $(BUILD_DIR)/bg@2x.png
+	@tiffutil -cathidpicheck $(BUILD_DIR)/bg.png $(BUILD_DIR)/bg@2x.png \
+		-out $(BUILD_DIR)/dmg/.background/background.tiff > /dev/null 2>&1
+	@cp "$(BUNDLE)/Contents/Resources/$(APP_NAME).icns" $(BUILD_DIR)/dmg/.VolumeIcon.icns
+	@# Finder has to write the window layout into a mounted read-write image
+	@# first; the shipped image is the compressed copy of that.
+	@rm -f "$(DMG)" $(BUILD_DIR)/rw.dmg
 	@hdiutil create -quiet -volname "$(APP_NAME) $(VERSION)" \
-		-srcfolder $(BUILD_DIR)/dmg -ov -format UDZO "$(DMG)"
+		-srcfolder $(BUILD_DIR)/dmg -ov -format UDRW \
+		-size $$(( $$(du -sm $(BUILD_DIR)/dmg | cut -f1) + 20 ))m $(BUILD_DIR)/rw.dmg
+	@scripts/dmg-layout.sh $(BUILD_DIR)/rw.dmg "$(APP_NAME) $(VERSION)" "$(APP_NAME).app"
+	@hdiutil convert -quiet $(BUILD_DIR)/rw.dmg -format UDZO -o "$(DMG)"
+	@rm -f $(BUILD_DIR)/rw.dmg
 	@codesign --force --sign "$(SIGN_IDENTITY)" "$(DMG)"
 	@if err=$$(xcrun notarytool history $(NOTARY_ARGS) 2>&1); then \
 		xcrun notarytool submit "$(DMG)" $(NOTARY_ARGS) --wait && \
