@@ -8,5 +8,14 @@
         <description>Macotron releases</description>
         <language>en</language>
         <!-- newest first -->
+        <item>
+            <title>0.2.8</title>
+            <sparkle:version>0.2.8</sparkle:version>
+            <sparkle:shortVersionString>0.2.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Wed, 26 Aug 2026 00:56:10 +0000</pubDate>
+            <description><![CDATA[<ul><li>Put the world clocks under the month buttons</li><li>Stop a reload from triggering the next one</li><li>Update Macotron from inside Macotron</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.2.8/Macotron-0.2.8.dmg" type="application/octet-stream" sparkle:edSignature="YKFxnBlLghzBr0YptRjT5QsH16jWc2xCaVTv157lILWv892P840Ox7K9sDfmlzBKBJFcCMDicT5FD39Mspu9DQ==" length="8536432" />
+        </item>
     </channel>
 </rss>
