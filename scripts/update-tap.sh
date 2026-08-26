@@ -29,7 +29,10 @@ else
 fi
 
 rm -rf "$tap"
-git clone -q git@github.com:statico/homebrew-tap.git "$tap"
+# The clone keeps TAP_URL in .git/config, token and all, so do not leave it.
+trap 'rm -rf "$tap"' EXIT
+# CI has no SSH key, so it passes an HTTPS URL with a token in it.
+git clone -q "${TAP_URL:-git@github.com:statico/homebrew-tap.git}" "$tap"
 mkdir -p "$tap/Casks"
 
 cat > "$tap/Casks/macotron.rb" <<EOF

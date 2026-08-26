@@ -24,7 +24,12 @@ if grep -qF "<sparkle:version>$version</sparkle:version>" "$appcast"; then
 fi
 
 # Prints the enclosure attributes ready to paste: edSignature and length.
-attrs=$("$sign_update" "$dmg")
+# A CI runner has no login keychain, so it points at the exported key instead.
+if [ -n "${SPARKLE_KEY_FILE:-}" ]; then
+  attrs=$("$sign_update" --ed-key-file "$SPARKLE_KEY_FILE" "$dmg")
+else
+  attrs=$("$sign_update" "$dmg")
+fi
 
 # Sparkle renders <description> as HTML, so the commit lines need escaping and
 # the leading "- " turned into list markup.

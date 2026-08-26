@@ -14,6 +14,13 @@ DMG = $(BUILD_DIR)/$(APP_NAME)-$(VERSION).dmg
 # One App Store Connect API key authorizes the whole team, so this profile is
 # shared with every other app signed by TA59XVWN77, not specific to Macotron.
 NOTARY_PROFILE ?= personal-notary
+# A runner has no keychain profile, so CI passes the key file itself instead.
+NOTARY_ARGS = $(if $(NOTARY_KEY),--key "$(NOTARY_KEY)" --key-id "$(NOTARY_KEY_ID)" \
+	--issuer "$(NOTARY_ISSUER)",--keychain-profile "$(NOTARY_PROFILE)")
+
+# Every release target wants the version spelled out rather than defaulted.
+demand-version = test "$(origin VERSION)" = "command line" && test -n "$(VERSION)" || \
+	{ echo "usage: make $@ VERSION=x.y.z"; exit 1; }
 
 # Root helper for privileged work such as fan-speed writes. SMAppService loads it
 # from inside the bundle, so the plist must use BundleProgram and the helper must
@@ -53,7 +60,7 @@ SPARKLE_FRAMEWORK = $(SPARKLE_DIR)/Sparkle.xcframework/macos-arm64_x86_64/Sparkl
 
 .DEFAULT_GOAL := help
 
-.PHONY: help version build run bundle check clean cleanprefs release tap scan trace
+.PHONY: help version build run bundle check clean cleanprefs release dmg publish tap scan trace
 
 ##@ General
 
@@ -158,8 +165,7 @@ scan: ## Sweep built-in plugins + tmp/malware with the on-device scanner
 		Examples/plugins --fail tmp/malware --out tmp/scan-sweep.jsonl $(ARGS)
 
 release: ## Tag, build, and ship a release + Homebrew cask (VERSION=x.y.z)
-	@test "$(origin VERSION)" = "command line" && test -n "$(VERSION)" || \
-		{ echo "usage: make release VERSION=x.y.z"; exit 1; }
+	@$(demand-version)
 	@test -n "$(ALLOW_UNNOTARIZED)" || git diff --quiet HEAD || \
 		{ echo "Working tree is dirty."; exit 1; }
 	@# Whatever is about to be tagged has to be what everyone else can see.
@@ -167,6 +173,14 @@ release: ## Tag, build, and ship a release + Homebrew cask (VERSION=x.y.z)
 		git fetch --quiet origin main && \
 		test -z "$$(git rev-list origin/main..HEAD)" -a -z "$$(git rev-list HEAD..origin/main)"; \
 	} || { echo "main and origin/main have diverged. Push or pull first."; exit 1; }
+	@$(MAKE) dmg VERSION=$(VERSION)
+	@# An unnotarized DMG is a local test build; nobody should download it.
+	@if [ -n "$(ALLOW_UNNOTARIZED)" ]; then echo "Not published: ALLOW_UNNOTARIZED."; else \
+		$(MAKE) publish VERSION=$(VERSION); \
+	fi
+
+dmg: ## Build, sign, and notarize the DMG only (VERSION=x.y.z)
+	@$(demand-version)
 	@git tag --list 'v$(VERSION)' | grep -q . && \
 		{ echo "v$(VERSION) already exists."; exit 1; } || true
 	@mkdir -p $(BUILD_DIR)
@@ -188,40 +202,41 @@ release: ## Tag, build, and ship a release + Homebrew cask (VERSION=x.y.z)
 	@hdiutil create -quiet -volname "$(APP_NAME) $(VERSION)" \
 		-srcfolder $(BUILD_DIR)/dmg -ov -format UDZO "$(DMG)"
 	@codesign --force --sign "$(SIGN_IDENTITY)" "$(DMG)"
-	@if xcrun notarytool history --keychain-profile "$(NOTARY_PROFILE)" >/dev/null 2>&1; then \
-		xcrun notarytool submit "$(DMG)" --keychain-profile "$(NOTARY_PROFILE)" --wait && \
+	@if xcrun notarytool history $(NOTARY_ARGS) >/dev/null 2>&1; then \
+		xcrun notarytool submit "$(DMG)" $(NOTARY_ARGS) --wait && \
 		xcrun stapler staple "$(DMG)"; \
 	elif [ -n "$(ALLOW_UNNOTARIZED)" ]; then \
 		printf '\033[33mUnnotarized: this DMG is only good for local testing.\033[0m\n'; \
 	else \
-		echo "No notary profile \"$(NOTARY_PROFILE)\". Gatekeeper would tell everyone"; \
+		echo "Notarization credentials do not work. Gatekeeper would tell everyone"; \
 		echo "who downloads this that Macotron is malware, so refusing to package it."; \
-		echo "Create one (see docs/releasing.md), or ALLOW_UNNOTARIZED=1 to test locally."; \
+		echo "See docs/releasing.md, or ALLOW_UNNOTARIZED=1 to test locally."; \
 		rm -f "$(DMG)"; \
 		exit 1; \
 	fi
 	@if [ -z "$(ALLOW_UNNOTARIZED)" ]; then xcrun stapler validate "$(DMG)"; fi
 	@echo "Built $(DMG)"
-	@# An unnotarized DMG is a local test build; nobody should download it.
+
+publish: ## Appcast, tag, GitHub release, and cask for a built DMG (VERSION=x.y.z)
+	@$(demand-version)
+	@test -f "$(DMG)" || { echo "No $(DMG). Run make dmg first."; exit 1; }
 	@# The appcast has to be signed after stapling, which rewrites the DMG, and
 	@# committed before the tag so the tag matches what the feed describes. The
 	@# branch is pushed last because that deploys the feed, and a feed that
 	@# names a DMG GitHub has not finished uploading is a 404 for everyone.
-	@if [ -n "$(ALLOW_UNNOTARIZED)" ]; then echo "Not published: ALLOW_UNNOTARIZED."; else set -x; \
-		SPARKLE_DIR=$(SPARKLE_DIR) scripts/update-appcast.sh $(VERSION) "$(DMG)" $(BUILD_DIR)/notes.md && \
-		git add site/appcast.xml && \
-		git commit -qm "Appcast for $(VERSION)" -- site/appcast.xml && \
-		git tag -a v$(VERSION) -m "$(APP_NAME) $(VERSION)" && \
-		git push origin v$(VERSION) && \
-		gh release create v$(VERSION) "$(DMG)" --title "$(APP_NAME) $(VERSION)" \
-			--notes-file $(BUILD_DIR)/notes.md && \
-		git push origin HEAD && \
-		scripts/update-tap.sh $(VERSION) "$(DMG)"; \
-	fi
+	@set -x; \
+	SPARKLE_DIR=$(SPARKLE_DIR) scripts/update-appcast.sh $(VERSION) "$(DMG)" $(BUILD_DIR)/notes.md && \
+	git add site/appcast.xml && \
+	git commit -qm "Appcast for $(VERSION)" -- site/appcast.xml && \
+	git tag -a v$(VERSION) -m "$(APP_NAME) $(VERSION)" && \
+	git push origin v$(VERSION) && \
+	gh release create v$(VERSION) "$(DMG)" --title "$(APP_NAME) $(VERSION)" \
+		--notes-file $(BUILD_DIR)/notes.md && \
+	git push origin HEAD && \
+	scripts/update-tap.sh $(VERSION) "$(DMG)"
 
 tap: ## Re-point the Homebrew cask at VERSION (release does this already)
-	@test "$(origin VERSION)" = "command line" && test -n "$(VERSION)" || \
-		{ echo "usage: make tap VERSION=x.y.z"; exit 1; }
+	@$(demand-version)
 	scripts/update-tap.sh $(VERSION) "$(DMG)"
 
 ##@ Maintenance
