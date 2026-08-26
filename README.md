@@ -92,10 +92,10 @@ You can read [a concise description of the API](https://macotron.statico.io/#api
 
 **Settings → Plugins → Catalog → Community** lists every GitHub repo tagged [`macotron-plugin`](https://github.com/topics/macotron-plugin). To get yours in there:
 
-1. One plugin per repo, one `.js` file in the root, named after the repo. A `macotron-` prefix on the repo name gets dropped, so `macotron-cleanshot` can hold `cleanshot.js`.
+1. Name the repo `macotron-plugin-<name>`. One plugin per repo, one `.js` file in the root, called `<name>.js`.
 2. Add the `macotron-plugin` topic.
 
-That's the whole process. There's no index to update, no PR to file, and no review queue to wait on. [macotron-cleanshot](https://github.com/statico/macotron-cleanshot) is a working example.
+That's the whole process. There's no index to update, no PR to file, and no review queue to wait on. [macotron-plugin-cleanshot](https://github.com/statico/macotron-plugin-cleanshot) is a working example.
 
 Nothing installs or updates itself. Macotron downloads the source, scans it, shows you who wrote it, and waits for you to say yes.
 

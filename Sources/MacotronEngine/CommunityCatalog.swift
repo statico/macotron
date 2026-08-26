@@ -100,12 +100,15 @@ public enum CommunityCatalog {
 
     // MARK: - Naming
 
-    /// `macotron-weather` installs as `weather.js`. Two repositories can still
-    /// collide here; that lands in the existing overwrite warning.
+    /// `macotron-plugin-weather` installs as `weather.js`. Only the first
+    /// matching prefix is dropped, so the longest one has to come first. Two
+    /// repositories can still collide here; that lands in the overwrite warning.
     public static func filename(forRepo name: String) -> String {
         var base = name.lowercased()
-        for prefix in ["macotron-", "macotron."] where base.hasPrefix(prefix) {
+        for prefix in ["macotron-plugin-", "macotron-plugin.", "macotron-", "macotron."]
+        where base.hasPrefix(prefix) {
             base = String(base.dropFirst(prefix.count))
+            break
         }
         for suffix in ["-plugin", ".plugin", "-macotron", ".js"] where base.hasSuffix(suffix) {
             base = String(base.dropLast(suffix.count))
@@ -115,10 +118,10 @@ public enum CommunityCatalog {
         return (base.isEmpty ? name.lowercased() : base) + ".js"
     }
 
-    /// Filenames to try in the repository, in order. The repository name comes
-    /// first so a well-named repo costs one request.
+    /// Filenames to try in the repository, in order. The convention name comes
+    /// first, so a repo that follows `macotron-plugin-<name>` costs one request.
     static func candidates(for entry: CommunityEntry) -> [String] {
-        var names = ["\(entry.repoName).js", entry.filename, "plugin.js", "index.js"]
+        var names = [entry.filename, "\(entry.repoName).js", "plugin.js", "index.js"]
         var seen = Set<String>()
         names = names.filter { seen.insert($0).inserted }
         return names
