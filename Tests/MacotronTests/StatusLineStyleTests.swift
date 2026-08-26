@@ -71,6 +71,27 @@ struct StatusLineStyleTests {
         #expect(origins[1] >= -0.001)
     }
 
+    @Test("icon centres on the text, not the bar")
+    func iconFollowsTheText() {
+        let lines = StatusLineStyle.lines(
+            title: "Ian / Tom",
+            subtitle: "12:30 PM",
+            color: nil,
+            subtitleColor: nil,
+            bold: false,
+            italic: false,
+            secondary: true
+        )
+        let heights = lines.map { $0.size().height }
+        let origins = StatusLineStyle.lineOrigins(barHeight: 24, heights: heights)
+        let center = StatusLineStyle.textCenter(lines: lines, origins: origins, height: 24)
+        // Line boxes hang lower than their ink, so the optical centre of the
+        // stack sits below the middle of the bar.
+        #expect(center < 12)
+        #expect(center > 9)
+        #expect(StatusLineStyle.textCenter(lines: [], origins: [], height: 24) == 12)
+    }
+
     @Test("minimum width remains a floor")
     func minimumWidth() {
         #expect(StatusLineStyle.length(naturalWidth: 120, minWidth: 96) == 120)

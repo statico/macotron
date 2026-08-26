@@ -17,7 +17,8 @@ struct MeetingsTests {
         let harness = """
             var statusConfig = null;
             var macotron = {
-                plugin: () => ({ hours: 12, hide: "personal\\nOOO" }),
+                plugin: () => ({ hours: 12, hide: "personal\\nOOO", time: "relative" }),
+                system: { locale: () => ({ hour12: true }) },
                 calendar: {
                     upcoming: () => Promise.resolve([
                         { id: "p", title: "Personal dentist", start: \(now + 600000), end: \(now + 1200000), allDay: false, location: "", calendar: "Home" },
