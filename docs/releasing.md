@@ -1,29 +1,31 @@
 # Releasing
 
-There are two ways to ship a release. Both run the same Makefile targets.
-
-```sh
-make release VERSION=0.2.0
-```
-
-The other way is the **Release** workflow in the Actions tab. Give it a version
-and run it. It builds on a `macos-26` runner and does one thing the Mac cannot:
-it attaches a signed build provenance attestation and an SBOM to the DMG. Then
-anyone can ask GitHub what made the file they downloaded.
+Releases go out from GitHub. Open the **Release** workflow in the Actions tab,
+give it a version, and run it. It builds on a `macos-26` runner, which does one
+thing this Mac cannot: it attaches a signed build provenance attestation and an
+SBOM to the DMG, so anyone can ask GitHub what made the file they downloaded.
 
 ```sh
 gh attestation verify Macotron-0.2.9.dmg --repo statico/macotron
 ```
 
-The cost of that is real. The Developer ID certificate and the Sparkle key are
-GitHub secrets, so they no longer live only on this Mac. A person who can run
-that workflow can sign an update. Keep the `release` environment gated with a
+The run does all of it: a release build off `main`, the bundle stamped with the
+version, the DMG, notarization, a signed item added to the Sparkle feed in
+`site/appcast.xml` and committed, a git tag, a GitHub release with notes from
+the commits since the last tag, and a new `Casks/macotron.rb` pushed to
+statico/homebrew-tap.
+
+The cost is real. The Developer ID certificate and the Sparkle key are GitHub
+secrets, so they no longer live only on this Mac, and a person who can run that
+workflow can sign an update. Keep the `release` environment gated with a
 required reviewer, and keep the secret list short.
 
-That does all of it: a clean, pushed tree checked against origin/main, release build, bundle stamped with the version, DMG,
-notarization, a signed item added to the Sparkle feed in `site/appcast.xml` and
-committed, git tag, GitHub release with notes from the commits since the last
-tag, and a new `Casks/macotron.rb` pushed to statico/homebrew-tap.
+The build takes long enough that `main` can move under it. The publish step
+checks, and stops without shipping anything if it did. Run it again.
+
+`make release VERSION=x.y.z` on a Mac still works and runs the same Makefile
+targets, minus the attestation. It is the fallback for when Actions is down, and
+it needs the local setup below.
 
 The appcast is signed after notarization, not before: stapling rewrites the
 DMG, and the EdDSA signature covers every byte of the file people download. The
@@ -34,9 +36,10 @@ every shipped copy of the app. That branch push comes last, after the GitHub
 release exists: a feed naming a DMG that is still uploading is a 404 for
 everyone whose daily check lands in the gap.
 
-If the run dies partway, after the appcast commit but before the push, reset
-with `git tag -d v$VERSION; git reset --hard origin/main` and start over.
-Nothing is public until the tag is pushed.
+If a local run dies partway, after the appcast commit but before the push,
+reset with `git tag -d v$VERSION; git reset --hard origin/main` and start over.
+Nothing is public until the tag is pushed. A failed workflow run leaves this
+repository untouched, because it commits nothing until the publish step.
 
 People then install with:
 
@@ -44,7 +47,10 @@ People then install with:
 brew install statico/tap/macotron
 ```
 
-## One-time setup
+## One-time setup for a local release
+
+Only `make release` needs these. The workflow gets the same things from the
+secrets listed at the bottom.
 
 - A **Developer ID Application** certificate in the login keychain. Without it
   `make release` refuses to package, because an unsigned DMG downloads fine and
