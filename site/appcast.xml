@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.2.9</title>
+            <sparkle:version>0.2.9</sparkle:version>
+            <sparkle:shortVersionString>0.2.9</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Wed, 26 Aug 2026 05:54:25 +0000</pubDate>
+            <description><![CDATA[<ul><li>Build releases on GitHub, with provenance and an SBOM</li><li>Say why notarization refused instead of swallowing it</li><li>Take the notary key as a file or as base64</li><li>Show what the publish step can see</li><li>Trace the appcast script in CI, temporarily</li><li>Show why sign_update refused instead of eating the message</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.2.9/Macotron-0.2.9.dmg" type="application/octet-stream" sparkle:edSignature="xY2chntBL/WxNlxRNWa3m2WowUM7xd5WkTUivvW1MU24ufHwbTwsMgObDr6PHm7pA0dBAcn2pFVDK3GyqYF4Dw==" length="8539155" />
+        </item>
+        <item>
             <title>0.2.8</title>
             <sparkle:version>0.2.8</sparkle:version>
             <sparkle:shortVersionString>0.2.8</sparkle:shortVersionString>
