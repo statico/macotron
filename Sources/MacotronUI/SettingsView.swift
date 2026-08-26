@@ -196,6 +196,8 @@ public final class SettingsState: ObservableObject {
     @Published public var catalogPlugins: [CatalogPlugin] = []
     @Published public var installedPluginNames: Set<String> = []
     @Published public var pendingReview: [String] = []
+    /// Pending plugins that have never run — new files rather than edits.
+    @Published public var newPlugins: Set<String> = []
     @Published public var hotReload = false
     @Published public var installTarget: CatalogPlugin?
     @Published public var scanReport: PluginScanReport?
@@ -998,7 +1000,8 @@ public struct SettingsView: View {
                 if !state.pendingReview.isEmpty {
                     Divider()
 
-                    Button("Review & Reload") {
+                    Button(state.newPlugins.count == state.pendingReview.count
+                           ? "Review & Load" : "Review & Reload") {
                         state.onReviewPending?(nil)
                     }
                     .controlSize(.small)
@@ -1421,18 +1424,24 @@ struct PluginDetailView: View {
         }
     }
 
-    /// The file on disk changed, so this plugin is parked until the source is
-    /// reviewed. The sidebar says so for the whole set; say it here too, since
-    /// this page is where someone lands wondering why nothing is running.
+    /// The plugin is parked until its source is reviewed — either it is new and
+    /// has never run, or the file on disk changed. The sidebar says so for the
+    /// whole set; say it here too, since this page is where someone lands
+    /// wondering why nothing is running.
     private var reviewBox: some View {
-        HStack(alignment: .center, spacing: 8) {
+        let isNew = state.newPlugins.contains(summary.filename)
+        return HStack(alignment: .center, spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 11))
-            Text("The source file changed. This plugin stays stopped until you review it.")
+            Text(isNew
+                 ? "This plugin is new. It does not run until you review it."
+                 : "The source file changed. This plugin stays stopped until you review it.")
                 .font(.system(size: 11))
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 8)
-            Button("Review & Reload") { state.onReviewPending?(summary.filename) }
+            Button(isNew ? "Review & Load" : "Review & Reload") {
+                state.onReviewPending?(summary.filename)
+            }
                 .controlSize(.small)
         }
         .foregroundStyle(.orange)

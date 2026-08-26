@@ -504,6 +504,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.createPlugin(filename: filename, source: source)
         }
         settingsWindow = SettingsWindow(state: settingsState)
+        let review: () -> Void = { [weak self] in self?.reviewPendingPlugins() }
+        NotifyModule.onTap["macotron.new-plugin"] = review
+        NotifyModule.onTap["macotron.pending-review"] = review
     }
 
     private func nonEmptyString(_ value: Any?) -> String? {
@@ -900,22 +903,41 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private var announcedPendingReview = false
+    private var announcedNewPlugins: Set<String> = []
 
     private func refreshIntegrity() {
         let pending = moduleManager?.pendingReview ?? []
         settingsState.pendingReview = pending.sorted()
+        // A plugin the ledger has never seen is new on disk, not an edit: it
+        // has never run, so the wording is "load", not "reload".
+        let added = pending.filter { !PluginTrust.isKnown(filename: $0) }
+        settingsState.newPlugins = added
+        let changed = pending.subtracting(added)
+        // Nothing runs a new plugin until it is reviewed, and dropping a file
+        // in the plugins folder is otherwise silent — say so as it lands.
+        let unannounced = added.subtracting(announcedNewPlugins).sorted()
+        if !unannounced.isEmpty {
+            announcedNewPlugins.formUnion(unannounced)
+            NotifyModule.post(
+                title: "Macotron",
+                body: unannounced.count == 1
+                    ? "New plugin \(unannounced[0]) added — click to review"
+                    : "\(unannounced.count) new plugins added — click to review",
+                id: "macotron.new-plugin"
+            )
+        }
         // An edited plugin is quarantined and simply stops running, taking its
         // menu bar item with it. Say so once, at launch, where a notification
         // waits in Notification Centre -- a toast on every edit interrupts the
         // editing it is reporting on.
         if !announcedPendingReview {
             announcedPendingReview = true
-            if !pending.isEmpty {
+            if !changed.isEmpty {
                 NotifyModule.post(
                     title: "Macotron",
-                    body: pending.count == 1
+                    body: changed.count == 1
                         ? "1 plugin has updated and needs review"
-                        : "\(pending.count) plugins have updated and need review",
+                        : "\(changed.count) plugins have updated and need review",
                     id: "macotron.pending-review"
                 )
             }

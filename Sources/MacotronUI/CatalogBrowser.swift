@@ -147,7 +147,10 @@ private struct CatalogInstallSheet: View {
     /// report lands this shows the plain action.
     private var primaryLabel: String {
         let override = state.scanReport?.needsOverride == true
-        if state.isReviewing { return override ? "Run Anyway" : "Reload" }
+        if state.isReviewing {
+            if override { return "Run Anyway" }
+            return state.newPlugins.contains(plugin.filename) ? "Load" : "Reload"
+        }
         return override ? "Add Anyway" : "Add"
     }
 

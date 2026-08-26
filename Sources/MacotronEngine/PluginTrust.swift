@@ -59,6 +59,12 @@ public enum PluginTrust {
         approve(filename: filename, hash: PluginHash.sha256(source: source))
     }
 
+    /// True once this filename has ever been approved. A pending plugin that
+    /// is not known is new on disk rather than an edit of something that ran.
+    public static func isKnown(filename: String) -> Bool {
+        store.read(filename: filename) != nil
+    }
+
     /// The block list wins over the ledger: bytes that were approved before
     /// they were known to be bad still stop running.
     public static func matches(filename: String, source: String) -> Bool {
