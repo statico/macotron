@@ -202,12 +202,13 @@ dmg: ## Build, sign, and notarize the DMG only (VERSION=x.y.z)
 	@hdiutil create -quiet -volname "$(APP_NAME) $(VERSION)" \
 		-srcfolder $(BUILD_DIR)/dmg -ov -format UDZO "$(DMG)"
 	@codesign --force --sign "$(SIGN_IDENTITY)" "$(DMG)"
-	@if xcrun notarytool history $(NOTARY_ARGS) >/dev/null 2>&1; then \
+	@if err=$$(xcrun notarytool history $(NOTARY_ARGS) 2>&1); then \
 		xcrun notarytool submit "$(DMG)" $(NOTARY_ARGS) --wait && \
 		xcrun stapler staple "$(DMG)"; \
 	elif [ -n "$(ALLOW_UNNOTARIZED)" ]; then \
 		printf '\033[33mUnnotarized: this DMG is only good for local testing.\033[0m\n'; \
 	else \
+		echo "$$err" | sed 's/^/  /'; \
 		echo "Notarization credentials do not work. Gatekeeper would tell everyone"; \
 		echo "who downloads this that Macotron is malware, so refusing to package it."; \
 		echo "See docs/releasing.md, or ALLOW_UNNOTARIZED=1 to test locally."; \
