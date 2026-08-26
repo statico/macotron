@@ -68,6 +68,9 @@ jobs:
         run: |
           set -euo pipefail
           echo "$API_KEY" | base64 --decode > "$RUNNER_TEMP/asc.p8"
+          # The usual mistake is pasting the .p8 itself instead of base64 of it.
+          grep -q "BEGIN PRIVATE KEY" "$RUNNER_TEMP/asc.p8" || \
+            { echo "APPLE_API_KEY_P8 did not decode to a .p8 key."; exit 1; }
           NOTARY_KEY="$RUNNER_TEMP/asc.p8" make dmg VERSION="$VERSION"
           rm "$RUNNER_TEMP/asc.p8"
 
