@@ -5,8 +5,11 @@
 // usage: swift scripts/dmg-background.swift <1x.png> <2x.png>
 import AppKit
 
-let W = 640.0, H = 400.0
-let iconY = 228.0          // from the top, where Finder is told to put the icons
+// The window shows the top 400 points of this. The rest is slack: a Finder that
+// hides the toolbar gives the window more room, and bare grey below the picture
+// would look like a bug.
+let W = 640.0, H = 460.0
+let iconY = 200.0          // from the top, where Finder is told to put the icons
 let leftX = 168.0, rightX = 472.0
 
 func rgb(_ hex: UInt32, _ alpha: Double = 1) -> NSColor {
@@ -33,7 +36,7 @@ func label(_ text: String, _ size: Double, _ weight: NSFont.Weight,
 // text color, so neither a black nor a white name is readable against a flat
 // dark picture: a mid tone behind both cells works in either appearance.
 func plate(x: Double, y: Double) {
-    let box = NSRect(x: x - 102, y: H - y - 86, width: 204, height: 196)
+    let box = NSRect(x: x - 102, y: H - y - 112, width: 204, height: 186)
     let path = NSBezierPath(roundedRect: box, xRadius: 24, yRadius: 24)
     NSColor(white: 1, alpha: 0.24).setFill()
     path.fill()
@@ -77,7 +80,7 @@ func render(scale: Int, to path: String) {
     label("AI-powered macOS automation", 12, .medium, muted, kern: 1.5, top: 92)
     arrow()
     label("Drag the app onto Applications, then launch it", 12, .regular,
-          muted, kern: 0, top: H - 62)
+          muted, kern: 0, top: 342)
     NSGraphicsContext.current?.flushGraphics()
     NSGraphicsContext.restoreGraphicsState()
     try! rep.representation(using: .png, properties: [:])!

@@ -34,15 +34,16 @@ on run argv
 			set current view of container window to icon view
 			set toolbar visible of container window to false
 			set statusbar visible of container window to false
-			-- The picture is 640x400; the extra 28 points are the title bar.
-			set the bounds of container window to {200, 140, 840, 568}
+			-- 640x400 of picture, plus 68 points of title bar and toolbar.
+			-- Tahoe keeps the toolbar whatever the line above asks for.
+			set the bounds of container window to {200, 140, 840, 608}
 			set viewOptions to the icon view options of container window
 			set arrangement of viewOptions to not arranged
 			set icon size of viewOptions to 128
 			set text size of viewOptions to 13
 			set background picture of viewOptions to file ".background:background.tiff"
-			set position of item appName of container window to {168, 228}
-			set position of item "Applications" of container window to {472, 228}
+			set position of item appName of container window to {168, 200}
+			set position of item "Applications" of container window to {472, 200}
 			update without registering applications
 			close
 		end tell
