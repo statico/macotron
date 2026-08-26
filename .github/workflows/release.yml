@@ -6,6 +6,10 @@
 #   gh attestation verify Macotron-x.y.z.dmg --repo statico/macotron
 name: Release
 
+# The run list shows this instead of "Release", so a version is readable
+# without opening the run.
+run-name: Release ${{ inputs.version }}
+
 on:
   workflow_dispatch:
     inputs:
