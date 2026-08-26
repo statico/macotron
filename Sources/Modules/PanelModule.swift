@@ -80,6 +80,11 @@ public final class PanelModule: NativeModule {
                 ? false : JSBridge.toBool(ctx, blurVal)
             JS_FreeValue(ctx, blurVal)
 
+            let escVal = JSBridge.getProperty(ctx, opts, "escapeCloses")
+            let escapeCloses = JSBridge.isUndefined(escVal) || JSBridge.isNull(escVal)
+                ? true : JSBridge.toBool(ctx, escVal)
+            JS_FreeValue(ctx, escVal)
+
             let idVal = JSBridge.getProperty(ctx, opts, "id")
             let requestedId: String? = JSBridge.isUndefined(idVal) || JSBridge.isNull(idVal)
                 ? nil : JSBridge.toString(ctx, idVal)
@@ -109,6 +114,7 @@ public final class PanelModule: NativeModule {
                 frameless: frameless,
                 fullscreen: fullscreen,
                 closeOnBlur: closeOnBlur,
+                escapeCloses: escapeCloses,
                 id: requestedId
             )
             return JSBridge.newString(ctx, id)
@@ -155,7 +161,7 @@ public final class PanelModule: NativeModule {
         PanelModuleState.shared.module = nil
     }
 
-    private func openPanel(title: String, width: Int, height: Int, html: String, hostChrome: Bool, glass: PanelGlass, frameless: Bool, fullscreen: Bool, closeOnBlur: Bool, id requestedId: String?) -> String {
+    private func openPanel(title: String, width: Int, height: Int, html: String, hostChrome: Bool, glass: PanelGlass, frameless: Bool, fullscreen: Bool, closeOnBlur: Bool, escapeCloses: Bool, id requestedId: String?) -> String {
         let id: String
         if let requestedId, !requestedId.isEmpty {
             closePanel(requestedId)
@@ -166,7 +172,7 @@ public final class PanelModule: NativeModule {
         if engine?.dryRun == true {
             return id
         }
-        let host = PanelHost(id: id, title: title, width: width, height: height, html: html, hostChrome: hostChrome, glass: glass, frameless: frameless, fullscreen: fullscreen, closeOnBlur: closeOnBlur, onMessage: { [weak self] panelId, body in
+        let host = PanelHost(id: id, title: title, width: width, height: height, html: html, hostChrome: hostChrome, glass: glass, frameless: frameless, fullscreen: fullscreen, escapeCloses: escapeCloses, closeOnBlur: closeOnBlur, onMessage: { [weak self] panelId, body in
             self?.dispatchMessage(panelId: panelId, body: body)
         }, onClosed: { [weak self] in
             self?.forgetPanel(id)

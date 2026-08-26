@@ -448,6 +448,22 @@ enum StatusLineStyle {
         )
     }
 
+    // Where the text reads as centred: the cap-to-baseline band, not the line
+    // box. Boxes carry unused ascent above the caps and unused descent below
+    // the baseline, and those two are not equal, so an icon centred on the bar
+    // sits a point above the text it labels and reads as "not centred".
+    static func textCenter(lines: [NSAttributedString], origins: [CGFloat], height: CGFloat) -> CGFloat {
+        guard let first = lines.first, let last = lines.last,
+              let topFont = first.attribute(.font, at: 0, effectiveRange: nil) as? NSFont,
+              let bottomFont = last.attribute(.font, at: 0, effectiveRange: nil) as? NSFont,
+              let topOrigin = origins.first, let bottomOrigin = origins.last else {
+            return height / 2
+        }
+        let capTop = topOrigin - topFont.descender + topFont.capHeight
+        let baseline = bottomOrigin - bottomFont.descender
+        return (capTop + baseline) / 2
+    }
+
     @MainActor
     static func image(icon: NSImage?, lines: [NSAttributedString], height: CGFloat) -> NSImage {
         let textWidth = ceil(lines.map { $0.size().width }.max() ?? 0)
@@ -456,11 +472,12 @@ enum StatusLineStyle {
         let size = NSSize(width: textX + textWidth, height: height)
         let heights = lines.map { $0.size().height }
         let origins = lineOrigins(barHeight: height, heights: heights)
+        let center = textCenter(lines: lines, origins: origins, height: height)
         return NSImage(size: size, flipped: false) { _ in
             if let icon, let ink {
                 let iconRect = NSRect(
                     x: -ink.origin.x,
-                    y: (height - ink.height) / 2 - ink.origin.y,
+                    y: center - ink.height / 2 - ink.origin.y,
                     width: icon.size.width,
                     height: icon.size.height
                 )

@@ -82,16 +82,33 @@ public final class CalendarModule: NativeModule {
                 "allDay": event.isAllDay,
                 "location": event.location ?? "",
                 "calendar": event.calendar?.title ?? "",
-                "url": CalendarEventURL.pick(url: event.url?.absoluteString, location: event.location),
+                "url": CalendarEventURL.pick(url: event.url?.absoluteString, location: event.location, notes: event.notes),
             ] as [String: Any]
         }
     }
 }
 
 enum CalendarEventURL {
-    static func pick(url: String?, location: String?) -> String {
-        if let url, !url.isEmpty { return url }
-        let loc = location ?? ""
-        return loc.localizedCaseInsensitiveContains("https") ? loc : ""
+    /// Zoom and Teams paste a wall of text into the notes and Google Meet
+    /// leaves a bare link in the location, so the join link is whichever URL
+    /// turns up first — with a known meeting host winning over a stray link
+    /// to the agenda doc.
+    private static let hosts = ["meet.google.com", "zoom.us", "teams.microsoft.com", "teams.live.com", "webex.com"]
+
+    static func pick(url: String?, location: String?, notes: String? = nil) -> String {
+        let found = [url, location, notes].compactMap { $0 }.flatMap(links)
+        return found.first(where: { link in
+            hosts.contains { link.localizedCaseInsensitiveContains($0) }
+        }) ?? found.first ?? ""
+    }
+
+    private static func links(in text: String) -> [String] {
+        let range = NSRange(text.startIndex..., in: text)
+        let regex = try! NSRegularExpression(pattern: "https://[^\\s<>\"\']+")
+        return regex.matches(in: text, range: range).compactMap { match in
+            guard let r = Range(match.range, in: text) else { return nil }
+            // Trailing punctuation belongs to the sentence, not the URL.
+            return String(text[r]).trimmingCharacters(in: CharacterSet(charactersIn: ".,;:)]>"))
+        }
     }
 }

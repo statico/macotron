@@ -333,6 +333,9 @@ public final class SystemModule: NativeModule {
                 "language": loc.language.languageCode?.identifier ?? "",
                 "region": loc.region?.identifier ?? "",
                 "measurement": metric ? "metric" : "us",
+                // No Intl in QuickJS, so a plugin printing a clock time has no
+                // other way to know which half of the world it is printing for.
+                "hour12": DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: loc)?.contains("a") ?? false,
             ])
         }, "locale", 0))
 

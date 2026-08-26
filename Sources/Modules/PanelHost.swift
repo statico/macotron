@@ -222,6 +222,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     private let onClosed: () -> Void
     private let frameless: Bool
     private let fullscreen: Bool
+    private let escapeCloses: Bool
     private let closeOnBlur: Bool
     private var blurArmed = false
     private var reclaimedKey = false
@@ -241,6 +242,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         glass: PanelGlass = .none,
         frameless: Bool = false,
         fullscreen: Bool = false,
+        escapeCloses: Bool = true,
         closeOnBlur: Bool = false,
         onMessage: @escaping (String, Any) -> Void,
         onClosed: @escaping () -> Void
@@ -250,6 +252,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         self.onClosed = onClosed
         self.frameless = frameless
         self.fullscreen = fullscreen
+        self.escapeCloses = escapeCloses
         self.closeOnBlur = closeOnBlur
 
         let config = WKWebViewConfiguration()
@@ -515,7 +518,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     }
 
     private func handleKey(_ event: NSEvent) -> Bool {
-        if frameless || fullscreen, event.keyCode == 53 {
+        if escapeCloses, frameless || fullscreen, event.keyCode == 53 {
             close()
             return true
         }

@@ -531,6 +531,7 @@ declare const macotron: {
             allDay: boolean;
             location: string;
             calendar: string;
+            /** Join link from the URL field, location, or notes; `""` if there is none. */
             url: string;
         }>>;
     };
@@ -613,7 +614,7 @@ declare const macotron: {
             performanceCores: number;
             efficiencyCores: number;
         };
-        locale(): { language: string; region: string; measurement: "metric" | "us" };
+        locale(): { language: string; region: string; measurement: "metric" | "us"; hour12: boolean };
         /**
          * The time now in an IANA zone, e.g. `timeIn("Europe/London")` -> "18:42".
          * There is no Intl in this runtime, so this is the way to format another
@@ -811,6 +812,8 @@ declare const macotron: {
             /** No title bar. Escape closes. */
             frameless?: boolean;
             closeOnBlur?: boolean;
+            /** Escape closes a frameless or fullscreen panel unless this is false. */
+            escapeCloses?: boolean;
             /** Reuse this id. Closes an existing panel with the same id. */
             id?: string;
             /** Stretch to the edges of the screen under the cursor. */
