@@ -76,6 +76,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         refreshPermissions()
 
+        // The kill switch. Off the launch path: plugins already loaded from the
+        // cached list, and a plugin that turns out to be blocked is unloaded as
+        // soon as the fresh list lands.
+        Task { @MainActor [weak self] in
+            guard await PluginBlocklist.refresh() else { return }
+            guard let self, self.workspace != nil else { return }
+            self.moduleManager?.reloadAll()
+            self.refreshIntegrity()
+        }
+
         // Off the launch path: this connects to the daemon, which launchd may
         // have to start, and waits on the reply.
         DispatchQueue.global(qos: .utility).async {

@@ -71,7 +71,7 @@ Source of truth: [2026-08-17-host-shell-design.md](superpowers/specs/2026-08-17-
 
 ### HS-5 — Marketplace Link and Polish
 
-- [ ] Settings link to `https://github.com/topics/macotron-plugin`
+- [x] Settings link to `https://github.com/topics/macotron-plugin`
 - [ ] Keep `macotron.ai` for plugins (including `macotron.ai.local()` when available)
 - [ ] Docs match this architecture
 - [ ] Homebrew cask and notarized DMG (later)

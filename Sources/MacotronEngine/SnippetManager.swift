@@ -197,6 +197,13 @@ public final class ModuleManager {
 
         let filename = file.lastPathComponent
         let timer = StepTimer(filename, category: "modules")
+        // Checked before trust and before hot reload, or the kill switch has a
+        // hole in exactly the mode people leave on while they write plugins.
+        if let reason = PluginBlocklist.reason(hash: PluginHash.sha256(source: source)) {
+            logger.error("\(filename, privacy: .public): blocked by Macotron")
+            lastReloadErrors.append((filename: filename, error: "Blocked by Macotron: \(reason)"))
+            return
+        }
         let trusted = PluginTrust.matches(filename: filename, source: source)
         timer.step("trust")
         defer { timer.step("eval") }

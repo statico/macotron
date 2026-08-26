@@ -59,9 +59,13 @@ public enum PluginTrust {
         approve(filename: filename, hash: PluginHash.sha256(source: source))
     }
 
+    /// The block list wins over the ledger: bytes that were approved before
+    /// they were known to be bad still stop running.
     public static func matches(filename: String, source: String) -> Bool {
+        let hash = PluginHash.sha256(source: source)
+        guard PluginBlocklist.reason(hash: hash) == nil else { return false }
         guard let approved = store.read(filename: filename) else { return false }
-        return approved == PluginHash.sha256(source: source)
+        return approved == hash
     }
 
     /// Approve every workdir file reachable through statically visible import

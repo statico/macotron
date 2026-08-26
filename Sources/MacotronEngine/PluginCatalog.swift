@@ -8,9 +8,13 @@ public struct CatalogPlugin: Equatable, Identifiable, Sendable {
     public var permissions: [Permission]
     public var source: String
     public var bundleHash: String
-    public var fileURL: URL
+    /// Where the bytes sit on this Mac. Nil for a plugin downloaded from a
+    /// community repository, which has no local copy until it is installed.
+    public var fileURL: URL?
+    /// Set only for a plugin that came off GitHub.
+    public var origin: CommunityOrigin?
 
-    public var id: String { filename }
+    public var id: String { origin?.repo ?? filename }
 
     public init(
         filename: String,
@@ -20,7 +24,8 @@ public struct CatalogPlugin: Equatable, Identifiable, Sendable {
         permissions: [Permission],
         source: String,
         bundleHash: String,
-        fileURL: URL
+        fileURL: URL? = nil,
+        origin: CommunityOrigin? = nil
     ) {
         self.filename = filename
         self.highlighted = highlighted
@@ -30,6 +35,7 @@ public struct CatalogPlugin: Equatable, Identifiable, Sendable {
         self.source = source
         self.bundleHash = bundleHash
         self.fileURL = fileURL
+        self.origin = origin
     }
 }
 

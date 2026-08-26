@@ -203,6 +203,17 @@ public final class SettingsState: ObservableObject {
     @Published public var overwrite: CatalogOverwrite?
     @Published public var isReviewing = false
 
+    // Community plugins, found through the GitHub topic. No index file and no
+    // server: see CommunityCatalog.
+    @Published public var communityEntries: [CommunityEntry] = []
+    @Published public var communityLoading = false
+    @Published public var communityError: String?
+    /// Repository ids whose published bytes differ from the installed copy.
+    @Published public var communityUpdates: Set<String> = []
+    @Published public var installingRepo: String?
+    private var communityFetchedAt: Date?
+    private var communityTask: Task<Void, Never>?
+
     public var onSetHotReload: ((Bool) -> Void)?
     public var onScanCatalog: ((CatalogPlugin) -> Void)?
     public var onInstallCatalog: ((CatalogPlugin, Bool) -> Void)?
@@ -408,8 +419,8 @@ public final class SettingsState: ObservableObject {
 
     /// Catalog plugins ship inside the signed app bundle, so their bytes are already
     /// as trusted as Macotron itself. A review scans because those bytes came off
-    /// the user's disk.
-    public var installIsBuiltIn: Bool { !isReviewing }
+    /// the user's disk, and so does a download, which came off someone else's.
+    public var installIsBuiltIn: Bool { !isReviewing && installTarget?.origin == nil }
 
     public func scanInstallTarget() {
         guard let plugin = installTarget else { return }
@@ -437,6 +448,7 @@ public final class SettingsState: ObservableObject {
     }
 
     public func allowsInstall(of plugin: CatalogPlugin, override: Bool) -> Bool {
+        guard PluginBlocklist.reason(hash: plugin.bundleHash) == nil else { return false }
         guard let report = scanReport else {
             // The scan is advice, not a gate. Someone who presses the button
             // before it lands has approved these bytes themselves, which is
@@ -465,6 +477,101 @@ public final class SettingsState: ObservableObject {
         )
         scanInstallTarget()
     }
+
+    // MARK: - Community
+
+    /// Cached for an hour. Unauthenticated GitHub search allows 10 calls each
+    /// minute for an IP address, which one person browsing never reaches, but
+    /// there is no reason to spend a call on every sheet that opens.
+    public func loadCommunity(force: Bool = false) {
+        if !force, let at = communityFetchedAt, Date.now.timeIntervalSince(at) < 3600 { return }
+        guard communityTask == nil else { return }
+        communityLoading = true
+        communityError = nil
+        communityTask = Task { @MainActor in
+            defer {
+                communityLoading = false
+                communityTask = nil
+            }
+            do {
+                communityEntries = try await CommunityCatalog.search()
+                communityFetchedAt = .now
+                await refreshCommunityUpdates()
+            } catch {
+                communityError = error.localizedDescription
+            }
+        }
+    }
+
+    public func communityStatus(_ entry: CommunityEntry) -> CommunityStatus {
+        guard installedPluginNames.contains(entry.filename) else { return .available }
+        return communityUpdates.contains(entry.repo) ? .updatable : .installed
+    }
+
+    /// Only installed plugins are checked, so this is a handful of CDN requests
+    /// and no API quota at all.
+    private func refreshCommunityUpdates() async {
+        let installed = communityEntries.filter { installedPluginNames.contains($0.filename) }
+        guard !installed.isEmpty, let dir = configDirURL?.appending(path: "plugins") else { return }
+        var stale: Set<String> = []
+        for entry in installed {
+            let local = PluginHash.sha256(file: dir.appending(path: entry.filename))
+            guard let local else { continue }
+            guard let fetched = try? await CommunityCatalog.fetchSource(entry) else { continue }
+            if PluginHash.sha256(source: fetched.source) != local { stale.insert(entry.repo) }
+        }
+        communityUpdates = stale
+    }
+
+    /// Downloads the source and hands it to the same sheet a changed plugin on
+    /// disk goes through: scan first, then approve.
+    public func beginCommunityInstall(_ entry: CommunityEntry) {
+        guard installingRepo == nil else { return }
+        installingRepo = entry.repo
+        communityError = nil
+        Task { @MainActor in
+            defer { installingRepo = nil }
+            do {
+                let fetched = try await CommunityCatalog.fetchSource(entry)
+                let header = PluginHeader.parse(fetched.source)
+                let plugin = CatalogPlugin(
+                    filename: entry.filename,
+                    highlighted: false,
+                    title: header.title ?? entry.title,
+                    description: header.description ?? entry.summary,
+                    permissions: header.permissions.compactMap(Permission.init(rawValue:)),
+                    source: fetched.source,
+                    bundleHash: PluginHash.sha256(source: fetched.source),
+                    fileURL: nil,
+                    origin: CommunityOrigin(
+                        repo: entry.repo,
+                        stars: entry.stars,
+                        pushedAt: entry.pushedAt,
+                        homepage: entry.homepage,
+                        sourceURL: fetched.url
+                    )
+                )
+                scanReport = nil
+                scanning = false
+                isReviewing = false
+                overwrite = overwriteForCommunity(plugin)
+                installTarget = plugin
+                scanInstallTarget()
+            } catch {
+                communityError = error.localizedDescription
+            }
+        }
+    }
+
+    /// A download that lands on an existing filename is a replacement, and the
+    /// user is told so before it is written.
+    private func overwriteForCommunity(_ plugin: CatalogPlugin) -> CatalogOverwrite? {
+        guard let dest = configDirURL?
+            .appending(path: "plugins")
+            .appending(path: plugin.filename),
+            FileManager.default.fileExists(atPath: dest.path(percentEncoded: false)) else { return nil }
+        return .modified
+    }
 }
 
 public struct SettingsView: View {
@@ -473,6 +580,7 @@ public struct SettingsView: View {
     @State private var selectedPlugin: String?
     @State private var pluginFilter = ""
     @State private var showCatalog = false
+    @State private var catalogSection: CatalogSection = .builtIn
     @State private var showNewPlugin = false
     @FocusState private var pluginListFocused: Bool
 
@@ -506,34 +614,7 @@ public struct SettingsView: View {
         }
         .onChange(of: state.requestedTab) { applySettingsRequest() }
         .onChange(of: state.requestedPlugin) { applySettingsRequest() }
-        .sheet(isPresented: $showCatalog) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Plugin Catalog")
-                    .font(.title2.weight(.semibold))
-                CatalogBrowser(
-                    plugins: state.catalogPlugins,
-                    installedNames: state.installedPluginNames,
-                    onAdd: { state.addBuiltIn($0) },
-                    onDetails: { state.beginInstall($0) }
-                )
-                HStack {
-                    if state.missingCatalogCount > 0 {
-                        Button("I Feel Lucky, Add Everything!") {
-                            state.addAllBuiltIn()
-                        }
-                            .help("Add all \(state.missingCatalogCount) plugins you do not have yet")
-                    }
-                    Spacer()
-                    Button("Done") {
-                        showCatalog = false
-                    }
-                        .keyboardShortcut(.cancelAction)
-                }
-            }
-            .padding(16)
-            .frame(width: 560, height: 480)
-            .catalogInstaller(state: state)
-        }
+        .sheet(isPresented: $showCatalog) { catalogSheet }
         .sheet(isPresented: $showNewPlugin) {
             NewPluginSheet(existing: existingPluginNames) { filename, source in
                 state.createPlugin?(filename, source)
@@ -542,6 +623,64 @@ public struct SettingsView: View {
             }
         }
         .catalogInstaller(state: state, enabled: !showCatalog)
+    }
+
+    private var catalogSheet: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Plugin Catalog")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                Picker("", selection: $catalogSection) {
+                    ForEach(CatalogSection.allCases) { section in
+                        Text(section.label).tag(section)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+            }
+
+            switch catalogSection {
+            case .builtIn:
+                CatalogBrowser(
+                    plugins: state.catalogPlugins,
+                    installedNames: state.installedPluginNames,
+                    onAdd: { state.addBuiltIn($0) },
+                    onDetails: { state.beginInstall($0) }
+                )
+            case .community:
+                CommunityBrowser(state: state)
+            }
+
+            HStack {
+                switch catalogSection {
+                case .builtIn:
+                    if state.missingCatalogCount > 0 {
+                        Button("I Feel Lucky, Add Everything!") {
+                            state.addAllBuiltIn()
+                        }
+                            .help("Add all \(state.missingCatalogCount) plugins you do not have yet")
+                    }
+                case .community:
+                    Button {
+                        NSWorkspace.shared.open(CommunityCatalog.topicURL)
+                    } label: {
+                        Text("Publish your own")
+                    }
+                    .buttonStyle(.link)
+                    .help("Add the macotron-plugin topic to your repository and it shows up here")
+                }
+                Spacer()
+                Button("Done") {
+                    showCatalog = false
+                }
+                    .keyboardShortcut(.cancelAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 620, height: 520)
+        .catalogInstaller(state: state)
     }
 
     private var existingPluginNames: Set<String> {
@@ -1696,7 +1835,7 @@ struct ModuleOptionRow: View {
 
 /// NSSearchField, not a TextField: the clear button, the magnifier, and the
 /// Escape-clears behaviour are what the HIG asks for and all of it ships.
-private struct PluginSearchField: NSViewRepresentable {
+struct PluginSearchField: NSViewRepresentable {
     @Binding var text: String
 
     func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
