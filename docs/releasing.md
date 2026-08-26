@@ -99,6 +99,11 @@ brew install statico/tap/macotron
   `make publish VERSION=x.y.z` takes it from there: appcast, tag, GitHub
   release, cask. `make release` runs both, and the workflow runs them with the
   attestation step in between.
+- The window a downloader sees comes from `scripts/dmg-background.swift`, which
+  draws the picture, and `scripts/dmg-layout.sh`, which asks Finder to place the
+  app and the Applications alias on it. Finder is the only thing that can write
+  that layout, so on a machine where it cannot be scripted the DMG still builds
+  and opens as a plain list.
 - `scripts/update-appcast.sh VERSION DMG NOTES` prepends one item to
   `site/appcast.xml`, if a release went out and the feed did not. It needs
   `SPARKLE_DIR` set to find `sign_update`. It refuses to run twice for the same
