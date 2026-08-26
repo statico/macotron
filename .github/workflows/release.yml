@@ -122,5 +122,8 @@ jobs:
           echo "$SPARKLE_KEY" > "$RUNNER_TEMP/sparkle.key"
           export SPARKLE_KEY_FILE="$RUNNER_TEMP/sparkle.key"
           export TAP_URL="https://x-access-token:$TAP_TOKEN@github.com/statico/homebrew-tap.git"
+          ls -l site/appcast.xml "$RUNNER_TEMP/sparkle.key" \
+            /tmp/macotron-build/notes.md \
+            /tmp/macotron-build/artifacts/sparkle/Sparkle/bin || true
           make publish VERSION="$VERSION"
           rm "$RUNNER_TEMP/sparkle.key"

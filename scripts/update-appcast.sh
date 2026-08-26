@@ -13,13 +13,13 @@ notes=${3:?usage: update-appcast.sh VERSION DMG NOTES}
 appcast=site/appcast.xml
 sign_update=${SPARKLE_DIR:?SPARKLE_DIR is not set}/bin/sign_update
 
-test -x "$sign_update" || { echo "No sign_update at $sign_update. Run make build."; exit 1; }
+test -x "$sign_update" || { echo "No sign_update at $sign_update. Run make build." >&2; exit 1; }
 grep -q '<!-- newest first -->' "$appcast" || \
-  { echo "No insertion marker in $appcast; sed would drop the item silently."; exit 1; }
+  { echo "No insertion marker in $appcast; sed would drop the item silently." >&2; exit 1; }
 # Stop rather than skip: a rebuilt DMG is not byte-identical, so an existing
 # item for this version describes a file nobody can download any more.
 if grep -qF "<sparkle:version>$version</sparkle:version>" "$appcast"; then
-  echo "$appcast already offers $version. Delete that <item> first if the DMG changed."
+  echo "$appcast already offers $version. Delete that <item> first if the DMG changed." >&2
   exit 1
 fi
 
