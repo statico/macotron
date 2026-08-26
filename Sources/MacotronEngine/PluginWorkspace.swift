@@ -500,6 +500,59 @@ public final class PluginWorkspace {
 
         Do not edit `AGENTS.md` / `CLAUDE.md`.
 
+        ## Logging
+
+        Log as you write. A plugin runs inside the app with no console attached,
+        so the log is the only record of what it did; a plugin written without
+        logging cannot be debugged later without being rewritten first. Log at
+        least the load, the start and result of each command or hotkey, and every
+        caught error — with the values that decided the outcome, not just "failed".
+
+        ```js
+        console.log("weather: loaded, city =", opts.city);
+        try {
+          const res = await macotron.http.get(url);
+          console.log("weather: got", res.status, "for", url);
+        } catch (e) {
+          console.error("weather: request failed for", url, e);
+        }
+        ```
+
+        `console.log` / `info` / `debug` write at info level, `console.warn` at
+        notice, `console.error` at error. `macotron.log(...)` is the same as
+        `console.log`. Every line is tagged with the plugin filename, so prefix
+        messages with what they are about rather than the file. Do not log secrets:
+        API keys, tokens, clipboard contents, or the text of what the user typed.
+
+        ## Debugging
+
+        Read the log. Macotron logs under subsystem `io.statico.macotron`, and
+        plugin output under category `plugin`.
+
+        Follow it live while you reproduce the problem:
+
+        ```sh
+        log stream --level info --style compact \
+          --predicate 'subsystem == "io.statico.macotron" AND category == "plugin"'
+        ```
+
+        Look at what already happened (drop the category to see the host too):
+
+        ```sh
+        log show --info --last 10m --style compact \
+          --predicate 'subsystem == "io.statico.macotron"'
+        ```
+
+        `--level info` and `--info` are required, or the plain `console.log` lines
+        are dropped and only warnings and errors show.
+
+        If a plugin logs nothing at all it never ran. The usual causes:
+
+        - It is new or the file changed, so it is parked until you approve it in
+          Settings → Plugins. Macotron posts a notification when a new plugin lands.
+        - It is switched off in Settings → Plugins.
+        - It failed to load. Run `--check` (above) to see the error.
+
         ## Plugins
 
         Put one `.js` file per plugin under `plugins/`. Each file runs in its own
