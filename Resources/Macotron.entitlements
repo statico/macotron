@@ -21,5 +21,12 @@
     <true/>
     <key>com.apple.security.device.audio-input</key>
     <true/>
+    <!-- Same rule covers EventKit and Contacts: no entitlement, no prompt, and
+         no row in the Privacy list to switch on. Calendars covers Reminders
+         too, since both come through EventKit. -->
+    <key>com.apple.security.personal-information.calendars</key>
+    <true/>
+    <key>com.apple.security.personal-information.addressbook</key>
+    <true/>
 </dict>
 </plist>
