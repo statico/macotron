@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.3.0</title>
+            <sparkle:version>0.3.0</sparkle:version>
+            <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Wed, 26 Aug 2026 18:05:48 +0000</pubDate>
+            <description><![CDATA[<ul><li>Give the DMG a window worth opening</li><li>Fit the DMG window around the toolbar Tahoe will not hide</li><li>Ask tccd for the calendar it kept refusing to prompt for</li><li>Say that releases come from Actions now</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.3.0/Macotron-0.3.0.dmg" type="application/octet-stream" sparkle:edSignature="ODJmWc2h9HbIJSqa1GO1XSgy1VtLNSR8jb1UsDhQDfQUYBJWldFUPIwx0elDcwK/Eo1NzFpZtc5FrUwFGcnuCQ==" length="9074675" />
+        </item>
+        <item>
             <title>0.2.9</title>
             <sparkle:version>0.2.9</sparkle:version>
             <sparkle:shortVersionString>0.2.9</sparkle:shortVersionString>
