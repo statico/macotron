@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.3.1</title>
+            <sparkle:version>0.3.1</sparkle:version>
+            <sparkle:shortVersionString>0.3.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Wed, 26 Aug 2026 18:30:25 +0000</pubDate>
+            <description><![CDATA[<ul><li>Give the meetings menu a clock, a refresh, and a real join link</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.3.1/Macotron-0.3.1.dmg" type="application/octet-stream" sparkle:edSignature="RtS/QxvjYGhz8/+D2nm9DRbRqajZt+LT74dsK249L5Q41NhFDc4tllxwkww63JM7iQcFDHRb1hGr9O2zP8aGAw==" length="9077755" />
+        </item>
+        <item>
             <title>0.3.0</title>
             <sparkle:version>0.3.0</sparkle:version>
             <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
