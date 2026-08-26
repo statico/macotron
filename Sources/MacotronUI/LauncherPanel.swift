@@ -200,17 +200,28 @@ public final class LauncherPanel: NSPanel {
         dismissOnResign = false
         orderFrontRegardless()
         makeKey()
-        if let textField = contentView?.firstEditableTextField() {
-            makeFirstResponder(textField)
-        }
+        focusQueryField()
         isShown = true
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.dismissOnResign = true
+            self.focusQueryField()
             if self.isShown && self.isVisible && !self.isKeyWindow {
                 self.orderOut(nil)
             }
         }
+    }
+
+    /// Put the caret in the search field.
+    ///
+    /// On the first show after launch SwiftUI has not built its NSViews yet, so
+    /// the field does not exist to focus. A layout pass materialises it; the
+    /// retry from reveal's async block covers the case where it still hasn't.
+    private func focusQueryField() {
+        contentView?.layoutSubtreeIfNeeded()
+        guard let field = contentView?.firstEditableTextField() else { return }
+        guard firstResponder !== field, (firstResponder as? NSTextView)?.delegate !== field else { return }
+        makeFirstResponder(field)
     }
 
     public override func orderOut(_ sender: Any?) {
