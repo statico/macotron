@@ -51,9 +51,30 @@ public final class HIDModule: NativeModule {
             HIDModule.send(ctx, argc: argc, argv: argv, type: kIOHIDReportTypeFeature)
         }, "sendFeature", 3))
 
+        // Waits on the interrupt pipe like `hid_read`. `readInputReport` is the
+        // control GetReport that this used to be — a different transfer, which
+        // most devices never answer.
         JS_SetPropertyStr(ctx, hid, "readInput", JS_NewCFunction(ctx, { ctx, _, argc, argv in
-            HIDModule.read(ctx, argc: argc, argv: argv, type: kIOHIDReportTypeInput)
+            guard let ctx else { return QJS_Undefined() }
+            let handle = JSBridge.deferred(ctx, dryRun: NSNull())
+            guard let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]),
+                  let hub = HIDModule.hub(ctx) else {
+                handle.settle(.failure("missing id"))
+                return handle.promise
+            }
+            var timeout = 1.0
+            if argc >= 2, JS_IsObject(argv[1]),
+               let opts = JSBridge.jsToSwift(ctx, argv[1]) as? [String: Any],
+               let ms = HIDFilter.int(opts["timeout"]) {
+                timeout = max(Double(ms), 0) / 1000
+            }
+            hub.read(id, timeout: timeout, settle: handle.settle)
+            return handle.promise
         }, "readInput", 2))
+
+        JS_SetPropertyStr(ctx, hid, "readInputReport", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            HIDModule.read(ctx, argc: argc, argv: argv, type: kIOHIDReportTypeInput)
+        }, "readInputReport", 2))
 
         JS_SetPropertyStr(ctx, hid, "readFeature", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             HIDModule.read(ctx, argc: argc, argv: argv, type: kIOHIDReportTypeFeature)

@@ -577,6 +577,13 @@ public final class PluginWorkspace {
         `macotron.hid.list/open/sendFeature/sendOutput/readFeature/readInput/listen`
         talks to HID devices (report id is the first send byte). `hid:input` is
         `{ id, reportId, data }`.
+        `await macotron.hid.readInput(id, { timeout: 500 })` waits for the next
+        input report on the interrupt pipe — what the device answers a query
+        with — and resolves `{ id, reportId, data }`, or `null` on timeout. Use
+        it for request/response protocols. Use `listen(id)` plus the `hid:input`
+        event for a device that reports on its own (a button, a dial).
+        `readFeature` and `readInputReport` are control GetReports; most devices
+        never answer the input one.
         `macotron.qr.detect({ image|path })`, `qr.scan({ camera|screenshot })`,
         `qr.image(text)`, and `qr.show(text)` read and display QR codes.
 

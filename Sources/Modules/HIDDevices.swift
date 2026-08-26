@@ -280,6 +280,12 @@ final class HIDOpenDevice: @unchecked Sendable {
     weak var engine: Engine?
     private var buffer: UnsafeMutablePointer<UInt8>?
     private var bufferLen = 0
+    /// `listen()` fans every report out as `hid:input`; `read()` takes one off
+    /// the wire and stops. Both ride the same callback, so the callback stays
+    /// registered while either wants it.
+    private var emitting = false
+    private var waiters: [(token: UInt64, settle: @MainActor (BridgeResult) -> Void)] = []
+    private var nextWaiter: UInt64 = 0
 
     init(id: String, device: IOHIDDevice, engine: Engine?) {
         self.id = id
@@ -288,41 +294,99 @@ final class HIDOpenDevice: @unchecked Sendable {
     }
 
     deinit {
-        stopListen()
+        MainActor.assumeIsolated { failWaiters("device closed") }
+        emitting = false
+        unschedule()
         IOHIDDeviceClose(device, IOOptionBits(kIOHIDOptionsTypeNone))
     }
 
     func listen() -> (ok: Bool, error: String?) {
-        let size = HIDDevices.maxReport(device, kIOHIDReportTypeInput)
-        if buffer == nil {
-            buffer = .allocate(capacity: size)
-            bufferLen = size
-        }
-        guard let buffer else { return (false, "no buffer") }
-        IOHIDDeviceScheduleWithRunLoop(device, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
-        IOHIDDeviceRegisterInputReportCallback(
-            device,
-            buffer,
-            bufferLen,
-            hidInputReport,
-            Unmanaged.passUnretained(self).toOpaque()
-        )
+        guard schedule() else { return (false, "no buffer") }
+        emitting = true
         return (true, nil)
     }
 
     func stopListen() {
-        if let buffer {
-            IOHIDDeviceRegisterInputReportCallback(device, buffer, 0, nil, nil)
+        emitting = false
+        unscheduleIfIdle()
+    }
+
+    /// Wait for the next input report on the interrupt pipe, the way
+    /// `hid_read` does. A control GetReport is a different transfer and most
+    /// devices never answer it: see `HIDDevices.getReport`.
+    @MainActor
+    func read(timeout: TimeInterval, settle: @escaping @MainActor (BridgeResult) -> Void) {
+        guard schedule() else {
+            settle(.failure("could not schedule the device"))
+            return
         }
-        IOHIDDeviceUnscheduleFromRunLoop(device, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
-        buffer?.deallocate()
-        buffer = nil
+        let token = nextWaiter
+        nextWaiter += 1
+        waiters.append((token, settle))
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { [weak self] in
+            guard let self, let index = self.waiters.firstIndex(where: { $0.token == token }) else {
+                return
+            }
+            let waiter = self.waiters.remove(at: index)
+            waiter.settle(.value(NSNull()))
+            self.unscheduleIfIdle()
+        }
+    }
+
+    @MainActor
+    private func failWaiters(_ message: String) {
+        let pending = waiters
+        waiters.removeAll()
+        for waiter in pending { waiter.settle(.failure(message)) }
+    }
+
+    private func schedule() -> Bool {
+        if buffer == nil {
+            let size = HIDDevices.maxReport(device, kIOHIDReportTypeInput)
+            buffer = .allocate(capacity: size)
+            bufferLen = size
+            guard let buffer else { return false }
+            IOHIDDeviceScheduleWithRunLoop(
+                device, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
+            IOHIDDeviceRegisterInputReportCallback(
+                device,
+                buffer,
+                bufferLen,
+                hidInputReport,
+                Unmanaged.passUnretained(self).toOpaque()
+            )
+        }
+        return buffer != nil
+    }
+
+    private func unscheduleIfIdle() {
+        guard !emitting, waiters.isEmpty else { return }
+        unschedule()
+    }
+
+    private func unschedule() {
+        guard let buffer else { return }
+        IOHIDDeviceRegisterInputReportCallback(device, buffer, 0, nil, nil)
+        IOHIDDeviceUnscheduleFromRunLoop(
+            device, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
+        buffer.deallocate()
+        self.buffer = nil
         bufferLen = 0
     }
 
     func emit(reportId: UInt32, data: [UInt8]) {
         MainActor.assumeIsolated {
-            guard let engine, let ctx = engine.context else { return }
+            // FIFO, like a single reader on a pipe: one report answers one read.
+            if !waiters.isEmpty {
+                let waiter = waiters.removeFirst()
+                waiter.settle(.value([
+                    "id": id,
+                    "reportId": Int(reportId),
+                    "data": data.map { Int($0) },
+                ] as [String: Any]))
+                unscheduleIfIdle()
+            }
+            guard emitting, let engine, let ctx = engine.context else { return }
             let payload = JSBridge.newObject(ctx, [
                 "id": id,
                 "reportId": Int(reportId),
@@ -383,5 +447,13 @@ final class HIDHub {
 
     func unlisten(_ id: String) {
         open[id]?.stopListen()
+    }
+
+    func read(_ id: String, timeout: TimeInterval, settle: @escaping @MainActor (BridgeResult) -> Void) {
+        guard let session = open[id] else {
+            settle(.failure("not open"))
+            return
+        }
+        session.read(timeout: timeout, settle: settle)
     }
 }
