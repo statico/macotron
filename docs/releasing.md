@@ -1,11 +1,24 @@
 # Releasing
 
-Builds happen on this Mac, not in CI, so the Developer ID key never becomes a
-repository secret.
+There are two ways to ship a release. Both run the same Makefile targets.
 
 ```sh
 make release VERSION=0.2.0
 ```
+
+The other way is the **Release** workflow in the Actions tab. Give it a version
+and run it. It builds on a `macos-26` runner and does one thing the Mac cannot:
+it attaches a signed build provenance attestation and an SBOM to the DMG. Then
+anyone can ask GitHub what made the file they downloaded.
+
+```sh
+gh attestation verify Macotron-0.2.9.dmg --repo statico/macotron
+```
+
+The cost of that is real. The Developer ID certificate and the Sparkle key are
+GitHub secrets, so they no longer live only on this Mac. A person who can run
+that workflow can sign an update. Keep the `release` environment gated with a
+required reviewer, and keep the secret list short.
 
 That does all of it: a clean, pushed tree checked against origin/main, release build, bundle stamped with the version, DMG,
 notarization, a signed item added to the Sparkle feed in `site/appcast.xml` and
@@ -82,6 +95,10 @@ brew install statico/tap/macotron
 - `make tap VERSION=x.y.z` rewrites the cask on its own, if a release went out
   and the tap did not.
 - `make bundle` still builds debug. `CONFIG=release` switches it.
+- `make dmg VERSION=x.y.z` builds, signs, and notarizes the DMG and stops.
+  `make publish VERSION=x.y.z` takes it from there: appcast, tag, GitHub
+  release, cask. `make release` runs both, and the workflow runs them with the
+  attestation step in between.
 - `scripts/update-appcast.sh VERSION DMG NOTES` prepends one item to
   `site/appcast.xml`, if a release went out and the feed did not. It needs
   `SPARKLE_DIR` set to find `sign_update`. It refuses to run twice for the same
@@ -94,3 +111,27 @@ brew install statico/tap/macotron
   skips a cask that has it and everyone still on 0.2.7 needs one ordinary brew
   upgrade to reach a build that can update itself. **If the first Sparkle
   release is not 0.2.8, change that constant before shipping it.**
+
+## Secrets for the Release workflow
+
+The `release` environment holds these. Nothing outside that workflow reads them.
+
+| Name | What it is |
+|---|---|
+| `APPLE_CERT_P12` | Developer ID Application identity, exported as `.p12`, base64 |
+| `APPLE_CERT_PASSWORD` | The password on that `.p12` |
+| `APPLE_API_KEY_P8` | App Store Connect API key for `notarytool`, base64 |
+| `APPLE_API_KEY_ID` | The key ID from the `AuthKey_KEYID.p8` file name |
+| `APPLE_API_ISSUER_ID` | The issuer UUID from App Store Connect |
+| `SPARKLE_PRIVATE_KEY` | The EdDSA update key, as `generate_keys -x` writes it |
+| `TAP_TOKEN` | Fine-grained token with Contents write on statico/homebrew-tap |
+
+The built-in `GITHUB_TOKEN` covers the tag, the release, and the appcast commit.
+It cannot write to the tap, which is a different repository. That is the only
+reason for `TAP_TOKEN`.
+
+The workflow imports the certificate into a temporary keychain, because
+`codesign` finds an identity through the keychain search list. It passes the
+App Store Connect key to `notarytool` with `NOTARY_KEY`, and the Sparkle key to
+`sign_update` with `SPARKLE_KEY_FILE`. Both are files under `RUNNER_TEMP` that
+the step erases when it is done.

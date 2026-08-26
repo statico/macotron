@@ -1,0 +1,117 @@
+# Builds and ships a release from GitHub, so every DMG carries a signed build
+# provenance attestation and an SBOM. `make release` on a Mac still works and
+# does the same steps; this runs them somewhere anyone can audit.
+#
+# Verify a download afterwards with:
+#   gh attestation verify Macotron-x.y.z.dmg --repo statico/macotron
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, x.y.z
+        required: true
+
+concurrency: release
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    # Add required reviewers to this environment to gate the signing secrets.
+    environment: release
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          # Release notes come from the commits since the last tag.
+          fetch-depth: 0
+
+      # codesign reads the identity from the keychain search list, and a runner
+      # starts without one that holds a Developer ID.
+      - name: Load the signing certificate
+        env:
+          CERT: ${{ secrets.APPLE_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ github.run_id }}
+        run: |
+          set -eu
+          keychain="$RUNNER_TEMP/release.keychain-db"
+          echo "$CERT" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" \
+            -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$keychain" > /dev/null
+          security list-keychains -d user -s "$keychain" login.keychain-db
+          rm "$RUNNER_TEMP/cert.p12"
+          security find-identity -p codesigning -v "$keychain" \
+            | grep "Developer ID Application"
+
+      # make reads NOTARY_* from the environment, so notarytool gets the App
+      # Store Connect key instead of a keychain profile the runner cannot have.
+      - name: Build and notarize
+        env:
+          API_KEY: ${{ secrets.APPLE_API_KEY_P8 }}
+          NOTARY_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          echo "$API_KEY" | base64 --decode > "$RUNNER_TEMP/asc.p8"
+          NOTARY_KEY="$RUNNER_TEMP/asc.p8" make dmg VERSION="$VERSION"
+          rm "$RUNNER_TEMP/asc.p8"
+
+      # GitHub's dependency graph already reads Package.resolved, so the SBOM
+      # needs no extra tool.
+      - name: Export the SBOM
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api /repos/${{ github.repository }}/dependency-graph/sbom \
+            | jq .sbom > "$RUNNER_TEMP/sbom.spdx.json"
+
+      # Two steps, because the action writes one attestation per run and an
+      # sbom-path turns it into the SBOM one. Both come after stapling, which
+      # rewrites the DMG the attestation names by digest.
+      - name: Attest the build
+        uses: actions/attest@v4
+        with:
+          subject-path: /tmp/macotron-build/Macotron-${{ inputs.version }}.dmg
+
+      - name: Attest the SBOM
+        uses: actions/attest@v4
+        with:
+          subject-path: /tmp/macotron-build/Macotron-${{ inputs.version }}.dmg
+          sbom-path: ${{ runner.temp }}/sbom.spdx.json
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          # The build takes long enough that main can move under it, and the
+          # last step of publish is a push to main.
+          git fetch --quiet origin main
+          test -z "$(git rev-list HEAD..origin/main)" || \
+            { echo "main moved during the build. Nothing was published."; exit 1; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "$SPARKLE_KEY" > "$RUNNER_TEMP/sparkle.key"
+          export SPARKLE_KEY_FILE="$RUNNER_TEMP/sparkle.key"
+          export TAP_URL="https://x-access-token:$TAP_TOKEN@github.com/statico/homebrew-tap.git"
+          make publish VERSION="$VERSION"
+          rm "$RUNNER_TEMP/sparkle.key"
