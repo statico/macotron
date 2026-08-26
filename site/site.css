@@ -272,6 +272,18 @@ main > section {
   font-size: 0.8rem;
   color: var(--muted);
 }
+.beta {
+  margin: 1.1rem 0 0;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: var(--bg-2);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+}
+.beta strong {
+  color: var(--ink);
+}
 
 .hero-code {
   margin: 3rem auto 0;

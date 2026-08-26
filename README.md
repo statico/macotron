@@ -14,6 +14,9 @@
   <a href="https://macotron.statico.io">Home Page</a>
 </p>
 
+> [!NOTE]
+> **Macotron is in beta.** It hits 1.0 when I decide it's stable, and not before. Until then, expect things to move around.
+
 ---
 
 ## Install
