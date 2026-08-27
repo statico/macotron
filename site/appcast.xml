@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.3.4</title>
+            <sparkle:version>0.3.4</sparkle:version>
+            <sparkle:shortVersionString>0.3.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Thu, 27 Aug 2026 02:47:46 +0000</pubDate>
+            <description><![CDATA[<ul><li>Attribute Claude Code in commit messages</li><li>Focus the launcher search field on the launch-time show</li><li>Announce new plugins and say "Load", not "Reload"</li><li>Tell plugin agents to log, and how to read the log</li><li>Make hid.readInput wait on the interrupt pipe</li><li>Queue unread HID input reports so a reply cannot outrun the read</li><li>Document the new hid.readInput in macotron.d.ts</li><li>Make the settings window taller by default</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.3.4/Macotron-0.3.4.dmg" type="application/octet-stream" sparkle:edSignature="jNROiw/0bqJ9L3rWKkUekn1r0uVRc6a6aWPFOE8hF70zUhQJo99Kp+sNdXHnC97oJXPj4dsMPufZrwEQ7iFYDQ==" length="9207625" />
+        </item>
+        <item>
             <title>0.3.3</title>
             <sparkle:version>0.3.3</sparkle:version>
             <sparkle:shortVersionString>0.3.3</sparkle:shortVersionString>
