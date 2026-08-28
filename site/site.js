@@ -414,26 +414,6 @@ const FEATURED = [
   "windows.js",
 ];
 
-const PLUGIN_FILES = [
-  "ai-chat.js", "appearance.js", "apple-tv.js", "audio.js", "batch-rename.js",
-  "battery.js", "bluetooth.js", "brightness.js", "browser-picker.js",
-  "calculator.js", "calendar.js", "clipboard-history.js",
-  "clipboard-image.js", "color-picker.js", "contacts.js", "cpu-graph.js",
-  "datetime.js", "devutils.js", "disk-usage.js", "eject.js", "fan.js",
-  "file-search.js", "focus-idle.js", "gestures.js", "headphone-pause.js",
-  "heic-to-jpeg.js", "hid.js", "homekit.js", "hyper.js", "icon-rainbow.js",
-  "idle.js", "layouts.js", "lock-screen.js", "lorem.js", "markdown.js",
-  "meeting-overlay.js", "meetings.js", "mic-mute.js", "network-path.js",
-  "notes.js", "now-playing.js", "ocr.js", "plain-paste.js", "pomodoro.js",
-  "power.js", "present-mode.js", "profiles.js", "qr.js", "record.js",
-  "regex.js", "reminders.js", "screen-ai-summary.js", "screen-effects.js",
-  "screenshot-rename.js", "security-checklist.js", "share.js", "shortcuts.js",
-  "snippets.js", "spaces.js", "system-metrics.js", "system-settings.js",
-  "time-machine.js", "translate.js", "usb.js", "weather.js",
-  "web-search.js", "wifi.js", "window-grid.js", "window-switcher.js",
-  "windows.js", "world-clock.js",
-];
-
 function pluginEntry(name, group) {
   return {
     id: name,
@@ -443,46 +423,26 @@ function pluginEntry(name, group) {
   };
 }
 
+// `make site` copies Examples/plugins into workdir/plugins and writes the
+// manifest, so this list cannot drift from what the repo actually ships.
 const FILES = [
   { id: "AGENTS.md", path: "workdir/AGENTS.md", label: "AGENTS.md", group: "root" },
   { id: "README.md", path: "workdir/README.md", label: "README.md", group: "root" },
-  ...FEATURED.map((name) => pluginEntry(name, "featured")),
-  ...PLUGIN_FILES.filter((name) => !FEATURED.includes(name)).map((name) => pluginEntry(name, "plugins")),
 ];
+
+async function loadFiles() {
+  const res = await fetch("workdir/plugins/index.json");
+  const names = res.ok ? await res.json() : FEATURED;
+  FILES.push(
+    ...FEATURED.filter((n) => names.includes(n)).map((n) => pluginEntry(n, "featured")),
+    ...names.filter((n) => !FEATURED.includes(n)).map((n) => pluginEntry(n, "plugins"))
+  );
+}
 
 const cache = new Map();
 
 function esc(s) {
   return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-}
-
-function highlight(src, name) {
-  const raw = esc(src);
-  if (!name.endsWith(".js")) {
-    return raw
-      .replace(/^#.+$/gm, '<span class="tok-fn">$&</span>')
-      .replace(/`[^`]+`/g, '<span class="tok-str">$&</span>');
-  }
-  const parts = [];
-  const re = /(\/\/.*$|\/\*[\s\S]*?\*\/|`(?:\\.|[^`\\])*`|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/gm;
-  let last = 0;
-  let m;
-  while ((m = re.exec(raw))) {
-    parts.push(colorJS(raw.slice(last, m.index)));
-    const t = m[0];
-    const cls = t.startsWith("/") ? "tok-cmt" : "tok-str";
-    parts.push(`<span class="${cls}">${t}</span>`);
-    last = m.index + t.length;
-  }
-  parts.push(colorJS(raw.slice(last)));
-  return parts.join("");
-}
-
-function colorJS(chunk) {
-  return chunk
-    .replace(/\b(const|let|var|function|return|if|else|async|await|new|typeof|true|false|null|undefined)\b/g, '<span class="tok-kw">$1</span>')
-    .replace(/\b(macotron)\b/g, '<span class="tok-fn">$1</span>')
-    .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="tok-num">$1</span>');
 }
 
 function cardHTML([t, d]) {
@@ -562,7 +522,7 @@ async function openFile(id) {
     const res = await fetch(file.path);
     cache.set(id, res.ok ? await res.text() : `Could not load ${file.path}`);
   }
-  code.innerHTML = highlight(cache.get(id), file.label);
+  code.textContent = cache.get(id);
 }
 
 function currentTheme() {
@@ -582,8 +542,9 @@ function refresh() {
   renderCards(document.getElementById("q").value);
 }
 
-function boot() {
+async function boot() {
   applyTheme(currentTheme());
+  await loadFiles();
   document.querySelector(".theme").addEventListener("click", (e) => {
     const btn = e.target.closest("[data-theme-set]");
     if (btn) applyTheme(btn.dataset.themeSet);

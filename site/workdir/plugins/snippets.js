@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "Snippets",
+  title: "Text Snippets",
   description: "Expand short abbreviations into longer text from the launcher.",
 });
 

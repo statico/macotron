@@ -1,8 +1,8 @@
 // APIs: macotron.display.getBrightness, setBrightness, setXDREnabled, isXDREnabled
 
 macotron.plugin({
-  title: "Brightness",
-  description: "Dim or brighten the display, and turn XDR on or off.",
+    title: "Brightness Commands",
+    description: "Dim or brighten the display, and turn XDR on or off.",
 });
 
 function nudgeBrightness(delta) {

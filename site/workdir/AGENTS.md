@@ -12,6 +12,14 @@ Macotron loads the plugins and runs them. The app does not write plugin code.
 - `.cache/` — bytecode cache and typecheck config. Gitignored. Do not edit.
 - `AGENTS.md` / `CLAUDE.md` — owned by Macotron. Overwritten on every launch.
 
+## Example plugins
+
+Browse the built-in examples at
+https://github.com/statico/macotron/tree/main/Examples/plugins
+or inside the installed app at
+`/Applications/Macotron.app/Contents/Resources/Catalog/`
+(or `~/Applications/Macotron.app/…` after `make bundle`).
+
 ## API version
 
 Current plugin API version is `1.1.0` (`macotron.version.api`).
@@ -46,6 +54,57 @@ Load-check from this workdir:
 
 Do not edit `AGENTS.md` / `CLAUDE.md`.
 
+## Logging
+
+Log as you write. A plugin runs inside the app with no console attached,
+so the log is the only record of what it did; a plugin written without
+logging cannot be debugged later without being rewritten first. Log at
+least the load, the start and result of each command or hotkey, and every
+caught error — with the values that decided the outcome, not just "failed".
+
+```js
+console.log("weather: loaded, city =", opts.city);
+try {
+  const res = await macotron.http.get(url);
+  console.log("weather: got", res.status, "for", url);
+} catch (e) {
+  console.error("weather: request failed for", url, e);
+}
+```
+
+`console.log` / `info` / `debug` write at info level, `console.warn` at
+notice, `console.error` at error. `macotron.log(...)` is the same as
+`console.log`. Every line is tagged with the plugin filename, so prefix
+messages with what they are about rather than the file. Do not log secrets:
+API keys, tokens, clipboard contents, or the text of what the user typed.
+
+## Debugging
+
+Read the log. Macotron logs under subsystem `io.statico.macotron`, and
+plugin output under category `plugin`.
+
+Follow it live while you reproduce the problem:
+
+```sh
+log stream --level info --style compact   --predicate 'subsystem == "io.statico.macotron" AND category == "plugin"'
+```
+
+Look at what already happened (drop the category to see the host too):
+
+```sh
+log show --info --last 10m --style compact   --predicate 'subsystem == "io.statico.macotron"'
+```
+
+`--level info` and `--info` are required, or the plain `console.log` lines
+are dropped and only warnings and errors show.
+
+If a plugin logs nothing at all it never ran. The usual causes:
+
+- It is new or the file changed, so it is parked until you approve it in
+  Settings → Plugins. Macotron posts a notification when a new plugin lands.
+- It is switched off in Settings → Plugins.
+- It failed to load. Run `--check` (above) to see the error.
+
 ## Plugins
 
 Put one `.js` file per plugin under `plugins/`. Each file runs in its own
@@ -70,6 +129,16 @@ one-line HUD on the screen under the cursor (3s default). `color` is `info`,
 `macotron.hid.list/open/sendFeature/sendOutput/readFeature/readInput/listen`
 talks to HID devices (report id is the first send byte). `hid:input` is
 `{ id, reportId, data }`.
+`await macotron.hid.readInput(id, { timeout: 500 })` waits for the next
+input report on the interrupt pipe — what the device answers a query
+with — and resolves `{ id, reportId, data }`, or `null` on timeout. Use
+it for request/response protocols: reports queue from the moment `open`
+returns, so a reply that beats your `readInput` call is not lost. Use
+`listen(id)` plus the `hid:input` event for a device that reports on its
+own (a button, a dial); while listening, reports are delivered as events
+instead of queued.
+`readFeature` and `readInputReport` are control GetReports; most devices
+never answer the input one.
 `macotron.qr.detect({ image|path })`, `qr.scan({ camera|screenshot })`,
 `qr.image(text)`, and `qr.show(text)` read and display QR codes.
 
@@ -171,7 +240,7 @@ const opts = macotron.plugin({
 // opts.apiKey === resolved secret string (or "")
 ```
 
-Option types: `string`, `boolean`, `number`, `keybinding`, `dropdown`
+Option types: `string`, `text`, `boolean`, `number`, `keybinding`, `dropdown`
 (requires `choices: [{ value, label }]`), `password`, `file`, `directory`.
 
 Text, number, password, file, and directory options accept `placeholder`,
@@ -179,7 +248,9 @@ the grey hint shown while the field is empty. It is read at plugin load,
 so it can show live state such as the current system locale. Use it
 instead of writing the fallback into the label.
 Every option takes `label`, optional `default`, and optional `required`
-(Settings shows a "Needs setup" hint while a required option is unset).
+(Settings shows a "Needs setup" hint while a required option is unset),
+and optional `help`, a sentence shown under the field. Keep `label` to
+a few words and put the explanation in `help`.
 
 `password` options: the secret lives in the macOS Keychain. `settings.json`
 stores only a Keychain ref like `macotron.plugin.chat.js.apiKey`. Refs may
@@ -198,13 +269,37 @@ macotron.checks([
 ]);
 ```
 
+## Remembering state
+
+Plugin variables do not survive. Editing any plugin reloads all of them,
+and quitting the app clears the lot, so every choice the user made -- a
+mode, a toggle, a deadline, a list they built up -- belongs in
+`localStorage`: write it when it changes, read it back at load. Options
+declared in `macotron.plugin()` are already saved by the host; do not
+copy those into `localStorage`. Do not save what the system can be asked
+for either (volume, battery, current network) -- read those at load.
+
+```js
+const KEY = "pomodoro.session"; // one store for all plugins: prefix keys
+
+let until = JSON.parse(localStorage.getItem(KEY) || "null");
+
+function start(ms) {
+  until = Date.now() + ms;
+  localStorage.setItem(KEY, JSON.stringify(until));
+}
+```
+
+Host state a plugin was holding is dropped on reload as well -- a sleep
+assertion, a fan-speed floor -- so claim it back at load from what was
+saved, and do it quietly: the notification was read the first time.
+
 ## settings.json schema
 
 ```json
 {
   "launcher": { "hotkey": "opt+space" },
   "ui": {
-    "showDockIcon": true,
     "showMenuBarIcon": true,
     "appearance": "system",
     "textScale": 1.0,

@@ -2,8 +2,8 @@
 // APIs: macotron.idle.seconds, macotron.idle.setThreshold, macotron.on("system:idle"), macotron.on("system:active"), macotron.notify, macotron.command
 
 macotron.plugin({
-  title: "Idle",
-  description: "Show how long this Mac has been idle, and notify when it goes idle or wakes.",
+    title: "Idle Example",
+    description: "Show how long this Mac has been idle, and notify when it goes idle or wakes.",
 });
 
 let lastTransition = "none";

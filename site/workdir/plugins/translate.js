@@ -1,7 +1,7 @@
 const systemLocale = macotron.system.locale().language;
 
 const opts = macotron.plugin({
-  title: "Translate",
+  title: "Translate Selected Text",
   description: "Translate the selected text with Apple Intelligence.",
   permissions: ["accessibility"],
   options: {
@@ -22,7 +22,7 @@ function esc(s) {
 }
 
 macotron.command("Translate Selection", "Translate the selected text", async () => {
-  const text = macotron.ax.selectedText();
+  const text = await macotron.ax.selectedText();
   if (!text) {
     macotron.notify.toast("Cannot translate", "No selected text", { color: "error" });
     return;

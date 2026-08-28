@@ -24,6 +24,7 @@ const opts = macotron.plugin({
     rules: {
       type: "text",
       label: "Rules",
+      help: "One per line: host browser. The host can be a JavaScript regex such as /^github\\./i.",
       default: "youtube.com safari\nyoutu.be safari",
     },
   },
@@ -53,6 +54,9 @@ for (const scheme of ["http", "https"]) {
   }
 }
 
+const ROW = 36;
+const GAP = 12;
+
 function openDefault(event) {
   const browser = BROWSERS[opts.defaultBrowser];
   if (browser) {
@@ -60,10 +64,12 @@ function openDefault(event) {
     return;
   }
 
-  const buttons = Object.values(BROWSERS)
+  const list = Object.values(BROWSERS);
+  const buttons = list
     .map(({ id, label }) => `<button onclick='pick(${JSON.stringify(id)})'>${label}</button>`)
     .join(" ");
   const html = `
+    <style>button { height: ${ROW}px; }</style>
     ${buttons}
     <script>
       function pick(bundleID) {
@@ -73,7 +79,9 @@ function openDefault(event) {
   const panel = macotron.panel.open({
     title: "Open Link",
     width: 420,
-    height: 180,
+    // Panel body is 16px padding with a 12px flex gap, so the buttons decide
+    // the height — a fixed one would scroll once a browser is added.
+    height: 32 + list.length * ROW + (list.length - 1) * GAP,
     html,
     closeOnBlur: true,
   });

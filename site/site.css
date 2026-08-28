@@ -34,11 +34,6 @@
   --ok: var(--nord14);
   --warn: var(--nord13);
   --stop: var(--nord11);
-  --tok-kw: var(--nord10);
-  --tok-str: #4c7a3e;
-  --tok-cmt: var(--nord3);
-  --tok-fn: var(--nord9);
-  --tok-num: var(--nord15);
   --sans: system-ui, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   --pad: clamp(1.25rem, 5vw, 3.5rem);
@@ -69,11 +64,6 @@
     --finder-pane: #242933;
     --scroll: var(--nord3);
     --veil: rgba(46, 52, 64, 0.82);
-    --tok-kw: var(--nord9);
-    --tok-str: var(--nord14);
-    --tok-cmt: #7b869a;
-    --tok-fn: var(--nord8);
-    --tok-num: var(--nord15);
   }
 }
 
@@ -94,11 +84,6 @@
   --finder-pane: #242933;
   --scroll: var(--nord3);
   --veil: rgba(46, 52, 64, 0.82);
-  --tok-kw: var(--nord9);
-  --tok-str: var(--nord14);
-  --tok-cmt: #7b869a;
-  --tok-fn: var(--nord8);
-  --tok-num: var(--nord15);
 }
 
 * { box-sizing: border-box; }
@@ -511,11 +496,6 @@ h2 {
   color: var(--ink);
   white-space: pre;
 }
-.tok-kw { color: var(--tok-kw); }
-.tok-str { color: var(--tok-str); }
-.tok-cmt { color: var(--tok-cmt); font-style: italic; }
-.tok-fn { color: var(--tok-fn); }
-.tok-num { color: var(--tok-num); }
 
 /* --- api --- */
 

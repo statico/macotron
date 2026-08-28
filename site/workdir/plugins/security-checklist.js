@@ -1,8 +1,8 @@
 // APIs: command, shell.run, panel, notify
 
 macotron.plugin({
-  title: "Security Checklist",
-  description: "Check FileVault, the firewall, and System Integrity Protection.",
+    title: "Security Checklist Example",
+    description: "Check FileVault, the firewall, and System Integrity Protection.",
 });
 
 async function run(cmd, args) {

@@ -4,49 +4,9 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 ## Module List
 
-| Module | JS Namespace | Purpose |
-|---|---|---|
-| WindowModule | `macotron.window` | AXUIElement window management |
-| EventModule | `macotron.event` / `macotron.mouse` | HID click/key/scroll post, event taps, cursor |
-| KeyboardModule | `macotron.keyboard` | Carbon `RegisterEventHotKey` global shortcuts |
-| ScreenModule | `macotron.screen` | ScreenCaptureKit screenshots + color picker |
-| QRModule | `macotron.qr` | QR detect, camera/screenshot scan, generate and show |
-| ShellModule | `macotron.shell` | Process/command execution (with allowlist) |
-| NotifyModule | `macotron.notify` | UserNotifications + one-line HUD toasts |
-| DialogModule | `alert` / `confirm` / `prompt` | Blocking NSAlert sheets (also on `macotron`) |
-| URLSchemeModule | `macotron.url` | URL handler registration |
-| FileSystemModule | `macotron.fs` | File read/write/rename/watch (FSEvents) |
-| ClipboardModule | `macotron.clipboard` | NSPasteboard |
-| AIModule | `macotron.ai` | AI provider abstraction for plugins |
-| PanelModule | `macotron.panel` | Small WKWebView panels |
-| SpotlightModule | `macotron.spotlight` | `mdfind` file search (`folder`, `kind`) |
-| AppModule | `macotron.app` | NSWorkspace app launch/switch/hide/quit/menu |
-| AudioModule | `macotron.audio` | Default input/output, volume, mute |
-| SpacesModule | `macotron.spaces` | Mission Control spaces |
-| USBModule | `macotron.usb` | USB devices + attach/detach |
-| HIDModule | `macotron.hid` | HID list, open, feature/output/input reports |
-| ShortcutsModule | `macotron.shortcuts` | List and run Shortcuts.app |
-| SystemModule | `macotron.system` | CPU usage, GPU usage, locale, memory, battery, temp |
-| HTTPModule | `macotron.http` | URLSession |
-| MenuBarModule | `macotron.menubar` | Custom menubar items |
-| DisplayModule | `macotron.display` | Displays, brightness, gamma, XDR |
-| LocalStorageModule | `localStorage` | JSON-backed key-value (global) |
-| KeychainModule | `macotron.keychain` | macOS Keychain secrets |
-| MediaModule | `macotron.media` | Now Playing metadata, artwork, play/pause |
-| LauncherModule | `macotron.launcher` | Extra rows in the quick launcher |
-| NotesModule | `macotron.notes` | List and open Apple Notes |
-| RemindersModule | `macotron.reminders` | List, add, and complete Reminders |
-| HomeKitModule | `macotron.homekit` | List and control HomeKit accessories |
-| DockModule | `macotron.dock` | Read Dock icon badges |
-| ContactsModule | `macotron.contacts` | List and search Contacts |
-| PowerModule | `macotron.power` | Prevent sleep, lock, sleep, display sleep, screensaver, log out, restart, shutdown |
-| BonjourModule | `macotron.bonjour` | Browse Bonjour / mDNS services |
-| UDPModule | `macotron.udp` | IPv4 UDP send and listen |
-| AppleTVModule | `macotron.appletv` | List Apple TVs on the LAN; send needs Companion pairing |
-| AXModule | `macotron.ax` | Accessibility tree: focused element, selected text, children, press |
-| CameraModule | `macotron.camera` | Camera list, preview panel, snapshot |
-| ShareModule | `macotron.share` | Share sheet and AirDrop |
-| ScheduleModule | `macotron.every` / `macotron.at` | Interval and wall-clock schedules |
+The list of modules and their JS namespaces lives in `Sources/Modules/` and in
+`Sources/Macotron/Resources/macotron.d.ts`, which is the typed contract plugins
+are checked against.
 
 ## Key JS APIs
 
