@@ -47,38 +47,29 @@ enum EventPost {
         }
     }
 
+    /// Tap-type names and the CGEventType each names. The first name for a
+    /// type is the one `typeName` reports back; later ones are accepted
+    /// aliases. Written once so the two directions cannot drift apart.
+    private static let types: [(name: String, type: CGEventType)] = [
+        ("flagsChanged", .flagsChanged),
+        ("scroll", .scrollWheel),
+        ("scrollWheel", .scrollWheel),
+        ("leftMouseDown", .leftMouseDown),
+        ("leftMouseUp", .leftMouseUp),
+        ("rightMouseDown", .rightMouseDown),
+        ("rightMouseUp", .rightMouseUp),
+        ("mouseMoved", .mouseMoved),
+        ("leftMouseDragged", .leftMouseDragged),
+        ("keyDown", .keyDown),
+        ("keyUp", .keyUp),
+    ]
+
     static func tapMask(for name: String) -> CGEventMask? {
-        let type: CGEventType
-        switch name {
-        case "flagsChanged": type = .flagsChanged
-        case "scroll", "scrollWheel": type = .scrollWheel
-        case "leftMouseDown": type = .leftMouseDown
-        case "leftMouseUp": type = .leftMouseUp
-        case "rightMouseDown": type = .rightMouseDown
-        case "rightMouseUp": type = .rightMouseUp
-        case "mouseMoved": type = .mouseMoved
-        case "leftMouseDragged": type = .leftMouseDragged
-        case "keyDown": type = .keyDown
-        case "keyUp": type = .keyUp
-        default: return nil
-        }
-        return 1 << type.rawValue
+        types.first { $0.name == name }.map { 1 << $0.type.rawValue }
     }
 
     static func typeName(_ type: CGEventType) -> String {
-        switch type {
-        case .flagsChanged: return "flagsChanged"
-        case .scrollWheel: return "scroll"
-        case .leftMouseDown: return "leftMouseDown"
-        case .leftMouseUp: return "leftMouseUp"
-        case .rightMouseDown: return "rightMouseDown"
-        case .rightMouseUp: return "rightMouseUp"
-        case .mouseMoved: return "mouseMoved"
-        case .leftMouseDragged: return "leftMouseDragged"
-        case .keyDown: return "keyDown"
-        case .keyUp: return "keyUp"
-        default: return "other"
-        }
+        types.first { $0.type == type }?.name ?? "other"
     }
 }
 
@@ -118,7 +109,7 @@ public final class EventModule: NativeModule {
         let eventObj = JS_NewObject(ctx)
         JS_SetPropertyStr(ctx, eventObj, "post", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
-            if EventModule.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             let raw = JSBridge.jsToSwift(ctx, argv[0])
             guard let dict = raw as? [String: Any] else { return JSBridge.newBool(ctx, false) }
             return JSBridge.newBool(ctx, EventModule.post(dict))
@@ -128,7 +119,7 @@ public final class EventModule: NativeModule {
             guard let ctx, let argv, argc >= 2, JS_IsFunction(ctx, argv[1]) else {
                 return QJS_ThrowTypeError(ctx, "event.tap(types, callback)")
             }
-            if EventModule.isDryRun(ctx) { return QJS_Undefined() }
+            if Engine.isDryRun(ctx) { return QJS_Undefined() }
             var mask: CGEventMask = 0
             var gestureMask = NSEvent.EventTypeMask()
             let typesVal = JSBridge.jsToSwift(ctx, argv[0])
@@ -173,16 +164,12 @@ public final class EventModule: NativeModule {
 
         JS_SetPropertyStr(ctx, mouseObj, "warp", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
-            if EventModule.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             let x: Double
             let y: Double
             if JS_IsObject(argv[0]) {
-                let xv = JSBridge.getProperty(ctx, argv[0], "x")
-                let yv = JSBridge.getProperty(ctx, argv[0], "y")
-                x = JSBridge.toDouble(ctx, xv)
-                y = JSBridge.toDouble(ctx, yv)
-                JS_FreeValue(ctx, xv)
-                JS_FreeValue(ctx, yv)
+                x = JSBridge.double(ctx, argv[0], "x") ?? 0
+                y = JSBridge.double(ctx, argv[0], "y") ?? 0
             } else {
                 guard argc >= 2 else { return JSBridge.newBool(ctx, false) }
                 x = JSBridge.toDouble(ctx, argv[0])
@@ -219,11 +206,6 @@ public final class EventModule: NativeModule {
         for listener in listeners {
             JS_FreeValue(listener.ctx, listener.callback)
         }
-    }
-
-    private static func isDryRun(_ ctx: OpaquePointer) -> Bool {
-        guard let opaque = JS_GetContextOpaque(ctx) else { return false }
-        return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
     }
 
     static func post(_ dict: [String: Any]) -> Bool {

@@ -10,6 +10,21 @@ enum WindowAX {
         Int32(pid) * 1000 + Int32(index)
     }
 
+    /// Every AX window of every regular app, with its per-app index. The one
+    /// walk: window.getAll, the restore snapshot, and anything else that needs
+    /// "all the windows" share it rather than each keeping its own copy.
+    static func enumerate(_ body: (NSRunningApplication, Int, AXUIElement) -> Void) {
+        for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
+            var windowsRef: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(
+                AXUIElementCreateApplication(app.processIdentifier),
+                kAXWindowsAttribute as CFString,
+                &windowsRef
+            ) == .success, let windows = windowsRef as? [AXUIElement] else { continue }
+            for (i, win) in windows.enumerated() { body(app, i, win) }
+        }
+    }
+
     static func resolve(id: Int32) -> AXUIElement? {
         let pid = pid_t(id / 1000)
         let index = Int(id % 1000)
@@ -60,15 +75,6 @@ enum WindowAX {
         return 0
     }
 
-    static func info(_ win: AXUIElement, pid: pid_t, app: String) -> [String: Any] {
-        let i = index(of: win, pid: pid)
-        return [
-            "id": Int(windowID(pid: pid, index: i)),
-            "title": title(win),
-            "app": app,
-        ]
-    }
-
     static func setBool(_ win: AXUIElement, _ attr: String, _ value: Bool) -> Bool {
         AXUIElementSetAttributeValue(
             win,
@@ -109,5 +115,13 @@ enum WindowAX {
         let fn = unsafeBitCast(sym, to: Fn.self)
         var cgID: CGWindowID = 0
         return fn(win, &cgID) == .success ? cgID : nil
+    }
+}
+
+extension CGRect {
+    /// The {x, y, width, height} shape every window/frame bridge hands to JS.
+    var js: [String: Any] {
+        ["x": Double(origin.x), "y": Double(origin.y),
+         "width": Double(size.width), "height": Double(size.height)]
     }
 }

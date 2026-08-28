@@ -144,22 +144,13 @@ enum NetworkControl {
         ]
     }
 
-    private static func run(_ path: String, _ args: [String]) -> (out: String, ok: Bool) {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: path)
-        process.arguments = args
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-        do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            return ("", false)
-        }
-        let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return (out, process.terminationStatus == 0)
+    /// Combined, trimmed output plus the exit status. Internal so the
+    /// merge-and-trim contract every caller below leans on has a test.
+    static func run(_ path: String, _ args: [String]) -> (out: String, ok: Bool) {
+        let result = Subprocess.run(path, args)
+        let merged = (result.stdout + result.stderr)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return (merged, result.ok)
     }
 }
 
@@ -316,19 +307,7 @@ enum BluetoothBattery {
     }
 
     private static func profilerJSON() -> Data {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
-        process.arguments = ["SPBluetoothDataType", "-json"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            return Data()
-        }
-        return pipe.fileHandleForReading.readDataToEndOfFile()
+        Data(Subprocess.run("/usr/sbin/system_profiler", ["SPBluetoothDataType", "-json"]).stdout.utf8)
     }
 }
 
@@ -355,21 +334,11 @@ enum DarkMode {
             return ["ok": true, "darkMode": on]
         }
         let script = "tell application \"System Events\" to tell appearance preferences to set dark mode to \(on)"
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = ["-e", script]
-        let err = Pipe()
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = err
-        do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            return ["ok": false, "darkMode": isOn(), "error": error.localizedDescription]
-        }
-        if process.terminationStatus != 0 {
-            let msg = String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let result = Subprocess.run("/usr/bin/osascript", ["-e", script])
+        guard result.ok else {
+            // A tool that could not launch reports its reason on stderr too,
+            // so "did not run" and "ran and failed" read the same here.
+            let msg = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
             return [
                 "ok": false,
                 "darkMode": isOn(),

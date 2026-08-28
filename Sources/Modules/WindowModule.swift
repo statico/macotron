@@ -124,14 +124,14 @@ public final class WindowModule: NativeModule {
         // ---------- focus(id) ----------
         JS_SetPropertyStr(ctx, windowObj, "focus", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
-            if WindowModule.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
+            if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
             return WindowModule.jsFocus(ctx, windowID: JSBridge.toInt32(ctx, argv[0]))
         }, "focus", 1))
 
         // ---------- move(id, {x?, y?, width?, height?}) ----------
         JS_SetPropertyStr(ctx, windowObj, "move", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_NewBool(ctx!, 0) }
-            if WindowModule.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
+            if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
             let windowID = JSBridge.toInt32(ctx, argv[0])
             let opts = argv[1]
             return WindowModule.jsMove(ctx, windowID: windowID, opts: opts)
@@ -140,7 +140,7 @@ public final class WindowModule: NativeModule {
         // ---------- moveToFraction(id, {x?, y?, w?, h?}) ----------
         JS_SetPropertyStr(ctx, windowObj, "moveToFraction", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_NewBool(ctx!, 0) }
-            if WindowModule.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
+            if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
             let windowID = JSBridge.toInt32(ctx, argv[0])
             let opts = argv[1]
             return WindowModule.jsMoveToFraction(ctx, windowID: windowID, opts: opts)
@@ -179,20 +179,20 @@ public final class WindowModule: NativeModule {
 
         JS_SetPropertyStr(ctx, windowObj, "minimize", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
-            if WindowModule.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
+            if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
             let on = argc < 2 || JSBridge.toBool(ctx, argv[1])
             return QJS_NewBool(ctx, WindowAX.minimize(JSBridge.toInt32(ctx, argv[0]), on) ? 1 : 0)
         }, "minimize", 2))
 
         JS_SetPropertyStr(ctx, windowObj, "close", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
-            if WindowModule.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
+            if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
             return QJS_NewBool(ctx, WindowAX.close(JSBridge.toInt32(ctx, argv[0])) ? 1 : 0)
         }, "close", 1))
 
         JS_SetPropertyStr(ctx, windowObj, "setFullscreen", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 2 else { return QJS_NewBool(ctx!, 0) }
-            if WindowModule.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
+            if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
             return QJS_NewBool(
                 ctx,
                 WindowAX.setFullscreen(JSBridge.toInt32(ctx, argv[0]), JSBridge.toBool(ctx, argv[1])) ? 1 : 0
@@ -241,17 +241,11 @@ public final class WindowModule: NativeModule {
         let frame = WindowAX.frame(win)
         let id = WindowAX.windowID(pid: pid, index: index)
 
-        let frameDict: [String: Any] = [
-            "x": Double(frame.origin.x),
-            "y": Double(frame.origin.y),
-            "width": Double(frame.size.width),
-            "height": Double(frame.size.height)
-        ]
         var winDict: [String: Any] = [
             "id": Int(id),
             "title": WindowAX.title(win),
             "app": app,
-            "frame": frameDict
+            "frame": frame.js
         ]
         if let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier {
             winDict["bundleID"] = bundleID
@@ -269,23 +263,11 @@ public final class WindowModule: NativeModule {
         let jsArr = JS_NewArray(ctx)
         var arrIdx: UInt32 = 0
 
-        // Group windows by app to get per-app indices
-        let workspace = NSWorkspace.shared
-        for runApp in workspace.runningApplications {
-            guard runApp.activationPolicy == .regular else { continue }
-            let pid = runApp.processIdentifier
-            let appName = runApp.localizedName ?? "Unknown"
-            let appRef = AXUIElementCreateApplication(pid)
-
-            var windowsRef: CFTypeRef?
-            let err = AXUIElementCopyAttributeValue(appRef, kAXWindowsAttribute as CFString, &windowsRef)
-            guard err == .success, let windows = windowsRef as? [AXUIElement] else { continue }
-
-            for (i, win) in windows.enumerated() {
-                let jsWin = windowToJS(ctx, pid: pid, index: i, app: appName, win: win)
-                JS_SetPropertyUint32(ctx, jsArr, arrIdx, jsWin)
-                arrIdx += 1
-            }
+        WindowAX.enumerate { runApp, i, win in
+            let jsWin = windowToJS(ctx, pid: runApp.processIdentifier, index: i,
+                                   app: runApp.localizedName ?? "Unknown", win: win)
+            JS_SetPropertyUint32(ctx, jsArr, arrIdx, jsWin)
+            arrIdx += 1
         }
 
         return jsArr
@@ -323,21 +305,10 @@ public final class WindowModule: NativeModule {
         var newOrigin = currentFrame.origin
         var newSize = currentFrame.size
 
-        // Read optional properties from opts object
-        let xVal = JSBridge.getProperty(ctx, opts, "x")
-        let yVal = JSBridge.getProperty(ctx, opts, "y")
-        let wVal = JSBridge.getProperty(ctx, opts, "width")
-        let hVal = JSBridge.getProperty(ctx, opts, "height")
-
-        if !JSBridge.isUndefined(xVal) { newOrigin.x = CGFloat(JSBridge.toDouble(ctx, xVal)) }
-        if !JSBridge.isUndefined(yVal) { newOrigin.y = CGFloat(JSBridge.toDouble(ctx, yVal)) }
-        if !JSBridge.isUndefined(wVal) { newSize.width = CGFloat(JSBridge.toDouble(ctx, wVal)) }
-        if !JSBridge.isUndefined(hVal) { newSize.height = CGFloat(JSBridge.toDouble(ctx, hVal)) }
-
-        JS_FreeValue(ctx, xVal)
-        JS_FreeValue(ctx, yVal)
-        JS_FreeValue(ctx, wVal)
-        JS_FreeValue(ctx, hVal)
+        if let x = JSBridge.double(ctx, opts, "x") { newOrigin.x = CGFloat(x) }
+        if let y = JSBridge.double(ctx, opts, "y") { newOrigin.y = CGFloat(y) }
+        if let w = JSBridge.double(ctx, opts, "width") { newSize.width = CGFloat(w) }
+        if let h = JSBridge.double(ctx, opts, "height") { newSize.height = CGFloat(h) }
 
         let posOk = setWindowPosition(win, point: newOrigin)
         let sizeOk = setWindowSize(win, size: newSize)
@@ -353,39 +324,23 @@ public final class WindowModule: NativeModule {
         }
 
         var screen = Self.screen(forAXFrame: WindowAX.frame(win)) ?? NSScreen.screens.first
-        let displayVal = JSBridge.getProperty(ctx, opts, "display")
-        if !JSBridge.isUndefined(displayVal), !JSBridge.isNull(displayVal) {
-            let id = CGDirectDisplayID(bitPattern: JSBridge.toInt32(ctx, displayVal))
-            if let match = Self.screen(displayID: id) {
-                screen = match
-            }
+        if let display = JSBridge.int(ctx, opts, "display"),
+           let match = Self.screen(displayID: CGDirectDisplayID(bitPattern: Int32(truncatingIfNeeded: display))) {
+            screen = match
         }
-        JS_FreeValue(ctx, displayVal)
         guard let screen else {
             return QJS_NewBool(ctx, 0)
         }
 
-        let xVal = JSBridge.getProperty(ctx, opts, "x")
-        let yVal = JSBridge.getProperty(ctx, opts, "y")
-        let wVal = JSBridge.getProperty(ctx, opts, "w")
-        let hVal = JSBridge.getProperty(ctx, opts, "h")
-
-        var fx: CGFloat?
-        var fy: CGFloat?
-        var fw: CGFloat?
-        var fh: CGFloat?
-
-        if !JSBridge.isUndefined(xVal) { fx = CGFloat(JSBridge.toDouble(ctx, xVal)) }
-        if !JSBridge.isUndefined(yVal) { fy = CGFloat(JSBridge.toDouble(ctx, yVal)) }
-        if !JSBridge.isUndefined(wVal) { fw = CGFloat(JSBridge.toDouble(ctx, wVal)) }
-        if !JSBridge.isUndefined(hVal) { fh = CGFloat(JSBridge.toDouble(ctx, hVal)) }
-
-        JS_FreeValue(ctx, xVal)
-        JS_FreeValue(ctx, yVal)
-        JS_FreeValue(ctx, wVal)
-        JS_FreeValue(ctx, hVal)
-
-        let ok = applyFraction(win, x: fx, y: fy, w: fw, h: fh, screen: screen, gap: 0)
+        let ok = applyFraction(
+            win,
+            x: JSBridge.double(ctx, opts, "x").map { CGFloat($0) },
+            y: JSBridge.double(ctx, opts, "y").map { CGFloat($0) },
+            w: JSBridge.double(ctx, opts, "w").map { CGFloat($0) },
+            h: JSBridge.double(ctx, opts, "h").map { CGFloat($0) },
+            screen: screen,
+            gap: 0
+        )
         return QJS_NewBool(ctx, ok ? 1 : 0)
     }
 
@@ -393,7 +348,7 @@ public final class WindowModule: NativeModule {
     private static func jsRestore(_ ctx: OpaquePointer, entries: JSValue) -> JSValue {
         let raw = JSBridge.jsToSwift(ctx, entries)
         let list = raw as? [Any] ?? []
-        if isDryRun(ctx) {
+        if Engine.isDryRun(ctx) {
             return JSBridge.newObject(ctx, ["restored": list.count, "missing": 0])
         }
 
@@ -431,29 +386,15 @@ public final class WindowModule: NativeModule {
         return JSBridge.newObject(ctx, ["restored": restored, "missing": missing])
     }
 
-    private static func isDryRun(_ ctx: OpaquePointer) -> Bool {
-        guard let opaque = JS_GetContextOpaque(ctx) else { return false }
-        return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
-    }
-
     private static func snapshotWindows() -> [WindowRestore.Window] {
         var results: [WindowRestore.Window] = []
-        for runApp in NSWorkspace.shared.runningApplications {
-            guard runApp.activationPolicy == .regular else { continue }
-            let pid = runApp.processIdentifier
-            let appName = runApp.localizedName ?? "Unknown"
-            let appRef = AXUIElementCreateApplication(pid)
-            var windowsRef: CFTypeRef?
-            let err = AXUIElementCopyAttributeValue(appRef, kAXWindowsAttribute as CFString, &windowsRef)
-            guard err == .success, let windows = windowsRef as? [AXUIElement] else { continue }
-            for (i, win) in windows.enumerated() {
-                results.append(WindowRestore.Window(
-                    id: WindowAX.windowID(pid: pid, index: i),
-                    app: appName,
-                    title: WindowAX.title(win),
-                    bundleID: runApp.bundleIdentifier
-                ))
-            }
+        WindowAX.enumerate { runApp, i, win in
+            results.append(WindowRestore.Window(
+                id: WindowAX.windowID(pid: runApp.processIdentifier, index: i),
+                app: runApp.localizedName ?? "Unknown",
+                title: WindowAX.title(win),
+                bundleID: runApp.bundleIdentifier
+            ))
         }
         return results
     }
@@ -638,29 +579,20 @@ public final class WindowModule: NativeModule {
         var screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })
             ?? NSScreen.main
             ?? NSScreen.screens.first
-        let displayVal = JSBridge.getProperty(ctx, opts, "display")
-        if !JSBridge.isUndefined(displayVal), !JSBridge.isNull(displayVal) {
-            let id = CGDirectDisplayID(bitPattern: JSBridge.toInt32(ctx, displayVal))
-            if let match = Self.screen(displayID: id) {
+        if let display = JSBridge.int(ctx, opts, "display") {
+            if let match = Self.screen(displayID: CGDirectDisplayID(bitPattern: Int32(truncatingIfNeeded: display))) {
                 screen = match
             }
         } else if let win = Self.focusedAXWindow() {
             screen = Self.screen(forAXFrame: WindowAX.frame(win)) ?? screen
         }
-        JS_FreeValue(ctx, displayVal)
         guard let screen else { return false }
 
-        func num(_ key: String, fallback: CGFloat) -> CGFloat {
-            let val = JSBridge.getProperty(ctx, opts, key)
-            defer { JS_FreeValue(ctx, val) }
-            if JSBridge.isUndefined(val) || JSBridge.isNull(val) { return fallback }
-            return CGFloat(JSBridge.toDouble(ctx, val))
+        func num(_ key: String, _ fallback: CGFloat) -> CGFloat {
+            JSBridge.double(ctx, opts, key).map { CGFloat($0) } ?? fallback
         }
-        let zone = SnapZone(x: num("x", fallback: 0), y: num("y", fallback: 0), w: num("w", fallback: 1), h: num("h", fallback: 1))
-        let gapVal = JSBridge.getProperty(ctx, opts, "gap")
-        let gap = JSBridge.isUndefined(gapVal) || JSBridge.isNull(gapVal)
-            ? snapGap : max(0, CGFloat(JSBridge.toDouble(ctx, gapVal)))
-        JS_FreeValue(ctx, gapVal)
+        let zone = SnapZone(x: num("x", 0), y: num("y", 0), w: num("w", 1), h: num("h", 1))
+        let gap = JSBridge.double(ctx, opts, "gap").map { max(0, CGFloat($0)) } ?? snapGap
         SnapPreview.shared.show(SnapGeometry.cocoaRect(zone: zone, visible: screen.visibleFrame, gap: gap))
         return true
     }
@@ -669,28 +601,16 @@ public final class WindowModule: NativeModule {
         if JS_IsBool(opts) {
             return setSnapEnabled(JSBridge.toBool(ctx, opts))
         }
-        let enabledVal = JSBridge.getProperty(ctx, opts, "enabled")
-        let enabled = JSBridge.isUndefined(enabledVal) || JSBridge.isNull(enabledVal)
-            ? true : JSBridge.toBool(ctx, enabledVal)
-        JS_FreeValue(ctx, enabledVal)
-
-        let thresholdVal = JSBridge.getProperty(ctx, opts, "threshold")
-        if !JSBridge.isUndefined(thresholdVal), !JSBridge.isNull(thresholdVal) {
-            snapThreshold = max(1, CGFloat(JSBridge.toDouble(ctx, thresholdVal)))
+        let enabled = JSBridge.bool(ctx, opts, "enabled") ?? true
+        if let threshold = JSBridge.double(ctx, opts, "threshold") {
+            snapThreshold = max(1, CGFloat(threshold))
         }
-        JS_FreeValue(ctx, thresholdVal)
-
-        let cornerVal = JSBridge.getProperty(ctx, opts, "corner")
-        if !JSBridge.isUndefined(cornerVal), !JSBridge.isNull(cornerVal) {
-            snapCorner = max(1, CGFloat(JSBridge.toDouble(ctx, cornerVal)))
+        if let corner = JSBridge.double(ctx, opts, "corner") {
+            snapCorner = max(1, CGFloat(corner))
         }
-        JS_FreeValue(ctx, cornerVal)
-
-        let gapVal = JSBridge.getProperty(ctx, opts, "gap")
-        if !JSBridge.isUndefined(gapVal), !JSBridge.isNull(gapVal) {
-            snapGap = max(0, CGFloat(JSBridge.toDouble(ctx, gapVal)))
+        if let gap = JSBridge.double(ctx, opts, "gap") {
+            snapGap = max(0, CGFloat(gap))
         }
-        JS_FreeValue(ctx, gapVal)
 
         let zonesVal = JSBridge.getProperty(ctx, opts, "zones")
         if JS_IsObject(zonesVal), !JSBridge.isUndefined(zonesVal), !JSBridge.isNull(zonesVal), !JS_IsArray(zonesVal) {

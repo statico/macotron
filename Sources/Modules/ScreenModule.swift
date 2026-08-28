@@ -30,56 +30,22 @@ public final class ScreenModule: NativeModule {
 
             var selection = false
             if argc >= 1, let argv, !JS_IsUndefined(argv[0]), JS_IsObject(argv[0]), !JS_IsString(argv[0]) {
-                let sel = JSBridge.getProperty(ctx, argv[0], "selection")
-                if !JS_IsUndefined(sel) {
-                    selection = JSBridge.toBool(ctx, sel)
-                }
-                JS_FreeValue(ctx, sel)
+                selection = JSBridge.bool(ctx, argv[0], "selection") ?? false
             }
 
             if selection {
-                guard let engine = Engine.of(ctx) else { return QJS_Undefined() }
-                if engine.dryRun { return JSBridge.newString(ctx, "") }
-
-                var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
-                let promise = JS_NewPromiseCapability(ctx, &resolving)
-                let resolve = JS_DupValue(ctx, resolving[0])
-                let reject = JS_DupValue(ctx, resolving[1])
-                JS_FreeValue(ctx, resolving[0])
-                JS_FreeValue(ctx, resolving[1])
-
-                let token = engine.registerPending(resolve: resolve, reject: reject)
-                nonisolated(unsafe) let capturedCtx = ctx
-
+                if Engine.isDryRun(ctx) { return JSBridge.newString(ctx, "") }
+                let (promise, settle) = JSBridge.deferred(ctx)
                 Task { @MainActor in
-                    let rect = await ScreenRegionPicker.shared.pick()
-                    guard let rect else {
-                        guard let pending = engine.claimPending(token) else { return }
-                        var value = JSBridge.newString(capturedCtx, "")
-                        _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
-                        JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, pending.resolve)
-                        JS_FreeValue(capturedCtx, pending.reject)
-                        engine.drainJobQueue()
+                    guard let rect = await ScreenRegionPicker.shared.pick() else {
+                        settle(.value(""))
                         return
                     }
                     do {
-                        let base64 = try await captureRegion(rect)
-                        guard let pending = engine.claimPending(token) else { return }
-                        var value = JSBridge.newString(capturedCtx, base64)
-                        _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
-                        JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, pending.resolve)
-                        JS_FreeValue(capturedCtx, pending.reject)
+                        settle(.value(try await captureRegion(rect)))
                     } catch {
-                        guard let pending = engine.claimPending(token) else { return }
-                        var value = JSBridge.newString(capturedCtx, error.localizedDescription)
-                        _ = JS_Call(capturedCtx, pending.reject, QJS_Undefined(), 1, &value)
-                        JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, pending.resolve)
-                        JS_FreeValue(capturedCtx, pending.reject)
+                        settle(.failure(error.localizedDescription))
                     }
-                    engine.drainJobQueue()
                 }
                 return promise
             }
@@ -107,53 +73,28 @@ public final class ScreenModule: NativeModule {
                           JS_NewCFunction(ctx, { ctx, _, _, _ -> JSValue in
             guard let ctx else { return QJS_Undefined() }
 
-            let opaque = JS_GetContextOpaque(ctx)
-            if let opaque {
-                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-                if engine.dryRun {
-                    return QJS_Null()
-                }
-            }
+            if Engine.isDryRun(ctx) { return QJS_Null() }
 
-            var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
-            let promise = JS_NewPromiseCapability(ctx, &resolving)
-            let resolve = JS_DupValue(ctx, resolving[0])
-            let reject = JS_DupValue(ctx, resolving[1])
-            JS_FreeValue(ctx, resolving[0])
-            JS_FreeValue(ctx, resolving[1])
-
-            guard let opaque else { return promise }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            let token = engine.registerPending(resolve: resolve, reject: reject)
-            nonisolated(unsafe) let capturedCtx = ctx
-
+            let (promise, settle) = JSBridge.deferred(ctx)
             Task { @MainActor in
                 AppActivation.activate("screen capture")
                 let color = await NSColorSampler().sample()
-                guard let pending = engine.claimPending(token) else { return }
                 let point = NSEvent.mouseLocation
-                let value: JSValue
-                if let color, let rgb = color.usingColorSpace(.sRGB) {
-                    value = JSBridge.anyToJS(capturedCtx, [
-                        "hex": String(format: "#%02X%02X%02X",
-                                      Int((rgb.redComponent * 255).rounded()),
-                                      Int((rgb.greenComponent * 255).rounded()),
-                                      Int((rgb.blueComponent * 255).rounded())),
-                        "r": Int((rgb.redComponent * 255).rounded()),
-                        "g": Int((rgb.greenComponent * 255).rounded()),
-                        "b": Int((rgb.blueComponent * 255).rounded()),
-                        "x": Int(point.x.rounded()),
-                        "y": Int(point.y.rounded()),
-                    ] as [String: Any])
-                } else {
-                    value = QJS_Null()
+                guard let color, let rgb = color.usingColorSpace(.sRGB) else {
+                    settle(.value(NSNull()))
+                    return
                 }
-                var arg = value
-                _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &arg)
-                JS_FreeValue(capturedCtx, arg)
-                JS_FreeValue(capturedCtx, pending.resolve)
-                JS_FreeValue(capturedCtx, pending.reject)
-                engine.drainJobQueue()
+                settle(.value([
+                    "hex": String(format: "#%02X%02X%02X",
+                                  Int((rgb.redComponent * 255).rounded()),
+                                  Int((rgb.greenComponent * 255).rounded()),
+                                  Int((rgb.blueComponent * 255).rounded())),
+                    "r": Int((rgb.redComponent * 255).rounded()),
+                    "g": Int((rgb.greenComponent * 255).rounded()),
+                    "b": Int((rgb.blueComponent * 255).rounded()),
+                    "x": Int(point.x.rounded()),
+                    "y": Int(point.y.rounded()),
+                ] as [String: Any]))
             }
             return promise
         }, "pickColor", 0))

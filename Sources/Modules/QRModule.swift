@@ -50,11 +50,9 @@ public final class QRModule: NativeModule {
     }
 
     fileprivate static func size(_ ctx: OpaquePointer, argc: Int32, argv: UnsafePointer<JSValue>?) -> CGFloat {
-        guard let argv, argc >= 2, JS_IsObject(argv[1]) else { return 256 }
-        let val = JSBridge.getProperty(ctx, argv[1], "size")
-        defer { JS_FreeValue(ctx, val) }
-        if JSBridge.isUndefined(val) || JSBridge.isNull(val) { return 256 }
-        return CGFloat(min(max(JSBridge.toInt32(ctx, val), 32), Int32(QRCodes.maxPixelSize)))
+        guard let argv, argc >= 2, JS_IsObject(argv[1]),
+              let size = JSBridge.int(ctx, argv[1], "size") else { return 256 }
+        return min(max(CGFloat(size), 32), QRCodes.maxPixelSize)
     }
 
     fileprivate static func detect(_ ctx: OpaquePointer?, argc: Int32, argv: UnsafePointer<JSValue>?) -> JSValue {
@@ -64,13 +62,8 @@ public final class QRModule: NativeModule {
         if Engine.isDryRun(ctx) {
             return promise(ctx) { $0(nil) }
         }
-        let opts = argv[0]
-        let pathVal = JSBridge.getProperty(ctx, opts, "path")
-        let imageVal = JSBridge.getProperty(ctx, opts, "image")
-        let path = JSBridge.isUndefined(pathVal) ? nil : JSBridge.toString(ctx, pathVal)
-        let image = JSBridge.isUndefined(imageVal) ? nil : JSBridge.toString(ctx, imageVal)
-        JS_FreeValue(ctx, pathVal)
-        JS_FreeValue(ctx, imageVal)
+        let path = JSBridge.string(ctx, argv[0], "path")
+        let image = JSBridge.string(ctx, argv[0], "image")
 
         let url: URL?
         let data: Data?
@@ -105,15 +98,9 @@ public final class QRModule: NativeModule {
         var screenshot = true
         var selection = true
         if argc >= 1, let argv, JS_IsObject(argv[0]) {
-            let cam = JSBridge.getProperty(ctx, argv[0], "camera")
-            if !JSBridge.isUndefined(cam), !JSBridge.isNull(cam) { camera = JSBridge.toBool(ctx, cam) }
-            JS_FreeValue(ctx, cam)
-            let shot = JSBridge.getProperty(ctx, argv[0], "screenshot")
-            if !JSBridge.isUndefined(shot), !JSBridge.isNull(shot) { screenshot = JSBridge.toBool(ctx, shot) }
-            JS_FreeValue(ctx, shot)
-            let sel = JSBridge.getProperty(ctx, argv[0], "selection")
-            if !JSBridge.isUndefined(sel), !JSBridge.isNull(sel) { selection = JSBridge.toBool(ctx, sel) }
-            JS_FreeValue(ctx, sel)
+            camera = JSBridge.bool(ctx, argv[0], "camera") ?? camera
+            screenshot = JSBridge.bool(ctx, argv[0], "screenshot") ?? screenshot
+            selection = JSBridge.bool(ctx, argv[0], "selection") ?? selection
         }
         if camera { screenshot = false }
         return promise(ctx) { resolve in
@@ -141,35 +128,14 @@ public final class QRModule: NativeModule {
         }
     }
 
+    /// A promise this module settles from the main thread once the picker,
+    /// the camera, or the detector comes back with a string (or nothing).
     private static func promise(_ ctx: OpaquePointer, run: (@escaping @Sendable (String?) -> Void) -> Void) -> JSValue {
-        var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
-        let promise = JS_NewPromiseCapability(ctx, &resolving)
-        let resolveFn = JS_DupValue(ctx, resolving[0])
-        let rejectFn = JS_DupValue(ctx, resolving[1])
-        JS_FreeValue(ctx, resolving[0])
-        JS_FreeValue(ctx, resolving[1])
-        guard let opaque = JS_GetContextOpaque(ctx) else { return promise }
-        let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-        if engine.dryRun {
-            var value = QJS_Null()
-            _ = JS_Call(ctx, resolveFn, QJS_Undefined(), 1, &value)
-            JS_FreeValue(ctx, value)
-            JS_FreeValue(ctx, resolveFn)
-            JS_FreeValue(ctx, rejectFn)
-            engine.drainJobQueue()
-            return promise
-        }
-        let token = engine.registerPending(resolve: resolveFn, reject: rejectFn)
-        nonisolated(unsafe) let capturedCtx = ctx
+        let (promise, settle) = JSBridge.deferred(ctx)
+        guard !Engine.isDryRun(ctx) else { return promise }
         run { text in
             DispatchQueue.main.async {
-                guard let pending = engine.claimPending(token) else { return }
-                var value = text.map { JSBridge.newString(capturedCtx, $0) } ?? QJS_Null()
-                _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
-                JS_FreeValue(capturedCtx, value)
-                JS_FreeValue(capturedCtx, pending.resolve)
-                JS_FreeValue(capturedCtx, pending.reject)
-                engine.drainJobQueue()
+                MainActor.assumeIsolated { settle(.of(text)) }
             }
         }
         return promise

@@ -37,8 +37,8 @@ enum Spaces {
         var out: [SpaceInfo] = []
         var desktop = 1
         for display in raw {
-            let uuid = string(display["Display Identifier"]) ?? ""
-            let currentID = spaceID(dict(display["Current Space"]))
+            let uuid = display["Display Identifier"] as? String ?? ""
+            let currentID = spaceID(display["Current Space"] as? [String: Any])
             let rows = display["Spaces"] as? [[String: Any]] ?? []
             for (i, row) in rows.enumerated() {
                 let id = spaceID(row) ?? 0
@@ -77,7 +77,7 @@ enum Spaces {
                 return match
             }
             let index = int(dict["index"])
-            let display = string(dict["display"])
+            let display = dict["display"] as? String
             return spaces.first {
                 (index == nil || $0.index == index) && (display == nil || $0.display == display)
                     && (index != nil || display != nil)
@@ -102,14 +102,6 @@ enum Spaces {
         return nil
     }
 
-    private static func dict(_ value: Any?) -> [String: Any]? {
-        value as? [String: Any]
-    }
-
-    private static func string(_ value: Any?) -> String? {
-        value as? String
-    }
-
     static func int(_ value: Any?) -> Int? {
         switch value {
         case let i as Int: return i
@@ -128,7 +120,9 @@ enum SkyLight {
         RTLD_LAZY
     )
 
-    private static func symbol<T>(_ name: String, as: T.Type) -> T? {
+    /// dlsym one symbol out of SkyLight. Non-private because the other
+    /// modules that dlopen a private framework want this exact three lines.
+    static func symbol<T>(_ name: String, as: T.Type) -> T? {
         guard let handle, let sym = dlsym(handle, name) else { return nil }
         return unsafeBitCast(sym, to: T.self)
     }

@@ -165,8 +165,7 @@ public final class NetworkModule: NativeModule {
     }
 
     private static func dryRun(_ ctx: OpaquePointer) -> Bool {
-        let opaque = JS_GetContextOpaque(ctx)
-        return opaque.map { Unmanaged<Engine>.fromOpaque($0).takeUnretainedValue().dryRun } ?? false
+        Engine.isDryRun(ctx)
     }
 
     private static func ipv4Interfaces() -> [Any] {

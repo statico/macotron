@@ -31,9 +31,8 @@ public final class IdleModule: NativeModule {
 
         JS_SetPropertyStr(ctx, idle, "setThreshold", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-            guard let opaque = JS_GetContextOpaque(ctx) else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            (engine.configStore["__idleModule"] as? IdleModule)?.threshold = JSBridge.toDouble(ctx, argv[0])
+            let mod: IdleModule? = Engine.module(ctx, "__idleModule")
+            mod?.threshold = JSBridge.toDouble(ctx, argv[0])
             return QJS_Undefined()
         }, "setThreshold", 1))
 

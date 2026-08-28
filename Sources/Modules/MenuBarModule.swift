@@ -9,12 +9,12 @@ import MacotronEngine
 @MainActor
 public protocol MenuBarModuleDelegate: AnyObject {
     func menuBarAddItem(id: String, title: String, icon: String?, section: String?, onClick: (() -> Void)?, menu: [MenuBarEntry])
-    func menuBarUpdateItem(id: String, title: String?, icon: String?)
-    func menuBarRemoveItem(id: String)
-    func menuBarSetIcon(sfSymbolName: String)
-    func menuBarSetIconColor(color: String?)
-    func menuBarSetTitle(text: String)
-    func menuBarSetStatus(
+    func updateItem(id: String, title: String?, icon: String?)
+    func removeItem(id: String)
+    func setIcon(_ sfSymbolName: String)
+    func setIconColor(_ color: String?)
+    func setTitle(_ text: String)
+    func setStatus(
         id: String,
         title: String,
         subtitle: String?,
@@ -30,10 +30,10 @@ public protocol MenuBarModuleDelegate: AnyObject {
         menu: [MenuBarEntry],
         required: Bool
     )
-    func menuBarRemoveStatus(id: String)
-    func menuBarRemoveAllStatus()
-    func menuBarBeginStatusReload()
-    func menuBarFinishStatusReload()
+    func removeStatus(id: String)
+    func removeAllStatus()
+    func beginStatusReload()
+    func finishStatusReload()
 }
 
 @MainActor
@@ -68,30 +68,17 @@ public final class MenuBarModule: NativeModule {
         // --- add(id, opts) ---
         JS_SetPropertyStr(ctx, menubarObj, "add", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
 
             guard let id = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
             let opts = argv[1]
 
-            let titleVal = JSBridge.getProperty(ctx, opts, "title")
-            let title = JSBridge.toString(ctx, titleVal) ?? id
-            JS_FreeValue(ctx, titleVal)
-
-            let iconVal = JSBridge.getProperty(ctx, opts, "icon")
-            let icon: String? = JSBridge.isUndefined(iconVal) || JSBridge.isNull(iconVal)
-                ? nil : JSBridge.toString(ctx, iconVal)
-            JS_FreeValue(ctx, iconVal)
-
-            let sectionVal = JSBridge.getProperty(ctx, opts, "section")
-            let section: String? = JSBridge.isUndefined(sectionVal) || JSBridge.isNull(sectionVal)
-                ? nil : JSBridge.toString(ctx, sectionVal)
-            JS_FreeValue(ctx, sectionVal)
+            let title = JSBridge.string(ctx, opts, "title") ?? id
+            let icon = JSBridge.string(ctx, opts, "icon")
+            let section = JSBridge.string(ctx, opts, "section")
 
             let onClickVal = JSBridge.getProperty(ctx, opts, "onClick")
 
-            if let mod = engine.configStore["__menuBarModule"] as? MenuBarModule {
+            if let mod: MenuBarModule = Engine.module(ctx, "__menuBarModule") {
                 mod.dropCallbacks(for: id, ctx: ctx)
                 let onClick: (() -> Void)? = mod.bindClick(ctx: ctx, from: onClickVal, key: id)
                 let menu = mod.readMenu(ctx: ctx, from: opts, prefix: id)
@@ -107,25 +94,15 @@ public final class MenuBarModule: NativeModule {
         // --- update(id, opts) ---
         JS_SetPropertyStr(ctx, menubarObj, "update", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
 
             guard let id = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
             let opts = argv[1]
 
-            let titleVal = JSBridge.getProperty(ctx, opts, "title")
-            let title: String? = JSBridge.isUndefined(titleVal) || JSBridge.isNull(titleVal)
-                ? nil : JSBridge.toString(ctx, titleVal)
-            JS_FreeValue(ctx, titleVal)
+            let title = JSBridge.string(ctx, opts, "title")
+            let icon = JSBridge.string(ctx, opts, "icon")
 
-            let iconVal = JSBridge.getProperty(ctx, opts, "icon")
-            let icon: String? = JSBridge.isUndefined(iconVal) || JSBridge.isNull(iconVal)
-                ? nil : JSBridge.toString(ctx, iconVal)
-            JS_FreeValue(ctx, iconVal)
-
-            if let mod = engine.configStore["__menuBarModule"] as? MenuBarModule {
-                mod.delegate?.menuBarUpdateItem(id: id, title: title, icon: icon)
+            if let mod: MenuBarModule = Engine.module(ctx, "__menuBarModule") {
+                mod.delegate?.updateItem(id: id, title: title, icon: icon)
             }
 
             return QJS_Undefined()
@@ -134,17 +111,14 @@ public final class MenuBarModule: NativeModule {
         // --- remove(id) ---
         JS_SetPropertyStr(ctx, menubarObj, "remove", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
 
             guard let id = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
 
-            if let mod = engine.configStore["__menuBarModule"] as? MenuBarModule {
+            if let mod: MenuBarModule = Engine.module(ctx, "__menuBarModule") {
                 mod.statusOwners[id] = nil
                 mod.dropCallbacks(for: id, ctx: ctx)
-                mod.delegate?.menuBarRemoveStatus(id: id)
-                mod.delegate?.menuBarRemoveItem(id: id)
+                mod.delegate?.removeStatus(id: id)
+                mod.delegate?.removeItem(id: id)
             }
 
             return QJS_Undefined()
@@ -153,14 +127,11 @@ public final class MenuBarModule: NativeModule {
         // --- setIcon(sfSymbolName) ---
         JS_SetPropertyStr(ctx, menubarObj, "setIcon", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
 
             guard let symbolName = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
 
-            if let mod = engine.configStore["__menuBarModule"] as? MenuBarModule {
-                mod.delegate?.menuBarSetIcon(sfSymbolName: symbolName)
+            if let mod: MenuBarModule = Engine.module(ctx, "__menuBarModule") {
+                mod.delegate?.setIcon(symbolName)
             }
 
             return QJS_Undefined()
@@ -168,9 +139,6 @@ public final class MenuBarModule: NativeModule {
 
         JS_SetPropertyStr(ctx, menubarObj, "setIconColor", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv else { return QJS_Undefined() }
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
             var color: String?
             if argc >= 1 {
                 let raw = argv[0]
@@ -178,8 +146,8 @@ public final class MenuBarModule: NativeModule {
                     color = JSBridge.toString(ctx, raw)
                 }
             }
-            if let mod = engine.configStore["__menuBarModule"] as? MenuBarModule {
-                mod.delegate?.menuBarSetIconColor(color: color)
+            if let mod: MenuBarModule = Engine.module(ctx, "__menuBarModule") {
+                mod.delegate?.setIconColor(color)
             }
             return QJS_Undefined()
         }, "setIconColor", 1))
@@ -187,14 +155,11 @@ public final class MenuBarModule: NativeModule {
         // --- setTitle(text) ---
         JS_SetPropertyStr(ctx, menubarObj, "setTitle", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
 
             guard let text = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
 
-            if let mod = engine.configStore["__menuBarModule"] as? MenuBarModule {
-                mod.delegate?.menuBarSetTitle(text: text)
+            if let mod: MenuBarModule = Engine.module(ctx, "__menuBarModule") {
+                mod.delegate?.setTitle(text)
             }
 
             return QJS_Undefined()
@@ -202,69 +167,21 @@ public final class MenuBarModule: NativeModule {
 
         JS_SetPropertyStr(ctx, menubarObj, "status", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
             guard let id = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
             let opts = argv[1]
 
-            let titleVal = JSBridge.getProperty(ctx, opts, "title")
-            let title = JSBridge.toString(ctx, titleVal) ?? id
-            JS_FreeValue(ctx, titleVal)
-
-            let subtitleVal = JSBridge.getProperty(ctx, opts, "subtitle")
-            let subtitle: String? = JSBridge.isUndefined(subtitleVal) || JSBridge.isNull(subtitleVal)
-                ? nil : JSBridge.toString(ctx, subtitleVal)
-            JS_FreeValue(ctx, subtitleVal)
-
-            let colorVal = JSBridge.getProperty(ctx, opts, "color")
-            let color: String? = JSBridge.isUndefined(colorVal) || JSBridge.isNull(colorVal)
-                ? nil : JSBridge.toString(ctx, colorVal)
-            JS_FreeValue(ctx, colorVal)
-
-            let subtitleColorVal = JSBridge.getProperty(ctx, opts, "subtitleColor")
-            let subtitleColor: String? = JSBridge.isUndefined(subtitleColorVal) || JSBridge.isNull(subtitleColorVal)
-                ? nil : JSBridge.toString(ctx, subtitleColorVal)
-            JS_FreeValue(ctx, subtitleColorVal)
-
-            let boldVal = JSBridge.getProperty(ctx, opts, "bold")
-            let bold = JSBridge.isUndefined(boldVal) || JSBridge.isNull(boldVal) ? false : JSBridge.toBool(ctx, boldVal)
-            JS_FreeValue(ctx, boldVal)
-
-            let italicVal = JSBridge.getProperty(ctx, opts, "italic")
-            let italic = JSBridge.isUndefined(italicVal) || JSBridge.isNull(italicVal) ? false : JSBridge.toBool(ctx, italicVal)
-            JS_FreeValue(ctx, italicVal)
-
-            let secondaryVal = JSBridge.getProperty(ctx, opts, "secondary")
-            let secondary = JSBridge.isUndefined(secondaryVal) || JSBridge.isNull(secondaryVal)
-                ? false : JSBridge.toBool(ctx, secondaryVal)
-            JS_FreeValue(ctx, secondaryVal)
-
-            let minWidthVal = JSBridge.getProperty(ctx, opts, "minWidth")
-            let minWidth: Double? = JSBridge.isUndefined(minWidthVal) || JSBridge.isNull(minWidthVal)
-                ? nil : JSBridge.toDouble(ctx, minWidthVal)
-            JS_FreeValue(ctx, minWidthVal)
-
-            let requiredVal = JSBridge.getProperty(ctx, opts, "required")
-            let required = JSBridge.isUndefined(requiredVal) || JSBridge.isNull(requiredVal)
-                ? true : JSBridge.toBool(ctx, requiredVal)
-            JS_FreeValue(ctx, requiredVal)
-
-            let sfVal = JSBridge.getProperty(ctx, opts, "sfSymbol")
-            var sfSymbol: String? = JSBridge.isUndefined(sfVal) || JSBridge.isNull(sfVal)
-                ? nil : JSBridge.toString(ctx, sfVal)
-            JS_FreeValue(ctx, sfVal)
-            if sfSymbol == nil {
-                let iconVal = JSBridge.getProperty(ctx, opts, "icon")
-                sfSymbol = JSBridge.isUndefined(iconVal) || JSBridge.isNull(iconVal)
-                    ? nil : JSBridge.toString(ctx, iconVal)
-                JS_FreeValue(ctx, iconVal)
-            }
-
-            let imageVal = JSBridge.getProperty(ctx, opts, "image")
-            var imagePath: String? = JSBridge.isUndefined(imageVal) || JSBridge.isNull(imageVal)
-                ? nil : JSBridge.toString(ctx, imageVal)
-            JS_FreeValue(ctx, imageVal)
+            let title = JSBridge.string(ctx, opts, "title") ?? id
+            let subtitle = JSBridge.string(ctx, opts, "subtitle")
+            let color = JSBridge.string(ctx, opts, "color")
+            let subtitleColor = JSBridge.string(ctx, opts, "subtitleColor")
+            let bold = JSBridge.bool(ctx, opts, "bold") ?? false
+            let italic = JSBridge.bool(ctx, opts, "italic") ?? false
+            let secondary = JSBridge.bool(ctx, opts, "secondary") ?? false
+            let minWidth = JSBridge.double(ctx, opts, "minWidth")
+            // Absent means required: a plugin only opts out on purpose.
+            let required = JSBridge.bool(ctx, opts, "required") ?? true
+            let sfSymbol = JSBridge.string(ctx, opts, "sfSymbol") ?? JSBridge.string(ctx, opts, "icon")
+            var imagePath = JSBridge.string(ctx, opts, "image")
 
             if let png = SparklineImage.png(fromJS: ctx, opts: opts) {
                 let safe = id.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-")
@@ -284,12 +201,12 @@ public final class MenuBarModule: NativeModule {
 
             let onClickVal = JSBridge.getProperty(ctx, opts, "onClick")
 
-            if let mod = engine.configStore["__menuBarModule"] as? MenuBarModule {
-                if let file = engine.currentEvaluatingFile { mod.statusOwners[id] = file }
+            if let mod: MenuBarModule = Engine.module(ctx, "__menuBarModule") {
+                if let file = Engine.of(ctx)?.currentEvaluatingFile { mod.statusOwners[id] = file }
                 mod.dropCallbacks(for: id, ctx: ctx)
                 let onClick: (() -> Void)? = mod.bindClick(ctx: ctx, from: onClickVal, key: id)
                 let menu = mod.readMenu(ctx: ctx, from: opts, prefix: id)
-                mod.delegate?.menuBarSetStatus(
+                mod.delegate?.setStatus(
                     id: id,
                     title: title,
                     subtitle: subtitle,
@@ -349,13 +266,6 @@ public final class MenuBarModule: NativeModule {
         return parseMenu(ctx: ctx, menuVal, prefix: prefix)
     }
 
-    private func number(_ ctx: OpaquePointer, _ obj: JSValue, _ name: String) -> Double? {
-        let val = JSBridge.getProperty(ctx, obj, name)
-        defer { JS_FreeValue(ctx, val) }
-        guard !JSBridge.isUndefined(val), !JSBridge.isNull(val) else { return nil }
-        return JSBridge.toDouble(ctx, val)
-    }
-
     private func parseMenu(ctx: OpaquePointer, _ val: JSValue, prefix: String) -> [MenuBarEntry] {
         guard JS_IsArray(val) else { return [] }
         let lenVal = JS_GetPropertyStr(ctx, val, "length")
@@ -368,13 +278,8 @@ public final class MenuBarModule: NativeModule {
             if JS_IsString(elem) {
                 entries.append(MenuBarEntry(title: JSBridge.toString(ctx, elem) ?? "-"))
             } else if JS_IsObject(elem) {
-                let titleVal = JSBridge.getProperty(ctx, elem, "title")
-                let title = JSBridge.toString(ctx, titleVal) ?? ""
-                JS_FreeValue(ctx, titleVal)
-                let iconVal = JSBridge.getProperty(ctx, elem, "icon")
-                let icon: String? = JSBridge.isUndefined(iconVal) || JSBridge.isNull(iconVal)
-                    ? nil : JSBridge.toString(ctx, iconVal)
-                JS_FreeValue(ctx, iconVal)
+                let title = JSBridge.string(ctx, elem, "title") ?? ""
+                let icon = JSBridge.string(ctx, elem, "icon")
                 let onClickVal = JSBridge.getProperty(ctx, elem, "onClick")
                 let onClick = bindClick(ctx: ctx, from: onClickVal, key: key)
                 JS_FreeValue(ctx, onClickVal)
@@ -388,10 +293,7 @@ public final class MenuBarModule: NativeModule {
                     inline = true
                 }
                 JS_FreeValue(ctx, buttonsVal)
-                let htmlVal = JSBridge.getProperty(ctx, elem, "html")
-                let html: String? = JSBridge.isUndefined(htmlVal) || JSBridge.isNull(htmlVal)
-                    ? nil : JSBridge.toString(ctx, htmlVal)
-                JS_FreeValue(ctx, htmlVal)
+                let html = JSBridge.string(ctx, elem, "html")
                 entries.append(MenuBarEntry(
                     title: title,
                     icon: icon,
@@ -399,8 +301,8 @@ public final class MenuBarModule: NativeModule {
                     children: children,
                     html: html,
                     inline: inline,
-                    width: number(ctx, elem, "width") ?? 260,
-                    height: number(ctx, elem, "height") ?? 160
+                    width: JSBridge.double(ctx, elem, "width") ?? 260,
+                    height: JSBridge.double(ctx, elem, "height") ?? 160
                 ))
             }
             JS_FreeValue(ctx, elem)
@@ -416,10 +318,10 @@ public final class MenuBarModule: NativeModule {
         callbacks.removeAll()
         engine?.configStore.removeValue(forKey: "__menuBarModule")
         // Keep extra status items on screen; plugins re-apply in place after reload.
-        delegate?.menuBarBeginStatusReload()
+        delegate?.beginStatusReload()
     }
 
     public func didReload() {
-        delegate?.menuBarFinishStatusReload()
+        delegate?.finishStatusReload()
     }
 }

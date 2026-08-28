@@ -60,21 +60,8 @@ enum NotesStore {
     /// NSAppleScript is only safe on the main thread, and these scripts take
     /// seconds against a real Notes library, so run them out of process instead.
     private static func run(_ source: String) -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = ["-e", source]
-        let out = Pipe()
-        process.standardOutput = out
-        process.standardError = FileHandle.nullDevice
-        do {
-            try process.run()
-        } catch {
-            return nil
-        }
-        let data = out.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return nil }
-        return String(data: data, encoding: .utf8)?
-            .trimmingCharacters(in: .newlines)
+        let result = Subprocess.run("/usr/bin/osascript", ["-e", source])
+        guard result.ok else { return nil }
+        return result.stdout.trimmingCharacters(in: .newlines)
     }
 }

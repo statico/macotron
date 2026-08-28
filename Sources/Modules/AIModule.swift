@@ -18,111 +18,29 @@ public final class AIModule: NativeModule {
         let aiObj = JS_NewObject(ctx)
 
         // macotron.ai.claude(opts?) → AI client object
-        JS_SetPropertyStr(ctx, aiObj, "claude",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JS_SetPropertyStr(ctx, aiObj, "claude", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
-
-            // Extract API key and model from opts
-            var apiKey: String?
-            var model: String?
-
-            if let argv, argc >= 1 {
-                let opts = argv[0]
-                let keyVal = JSBridge.getProperty(ctx, opts, "apiKey")
-                if !JSBridge.isUndefined(keyVal) {
-                    apiKey = JSBridge.toString(ctx, keyVal)
-                }
-                JS_FreeValue(ctx, keyVal)
-
-                let modelVal = JSBridge.getProperty(ctx, opts, "model")
-                if !JSBridge.isUndefined(modelVal) {
-                    model = JSBridge.toString(ctx, modelVal)
-                }
-                JS_FreeValue(ctx, modelVal)
-            }
-
-            return AIModule.createClientObject(
-                ctx: ctx,
-                providerName: "claude",
-                apiKey: apiKey,
-                model: model
-            )
+            return AIModule.client(ctx, "claude", argc, argv)
         }, "claude", 1))
         let claudeFn = JS_GetPropertyStr(ctx, aiObj, "claude")
         JS_SetPropertyStr(ctx, aiObj, "anthropic", JS_DupValue(ctx, claudeFn))
         JS_FreeValue(ctx, claudeFn)
 
-        // macotron.ai.openai(opts?) → AI client object
-        JS_SetPropertyStr(ctx, aiObj, "openai",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JS_SetPropertyStr(ctx, aiObj, "openai", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
-
-            var apiKey: String?
-            var model: String?
-
-            if let argv, argc >= 1 {
-                let opts = argv[0]
-                let keyVal = JSBridge.getProperty(ctx, opts, "apiKey")
-                if !JSBridge.isUndefined(keyVal) {
-                    apiKey = JSBridge.toString(ctx, keyVal)
-                }
-                JS_FreeValue(ctx, keyVal)
-
-                let modelVal = JSBridge.getProperty(ctx, opts, "model")
-                if !JSBridge.isUndefined(modelVal) {
-                    model = JSBridge.toString(ctx, modelVal)
-                }
-                JS_FreeValue(ctx, modelVal)
-            }
-
-            return AIModule.createClientObject(
-                ctx: ctx,
-                providerName: "openai",
-                apiKey: apiKey,
-                model: model
-            )
+            return AIModule.client(ctx, "openai", argc, argv)
         }, "openai", 1))
 
-        // macotron.ai.gemini(opts?) → AI client object
-        JS_SetPropertyStr(ctx, aiObj, "gemini",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JS_SetPropertyStr(ctx, aiObj, "gemini", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
-
-            var apiKey: String?
-            var model: String?
-
-            if let argv, argc >= 1 {
-                let opts = argv[0]
-                let keyVal = JSBridge.getProperty(ctx, opts, "apiKey")
-                if !JSBridge.isUndefined(keyVal) {
-                    apiKey = JSBridge.toString(ctx, keyVal)
-                }
-                JS_FreeValue(ctx, keyVal)
-
-                let modelVal = JSBridge.getProperty(ctx, opts, "model")
-                if !JSBridge.isUndefined(modelVal) {
-                    model = JSBridge.toString(ctx, modelVal)
-                }
-                JS_FreeValue(ctx, modelVal)
-            }
-
-            return AIModule.createClientObject(
-                ctx: ctx,
-                providerName: "gemini",
-                apiKey: apiKey,
-                model: model
-            )
+            return AIModule.client(ctx, "gemini", argc, argv)
         }, "gemini", 1))
 
-        // macotron.ai.local() → AI client object
-        JS_SetPropertyStr(ctx, aiObj, "local",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        // local takes no key or model: it is whatever is running on this Mac.
+        JS_SetPropertyStr(ctx, aiObj, "local", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return AIModule.createClientObject(
-                ctx: ctx,
-                providerName: "local",
-                apiKey: nil,
-                model: nil
+                ctx: ctx, providerName: "local", apiKey: nil, model: nil
             )
         }, "local", 0))
 
@@ -135,7 +53,7 @@ public final class AIModule: NativeModule {
 
     /// Create a JS object with .chat and .stream methods.
     @MainActor
-    private static func createClientObject(
+    fileprivate static func createClientObject(
         ctx: OpaquePointer,
         providerName: String,
         apiKey: String?,
@@ -154,210 +72,69 @@ public final class AIModule: NativeModule {
         JS_SetPropertyStr(ctx, clientObj, "chat",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-
             let messages: [AIChatMessage]
             do {
                 messages = try AIModule.parseMessages(ctx: ctx, value: argv[0])
             } catch {
                 return error.localizedDescription.withCString { QJS_ThrowTypeError(ctx, $0) }
             }
-
-            let providerVal = JSBridge.getProperty(ctx, thisVal, "_provider")
-            let providerName = JSBridge.toString(ctx, providerVal) ?? "unknown"
-            JS_FreeValue(ctx, providerVal)
-
-            let apiKeyVal = JSBridge.getProperty(ctx, thisVal, "_apiKey")
-            let apiKey = JSBridge.toString(ctx, apiKeyVal)
-            JS_FreeValue(ctx, apiKeyVal)
-
-            let modelVal = JSBridge.getProperty(ctx, thisVal, "_model")
-            let storedModel = JSBridge.toString(ctx, modelVal)
-            JS_FreeValue(ctx, modelVal)
-
-            var requestModel = storedModel
-            var maxTokens = 4096
-            var temperature = 0.7
-            var systemPrompt: String?
-
-            if argc >= 2 {
-                let opts = argv[1]
-                let mVal = JSBridge.getProperty(ctx, opts, "model")
-                if !JSBridge.isUndefined(mVal), let m = JSBridge.toString(ctx, mVal) {
-                    requestModel = m
-                }
-                JS_FreeValue(ctx, mVal)
-
-                let mtVal = JSBridge.getProperty(ctx, opts, "maxTokens")
-                if !JSBridge.isUndefined(mtVal) {
-                    maxTokens = Int(JSBridge.toInt32(ctx, mtVal))
-                }
-                JS_FreeValue(ctx, mtVal)
-
-                let tVal = JSBridge.getProperty(ctx, opts, "temperature")
-                if !JSBridge.isUndefined(tVal) {
-                    temperature = JSBridge.toDouble(ctx, tVal)
-                }
-                JS_FreeValue(ctx, tVal)
-
-                let sVal = JSBridge.getProperty(ctx, opts, "system")
-                if !JSBridge.isUndefined(sVal) {
-                    systemPrompt = JSBridge.toString(ctx, sVal)
-                }
-                JS_FreeValue(ctx, sVal)
-            }
-
-            let options = AIRequestOptions(
-                model: requestModel,
-                maxTokens: maxTokens,
-                temperature: temperature,
-                systemPrompt: systemPrompt
-            )
-
-            guard let provider = AIModule.provider(providerName, apiKey: apiKey, model: storedModel) else {
+            guard let call = AIModule.request(ctx, thisVal, argc, argv) else {
                 return "Unknown AI provider".withCString { QJS_ThrowTypeError(ctx, $0) }
             }
 
-            var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
-            let promise = JS_NewPromiseCapability(ctx, &resolving)
-            let resolve = JS_DupValue(ctx, resolving[0])
-            let reject = JS_DupValue(ctx, resolving[1])
-            JS_FreeValue(ctx, resolving[0])
-            JS_FreeValue(ctx, resolving[1])
-
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return promise }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            if engine.dryRun {
-                var value = JSBridge.newString(ctx, "")
-                _ = JS_Call(ctx, resolve, QJS_Undefined(), 1, &value)
-                JS_FreeValue(ctx, value)
-                JS_FreeValue(ctx, resolve)
-                JS_FreeValue(ctx, reject)
-                engine.drainJobQueue()
-                return promise
-            }
-            let token = engine.registerPending(resolve: resolve, reject: reject)
-            nonisolated(unsafe) let capturedCtx = ctx
-
+            let (promise, settle) = JSBridge.deferred(ctx, dryRun: "")
+            // deferred has already resolved the stub; do not go to the network.
+            if Engine.isDryRun(ctx) { return promise }
             Task.detached {
                 do {
-                    let text = try await provider.chat(messages: messages, options: options)
-                    DispatchQueue.main.async {
-                        guard let pending = engine.claimPending(token) else { return }
-                        var value = JSBridge.newString(capturedCtx, text)
-                        _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
-                        JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, pending.resolve)
-                        JS_FreeValue(capturedCtx, pending.reject)
-                        engine.drainJobQueue()
-                    }
+                    let text = try await call.provider.chat(messages: messages, options: call.options)
+                    await MainActor.run { settle(.value(text)) }
                 } catch {
-                    DispatchQueue.main.async {
-                        guard let pending = engine.claimPending(token) else { return }
-                        var value = JSBridge.newString(capturedCtx, error.localizedDescription)
-                        _ = JS_Call(capturedCtx, pending.reject, QJS_Undefined(), 1, &value)
-                        JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, pending.resolve)
-                        JS_FreeValue(capturedCtx, pending.reject)
-                        engine.drainJobQueue()
-                    }
+                    await MainActor.run { settle(.failure(error.localizedDescription)) }
                 }
             }
-
             return promise
         }, "chat", 2))
 
         JS_SetPropertyStr(ctx, clientObj, "stream",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-
             let messages: [AIChatMessage]
             do {
                 messages = try AIModule.parseMessages(ctx: ctx, value: argv[0])
             } catch {
                 return error.localizedDescription.withCString { QJS_ThrowTypeError(ctx, $0) }
             }
+            guard let call = AIModule.request(ctx, thisVal, argc, argv) else {
+                return "Unknown AI provider".withCString { QJS_ThrowTypeError(ctx, $0) }
+            }
 
-            let providerVal = JSBridge.getProperty(ctx, thisVal, "_provider")
-            let providerName = JSBridge.toString(ctx, providerVal) ?? "unknown"
-            JS_FreeValue(ctx, providerVal)
-
-            let apiKeyVal = JSBridge.getProperty(ctx, thisVal, "_apiKey")
-            let apiKey = JSBridge.toString(ctx, apiKeyVal)
-            JS_FreeValue(ctx, apiKeyVal)
-
-            let modelVal = JSBridge.getProperty(ctx, thisVal, "_model")
-            let storedModel = JSBridge.toString(ctx, modelVal)
-            JS_FreeValue(ctx, modelVal)
-
-            var requestModel = storedModel
-            var maxTokens = 4096
-            var temperature = 0.7
-            var systemPrompt: String?
-            var jsOnChunk: JSValue? = nil
-
+            var jsOnChunk: JSValue?
             if argc >= 2 {
-                let opts = argv[1]
-                let mVal = JSBridge.getProperty(ctx, opts, "model")
-                if !JSBridge.isUndefined(mVal), let m = JSBridge.toString(ctx, mVal) {
-                    requestModel = m
-                }
-                JS_FreeValue(ctx, mVal)
-
-                let mtVal = JSBridge.getProperty(ctx, opts, "maxTokens")
-                if !JSBridge.isUndefined(mtVal) {
-                    maxTokens = Int(JSBridge.toInt32(ctx, mtVal))
-                }
-                JS_FreeValue(ctx, mtVal)
-
-                let tVal = JSBridge.getProperty(ctx, opts, "temperature")
-                if !JSBridge.isUndefined(tVal) {
-                    temperature = JSBridge.toDouble(ctx, tVal)
-                }
-                JS_FreeValue(ctx, tVal)
-
-                let sVal = JSBridge.getProperty(ctx, opts, "system")
-                if !JSBridge.isUndefined(sVal) {
-                    systemPrompt = JSBridge.toString(ctx, sVal)
-                }
-                JS_FreeValue(ctx, sVal)
-
-                let onChunkVal = JSBridge.getProperty(ctx, opts, "onChunk")
+                let onChunkVal = JSBridge.getProperty(ctx, argv[1], "onChunk")
                 if JS_IsFunction(ctx, onChunkVal) {
                     jsOnChunk = JS_DupValue(ctx, onChunkVal)
                 }
                 JS_FreeValue(ctx, onChunkVal)
             }
 
-            let options = AIRequestOptions(
-                model: requestModel,
-                maxTokens: maxTokens,
-                temperature: temperature,
-                systemPrompt: systemPrompt
-            )
-
-            guard let provider = AIModule.provider(providerName, apiKey: apiKey, model: storedModel) else {
-                return "Unknown AI provider".withCString { QJS_ThrowTypeError(ctx, $0) }
+            if Engine.isDryRun(ctx) {
+                if let jsOnChunk { JS_FreeValue(ctx, jsOnChunk) }
+                return JSBridge.deferred(ctx, dryRun: "").promise
             }
-
+            // Not JSBridge.deferred: the chunk callback has to be freed if the
+            // engine resets mid-stream, and only registerPending's `extras`
+            // carries something to free alongside the promise pair.
             var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
             let promise = JS_NewPromiseCapability(ctx, &resolving)
             let resolve = JS_DupValue(ctx, resolving[0])
             let reject = JS_DupValue(ctx, resolving[1])
             JS_FreeValue(ctx, resolving[0])
             JS_FreeValue(ctx, resolving[1])
-
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return promise }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            if engine.dryRun {
-                if let jsOnChunk { JS_FreeValue(ctx, jsOnChunk) }
-                var value = JSBridge.newString(ctx, "")
-                _ = JS_Call(ctx, resolve, QJS_Undefined(), 1, &value)
-                JS_FreeValue(ctx, value)
+            guard let engine = Engine.of(ctx) else {
                 JS_FreeValue(ctx, resolve)
                 JS_FreeValue(ctx, reject)
-                engine.drainJobQueue()
+                if let jsOnChunk { JS_FreeValue(ctx, jsOnChunk) }
                 return promise
             }
             let token = engine.registerPending(
@@ -370,51 +147,97 @@ public final class AIModule: NativeModule {
 
             Task.detached {
                 do {
-                    let text = try await provider.stream(
+                    let text = try await call.provider.stream(
                         messages: messages,
-                        options: options,
+                        options: call.options,
                         onChunk: { chunk in
                             DispatchQueue.main.async {
-                                guard engine.isPending(token), let capturedOnChunk else { return }
-                                var arg = JSBridge.newString(capturedCtx, chunk)
-                                _ = JS_Call(capturedCtx, capturedOnChunk, QJS_Undefined(), 1, &arg)
-                                JS_FreeValue(capturedCtx, arg)
-                                engine.drainJobQueue()
+                                MainActor.assumeIsolated {
+                                    guard engine.isPending(token), let capturedOnChunk else { return }
+                                    var arg = JSBridge.newString(capturedCtx, chunk)
+                                    _ = JS_Call(capturedCtx, capturedOnChunk, QJS_Undefined(), 1, &arg)
+                                    JS_FreeValue(capturedCtx, arg)
+                                    engine.drainJobQueue()
+                                }
                             }
                         }
                     )
-                    DispatchQueue.main.async {
-                        guard let pending = engine.claimPending(token) else { return }
-                        var value = JSBridge.newString(capturedCtx, text)
-                        _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
-                        JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, pending.resolve)
-                        JS_FreeValue(capturedCtx, pending.reject)
-                        for extra in pending.extras {
-                            JS_FreeValue(capturedCtx, extra)
-                        }
-                        engine.drainJobQueue()
+                    await MainActor.run {
+                        AIModule.settleStream(engine, capturedCtx, token, ok: true, text)
                     }
                 } catch {
-                    DispatchQueue.main.async {
-                        guard let pending = engine.claimPending(token) else { return }
-                        var value = JSBridge.newString(capturedCtx, error.localizedDescription)
-                        _ = JS_Call(capturedCtx, pending.reject, QJS_Undefined(), 1, &value)
-                        JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, pending.resolve)
-                        JS_FreeValue(capturedCtx, pending.reject)
-                        for extra in pending.extras {
-                            JS_FreeValue(capturedCtx, extra)
-                        }
-                        engine.drainJobQueue()
+                    await MainActor.run {
+                        AIModule.settleStream(
+                            engine, capturedCtx, token, ok: false, error.localizedDescription
+                        )
                     }
                 }
             }
-
             return promise
         }, "stream", 2))
 
         return clientObj
+    }
+
+    /// Settle one stream promise and free everything it held: the capability
+    /// pair and the chunk callback registered alongside it. Resolve and reject
+    /// were the same eleven lines twice.
+    @MainActor
+    fileprivate static func settleStream(
+        _ engine: Engine, _ ctx: OpaquePointer, _ token: UInt64, ok: Bool, _ text: String
+    ) {
+        guard let pending = engine.claimPending(token) else { return }
+        var value = JSBridge.newString(ctx, text)
+        _ = JS_Call(ctx, ok ? pending.resolve : pending.reject, QJS_Undefined(), 1, &value)
+        JS_FreeValue(ctx, value)
+        JS_FreeValue(ctx, pending.resolve)
+        JS_FreeValue(ctx, pending.reject)
+        for extra in pending.extras { JS_FreeValue(ctx, extra) }
+        engine.drainJobQueue()
+    }
+
+    /// A client object from an optional `{ apiKey, model }` argument. The four
+    /// provider factories differed only in the name they pass through here.
+    private static func client(
+        _ ctx: OpaquePointer, _ name: String, _ argc: Int32, _ argv: UnsafePointer<JSValue>?
+    ) -> JSValue {
+        var apiKey: String?
+        var model: String?
+        if let argv, argc >= 1, JS_IsObject(argv[0]) {
+            apiKey = JSBridge.string(ctx, argv[0], "apiKey")
+            model = JSBridge.string(ctx, argv[0], "model")
+        }
+        return createClientObject(ctx: ctx, providerName: name, apiKey: apiKey, model: model)
+    }
+
+    /// The provider stamped on the client object plus the per-request options
+    /// from `argv[1]`. chat and stream read exactly the same seven fields.
+    /// nil means the client names a provider that does not exist.
+    private static func request(
+        _ ctx: OpaquePointer, _ thisVal: JSValue, _ argc: Int32, _ argv: UnsafePointer<JSValue>?
+    ) -> (provider: AIProvider, options: AIRequestOptions)? {
+        let name = JSBridge.string(ctx, thisVal, "_provider") ?? "unknown"
+        let apiKey = JSBridge.string(ctx, thisVal, "_apiKey")
+        let storedModel = JSBridge.string(ctx, thisVal, "_model")
+        guard let provider = provider(name, apiKey: apiKey, model: storedModel) else { return nil }
+
+        var model = storedModel
+        var maxTokens = 4096
+        var temperature = 0.7
+        var systemPrompt: String?
+        if let argv, argc >= 2, JS_IsObject(argv[1]) {
+            let opts = argv[1]
+            model = JSBridge.string(ctx, opts, "model") ?? storedModel
+            maxTokens = JSBridge.int(ctx, opts, "maxTokens") ?? maxTokens
+            temperature = JSBridge.double(ctx, opts, "temperature") ?? temperature
+            systemPrompt = JSBridge.string(ctx, opts, "system")
+        }
+        return (provider, AIRequestOptions(
+            model: model,
+            maxTokens: maxTokens,
+            temperature: temperature,
+            systemPrompt: systemPrompt
+        ))
     }
 
     private static func parseMessages(ctx: OpaquePointer, value: JSValue) throws -> [AIChatMessage] {

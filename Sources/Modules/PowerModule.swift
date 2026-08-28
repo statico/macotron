@@ -12,6 +12,17 @@ public final class PowerModule: NativeModule {
     private var assertionID: IOPMAssertionID = 0
     private var active = false
 
+    /// One row per plain power action: the JS name and the thing it runs.
+    private static let actions: [(name: String, run: @MainActor (Bool) -> Bool)] = [
+        ("lock", { PowerActions.lock(dryRun: $0) }),
+        ("sleep", { PowerActions.sleep(dryRun: $0) }),
+        ("displaySleep", { PowerActions.displaySleep(dryRun: $0) }),
+        ("screensaver", { PowerActions.screensaver(dryRun: $0) }),
+        ("logOut", { PowerActions.logOut(dryRun: $0) }),
+        ("restart", { PowerActions.restart(dryRun: $0) }),
+        ("shutdown", { PowerActions.shutdown(dryRun: $0) }),
+    ]
+
     public init() {}
 
     public func register(in engine: Engine, options: [String: Any]) {
@@ -23,73 +34,42 @@ public final class PowerModule: NativeModule {
 
         JS_SetPropertyStr(ctx, power, "preventSleep", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
-            guard let module = powerModule(ctx) else { return JSBridge.newBool(ctx, false) }
+            guard let module: PowerModule = Engine.module(ctx, "__powerModule") else {
+                return JSBridge.newBool(ctx, false)
+            }
             var display = false
             var reason = "Macotron"
             if let argv, argc >= 1, !JSBridge.isUndefined(argv[0]), !JS_IsNull(argv[0]) {
-                let opts = argv[0]
-                let displayVal = JSBridge.getProperty(ctx, opts, "display")
-                if !JSBridge.isUndefined(displayVal) {
-                    display = JSBridge.toBool(ctx, displayVal)
-                }
-                JS_FreeValue(ctx, displayVal)
-                let reasonVal = JSBridge.getProperty(ctx, opts, "reason")
-                if !JSBridge.isUndefined(reasonVal), let r = JSBridge.toString(ctx, reasonVal) {
-                    reason = r
-                }
-                JS_FreeValue(ctx, reasonVal)
+                display = JSBridge.bool(ctx, argv[0], "display") ?? display
+                reason = JSBridge.string(ctx, argv[0], "reason") ?? reason
             }
-            let opaque = JS_GetContextOpaque(ctx)
-            let dryRun = opaque.map { Unmanaged<Engine>.fromOpaque($0).takeUnretainedValue().dryRun } ?? false
-            return JSBridge.newBool(ctx, module.preventSleep(display: display, reason: reason, dryRun: dryRun))
+            return JSBridge.newBool(ctx, module.preventSleep(
+                display: display, reason: reason, dryRun: Engine.isDryRun(ctx)
+            ))
         }, "preventSleep", 1))
 
         JS_SetPropertyStr(ctx, power, "allowSleep", JS_NewCFunction(ctx, { ctx, _, _, _ in
-            guard let ctx, let module = powerModule(ctx) else { return QJS_Undefined() }
-            module.allowSleep()
+            guard let ctx else { return QJS_Undefined() }
+            let module: PowerModule? = Engine.module(ctx, "__powerModule")
+            module?.allowSleep()
             return QJS_Undefined()
         }, "allowSleep", 0))
 
         JS_SetPropertyStr(ctx, power, "isPreventing", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            guard let module = powerModule(ctx) else { return JSBridge.newBool(ctx, false) }
-            return JSBridge.newBool(ctx, module.active)
+            let module: PowerModule? = Engine.module(ctx, "__powerModule")
+            return JSBridge.newBool(ctx, module?.active ?? false)
         }, "isPreventing", 0))
 
-        JS_SetPropertyStr(ctx, power, "lock", JS_NewCFunction(ctx, { ctx, _, _, _ in
-            guard let ctx else { return JSBridge.newBool(ctx!, false) }
-            return JSBridge.newBool(ctx, PowerActions.lock(dryRun: engineDryRun(ctx)))
-        }, "lock", 0))
-
-        JS_SetPropertyStr(ctx, power, "sleep", JS_NewCFunction(ctx, { ctx, _, _, _ in
-            guard let ctx else { return JSBridge.newBool(ctx!, false) }
-            return JSBridge.newBool(ctx, PowerActions.sleep(dryRun: engineDryRun(ctx)))
-        }, "sleep", 0))
-
-        JS_SetPropertyStr(ctx, power, "displaySleep", JS_NewCFunction(ctx, { ctx, _, _, _ in
-            guard let ctx else { return JSBridge.newBool(ctx!, false) }
-            return JSBridge.newBool(ctx, PowerActions.displaySleep(dryRun: engineDryRun(ctx)))
-        }, "displaySleep", 0))
-
-        JS_SetPropertyStr(ctx, power, "screensaver", JS_NewCFunction(ctx, { ctx, _, _, _ in
-            guard let ctx else { return JSBridge.newBool(ctx!, false) }
-            return JSBridge.newBool(ctx, PowerActions.screensaver(dryRun: engineDryRun(ctx)))
-        }, "screensaver", 0))
-
-        JS_SetPropertyStr(ctx, power, "logOut", JS_NewCFunction(ctx, { ctx, _, _, _ in
-            guard let ctx else { return JSBridge.newBool(ctx!, false) }
-            return JSBridge.newBool(ctx, PowerActions.logOut(dryRun: engineDryRun(ctx)))
-        }, "logOut", 0))
-
-        JS_SetPropertyStr(ctx, power, "restart", JS_NewCFunction(ctx, { ctx, _, _, _ in
-            guard let ctx else { return JSBridge.newBool(ctx!, false) }
-            return JSBridge.newBool(ctx, PowerActions.restart(dryRun: engineDryRun(ctx)))
-        }, "restart", 0))
-
-        JS_SetPropertyStr(ctx, power, "shutdown", JS_NewCFunction(ctx, { ctx, _, _, _ in
-            guard let ctx else { return JSBridge.newBool(ctx!, false) }
-            return JSBridge.newBool(ctx, PowerActions.shutdown(dryRun: engineDryRun(ctx)))
-        }, "shutdown", 0))
+        // The rest differ only in which PowerActions function they call, so the
+        // name and the action come off one row and the magic index picks the row.
+        for (index, entry) in PowerModule.actions.enumerated() {
+            JS_SetPropertyStr(ctx, power, entry.name, JS_NewCFunctionMagic(ctx, { ctx, _, _, _, magic in
+                guard let ctx else { return QJS_Undefined() }
+                let action = PowerModule.actions[Int(magic)].run
+                return JSBridge.newBool(ctx, action(Engine.isDryRun(ctx)))
+            }, entry.name, 0, JS_CFUNC_generic_magic, Int32(index)))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "power", power)
         JS_FreeValue(ctx, macotron)
@@ -134,17 +114,4 @@ public final class PowerModule: NativeModule {
         }
         active = false
     }
-}
-
-@MainActor
-private func powerModule(_ ctx: OpaquePointer) -> PowerModule? {
-    guard let opaque = JS_GetContextOpaque(ctx) else { return nil }
-    let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-    return engine.configStore["__powerModule"] as? PowerModule
-}
-
-@MainActor
-private func engineDryRun(_ ctx: OpaquePointer) -> Bool {
-    guard let opaque = JS_GetContextOpaque(ctx) else { return false }
-    return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
 }

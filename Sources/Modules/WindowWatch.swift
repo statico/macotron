@@ -64,12 +64,11 @@ enum WindowWatch {
         } else {
             win = element
         }
-        let info = WindowAX.info(win, pid: pid, app: appName)
         let event = notification == (kAXFocusedWindowChangedNotification as String)
             ? "window:focused"
             : "window:created"
-        let id = info["id"] as? Int ?? 0
-        let title = info["title"] as? String ?? ""
+        let id = Int(WindowAX.windowID(pid: pid, index: WindowAX.index(of: win, pid: pid)))
+        let title = WindowAX.title(win)
         DispatchQueue.main.async {
             Task { @MainActor in
                 guard let engine = WindowWatchState.shared.engine, let ctx = engine.context else { return }

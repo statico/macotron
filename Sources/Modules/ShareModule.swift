@@ -129,13 +129,10 @@ public final class ShareModule: NativeModule {
     }
 
     fileprivate static func module(_ ctx: OpaquePointer) -> ShareModule? {
-        guard let opaque = JS_GetContextOpaque(ctx) else { return nil }
-        let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-        return engine.configStore["__shareModule"] as? ShareModule
+        Engine.module(ctx, "__shareModule")
     }
 
     fileprivate static func dryRun(_ ctx: OpaquePointer) -> Bool {
-        guard let opaque = JS_GetContextOpaque(ctx) else { return false }
-        return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
+        Engine.isDryRun(ctx)
     }
 }

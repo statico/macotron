@@ -38,27 +38,16 @@ enum SparklineImage {
                 }
             }
             JS_FreeValue(ctx, valuesVal)
-            let wVal = JSBridge.getProperty(ctx, sparkVal, "width")
-            let width = JSBridge.isUndefined(wVal) || JSBridge.isNull(wVal) ? 36 : Int(JSBridge.toInt32(ctx, wVal))
-            JS_FreeValue(ctx, wVal)
-            let hVal = JSBridge.getProperty(ctx, sparkVal, "height")
-            let height = JSBridge.isUndefined(hVal) || JSBridge.isNull(hVal) ? 18 : Int(JSBridge.toInt32(ctx, hVal))
-            JS_FreeValue(ctx, hVal)
-            let cVal = JSBridge.getProperty(ctx, sparkVal, "color")
-            let color: String? = JSBridge.isUndefined(cVal) || JSBridge.isNull(cVal) ? nil : JSBridge.toString(ctx, cVal)
-            JS_FreeValue(ctx, cVal)
+            let width = JSBridge.int(ctx, sparkVal, "width") ?? 36
+            let height = JSBridge.int(ctx, sparkVal, "height") ?? 18
+            let color = JSBridge.string(ctx, sparkVal, "color")
             if let png = png(values: values, width: width, height: height, color: color) {
                 return (png, color == nil)
             }
         }
 
-        let svgVal = JSBridge.getProperty(ctx, opts, "svg")
-        defer { JS_FreeValue(ctx, svgVal) }
-        if let svg = JSBridge.toString(ctx, svgVal), let png = png(svg: svg) {
-            let templateVal = JSBridge.getProperty(ctx, opts, "template")
-            defer { JS_FreeValue(ctx, templateVal) }
-            let template = JSBridge.toBool(ctx, templateVal)
-            return (png, template)
+        if let svg = JSBridge.string(ctx, opts, "svg"), let png = png(svg: svg) {
+            return (png, JSBridge.bool(ctx, opts, "template") ?? false)
         }
         return nil
     }

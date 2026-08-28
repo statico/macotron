@@ -117,8 +117,8 @@ public final class HIDModule: NativeModule {
     }
 
     fileprivate static func hub(_ ctx: OpaquePointer) -> HIDHub? {
-        let engine = Unmanaged<Engine>.fromOpaque(JS_GetContextOpaque(ctx)).takeUnretainedValue()
-        return (engine.configStore["__hidModule"] as? HIDModule)?.hub
+        let module: HIDModule? = Engine.module(ctx, "__hidModule")
+        return module?.hub
     }
 
     fileprivate static func filter(_ ctx: OpaquePointer, argc: Int32, argv: UnsafePointer<JSValue>?, at index: Int32) -> HIDFilter {

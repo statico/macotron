@@ -12,6 +12,15 @@ public final class HTTPModule: NativeModule {
 
     public init() {}
 
+    /// One row per binding: the JS name, the HTTP method, and whether the
+    /// second argument is a body or the options object.
+    private static let methods: [(name: String, method: String, hasBody: Bool)] = [
+        ("get", "GET", false),
+        ("post", "POST", true),
+        ("put", "PUT", true),
+        ("delete", "DELETE", false),
+    ]
+
     public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
@@ -19,33 +28,19 @@ public final class HTTPModule: NativeModule {
 
         let httpObj = JS_NewObject(ctx)
 
-        // macotron.http.get(url, opts?) → Promise<{status, body, headers}>
-        JS_SetPropertyStr(ctx, httpObj, "get",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
-            guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-            return HTTPModule.performRequest(ctx: ctx, method: "GET", argc: argc, argv: argv, hasBody: false)
-        }, "get", 2))
-
-        // macotron.http.post(url, body, opts?) → Promise<{status, body, headers}>
-        JS_SetPropertyStr(ctx, httpObj, "post",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
-            guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-            return HTTPModule.performRequest(ctx: ctx, method: "POST", argc: argc, argv: argv, hasBody: true)
-        }, "post", 3))
-
-        // macotron.http.put(url, body, opts?) → Promise<{status, body, headers}>
-        JS_SetPropertyStr(ctx, httpObj, "put",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
-            guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-            return HTTPModule.performRequest(ctx: ctx, method: "PUT", argc: argc, argv: argv, hasBody: true)
-        }, "put", 3))
-
-        // macotron.http.delete(url, opts?) → Promise<{status, body, headers}>
-        JS_SetPropertyStr(ctx, httpObj, "delete",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
-            guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-            return HTTPModule.performRequest(ctx: ctx, method: "DELETE", argc: argc, argv: argv, hasBody: false)
-        }, "delete", 2))
+        // get/delete take (url, opts?); post/put take (url, body, opts?). The
+        // name, the HTTP method, and the body flag are one row, and the magic
+        // index picks the row, so they cannot drift apart.
+        for (index, entry) in HTTPModule.methods.enumerated() {
+            JS_SetPropertyStr(ctx, httpObj, entry.name,
+                              JS_NewCFunctionMagic(ctx, { ctx, _, argc, argv, magic -> JSValue in
+                guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
+                let entry = HTTPModule.methods[Int(magic)]
+                return HTTPModule.performRequest(
+                    ctx: ctx, method: entry.method, argc: argc, argv: argv, hasBody: entry.hasBody
+                )
+            }, entry.name, entry.hasBody ? 3 : 2, JS_CFUNC_generic_magic, Int32(index)))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "http", httpObj)
         JS_FreeValue(ctx, macotron)
@@ -97,34 +92,22 @@ public final class HTTPModule: NativeModule {
         if argc > optsIndex {
             let opts = argv[Int(optsIndex)]
 
-            // Extract headers from opts.headers
+            // Only the headers a plugin is likely to set: QuickJS property
+            // enumeration is not wired up here yet.
             let headersVal = JSBridge.getProperty(ctx, opts, "headers")
-            if !JSBridge.isUndefined(headersVal) {
-                // Enumerate header properties using JS_GetPropertyNames (if available)
-                // For now, support common headers via known keys
-                let commonHeaders = [
-                    "Content-Type", "Authorization", "Accept",
-                    "User-Agent", "X-API-Key", "X-Request-ID"
-                ]
-                for header in commonHeaders {
-                    let val = JSBridge.getProperty(ctx, headersVal, header)
-                    if !JSBridge.isUndefined(val), let str = JSBridge.toString(ctx, val) {
-                        request.setValue(str, forHTTPHeaderField: header)
-                    }
-                    JS_FreeValue(ctx, val)
+            for header in [
+                "Content-Type", "Authorization", "Accept",
+                "User-Agent", "X-API-Key", "X-Request-ID",
+            ] {
+                if let str = JSBridge.string(ctx, headersVal, header) {
+                    request.setValue(str, forHTTPHeaderField: header)
                 }
             }
             JS_FreeValue(ctx, headersVal)
 
-            // Extract timeout from opts.timeout
-            let timeoutVal = JSBridge.getProperty(ctx, opts, "timeout")
-            if !JSBridge.isUndefined(timeoutVal) {
-                let timeoutMs = JSBridge.toDouble(ctx, timeoutVal)
-                if timeoutMs > 0 {
-                    request.timeoutInterval = timeoutMs / 1000.0
-                }
+            if let timeoutMs = JSBridge.double(ctx, opts, "timeout"), timeoutMs > 0 {
+                request.timeoutInterval = timeoutMs / 1000.0
             }
-            JS_FreeValue(ctx, timeoutVal)
         }
 
         let finished = request

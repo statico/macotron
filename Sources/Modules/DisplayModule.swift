@@ -134,7 +134,7 @@ public final class DisplayModule: NativeModule {
             guard let ctx, let argv, argc > 0, let module = displayModule(ctx) else {
                 return JSBridge.newBool(ctx!, false)
             }
-            if DisplayModule.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             return JSBridge.newBool(ctx, module.crt.setEnabled(JSBridge.toBool(ctx, argv[0])))
         }, "setCRTEnabled", 1))
 
@@ -159,7 +159,7 @@ public final class DisplayModule: NativeModule {
                     id = CGDirectDisplayID(bitPattern: JSBridge.toInt32(ctx, argv[1]))
                 }
             }
-            if DisplayModule.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             return JSBridge.newBool(ctx, DisplayGamma.set(white: white, black: black, id: id))
         }, "setGamma", 3))
 
@@ -179,7 +179,7 @@ public final class DisplayModule: NativeModule {
         JS_SetPropertyStr(ctx, displayObj, "restoreGamma",
                           JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
-            if DisplayModule.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             CGDisplayRestoreColorSyncSettings()
             return JSBridge.newBool(ctx, true)
         }, "restoreGamma", 0))
@@ -201,7 +201,7 @@ public final class DisplayModule: NativeModule {
             guard let req = DisplayAppearance.parseNightShift(raw) else {
                 return JSBridge.newObject(ctx, DisplayAppearance.setFail("invalid argument"))
             }
-            if DisplayModule.isDryRun(ctx) {
+            if Engine.isDryRun(ctx) {
                 var result: [String: Any] = ["ok": true, "on": req.on, "available": false]
                 if let strength = req.strength { result["strength"] = strength }
                 return JSBridge.newObject(ctx, result)
@@ -220,7 +220,7 @@ public final class DisplayModule: NativeModule {
             guard let ctx, let argv, argc > 0 else {
                 return JSBridge.newObject(ctx!, DisplayAppearance.setFail("missing argument"))
             }
-            if DisplayModule.isDryRun(ctx) {
+            if Engine.isDryRun(ctx) {
                 return JSBridge.newObject(ctx, [
                     "ok": true, "on": JSBridge.toBool(ctx, argv[0]), "available": false,
                 ])
@@ -239,7 +239,7 @@ public final class DisplayModule: NativeModule {
             guard let ctx, let argv, argc > 0 else {
                 return JSBridge.newObject(ctx!, DisplayAppearance.setFail("missing argument"))
             }
-            if DisplayModule.isDryRun(ctx) {
+            if Engine.isDryRun(ctx) {
                 return JSBridge.newObject(ctx, [
                     "ok": true, "on": JSBridge.toBool(ctx, argv[0]), "available": false,
                 ])
@@ -358,10 +358,6 @@ public final class DisplayModule: NativeModule {
         return displays
     }
 
-    private static func isDryRun(_ ctx: OpaquePointer) -> Bool {
-        guard let opaque = JS_GetContextOpaque(ctx) else { return false }
-        return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
-    }
 }
 
 enum DisplayGamma {
@@ -407,9 +403,7 @@ enum DisplayGamma {
     static func rgb(_ ctx: OpaquePointer, _ value: JSValue) -> RGB? {
         guard !JSBridge.isUndefined(value) else { return nil }
         func chan(_ name: String) -> Float {
-            let v = JSBridge.getProperty(ctx, value, name)
-            defer { JS_FreeValue(ctx, v) }
-            return JSBridge.isUndefined(v) ? 0 : Float(JSBridge.toDouble(ctx, v))
+            Float(JSBridge.double(ctx, value, name) ?? 0)
         }
         return RGB(red: chan("red"), green: chan("green"), blue: chan("blue")).clamped()
     }
@@ -462,7 +456,5 @@ enum DisplayGamma {
 
 @MainActor
 private func displayModule(_ ctx: OpaquePointer) -> DisplayModule? {
-    guard let opaque = JS_GetContextOpaque(ctx) else { return nil }
-    let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-    return engine.configStore["__displayModule"] as? DisplayModule
+    Engine.module(ctx, "__displayModule")
 }

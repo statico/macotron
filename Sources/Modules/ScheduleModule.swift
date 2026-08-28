@@ -338,7 +338,5 @@ private final class ScheduleJob {
 
 @MainActor
 private func scheduleModule(_ ctx: OpaquePointer) -> ScheduleModule? {
-    guard let opaque = JS_GetContextOpaque(ctx) else { return nil }
-    let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-    return engine.configStore["__scheduleModule"] as? ScheduleModule
+    Engine.module(ctx, "__scheduleModule")
 }

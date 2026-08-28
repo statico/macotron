@@ -214,7 +214,5 @@ public final class SnippetsModule: NativeModule {
 
 @MainActor
 private func module(_ ctx: OpaquePointer) -> SnippetsModule? {
-    guard let opaque = JS_GetContextOpaque(ctx) else { return nil }
-    let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-    return engine.configStore["__snippetsModule"] as? SnippetsModule
+    Engine.module(ctx, "__snippetsModule")
 }
