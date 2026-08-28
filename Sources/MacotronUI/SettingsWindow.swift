@@ -7,7 +7,6 @@ import SwiftUI
 public final class SettingsWindow {
     private var window: NSWindow?
     private let settingsState: SettingsState
-    private var closeObserver: Any?
 
     public init(state: SettingsState) {
         self.settingsState = state
@@ -18,8 +17,8 @@ public final class SettingsWindow {
     private static let minSize = NSSize(width: 640, height: 480)
 
     public func show() {
-        // Switch to regular activation policy so the Edit menu appears (enables Cmd+V paste)
-        NSApp.setActivationPolicy(.regular)
+        // Regular activation policy so the Edit menu appears (enables Cmd+V paste)
+        WindowActivationPolicy.borrowRegular()
 
         settingsState.load()
 
@@ -46,20 +45,7 @@ public final class SettingsWindow {
         w.isReleasedWhenClosed = false
         bringToFront(w)
 
-        // Observe close to restore the correct activation policy
-        closeObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification,
-            object: w,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                NSApp.setActivationPolicy(.accessory)
-                if let obs = self?.closeObserver {
-                    NotificationCenter.default.removeObserver(obs)
-                    self?.closeObserver = nil
-                }
-            }
-        }
+        WindowActivationPolicy.handBackWhenClosed(w)
 
         self.window = w
     }
@@ -73,6 +59,36 @@ public final class SettingsWindow {
         DispatchQueue.main.async {
             AppActivation.activate("settings window")
             window.makeKeyAndOrderFront(nil)
+        }
+    }
+}
+
+/// Macotron is a menu bar app; .regular is borrowed for as long as a window of
+/// ours is up, and handed back when that window closes.
+@MainActor
+enum WindowActivationPolicy {
+    static func borrowRegular() {
+        NSApp.setActivationPolicy(.regular)
+    }
+
+    /// Restores .accessory when `window` closes. The observer removes itself, so
+    /// it is removed exactly once and does not outlive the window.
+    static func handBackWhenClosed(_ window: NSWindow) {
+        // Box so the observer can remove itself; the closure only runs on the main queue.
+        final class Box: @unchecked Sendable { var token: NSObjectProtocol? }
+        let box = Box()
+        box.token = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated {
+                NSApp.setActivationPolicy(.accessory)
+                if let token = box.token {
+                    NotificationCenter.default.removeObserver(token)
+                    box.token = nil
+                }
+            }
         }
     }
 }

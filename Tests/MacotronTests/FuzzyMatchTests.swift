@@ -69,4 +69,19 @@ struct FuzzyMatchTests {
         #expect(FuzzyMatch.score(query: "ff", target: "Firefox") != nil)
         #expect(FuzzyMatch.score(query: "ff", target: "Chrome") == nil)
     }
+
+    @Test("rank orders by score and drops non-matches")
+    func rankOrdersAndFilters() {
+        let items = ["unsafari", "safari", "nothing here"]
+        let ranked = FuzzyMatch.rank(items, query: "saf") { [$0] }
+        #expect(ranked == ["safari", "unsafari"])
+        #expect(FuzzyMatch.rank(items, query: "") { [$0] } == items)
+    }
+
+    @Test("rank tie-breaks equal scores with the supplied order")
+    func rankTieBreak() {
+        let items = [("a", 1), ("b", 5)]
+        let ranked = FuzzyMatch.rank(items, query: "x", targets: { [$0.0 + "x"] }, tieBreak: { $0.1 > $1.1 })
+        #expect(ranked.map(\.0) == ["b", "a"])
+    }
 }

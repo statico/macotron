@@ -13,8 +13,68 @@ private extension NSView {
     }
 }
 
+/// Shared dismiss machinery for the borderless nonactivating panels.
+///
+/// A nonactivating panel can resign key on the same turn it becomes key, so
+/// resign-key dismissal is only armed a run loop turn after the panel is shown.
 @MainActor
-public final class LauncherPanel: NSPanel {
+public class NonactivatingPanel: NSPanel, NSWindowDelegate {
+    /// True once the panel is fully shown, so the resign-key handler ignores the
+    /// transient key changes that happen while it is still being revealed.
+    var isShown = false
+    private var isOrderingOut = false
+    var dismissOnResign = false
+
+    public override var canBecomeKey: Bool { true }
+    public override var canBecomeMain: Bool { false }
+
+    /// The panel flags both launcher and overlay share; shadow and modal
+    /// behaviour stay with the caller.
+    func configureFloatingPanel() {
+        level = .floating
+        backgroundColor = .clear
+        isOpaque = false
+        isMovable = false
+        animationBehavior = .none
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        isFloatingPanel = true
+        becomesKeyOnlyIfNeeded = false
+        hidesOnDeactivate = false
+        delegate = self
+    }
+
+    /// Arm resign-key dismissal on the next run loop turn, and close the panel
+    /// if it never took key focus.
+    func armDismissOnResign(then extra: (() -> Void)? = nil) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.dismissOnResign = true
+            extra?()
+            if self.isShown && self.isVisible && !self.isKeyWindow {
+                self.orderOut(nil)
+            }
+        }
+    }
+
+    public override func orderOut(_ sender: Any?) {
+        isOrderingOut = true
+        super.orderOut(sender)
+        isOrderingOut = false
+        isShown = false
+        dismissOnResign = false
+    }
+
+    /// How the panel goes away when it loses key focus; the launcher animates.
+    func dismissOnFocusLoss() { orderOut(nil) }
+
+    public func windowDidResignKey(_ notification: Notification) {
+        guard isShown, isVisible, !isOrderingOut, dismissOnResign else { return }
+        dismissOnFocusLoss()
+    }
+}
+
+@MainActor
+public final class LauncherPanel: NonactivatingPanel {
     private static let minHeight: CGFloat = LauncherPlacement.minHeight
     static let cornerRadius: CGFloat = 12
     private static let shadowPadding: CGFloat = LauncherPlacement.shadowPadding
@@ -25,9 +85,6 @@ public final class LauncherPanel: NSPanel {
     private let windowFrame: LauncherFrame
     private var lastHeight: CGFloat = LauncherPlacement.minHeight
     public var onHide: (() -> Void)?
-    private var isOrderingOut = false
-    /// Nonactivating panels can resign key on the same turn they become key.
-    private var dismissOnResign = false
 
     public init(contentView: NSView, windowFrame: LauncherFrame) {
         hostingView = contentView
@@ -44,21 +101,12 @@ public final class LauncherPanel: NSPanel {
             backing: .buffered,
             defer: false
         )
-        level = .floating
-        backgroundColor = .clear
-        isOpaque = false
+        configureFloatingPanel()
         // The panel draws its own shadow; see ShadowContainerView.
         hasShadow = false
-        isMovable = false
-        applySizeLimits(in: seed, height: Self.minHeight)
-        animationBehavior = .none
-        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        isFloatingPanel = true
-        becomesKeyOnlyIfNeeded = false
-        hidesOnDeactivate = false
         worksWhenModal = true
+        applySizeLimits(in: seed, height: Self.minHeight)
         applyBackground(.translucent)
-        self.delegate = self
     }
 
     public func applyBackground(_ style: LauncherBackground) {
@@ -126,12 +174,17 @@ public final class LauncherPanel: NSPanel {
             visual.layer?.cornerCurve = .continuous
             visual.layer?.masksToBounds = true
             visual.autoresizingMask = [.width, .height]
-            let tint = LauncherTintView(frame: visual.bounds)
+            let tint = PaintedView(frame: visual.bounds) { $0.layer?.backgroundColor = launcherTint.cgColor }
             tint.autoresizingMask = [.width, .height]
             visual.addSubview(tint)
             return visual
         case .opaque:
-            let view = OpaqueLauncherChrome(frame: frame)
+            let view = PaintedView(frame: frame) {
+                $0.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+            }
+            view.layer?.cornerRadius = cornerRadius
+            view.layer?.cornerCurve = .continuous
+            view.layer?.masksToBounds = true
             view.autoresizingMask = [.width, .height]
             return view
         }
@@ -167,9 +220,6 @@ public final class LauncherPanel: NSPanel {
         if let glass = view as? NSGlassEffectView { return glass }
         return view?.subviews.first as? NSGlassEffectView
     }
-
-    public override var canBecomeKey: Bool { true }
-    public override var canBecomeMain: Bool { false }
 
     /// Queue a resize for the next run loop turn.
     ///
@@ -235,14 +285,7 @@ public final class LauncherPanel: NSPanel {
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             animator().alphaValue = 1
         }
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            self.dismissOnResign = true
-            self.focusQueryField()
-            if self.isShown && self.isVisible && !self.isKeyWindow {
-                self.orderOut(nil)
-            }
-        }
+        armDismissOnResign { [weak self] in self?.focusQueryField() }
     }
 
     /// Put the caret in the search field.
@@ -261,11 +304,7 @@ public final class LauncherPanel: NSPanel {
         let wasVisible = isVisible || isShown
         pendingHeight = nil
         isDismissing = false
-        isOrderingOut = true
         super.orderOut(sender)
-        isOrderingOut = false
-        isShown = false
-        dismissOnResign = false
         if wasVisible {
             onHide?()
         }
@@ -275,10 +314,6 @@ public final class LauncherPanel: NSPanel {
     public override func cancelOperation(_ sender: Any?) {
         toggle()
     }
-
-    /// True once the panel is fully shown, so the resign-key handler ignores the
-    /// transient key changes that happen while it is still being revealed.
-    private var isShown = false
 
     /// True while the hide animation is running: the panel is still on screen
     /// but is already logically closed.
@@ -309,6 +344,11 @@ public final class LauncherPanel: NSPanel {
             }
         })
     }
+
+    /// The launcher fades out when it loses key focus — clicking another app or
+    /// window, or switching away. This replaces the activation-based auto-hide
+    /// that was racing with the global hotkey.
+    override func dismissOnFocusLoss() { dismiss(animated: true) }
 
     /// Clicks land on the transparent shadow halo, which no longer sits over
     /// another app, so they have to close the launcher themselves.
@@ -368,16 +408,6 @@ public final class LauncherPanel: NSPanel {
 
 }
 
-extension LauncherPanel: NSWindowDelegate {
-    /// Dismiss when the launcher loses key focus — clicking another app or
-    /// window, or switching away. This replaces the activation-based auto-hide
-    /// that was racing with the global hotkey.
-    public func windowDidResignKey(_ notification: Notification) {
-        guard isShown, isVisible, !isOrderingOut, dismissOnResign else { return }
-        dismiss(animated: true)
-    }
-}
-
 private final class HostPinView: NSView {
     override func layout() {
         super.layout()
@@ -397,46 +427,30 @@ private let launcherTint = NSColor(name: nil) { appearance in
         : .clear
 }
 
-private final class LauncherTintView: NSView {
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
+/// A layer-backed view whose look is one closure, re-run whenever the
+/// appearance or the backing scale changes.
+private final class PaintedView: NSView {
+    private let paint: (PaintedView) -> Void
+    private let clickable: Bool
+
+    init(frame: NSRect = .zero, clickable: Bool = true, paint: @escaping (PaintedView) -> Void) {
+        self.paint = paint
+        self.clickable = clickable
+        super.init(frame: frame)
         wantsLayer = true
-        paint()
+        repaint()
     }
 
     required init?(coder: NSCoder) { nil }
 
-    override func viewDidChangeEffectiveAppearance() {
-        paint()
-    }
+    override func hitTest(_ point: NSPoint) -> NSView? { clickable ? super.hitTest(point) : nil }
 
-    private func paint() {
-        effectiveAppearance.performAsCurrentDrawingAppearance {
-            layer?.backgroundColor = launcherTint.cgColor
-        }
-    }
-}
+    override func viewDidChangeEffectiveAppearance() { repaint() }
 
-private final class OpaqueLauncherChrome: NSView {
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        wantsLayer = true
-        layer?.cornerRadius = 12
-        layer?.cornerCurve = .continuous
-        layer?.masksToBounds = true
-        paint()
-    }
+    override func viewDidChangeBackingProperties() { repaint() }
 
-    required init?(coder: NSCoder) { nil }
-
-    override func viewDidChangeEffectiveAppearance() {
-        paint()
-    }
-
-    private func paint() {
-        effectiveAppearance.performAsCurrentDrawingAppearance {
-            layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        }
+    private func repaint() {
+        effectiveAppearance.performAsCurrentDrawingAppearance { paint(self) }
     }
 }
 
@@ -449,7 +463,18 @@ private final class OpaqueLauncherChrome: NSView {
 private final class ShadowContainerView: NSView {
     let chrome: NSView
     private let shadowView: ShadowView
-    private let hairline = HairlineView(cornerRadius: LauncherPanel.cornerRadius - 1)
+    /// Hairline just inside the panel edge, a point in from the corner curve;
+    /// decoration only, so the chrome underneath keeps the clicks. Its width is a
+    /// device pixel, so the line stays a hairline on Retina.
+    private let hairline: PaintedView = {
+        let view = PaintedView(clickable: false) { view in
+            view.layer?.borderWidth = 1 / (view.window?.backingScaleFactor ?? 2)
+            view.layer?.borderColor = NSColor.labelColor.withAlphaComponent(0.25).cgColor
+        }
+        view.layer?.cornerRadius = LauncherPanel.cornerRadius - 1
+        view.layer?.cornerCurve = .continuous
+        return view
+    }()
 
     var drawsShadow = true {
         didSet { paint() }
@@ -533,37 +558,3 @@ private final class ShadowView: NSView {
     }
 }
 
-/// Hairline just inside the panel edge, a point in from the corner curve.
-private final class HairlineView: NSView {
-    private let cornerRadius: CGFloat
-
-    init(cornerRadius: CGFloat) {
-        self.cornerRadius = cornerRadius
-        super.init(frame: .zero)
-        wantsLayer = true
-        layer?.cornerRadius = cornerRadius
-        layer?.cornerCurve = .continuous
-        paint()
-    }
-
-    required init?(coder: NSCoder) { nil }
-
-    /// Decoration only; the chrome underneath keeps the clicks.
-    override func hitTest(_ point: NSPoint) -> NSView? { nil }
-
-    override func viewDidChangeEffectiveAppearance() {
-        paint()
-    }
-
-    /// A device pixel, so the line stays a hairline on Retina.
-    override func viewDidChangeBackingProperties() {
-        paint()
-    }
-
-    private func paint() {
-        layer?.borderWidth = 1 / (window?.backingScaleFactor ?? 2)
-        effectiveAppearance.performAsCurrentDrawingAppearance {
-            layer?.borderColor = NSColor.labelColor.withAlphaComponent(0.25).cgColor
-        }
-    }
-}

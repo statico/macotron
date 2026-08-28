@@ -31,18 +31,7 @@ public struct CatalogBrowser: View {
     /// Fuzzy, so "wgrid" finds "Window Grid". Featured order is kept while the
     /// query is empty and score order takes over once it is not.
     private var filtered: [CatalogPlugin] {
-        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty else { return plugins }
-        return plugins
-            .compactMap { plugin -> (CatalogPlugin, Int)? in
-                guard let score = FuzzyMatch.best(
-                    query: q,
-                    targets: [plugin.title, plugin.filename, plugin.description]
-                ) else { return nil }
-                return (plugin, score)
-            }
-            .sorted { $0.1 > $1.1 }
-            .map(\.0)
+        FuzzyMatch.rank(plugins, query: query) { [$0.title, $0.filename, $0.description] }
     }
 }
 

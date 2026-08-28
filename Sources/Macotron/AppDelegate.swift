@@ -349,45 +349,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             return table.combo(for: HostCommands.showHotkeysID)
         }
 
-        settingsState.readShowMenuBarIcon = { [weak self] in
-            self?.readUIValue("showMenuBarIcon") as? Bool ?? true
-        }
-        settingsState.writeShowMenuBarIcon = { [weak self] value in
-            self?.writeUIValue("showMenuBarIcon", value)
-            self?.menuBarManager.setVisible(value)
-        }
-        settingsState.readLaunchAtLogin = { LaunchAtLogin.isEnabled }
-        settingsState.writeLaunchAtLogin = { value in
-            LaunchAtLogin.setEnabled(value)
-        }
-        settingsState.readAutomaticUpdates = { Updater.automaticallyChecks }
-        settingsState.writeAutomaticUpdates = { value in
-            Updater.automaticallyChecks = value
-        }
-        settingsState.readAppearance = { [weak self] in
-            AppearanceSetting.parse(self?.readUIValue("appearance"))
-        }
-        settingsState.writeAppearance = { [weak self] value in
-            self?.writeUIValue("appearance", value.rawValue)
-            value.apply()
-        }
-        settingsState.readTextScale = { [weak self] in
-            let raw = self?.readUIValue("textScale") as? Double ?? 1.0
-            return LauncherPrefs.snapTextScale(raw)
-        }
-        settingsState.writeTextScale = { [weak self] value in
-            guard let self else { return }
-            self.writeUIValue("textScale", value)
-            self.launcherPrefs.textScale = CGFloat(value)
-        }
-        settingsState.readLauncherBackground = { [weak self] in
-            LauncherBackground.parse(self?.readUIValue("launcherBackground"))
-        }
-        settingsState.writeLauncherBackground = { [weak self] value in
-            guard let self else { return }
-            self.writeUIValue("launcherBackground", value.rawValue)
-            self.launcherPrefs.background = value
-            self.launcherPanel?.applyBackground(value)
+        settingsState.readUIValue = { [weak self] key in self?.readUIValue(key) }
+        settingsState.writeUIValue = { [weak self] key, value in
+            self?.writeUIValue(key, value)
         }
         settingsState.onSetHotReload = { [weak self] value in
             self?.setHotReload(value)
@@ -870,6 +834,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             settings["ui"] = ui
         }
         engine.configStore = workspace.readSettings()
+        // Every ui.* pref drives something live. Re-apply the whole block
+        // rather than keeping a side effect per key: the Settings pane writes
+        // one at a time and re-reading a handful of values is free.
+        applyUIPrefsFromSettings()
+        menuBarManager?.setVisible(readUIValue("showMenuBarIcon") as? Bool ?? true)
     }
 
     private func applyUIPrefsFromSettings() {
@@ -966,6 +935,22 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Write a plugin into the workspace and trust it outright: every caller
+    /// here is acting on something the user explicitly asked for, so it skips
+    /// Review & Reload. Reloading is left to the caller so a bulk install can
+    /// reload once instead of once per file.
+    @discardableResult
+    private func writePlugin(
+        _ filename: String, source: String, in workspace: PluginWorkspace
+    ) throws -> URL {
+        let dest = workspace.pluginsDir.appending(path: filename)
+        try source.write(to: dest, atomically: true, encoding: .utf8)
+        PluginTrust.approve(filename: filename, source: source)
+        PluginTrust.approveImports(
+            in: source, importerDir: workspace.pluginsDir, baseDir: workspace.root)
+        return dest
+    }
+
     private func installCatalogPlugin(_ plugin: CatalogPlugin, override: Bool) {
         let timer = StepTimer("install \(plugin.filename)", category: "app")
         guard let workspace else { return }
@@ -973,15 +958,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             appLogger.info("install \(plugin.filename, privacy: .public) blocked by allowsInstall")
             return
         }
-        let dest = workspace.pluginsDir.appending(path: plugin.filename)
         do {
-            try plugin.source.write(to: dest, atomically: true, encoding: .utf8)
+            try writePlugin(plugin.filename, source: plugin.source, in: workspace)
             timer.step("write")
-            PluginTrust.approve(filename: plugin.filename, source: plugin.source)
-            timer.step("approve")
-            PluginTrust.approveImports(
-                in: plugin.source, importerDir: workspace.pluginsDir, baseDir: workspace.root)
-            timer.step("approveImports")
             moduleManager.reloadAll()
             timer.step("reloadAll")
             refreshIntegrity()
@@ -1008,10 +987,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 continue
             }
             do {
-                try plugin.source.write(to: dest, atomically: true, encoding: .utf8)
-                PluginTrust.approve(filename: plugin.filename, source: plugin.source)
-                PluginTrust.approveImports(
-                    in: plugin.source, importerDir: workspace.pluginsDir, baseDir: workspace.root)
+                try writePlugin(plugin.filename, source: plugin.source, in: workspace)
                 installed += 1
             } catch {
                 NSLog("[Macotron] Catalog install failed for \(plugin.filename): \(error)")
@@ -1029,12 +1005,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     /// sending the new file to Review & Reload.
     private func createPlugin(filename: String, source: String) {
         guard let workspace else { return }
-        let dest = workspace.pluginsDir.appending(path: filename)
         do {
-            try source.write(to: dest, atomically: true, encoding: .utf8)
-            PluginTrust.approve(filename: filename, source: source)
-            PluginTrust.approveImports(
-                in: source, importerDir: workspace.pluginsDir, baseDir: workspace.root)
+            let dest = try writePlugin(filename, source: source, in: workspace)
             moduleManager.reloadAll()
             refreshIntegrity()
             settingsState.refreshModules()
@@ -1114,12 +1086,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func registerModules() {
-        engine.addModule(ShellModule())
-        engine.addModule(FileSystemModule())
-        engine.addModule(NotifyModule())
-        engine.addModule(DialogModule())
-        engine.addModule(ClipboardModule())
-        engine.addModule(SnippetsModule())
+        registerStandardModules(in: engine)
 
         let keyboard = KeyboardModule()
         keyboard.onHostCommand = { [weak self] commandId in
@@ -1127,46 +1094,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         self.keyboardModule = keyboard
         engine.addModule(keyboard)
-        engine.addModule(EventModule())
 
-        engine.addModule(WindowModule())
-        engine.addModule(AppModule())
-        engine.addModule(ScreenModule())
-        engine.addModule(SystemModule())
-        engine.addModule(DisplayModule())
-        engine.addModule(HTTPModule())
         engine.addModule(LocalStorageModule(configDir: workspace.root.path(percentEncoded: false)))
-        engine.addModule(KeychainModule())
 
         let menuBarModule = MenuBarModule()
         menuBarModule.delegate = menuBarManager
         menuBarPluginModule = menuBarModule
         engine.addModule(menuBarModule)
 
-        engine.addModule(URLSchemeModule())
-        engine.addModule(SpotlightModule())
-        engine.addModule(AIModule())
-        engine.addModule(PanelModule())
-        engine.addModule(CalendarModule())
-        engine.addModule(ContactsModule())
-        engine.addModule(OCRModule())
-        engine.addModule(QRModule())
-        engine.addModule(PowerModule())
-        engine.addModule(NetworkModule())
-        engine.addModule(BonjourModule())
-        engine.addModule(UDPModule())
-        engine.addModule(AppleTVModule())
-        engine.addModule(IdleModule())
-        engine.addModule(ScheduleModule())
-        engine.addModule(MediaModule())
-        engine.addModule(AudioModule())
-        engine.addModule(SpacesModule())
-        engine.addModule(USBModule())
-        engine.addModule(HIDModule())
-        engine.addModule(AXModule())
-        engine.addModule(CameraModule())
-        engine.addModule(ShareModule())
-        engine.addModule(ShortcutsModule())
         let launcher = LauncherModule()
         launcher.onLiveUpdate = { [weak self] in
             guard let self, self.launcherPanel.isVisible else { return }
@@ -1174,10 +1109,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         launcherModule = launcher
         engine.addModule(launcher)
-        engine.addModule(NotesModule())
-        engine.addModule(RemindersModule())
-        engine.addModule(HomeKitModule())
-        engine.addModule(DockModule())
     }
 
     private func executeCommand(_ id: String, args: [String: Any] = [:]) {
@@ -1559,66 +1490,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+/// Every requirement but one is satisfied by MenuBarManager's own methods.
+/// `addItem` is the exception: the protocol lives in Modules, which cannot see
+/// MacotronUI's `MenuItemConfig`, so it passes the fields loose.
 extension MenuBarManager: MenuBarModuleDelegate {
     public func menuBarAddItem(id: String, title: String, icon: String?, section: String?, onClick: (() -> Void)?, menu: [MenuBarEntry]) {
         addItem(id: id, config: MenuItemConfig(title: title, icon: icon, section: section, callback: onClick, menu: menu))
-    }
-
-    public func menuBarUpdateItem(id: String, title: String?, icon: String?) {
-        updateItem(id: id, title: title, icon: icon)
-    }
-
-    public func menuBarRemoveItem(id: String) {
-        removeItem(id: id)
-    }
-
-    public func menuBarSetIcon(sfSymbolName: String) {
-        setIcon(sfSymbolName)
-    }
-
-    public func menuBarSetIconColor(color: String?) {
-        setIconColor(color)
-    }
-
-    public func menuBarSetTitle(text: String) {
-        setTitle(text)
-    }
-
-    public func menuBarSetStatus(
-        id: String,
-        title: String,
-        subtitle: String?,
-        color: String?,
-        subtitleColor: String?,
-        bold: Bool,
-        italic: Bool,
-        secondary: Bool,
-        minWidth: Double?,
-        sfSymbol: String?,
-        imagePath: String?,
-        onClick: (() -> Void)?,
-        menu: [MenuBarEntry],
-        required: Bool
-    ) {
-        setStatus(
-            id: id, title: title, subtitle: subtitle, color: color, subtitleColor: subtitleColor,
-            bold: bold, italic: italic, secondary: secondary, minWidth: minWidth, sfSymbol: sfSymbol, imagePath: imagePath, onClick: onClick, menu: menu, required: required
-        )
-    }
-
-    public func menuBarRemoveStatus(id: String) {
-        removeStatus(id: id)
-    }
-
-    public func menuBarRemoveAllStatus() {
-        removeAllStatus()
-    }
-
-    public func menuBarBeginStatusReload() {
-        beginStatusReload()
-    }
-
-    public func menuBarFinishStatusReload() {
-        finishStatusReload()
     }
 }

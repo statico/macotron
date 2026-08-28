@@ -404,61 +404,56 @@ public final class MenuBarManager: NSObject {
         menu.addItem(.separator())
 
         let (launcherKey, launcherMods) = parseHotkey(launcherShortcut)
-        let openLauncher = NSMenuItem(title: "Open Launcher", action: #selector(openLauncherAction), keyEquivalent: launcherKey)
-        openLauncher.keyEquivalentModifierMask = launcherMods
-        openLauncher.target = self
-        openLauncher.image = Self.menuSymbol("magnifyingglass")
-        menu.addItem(openLauncher)
+        addRow("Open Launcher", symbol: "magnifyingglass", key: launcherKey) { [weak self] in
+            self?.onToggleLauncher?()
+        }.keyEquivalentModifierMask = launcherMods
 
-        let reload = NSMenuItem(title: "Reload Plugins", action: #selector(reloadAction), keyEquivalent: "r")
-        reload.target = self
-        reload.image = Self.menuSymbol("arrow.clockwise")
-        menu.addItem(reload)
+        addRow("Reload Plugins", symbol: "arrow.clockwise", key: "r") { [weak self] in self?.onReload?() }
 
-        let hotReloadItem = NSMenuItem(
-            title: hotReload ? "Disable Hot Reloading" : "Enable Hot Reloading",
-            action: #selector(toggleHotReloadAction),
-            keyEquivalent: ""
-        )
-        hotReloadItem.target = self
-        hotReloadItem.image = Self.menuSymbol(hotReload ? "bolt.slash" : "bolt")
-        menu.addItem(hotReloadItem)
+        addRow(
+            hotReload ? "Disable Hot Reloading" : "Enable Hot Reloading",
+            symbol: hotReload ? "bolt.slash" : "bolt"
+        ) { [weak self] in self.map { $0.onToggleHotReload?(!$0.hotReload) } }
 
         if pendingReviewCount > 0 {
-            let review = NSMenuItem(
-                title: "Review & Reload (\(pendingReviewCount))",
-                action: #selector(reviewPendingAction),
-                keyEquivalent: ""
-            )
-            review.target = self
-            review.image = Self.menuSymbol("exclamationmark.triangle")
-            menu.addItem(review)
+            addRow("Review & Reload (\(pendingReviewCount))", symbol: "exclamationmark.triangle") { [weak self] in
+                self?.onReviewPending?()
+            }
         }
 
-        let openConfig = NSMenuItem(title: "Open Config Folder", action: #selector(openConfigAction), keyEquivalent: ",")
-        openConfig.target = self
-        openConfig.image = Self.menuSymbol("folder")
-        menu.addItem(openConfig)
+        addRow("Open Config Folder", symbol: "folder", key: ",") { [weak self] in self?.onOpenConfig?() }
 
         let pending = Updater.pendingVersion
-        let updates = NSMenuItem(
-            title: pending.map { "Update to \($0)..." } ?? "Check for Updates...",
-            action: #selector(checkForUpdatesAction),
-            keyEquivalent: ""
-        )
-        updates.target = self
-        updates.image = Self.menuSymbol(pending == nil ? "arrow.down.circle" : "sparkles")
-        menu.addItem(updates)
+        addRow(
+            pending.map { "Update to \($0)..." } ?? "Check for Updates...",
+            symbol: pending == nil ? "arrow.down.circle" : "sparkles"
+        ) { [weak self] in self?.onCheckForUpdates?() }
 
-        let settings = NSMenuItem(title: "Settings...", action: #selector(openSettingsAction), keyEquivalent: "")
-        settings.target = self
-        settings.image = Self.menuSymbol("gearshape")
-        menu.addItem(settings)
+        addRow("Settings...", symbol: "gearshape") { [weak self] in self?.onOpenSettings?() }
 
         menu.addItem(.separator())
         let quit = NSMenuItem(title: "Quit Macotron", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quit.image = Self.menuSymbol("xmark.circle")
         menu.addItem(quit)
+    }
+
+    /// One static menu row. The closure is boxed in a `PluginMenu.Action` kept
+    /// alive by `pluginMenuBoxes` — NSMenuItem only holds its target weakly, so
+    /// dropping the box would silently stop the row from firing.
+    @discardableResult
+    private func addRow(
+        _ title: String,
+        symbol: String? = nil,
+        key: String = "",
+        _ run: @escaping () -> Void
+    ) -> NSMenuItem {
+        let box = PluginMenu.Action(run)
+        pluginMenuBoxes.append(box)
+        let item = NSMenuItem(title: title, action: #selector(PluginMenu.Action.invoke(_:)), keyEquivalent: key)
+        item.target = box
+        if let symbol { item.image = Self.menuSymbol(symbol) }
+        menu.addItem(item)
+        return item
     }
 
     private static func menuSymbol(_ name: String) -> NSImage? {
@@ -472,12 +467,7 @@ public final class MenuBarManager: NSObject {
         guard !missingPermissions.isEmpty else { return }
 
         let names = missingPermissions.map(\.title).joined(separator: ", ")
-        let item = NSMenuItem(
-            title: "Permissions needed",
-            action: #selector(openPermissionsAction),
-            keyEquivalent: ""
-        )
-        item.target = self
+        let item = addRow("Permissions needed") { [weak self] in self?.onOpenPermissions?() }
         item.attributedTitle = NSAttributedString(
             string: "Permissions needed: \(names)",
             attributes: [
@@ -489,10 +479,8 @@ public final class MenuBarManager: NSObject {
             systemSymbolName: "exclamationmark.triangle.fill",
             accessibilityDescription: nil
         )?.withSymbolConfiguration(.init(paletteColors: [.systemRed]))
-        menu.addItem(item)
 
-        let hint = NSMenuItem(title: "Open Settings to grant…", action: #selector(openPermissionsAction), keyEquivalent: "")
-        hint.target = self
+        let hint = addRow("Open Settings to grant…") { [weak self] in self?.onOpenPermissions?() }
         hint.attributedTitle = NSAttributedString(
             string: "Open Settings to grant…",
             attributes: [
@@ -500,19 +488,13 @@ public final class MenuBarManager: NSObject {
                 .font: NSFont.menuFont(ofSize: NSFont.smallSystemFontSize),
             ]
         )
-        menu.addItem(hint)
         menu.addItem(.separator())
     }
 
     private func addIntegrityWarningIfNeeded() {
         guard missingPermissions.isEmpty else { return }
         if pendingReviewCount > 0 {
-            let item = NSMenuItem(
-                title: "Plugin files changed",
-                action: #selector(reviewPendingAction),
-                keyEquivalent: ""
-            )
-            item.target = self
+            let item = addRow("Plugin files changed") { [weak self] in self?.onReviewPending?() }
             item.attributedTitle = NSAttributedString(
                 string: "\(pendingReviewCount) plugin file(s) changed — Review & Reload",
                 attributes: [
@@ -520,11 +502,9 @@ public final class MenuBarManager: NSObject {
                     .font: NSFont.menuFont(ofSize: 0),
                 ]
             )
-            menu.addItem(item)
             menu.addItem(.separator())
         } else if hotReload {
-            let item = NSMenuItem(title: "Hot Reload is on", action: #selector(toggleHotReloadAction), keyEquivalent: "")
-            item.target = self
+            let item = addRow("Hot Reload is on") { [weak self] in self.map { $0.onToggleHotReload?(!$0.hotReload) } }
             item.attributedTitle = NSAttributedString(
                 string: "Hot Reload is on — plugins load without a scan",
                 attributes: [
@@ -532,47 +512,14 @@ public final class MenuBarManager: NSObject {
                     .font: NSFont.menuFont(ofSize: 0),
                 ]
             )
-            menu.addItem(item)
             menu.addItem(.separator())
         }
-    }
-
-    @objc private func openPermissionsAction() {
-        onOpenPermissions?()
     }
 
     @objc private func menuItemClicked(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String,
               let item = dynamicItems.first(where: { $0.id == id }) else { return }
         item.config.callback?()
-    }
-
-    @objc private func openLauncherAction() {
-        onToggleLauncher?()
-    }
-
-    @objc private func reloadAction() {
-        onReload?()
-    }
-
-    @objc private func openConfigAction() {
-        onOpenConfig?()
-    }
-
-    @objc private func openSettingsAction() {
-        onOpenSettings?()
-    }
-
-    @objc private func checkForUpdatesAction() {
-        onCheckForUpdates?()
-    }
-
-    @objc private func toggleHotReloadAction() {
-        onToggleHotReload?(!hotReload)
-    }
-
-    @objc private func reviewPendingAction() {
-        onReviewPending?()
     }
 }
 

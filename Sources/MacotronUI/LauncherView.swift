@@ -458,8 +458,8 @@ public struct LauncherView: View {
     @ViewBuilder
     private func shortcutHint(keys: [String], label: String) -> some View {
         HStack(spacing: 4) {
-            ForEach(keys, id: \.self) { key in
-                Text(keySymbol(key))
+            ForEach(KeyCombo.glyphs(keys.joined(separator: "+")), id: \.self) { key in
+                Text(key)
                     .font(.system(size: 10 * prefs.textScale, weight: .medium, design: .rounded))
                     .padding(.horizontal, 4)
                     .padding(.vertical, 2)
@@ -472,14 +472,6 @@ public struct LauncherView: View {
         }
     }
 
-    private func keySymbol(_ key: String) -> String {
-        switch key {
-        case "cmd": return "\u{2318}"
-        case "return": return "\u{23CE}"
-        case "esc": return "\u{238B}"
-        default: return key
-        }
-    }
 }
 
 /// AppKit field so window resizes don't kill the field editor (SwiftUI TextField does).
@@ -553,40 +545,58 @@ struct KeyEventHandler: NSViewRepresentable {
 
     func makeNSView(context: Context) -> KeyEventNSView {
         let view = KeyEventNSView()
-        apply(to: view)
+        view.onKey = consume
         return view
     }
 
     func updateNSView(_ nsView: KeyEventNSView, context: Context) {
-        apply(to: nsView)
+        nsView.onKey = consume
     }
 
-    private func apply(to view: KeyEventNSView) {
-        view.onArrowUp = onArrowUp
-        view.onArrowDown = onArrowDown
-        view.onCmdReturn = onCmdReturn
-        view.onCmdK = onCmdK
-        view.onCmdS = onCmdS
-        view.onCmdSemicolon = onCmdSemicolon
-        view.onEscape = onEscape
-        view.onRecordedCombo = onRecordedCombo
-        view.onClearShortcut = onClearShortcut
-        view.interceptListKeys = interceptListKeys
-        view.isRecording = isRecording
+    /// cmd+<key> shortcuts, keyed by the unmodified character.
+    private var cmdKeys: [String: () -> Void] {
+        ["k": onCmdK, "s": { onCmdS?() }, ";": { onCmdSemicolon?() }]
+    }
+
+    /// True swallows the event; false lets it reach the search field.
+    func consume(_ event: NSEvent) -> Bool {
+        if isRecording {
+            if event.keyCode == 53 { return onEscape?() ?? true }
+            if event.keyCode == 51 || event.keyCode == 117 {
+                onClearShortcut?()
+            } else if let combo = KeyCombo.combo(from: event) {
+                onRecordedCombo?(combo)
+            }
+            return true
+        }
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        let chars = event.charactersIgnoringModifiers?.lowercased()
+        if interceptListKeys {
+            if flags.contains(.command), event.keyCode == 36 {
+                onCmdReturn()
+                return true
+            }
+            if flags.contains(.command), flags.isDisjoint(with: [.shift, .option, .control]),
+               let action = chars.flatMap({ cmdKeys[$0] }) {
+                action()
+                return true
+            }
+            // Emacs-style list navigation.
+            if flags.contains(.control), !flags.contains(.command), chars == "p" || chars == "n" {
+                if chars == "p" { onArrowUp() } else { onArrowDown() }
+                return true
+            }
+        }
+        switch event.keyCode {
+        case 126 where interceptListKeys: onArrowUp(); return true
+        case 125 where interceptListKeys: onArrowDown(); return true
+        case 53: return onEscape?() ?? false
+        default: return false
+        }
     }
 
     final class KeyEventNSView: NSView {
-        var onArrowUp: (() -> Void)?
-        var onArrowDown: (() -> Void)?
-        var onCmdReturn: (() -> Void)?
-        var onCmdK: (() -> Void)?
-        var onCmdS: (() -> Void)?
-        var onCmdSemicolon: (() -> Void)?
-        var onEscape: (() -> Bool)?
-        var onRecordedCombo: ((String) -> Void)?
-        var onClearShortcut: (() -> Void)?
-        var interceptListKeys = true
-        var isRecording = false
+        var onKey: ((NSEvent) -> Bool)?
         private var monitor: Any?
 
         override func viewDidMoveToWindow() {
@@ -598,72 +608,7 @@ struct KeyEventHandler: NSViewRepresentable {
             guard window != nil else { return }
             monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
                 guard let self, event.window == self.window else { return event }
-                return self.consume(event) ? nil : event
-            }
-        }
-
-        private func consume(_ event: NSEvent) -> Bool {
-            if isRecording {
-                if event.keyCode == 53 {
-                    return onEscape?() ?? true
-                }
-                if event.keyCode == 51 || event.keyCode == 117 {
-                    onClearShortcut?()
-                    return true
-                }
-                if let combo = KeyCombo.combo(from: event) {
-                    onRecordedCombo?(combo)
-                    return true
-                }
-                return true
-            }
-            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-            if interceptListKeys, flags.contains(.command) && event.keyCode == 36 {
-                onCmdReturn?()
-                return true
-            }
-            if interceptListKeys, flags.contains(.command), !flags.contains(.shift),
-               !flags.contains(.option), !flags.contains(.control),
-               event.charactersIgnoringModifiers?.lowercased() == "k" {
-                onCmdK?()
-                return true
-            }
-            if interceptListKeys, flags.contains(.command), !flags.contains(.shift),
-               !flags.contains(.option), !flags.contains(.control),
-               event.charactersIgnoringModifiers?.lowercased() == "s" {
-                onCmdS?()
-                return true
-            }
-            if interceptListKeys, flags.contains(.command), !flags.contains(.shift),
-               !flags.contains(.option), !flags.contains(.control),
-               event.charactersIgnoringModifiers == ";" {
-                onCmdSemicolon?()
-                return true
-            }
-            if interceptListKeys, flags.contains(.control) && !flags.contains(.command) {
-                switch event.charactersIgnoringModifiers {
-                case "p", "P":
-                    onArrowUp?()
-                    return true
-                case "n", "N":
-                    onArrowDown?()
-                    return true
-                default: break
-                }
-            }
-            switch event.keyCode {
-            case 126:
-                guard interceptListKeys else { return false }
-                onArrowUp?()
-                return true
-            case 125:
-                guard interceptListKeys else { return false }
-                onArrowDown?()
-                return true
-            case 53:
-                return onEscape?() ?? false
-            default:
-                return false
+                return self.onKey?(event) == true ? nil : event
             }
         }
     }
