@@ -8,6 +8,14 @@ enum LauncherPlacement {
     static let maxWidth: CGFloat = 750
     static let maxPanelHeight: CGFloat = 500
     static let margin: CGFloat = 12
+    /// Shadow metrics for the launcher. The system window shadow has no radius
+    /// or opacity knobs, so the panel is oversized by a transparent halo and
+    /// draws its own into it.
+    static let shadowBlur: CGFloat = 20
+    static let shadowDrop: CGFloat = 10
+    /// A Gaussian blur reaches about three times its radius, so a halo sized to
+    /// the radius alone cuts the falloff off flat at the window edge.
+    static let shadowPadding: CGFloat = shadowBlur * 3 + shadowDrop + 8
 
     /// Every section below has an explicit height in `LauncherView`, so the
     /// window height is exact rather than a guess at SwiftUI's own layout.

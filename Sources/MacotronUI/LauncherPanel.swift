@@ -16,6 +16,9 @@ private extension NSView {
 public final class LauncherPanel: NSPanel {
     private static let minHeight: CGFloat = LauncherPlacement.minHeight
     private static let cornerRadius: CGFloat = 12
+    private static let shadowPadding: CGFloat = LauncherPlacement.shadowPadding
+    private static let showDuration: TimeInterval = 0.06
+    private static let hideDuration: TimeInterval = 0.05
 
     private let hostingView: NSView
     private let windowFrame: LauncherFrame
@@ -31,7 +34,11 @@ public final class LauncherPanel: NSPanel {
         let seed = NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
         let seedWidth = LauncherPlacement.width(in: seed)
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: seedWidth, height: Self.minHeight),
+            contentRect: NSRect(
+                x: 0, y: 0,
+                width: seedWidth + 2 * Self.shadowPadding,
+                height: Self.minHeight + 2 * Self.shadowPadding
+            ),
             styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -39,7 +46,8 @@ public final class LauncherPanel: NSPanel {
         level = .floating
         backgroundColor = .clear
         isOpaque = false
-        hasShadow = true
+        // The panel draws its own shadow; see ShadowContainerView.
+        hasShadow = false
         isMovable = false
         applySizeLimits(in: seed, height: Self.minHeight)
         animationBehavior = .none
@@ -55,7 +63,7 @@ public final class LauncherPanel: NSPanel {
     public func applyBackground(_ style: LauncherBackground) {
         hostingView.removeFromSuperview()
         if #available(macOS 26.0, *) {
-            Self.glass(in: contentView)?.contentView = nil
+            Self.glass(in: (contentView as? ShadowContainerView)?.chrome)?.contentView = nil
         }
         let visible = currentVisible
         let height = isShown ? lastHeight : Self.minHeight
@@ -73,9 +81,14 @@ public final class LauncherPanel: NSPanel {
         } else {
             chrome.addSubview(pin)
         }
-        contentView = chrome
-        hasShadow = style != .glass
-        invalidateShadow()
+        let container = ShadowContainerView(
+            chrome: chrome,
+            padding: Self.shadowPadding,
+            cornerRadius: Self.cornerRadius
+        )
+        // Glass brings its own shadow.
+        container.drawsShadow = style != .glass
+        contentView = container
         if isShown {
             resizeToHeight(lastHeight)
         }
@@ -177,11 +190,13 @@ public final class LauncherPanel: NSPanel {
     /// results list can overflow, like overflow-y: auto on that section.
     public func resizeToHeight(_ height: CGFloat) {
         let visible = currentVisible
-        let pin = isShown ? frame.maxY : nil
-        let newFrame = LauncherPlacement.frame(height: height, visible: visible, pinTop: pin)
-        applySizeLimits(in: visible, height: newFrame.height)
-        lastHeight = newFrame.height
-        windowFrame.size = newFrame.size
+        let pad = Self.shadowPadding
+        let pin = isShown ? frame.maxY - pad : nil
+        let content = LauncherPlacement.frame(height: height, visible: visible, pinTop: pin)
+        applySizeLimits(in: visible, height: content.height)
+        lastHeight = content.height
+        windowFrame.size = content.size
+        let newFrame = content.insetBy(dx: -pad, dy: -pad)
         if abs(frame.width - newFrame.width) < 0.5 && abs(frame.height - newFrame.height) < 0.5
             && abs(frame.origin.x - newFrame.origin.x) < 0.5 && abs(frame.origin.y - newFrame.origin.y) < 0.5 {
             pinHost()
@@ -194,14 +209,23 @@ public final class LauncherPanel: NSPanel {
     /// Why the launcher is being shown, for the activation log.
     public var showReason: String = "unknown"
 
+    /// Fade in instead of blinking on. Only the alpha moves: animating the
+    /// window frame traps inside Combine, because `setFrame` publishes the
+    /// content size and that store does not survive the animator proxy.
     private func reveal() {
         AppActivation.note("launcher shown: \(showReason)")
-        alphaValue = 1
+        isDismissing = false
         dismissOnResign = false
+        alphaValue = 0
         orderFrontRegardless()
         makeKey()
         focusQueryField()
         isShown = true
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = Self.showDuration
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            animator().alphaValue = 1
+        }
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.dismissOnResign = true
@@ -227,6 +251,7 @@ public final class LauncherPanel: NSPanel {
     public override func orderOut(_ sender: Any?) {
         let wasVisible = isVisible || isShown
         pendingHeight = nil
+        isDismissing = false
         isOrderingOut = true
         super.orderOut(sender)
         isOrderingOut = false
@@ -246,14 +271,49 @@ public final class LauncherPanel: NSPanel {
     /// transient key changes that happen while it is still being revealed.
     private var isShown = false
 
-    public func dismiss() {
+    /// True while the hide animation is running: the panel is still on screen
+    /// but is already logically closed.
+    private var isDismissing = false
+
+    /// Hide the panel. Animated dismissals hold key focus for the length of the
+    /// fade, so callers that hand focus to another app — running a command,
+    /// revealing in Finder, opening settings — keep the instant path.
+    public func dismiss(animated: Bool = false) {
         guard isVisible || isShown else { return }
-        orderOut(nil)
+        guard animated else {
+            orderOut(nil)
+            return
+        }
+        guard !isDismissing else { return }
+        isDismissing = true
+        isShown = false
+        dismissOnResign = false
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = Self.hideDuration
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            animator().alphaValue = 0
+        }, completionHandler: { [weak self] in
+            // A reveal during the fade clears the flag and claims the window.
+            guard let self, self.isDismissing else { return }
+            self.orderOut(nil)
+        })
+    }
+
+    /// Clicks land on the transparent shadow halo, which no longer sits over
+    /// another app, so they have to close the launcher themselves.
+    public override func mouseDown(with event: NSEvent) {
+        let inset = Self.shadowPadding
+        if let content = contentView, !content.bounds.insetBy(dx: inset, dy: inset)
+            .contains(event.locationInWindow) {
+            dismiss(animated: true)
+            return
+        }
+        super.mouseDown(with: event)
     }
 
     public func toggle() {
-        if isVisible {
-            dismiss()
+        if isVisible && !isDismissing {
+            dismiss(animated: true)
         } else {
             pendingHeight = nil
             resizeToHeight(lastHeight)
@@ -261,15 +321,15 @@ public final class LauncherPanel: NSPanel {
         }
     }
 
-    /// The shadow is cached from the panel's shape, so a resize leaves it drawn
-    /// around the old bounds until it is invalidated.
+    /// The window frame carries the shadow halo, so SwiftUI is told the smaller
+    /// content size.
     public override func setFrame(_ frameRect: NSRect, display flag: Bool) {
         applyingFrame = true
         super.setFrame(frameRect, display: flag)
         applyingFrame = false
-        windowFrame.size = frame.size
+        let pad = Self.shadowPadding
+        windowFrame.size = NSSize(width: frame.width - 2 * pad, height: frame.height - 2 * pad)
         pinHost()
-        invalidateShadow()
     }
 
     private func pinHost() {
@@ -286,9 +346,11 @@ public final class LauncherPanel: NSPanel {
 
     private var currentVisible: CGRect { LauncherPlacement.currentVisible() }
 
+    /// `height` is the content height; the window also carries the shadow halo.
     private func applySizeLimits(in visible: CGRect, height: CGFloat) {
-        let width = LauncherPlacement.width(in: visible)
-        let size = NSSize(width: width, height: height)
+        let pad = Self.shadowPadding
+        let width = LauncherPlacement.width(in: visible) + 2 * pad
+        let size = NSSize(width: width, height: height + 2 * pad)
         minSize = size
         maxSize = size
     }
@@ -301,7 +363,7 @@ extension LauncherPanel: NSWindowDelegate {
     /// that was racing with the global hotkey.
     public func windowDidResignKey(_ notification: Notification) {
         guard isShown, isVisible, !isOrderingOut, dismissOnResign else { return }
-        orderOut(nil)
+        dismiss(animated: true)
     }
 }
 
@@ -363,5 +425,95 @@ private final class OpaqueLauncherChrome: NSView {
         effectiveAppearance.performAsCurrentDrawingAppearance {
             layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
         }
+    }
+}
+
+/// Transparent halo around the launcher chrome, holding the panel's shadow.
+///
+/// `NSWindow.hasShadow` exposes no radius, offset, or opacity, and a layer
+/// shadow on the chrome itself is clipped away by the corner-radius mask. So
+/// the window is oversized by `padding` and an unclipped sibling layer under
+/// the chrome casts the shadow into that margin.
+private final class ShadowContainerView: NSView {
+    let chrome: NSView
+    private let shadowView: ShadowView
+
+    var drawsShadow = true {
+        didSet { paint() }
+    }
+
+    /// Both children are inset by `padding` and autoresize with fixed margins,
+    /// so the halo survives without a layout pass.
+    init(chrome: NSView, padding: CGFloat, cornerRadius: CGFloat) {
+        self.chrome = chrome
+        shadowView = ShadowView(cornerRadius: cornerRadius)
+        let size = NSSize(
+            width: chrome.frame.width + 2 * padding,
+            height: chrome.frame.height + 2 * padding
+        )
+        super.init(frame: NSRect(origin: .zero, size: size))
+        wantsLayer = true
+        layer?.masksToBounds = false
+        let inner = bounds.insetBy(dx: padding, dy: padding)
+        for view in [shadowView, chrome] {
+            view.frame = inner
+            view.autoresizingMask = [.width, .height]
+        }
+        addSubview(shadowView)
+        addSubview(chrome)
+        paint()
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    override func viewDidChangeEffectiveAppearance() {
+        paint()
+    }
+
+    /// Heavier over dark desktops, where the panel would otherwise float
+    /// edgeless.
+    private func paint() {
+        let dark = effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        shadowView.opacity = drawsShadow ? (dark ? 0.7 : 0.45) : 0
+    }
+}
+
+/// The shadow caster: an opaque rounded rect the chrome sits exactly on top of.
+///
+/// The shadow goes through `NSView.shadow` rather than the layer's own
+/// `shadowOpacity`. AppKit syncs that property onto the backing layer of every
+/// layer-backed view, so hand-set layer shadows are wiped on the next display.
+private final class ShadowView: NSView {
+    private static let blurRadius = LauncherPlacement.shadowBlur
+    private static let offset = NSSize(width: 0, height: -LauncherPlacement.shadowDrop)
+
+    var opacity: CGFloat = 0 {
+        didSet { apply() }
+    }
+
+    init(cornerRadius: CGFloat) {
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.cornerRadius = cornerRadius
+        layer?.masksToBounds = false
+        // The fill is what casts; the chrome covers it pixel for pixel.
+        layer?.backgroundColor = NSColor.black.cgColor
+        apply()
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    /// Layer coordinates are unflipped, so a negative height drops the shadow
+    /// below the panel.
+    private func apply() {
+        guard opacity > 0 else {
+            shadow = nil
+            return
+        }
+        let drop = NSShadow()
+        drop.shadowColor = NSColor.black.withAlphaComponent(opacity)
+        drop.shadowBlurRadius = Self.blurRadius
+        drop.shadowOffset = Self.offset
+        shadow = drop
     }
 }
