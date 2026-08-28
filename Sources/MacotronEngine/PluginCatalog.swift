@@ -47,25 +47,24 @@ public enum PluginCatalog {
         return load(jsonURL: jsonURL)
     }
 
+    /// The bundled catalog is the Catalog folder itself: every `.js` beside
+    /// catalog.json is on offer, and the JSON only names the featured few.
     public static func load(jsonURL: URL) -> [CatalogPlugin] {
-        guard let data = try? Data(contentsOf: jsonURL),
-              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let rows = root["plugins"] as? [[String: Any]] else {
-            return []
-        }
         let catalogDir = jsonURL.deletingLastPathComponent()
-        return rows.compactMap { row in
-            guard let filename = row["filename"] as? String else { return nil }
+        let data = (try? Data(contentsOf: jsonURL)) ?? Data()
+        let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        let highlighted = Set(root?["highlighted"] as? [String] ?? [])
+        let filenames = (try? FileManager.default.contentsOfDirectory(atPath: catalogDir.path)) ?? []
+        return filenames.filter { $0.hasSuffix(".js") }.compactMap { filename in
             let fileURL = catalogDir.appending(path: filename)
             guard let source = try? String(contentsOf: fileURL, encoding: .utf8) else { return nil }
             let header = PluginHeader.parse(source)
-            let perms = header.permissions.compactMap(Permission.init(rawValue:))
             return CatalogPlugin(
                 filename: filename,
-                highlighted: row["highlighted"] as? Bool ?? false,
+                highlighted: highlighted.contains(filename),
                 title: header.title ?? String(filename.dropLast(3)),
                 description: header.description ?? "",
-                permissions: perms,
+                permissions: header.permissions.compactMap(Permission.init(rawValue:)),
                 source: source,
                 bundleHash: PluginHash.sha256(source: source),
                 fileURL: fileURL
@@ -89,63 +88,17 @@ public enum PluginCatalog {
     /// stay put because `screen-effects.js` replaced all three, and
     /// `demo-browser-profiles.js` and `demo-url-router.js` because
     /// `browser-picker.js` replaced both.
-    public static let legacyRenames: [String: String] = [
-        "demo-ai-chat.js": "ai-chat.js",
-        "demo-appearance.js": "appearance.js",
-        "demo-audio.js": "audio.js",
-        "demo-batch-rename.js": "batch-rename.js",
-        "demo-battery.js": "battery.js",
-        "demo-brightness.js": "brightness.js",
-        "demo-browser-picker.js": "browser-picker.js",
-        "demo-calculator.js": "calculator.js",
-        "demo-calendar.js": "calendar.js",
-        "demo-clipboard-history.js": "clipboard-history.js",
-        "demo-clipboard-image.js": "clipboard-image.js",
-        "demo-color-picker.js": "color-picker.js",
-        "demo-cpu-graph.js": "cpu-graph.js",
-        "demo-datetime.js": "datetime.js",
-        "demo-devutils.js": "devutils.js",
-        "demo-disk-usage.js": "disk-usage.js",
-        "demo-fan.js": "fan.js",
-        "demo-file-search.js": "file-search.js",
-        "demo-focus-idle.js": "focus-idle.js",
-        "demo-gestures.js": "gestures.js",
-        "demo-heic-to-jpeg.js": "heic-to-jpeg.js",
-        "demo-hid.js": "hid.js",
-        "demo-hyper.js": "hyper.js",
-        "demo-icon-rainbow.js": "icon-rainbow.js",
-        "demo-idle.js": "idle.js",
-        "demo-layouts.js": "layouts.js",
-        "demo-lock-screen.js": "lock-screen.js",
-        "demo-lorem.js": "lorem.js",
-        "demo-meeting-overlay.js": "meeting-overlay.js",
-        "demo-meetings.js": "meetings.js",
-        "demo-notes.js": "notes.js",
-        "demo-now-playing.js": "now-playing.js",
-        "demo-ocr.js": "ocr.js",
-        "demo-plain-paste.js": "plain-paste.js",
-        "demo-pomodoro.js": "pomodoro.js",
-        "demo-power.js": "power.js",
-        "demo-present-mode.js": "present-mode.js",
-        "demo-qr.js": "qr.js",
-        "demo-record.js": "record.js",
-        "demo-regex.js": "regex.js",
-        "demo-screen-ai-summary.js": "screen-ai-summary.js",
-        "demo-screenshot-rename.js": "screenshot-rename.js",
-        "demo-security-checklist.js": "security-checklist.js",
-        "demo-share.js": "share.js",
-        "demo-shortcuts.js": "shortcuts.js",
-        "demo-snippets.js": "snippets.js",
-        "demo-spaces.js": "spaces.js",
-        "demo-system-metrics.js": "system-metrics.js",
-        "demo-system-settings.js": "system-settings.js",
-        "demo-usb.js": "usb.js",
-        "demo-weather.js": "weather.js",
-        "demo-wifi.js": "wifi.js",
-        "demo-window-grid.js": "window-grid.js",
-        "demo-window-switcher.js": "window-switcher.js",
-        "demo-windows.js": "windows.js",
-    ]
+    public static let legacyRenames: [String: String] = Dictionary(
+        uniqueKeysWithValues: """
+        ai-chat appearance audio batch-rename battery brightness browser-picker calculator \
+        calendar clipboard-history clipboard-image color-picker cpu-graph datetime devutils \
+        disk-usage fan file-search focus-idle gestures heic-to-jpeg hid hyper icon-rainbow \
+        idle layouts lock-screen lorem meeting-overlay meetings notes now-playing ocr \
+        plain-paste pomodoro power present-mode qr record regex screen-ai-summary \
+        screenshot-rename security-checklist share shortcuts snippets spaces system-metrics \
+        system-settings usb weather wifi window-grid window-switcher windows
+        """.split(whereSeparator: \.isWhitespace).map { ("demo-\($0).js", "\($0).js") }
+    )
 }
 
 public enum CatalogOverwrite: Equatable, Sendable {

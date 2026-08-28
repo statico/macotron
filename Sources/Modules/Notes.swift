@@ -7,18 +7,6 @@ struct NoteRecord: Equatable {
 }
 
 enum NotesList {
-    static func parse(_ text: String) -> [NoteRecord] {
-        text.split(whereSeparator: \.isNewline).compactMap { line in
-            let parts = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)
-            guard parts.count >= 2, !parts[0].isEmpty else { return nil }
-            return NoteRecord(
-                id: parts[0],
-                title: parts[1],
-                folder: parts.count > 2 ? parts[2] : ""
-            )
-        }
-    }
-
     /// One block per folder, blocks split by ASCII 1: folder name, then the
     /// tab-joined note ids, then the tab-joined titles.
     static func parseFolders(_ text: String) -> [NoteRecord] {

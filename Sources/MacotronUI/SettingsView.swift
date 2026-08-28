@@ -58,7 +58,6 @@ public struct ModuleOption: Identifiable {
     public let key: String
     public let label: String
     public let type: String
-    public let defaultValue: Any
     public var currentValue: Any
     public let required: Bool
     /// Whether the option currently has a usable value (Keychain secret for passwords).
@@ -71,14 +70,13 @@ public struct ModuleOption: Identifiable {
     /// label instead of turning the form into prose.
     public let help: String
 
-    public init(key: String, label: String, type: String, defaultValue: Any, currentValue: Any,
+    public init(key: String, label: String, type: String, currentValue: Any,
                 required: Bool = false, isSet: Bool = true, choices: [ModuleOptionChoice] = [],
                 placeholder: String = "", help: String = "") {
         self.id = key
         self.key = key
         self.label = label
         self.type = type
-        self.defaultValue = defaultValue
         self.currentValue = currentValue
         self.required = required
         self.isSet = isSet

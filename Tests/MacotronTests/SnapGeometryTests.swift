@@ -6,6 +6,19 @@ import Testing
 struct SnapGeometryTests {
     let screen = CGRect(x: 0, y: 0, width: 1000, height: 800)
 
+    @Test("canonical slots pass through, other spellings fold in")
+    func canonicalSlot() {
+        for slot in ["left", "right", "top", "bottom", "tl", "tr", "bl", "br"] {
+            #expect(SnapGeometry.canonicalSlot(slot) == slot)
+            #expect(SnapGeometry.canonicalSlot(slot.uppercased()) == slot)
+        }
+        #expect(SnapGeometry.canonicalSlot("Top-Left") == "tl")
+        #expect(SnapGeometry.canonicalSlot("nw") == "tl")
+        #expect(SnapGeometry.canonicalSlot("se") == "br")
+        #expect(SnapGeometry.canonicalSlot("maximize") == "top")
+        #expect(SnapGeometry.canonicalSlot("nonsense") == "nonsense")
+    }
+
     @Test("corners beat edges")
     func corners() {
         #expect(SnapGeometry.slot(at: CGPoint(x: 10, y: 790), screen: screen, corner: 48, threshold: 20) == "tl")

@@ -7,7 +7,6 @@ import SwiftUI
 struct PermissionRow: View {
     let permission: Permission
     let granted: Bool
-    var showsReason: Bool = true
     /// Called after the row changes anything, so the status refreshes at once
     /// instead of waiting for the next poll.
     var onChange: (() -> Void)?
@@ -25,12 +24,10 @@ struct PermissionRow: View {
                 Text(permission.title)
                     .font(.system(size: 12, weight: .medium))
 
-                if showsReason {
-                    Text(permission.reason)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text(permission.reason)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(width: Self.textWidth, alignment: .leading)
 

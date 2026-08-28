@@ -8,22 +8,9 @@ public final class ShellModule: NativeModule {
     public let name = "shell"
     public let moduleVersion = 1
 
-    /// Commands that are always allowed without prompting.
-    /// Extend this list or make it configurable via options.
-    private var allowlist: Set<String> = [
-        "echo", "date", "whoami", "uname", "sw_vers", "which", "printenv",
-        "ls", "cat", "head", "tail", "wc", "sort", "uniq", "grep", "find",
-        "ps", "uptime", "df", "du", "hostname", "id",
-    ]
-
     public init() {}
 
     public func register(in engine: Engine, options: [String: Any]) {
-        // Merge any user-supplied allowlist additions
-        if let extra = options["allowlist"] as? [String] {
-            allowlist.formUnion(extra)
-        }
-
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JS_GetPropertyStr(ctx, global, "macotron")

@@ -101,12 +101,6 @@ public final class URLSchemeModule: NativeModule {
             return JSBridge.newBool(ctx, URLOpen.open(url, bundleID: bundleID, profile: profile))
         }, "open", 3))
 
-        JS_SetPropertyStr(ctx, urlObj, "registerHandler",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
-            guard let ctx else { return QJS_Undefined() }
-            return JSBridge.newBool(ctx, true)
-        }, "registerHandler", 1))
-
         JS_SetPropertyStr(ctx, urlObj, "setDefaultHandler",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
@@ -125,31 +119,6 @@ public final class URLSchemeModule: NativeModule {
             )
             return JSBridge.newBool(ctx, status == noErr)
         }, "setDefaultHandler", 1))
-
-        JS_SetPropertyStr(ctx, urlObj, "isDefaultHandler",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
-            guard let ctx else { return QJS_Undefined() }
-            guard let argv, argc >= 1 else { return JSBridge.newBool(ctx, false) }
-            let scheme = JSBridge.toString(ctx, argv[0]) ?? ""
-            guard !scheme.isEmpty else { return JSBridge.newBool(ctx, false) }
-
-            let opaque = JS_GetContextOpaque(ctx)
-            if let opaque {
-                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-                if engine.dryRun { return JSBridge.newBool(ctx, false) }
-            }
-
-            guard let probe = URL(string: "\(scheme):"),
-                  let app = NSWorkspace.shared.urlForApplication(toOpen: probe),
-                  let current = Bundle(url: app)?.bundleIdentifier
-            else {
-                return JSBridge.newBool(ctx, false)
-            }
-            return JSBridge.newBool(
-                ctx,
-                current.caseInsensitiveCompare(macotronBundleID) == .orderedSame
-            )
-        }, "isDefaultHandler", 1))
 
         JS_SetPropertyStr(ctx, urlObj, "onFallback",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in

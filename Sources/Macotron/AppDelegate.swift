@@ -586,8 +586,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     }
 
                     options.append(ModuleOption(
-                        key: key, label: label, type: type,
-                        defaultValue: defaultValue, currentValue: currentValue,
+                        key: key, label: label, type: type, currentValue: currentValue,
                         required: required, isSet: isSet, choices: choices,
                         placeholder: placeholder, help: help
                     ))

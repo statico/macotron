@@ -230,29 +230,6 @@ public final class WindowModule: NativeModule {
 
     // MARK: - AX Helpers
 
-    /// Collect all on-screen windows across all applications.
-    private static func allWindows() -> [(pid: pid_t, app: String, axWindow: AXUIElement)] {
-        var results: [(pid_t, String, AXUIElement)] = []
-
-        // Walk running apps that own windows
-        let workspace = NSWorkspace.shared
-        for runApp in workspace.runningApplications {
-            guard runApp.activationPolicy == .regular else { continue }
-            let pid = runApp.processIdentifier
-            let appName = runApp.localizedName ?? "Unknown"
-            let appRef = AXUIElementCreateApplication(pid)
-
-            var windowsRef: CFTypeRef?
-            let err = AXUIElementCopyAttributeValue(appRef, kAXWindowsAttribute as CFString, &windowsRef)
-            guard err == .success, let windows = windowsRef as? [AXUIElement] else { continue }
-
-            for win in windows {
-                results.append((pid, appName, win))
-            }
-        }
-        return results
-    }
-
     /// Build a JS object {id, title, app, frame:{x,y,width,height}} for a window.
     private static func windowToJS(
         _ ctx: OpaquePointer,

@@ -20,9 +20,9 @@ enum SnapGeometry {
         "br": SnapZone(x: 0.5, y: 0.5, w: 0.5, h: 0.5),
     ]
 
+    /// Only the spellings that differ from the canonical slot; `canonicalSlot`
+    /// passes anything else straight through.
     static let slotAliases: [String: String] = [
-        "left": "left", "right": "right", "top": "top", "bottom": "bottom",
-        "tl": "tl", "tr": "tr", "bl": "bl", "br": "br",
         "top-left": "tl", "topleft": "tl", "nw": "tl",
         "top-right": "tr", "topright": "tr", "ne": "tr",
         "bottom-left": "bl", "bottomleft": "bl", "sw": "bl",

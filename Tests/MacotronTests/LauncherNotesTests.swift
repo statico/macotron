@@ -19,15 +19,6 @@ struct LauncherMatchTests {
 
 @Suite("NotesList")
 struct NotesListTests {
-    @Test("parses TSV from AppleScript")
-    func parse() {
-        let rows = NotesList.parse("id-1\tShopping\tPersonal\nid-2\tIdeas\n")
-        #expect(rows == [
-            NoteRecord(id: "id-1", title: "Shopping", folder: "Personal"),
-            NoteRecord(id: "id-2", title: "Ideas", folder: ""),
-        ])
-    }
-
     @Test("parses one block per folder")
     func parseFolders() {
         let text = "Personal\nid-1\tid-2\nShopping\tIdeas\u{01}Work\nid-3\nPlan\u{01}Empty\n\n"
@@ -52,7 +43,7 @@ struct NotesListTests {
 
     @Test("hides Recently Deleted")
     func hidesDeleted() {
-        let rows = NotesList.parse("id-1\tKeep\tNotes\nid-2\tGone\tRecently Deleted\n")
+        let rows = NotesList.parseFolders("Notes\nid-1\nKeep\u{01}Recently Deleted\nid-2\nGone")
         #expect(NotesList.visible(rows) == [
             NoteRecord(id: "id-1", title: "Keep", folder: "Notes"),
         ])

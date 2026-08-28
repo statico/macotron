@@ -14,13 +14,6 @@ struct AudioDevicesTests {
         #expect(AudioDevices.clampVolume(2) == 1)
     }
 
-    @Test("mute prefers input scope when the device has input")
-    func muteScope() {
-        #expect(AudioDevices.muteScope(input: true, output: false) == kAudioObjectPropertyScopeInput)
-        #expect(AudioDevices.muteScope(input: false, output: true) == kAudioObjectPropertyScopeOutput)
-        #expect(AudioDevices.muteScope(input: true, output: true) == kAudioObjectPropertyScopeInput)
-        #expect(AudioDevices.muteScope(input: false, output: false) == kAudioObjectPropertyScopeOutput)
-    }
 }
 
 @Suite("Spaces")

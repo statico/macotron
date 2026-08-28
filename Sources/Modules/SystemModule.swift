@@ -305,12 +305,6 @@ public final class SystemModule: NativeModule {
         _ = CPUTicks.shared.usage()
         _ = CoreTicks.shared.usage()
 
-        JS_SetPropertyStr(ctx, systemObj, "cpuTemp",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
-            guard let ctx else { return QJS_Undefined() }
-            return JSBridge.newFloat64(ctx, 0.0)
-        }, "cpuTemp", 0))
-
         JS_SetPropertyStr(ctx, systemObj, "cpu",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
