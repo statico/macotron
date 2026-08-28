@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.3.5</title>
+            <sparkle:version>0.3.5</sparkle:version>
+            <sparkle:shortVersionString>0.3.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Fri, 28 Aug 2026 05:06:31 +0000</pubDate>
+            <description><![CDATA[<ul><li>Stop the fan floor from believing its own writes</li><li>Stop handing the fans back to find out what macOS wants</li><li>Record why the fan floor uses the coarse thermal signal</li><li>Give the launcher a shadow it can actually cast</li><li>Round the launcher with squircles and line its edge</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.3.5/Macotron-0.3.5.dmg" type="application/octet-stream" sparkle:edSignature="ilbF9qfpMgUJL1LcMVm8kbokJYjp5xac8piM1hTVptj6aBCTv9z0Z7M8d3gG7cTpuXbgyxMZNOkhOPMaMa5ACg==" length="9210181" />
+        </item>
+        <item>
             <title>0.3.4</title>
             <sparkle:version>0.3.4</sparkle:version>
             <sparkle:shortVersionString>0.3.4</sparkle:shortVersionString>
