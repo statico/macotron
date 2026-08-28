@@ -43,10 +43,6 @@ enum SpotlightSearch {
         }
     }
 
-    static func run(_ raw: String) -> [[String: Any]] {
-        run(raw, folder: nil, kind: nil)
-    }
-
     static func run(_ raw: String, folder: String?, kind: String?) -> [[String: Any]] {
         guard let query = queryString(raw, kind: kind) else { return [] }
         let process = Process()

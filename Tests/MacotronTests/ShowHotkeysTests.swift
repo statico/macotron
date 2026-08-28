@@ -23,7 +23,6 @@ struct ShowHotkeysTests {
                     key: "toggle",
                     label: "Toggle Grid",
                     type: "keybinding",
-                    defaultValue: "",
                     currentValue: "ctrl+opt+g"
                 ),
             ],

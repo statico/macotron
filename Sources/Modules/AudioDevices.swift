@@ -77,13 +77,6 @@ enum AudioDevices {
         return setScalar(id, kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyScopeOutput, &v)
     }
 
-    static func muteScope(input: Bool, output: Bool) -> AudioObjectPropertyScope {
-        switch (input, output) {
-        case (true, _): return kAudioObjectPropertyScopeInput
-        default: return kAudioObjectPropertyScopeOutput
-        }
-    }
-
     static func isMuted(id: AudioDeviceID, preferInput: Bool = false) -> Bool {
         muteValue(id, preferInput: preferInput) ?? false
     }
@@ -201,7 +194,7 @@ enum AudioDevices {
     private static func muteAddress(_ id: AudioDeviceID, preferInput: Bool) -> AudioObjectPropertyAddress {
         let hasInput = hasStreams(id, kAudioDevicePropertyScopeInput)
         let hasOutput = hasStreams(id, kAudioDevicePropertyScopeOutput)
-        let scope = muteScope(input: preferInput && hasInput, output: hasOutput)
+        let scope = preferInput && hasInput ? kAudioObjectPropertyScopeInput : kAudioObjectPropertyScopeOutput
         var addr = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyMute,
             mScope: scope,

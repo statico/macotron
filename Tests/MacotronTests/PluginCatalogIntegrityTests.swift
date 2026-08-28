@@ -197,11 +197,50 @@ struct PluginCatalogTests {
     }
 
     private func shippedCatalogFilenames() throws -> Set<String> {
-        let url = repoRoot().appending(path: "Resources/Catalog/catalog.json")
-        let data = try Data(contentsOf: url)
-        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        let rows = root?["plugins"] as? [[String: Any]] ?? []
-        return Set(rows.compactMap { $0["filename"] as? String })
+        Set(try FileManager.default
+            .contentsOfDirectory(atPath: repoRoot().appending(path: "Examples/plugins").path)
+            .filter { $0.hasSuffix(".js") })
+    }
+
+    /// The Catalog folder as `make bundle` assembles it: catalog.json beside
+    /// every `Examples/plugins/*.js`.
+    private func bundledCatalogDir() throws -> URL {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory
+            .appending(path: "macotron-shipped-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let root = repoRoot()
+        try fm.copyItem(
+            at: root.appending(path: "Resources/Catalog/catalog.json"),
+            to: dir.appending(path: "catalog.json")
+        )
+        let plugins = root.appending(path: "Examples/plugins")
+        for name in try shippedCatalogFilenames() {
+            try fm.copyItem(at: plugins.appending(path: name), to: dir.appending(path: name))
+        }
+        return dir
+    }
+
+    @Test("the shipped catalog offers every bundled plugin, highlighting twelve")
+    func shippedCatalogContents() throws {
+        let dir = try bundledCatalogDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let plugins = PluginCatalog.load(jsonURL: dir.appending(path: "catalog.json"))
+
+        #expect(Set(plugins.map(\.filename)) == (try shippedCatalogFilenames()))
+        #expect(Set(plugins.filter(\.highlighted).map(\.filename)) == [
+            "calculator.js", "clipboard-history.js", "file-search.js", "lock-screen.js",
+            "meetings.js", "mini-calendar.js", "notes.js", "snippets.js",
+            "system-settings.js", "weather.js", "window-grid.js", "windows.js",
+        ])
+        // Highlighted first, then title order — and every row carries its header.
+        #expect(plugins.map(\.highlighted) == plugins.map(\.highlighted).sorted { $0 && !$1 })
+        #expect(plugins.allSatisfy { !$0.title.isEmpty && !$0.description.isEmpty })
+        #expect(plugins.prefix(12).map(\.title) == [
+            "Calculator", "Clipboard History", "File Search", "Lock Screen Command",
+            "Meetings Menu", "Mini Calendar", "Notes Search", "System Settings Search",
+            "Text Snippets", "Weather", "Window Controls", "Window Quick Grid",
+        ])
     }
 
     @Test func legacyRenamesAreFrozenAtFiftyFive() {
@@ -230,8 +269,8 @@ struct PluginCatalogTests {
         #expect(catalog.subtracting(targets) == [
             "apple-tv.js", "bluetooth.js", "contacts.js", "eject.js", "headphone-pause.js",
             "homekit.js", "markdown.js", "mic-mute.js", "mini-calendar.js", "network-path.js",
-            "profiles.js", "reminders.js", "screen-effects.js", "time-machine.js",
-            "translate.js", "web-search.js", "world-clock.js",
+            "park-webcam.js", "profiles.js", "reminders.js", "screen-effects.js",
+            "time-machine.js", "translate.js", "web-search.js", "world-clock.js",
         ])
     }
 
@@ -243,7 +282,7 @@ struct PluginCatalogTests {
         try "x".write(to: dir.appending(path: "brand-new.js"), atomically: true, encoding: .utf8)
         let json = dir.appending(path: "catalog.json")
         try """
-        {"plugins":[{"filename":"brand-new.js","highlighted":false}]}
+        {"highlighted":[]}
         """.write(to: json, atomically: true, encoding: .utf8)
         #expect(PluginCatalog.load(jsonURL: json).count == 1)
         #expect(PluginCatalog.legacyRenames["demo-brand-new.js"] == nil)
@@ -259,7 +298,7 @@ struct PluginCatalogTests {
         """.write(to: dir.appending(path: "weather.js"), atomically: true, encoding: .utf8)
         let json = dir.appending(path: "catalog.json")
         try """
-        {"plugins":[{"filename":"weather.js","highlighted":true}]}
+        {"highlighted":["weather.js"]}
         """.write(to: json, atomically: true, encoding: .utf8)
         let plugins = PluginCatalog.load(jsonURL: json)
         #expect(plugins.count == 1)

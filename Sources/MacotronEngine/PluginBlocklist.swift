@@ -23,11 +23,6 @@ public enum PluginBlocklist {
         return reasons[hash.lowercased()]
     }
 
-    public static var isEmpty: Bool {
-        loadCacheIfNeeded()
-        return reasons.isEmpty
-    }
-
     /// Answers true when the set changed, so the caller can reload plugins.
     @discardableResult
     public static func refresh(session: URLSession = .shared) async -> Bool {

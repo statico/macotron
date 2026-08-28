@@ -54,7 +54,6 @@ public struct PluginScanReport: Equatable, Sendable {
 }
 
 public enum PluginScan {
-    public static let passCount = 3
     /// On-device context is ~4096 tokens. Leave room for instructions.
     public static let defaultMaxChars = 6000
     public static let overlapChars = 400

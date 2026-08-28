@@ -49,12 +49,12 @@ struct ToastLayoutTests {
     @Test("success is green")
     @MainActor
     func successColor() {
-        #expect(ToastLayout.parseColor("success") == .systemGreen)
-        #expect(ToastLayout.parseColor("failure") == .systemRed)
-        #expect(ToastLayout.parseColor("error") == .systemRed)
-        #expect(ToastLayout.parseColor("warning") == .systemOrange)
-        #expect(ToastLayout.parseColor("info") == nil)
-        #expect(ToastLayout.parseColor(nil) == nil)
+        #expect(ToastLayout.kind("success").tint == .systemGreen)
+        #expect(ToastLayout.kind("failure").tint == .systemRed)
+        #expect(ToastLayout.kind("error").tint == .systemRed)
+        #expect(ToastLayout.kind("warning").tint == .systemOrange)
+        #expect(ToastLayout.kind("info").tint == nil)
+        #expect(ToastLayout.kind(nil).tint == nil)
     }
 
     @Test("status kinds pick default icons")

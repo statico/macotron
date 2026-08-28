@@ -62,10 +62,6 @@ enum ToastLayout {
         }
     }
 
-    static func parseColor(_ raw: String?) -> NSColor? {
-        kind(raw).tint
-    }
-
     private static func namedColor(_ s: String) -> NSColor? {
         switch s.lowercased() {
         case "blue": return .systemBlue

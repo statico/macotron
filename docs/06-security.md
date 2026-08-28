@@ -93,7 +93,7 @@ enum CapabilityTier {
 
 ### Safe (read-only)
 
-`window.getAll`, `window.focused`, `clipboard.text`, `system.cpuTemp`, `system.memory`, `system.battery`, `system.darkMode`, `system.focus`, `app.list`, `spotlight.search`, `display.list`, `keychain.get`, `keychain.has`, `media.nowPlaying`, `notes.list`, `keyboard.flags`, `mouse.location`, `mouse.buttons`, `audio.devices`, `audio.input`, `audio.output`, `audio.volume`, `audio.isMuted`, `network.wifi`, `network.wifiSSID`, `network.bluetooth`, `network.airDrop`, `network.interfaces`, `spaces.list`, `spaces.current`, `usb.list`, `hid.list`, `shortcuts.list`, `qr.detect`, `qr.image`
+`window.getAll`, `window.focused`, `clipboard.text`, `system.memory`, `system.battery`, `system.darkMode`, `system.focus`, `app.list`, `spotlight.search`, `display.list`, `keychain.get`, `keychain.has`, `media.nowPlaying`, `notes.list`, `keyboard.flags`, `mouse.location`, `mouse.buttons`, `audio.devices`, `audio.input`, `audio.output`, `audio.volume`, `audio.isMuted`, `network.wifi`, `network.wifiSSID`, `network.bluetooth`, `network.airDrop`, `network.interfaces`, `spaces.list`, `spaces.current`, `usb.list`, `hid.list`, `shortcuts.list`, `qr.detect`, `qr.image`
 
 ### Moderate (reversible side effects)
 
@@ -101,19 +101,23 @@ enum CapabilityTier {
 
 ### Dangerous (system / network / filesystem)
 
-`shell.run`, `fs.write`, `fs.rename`, `http.post`, `http.put`, `http.delete`, `url.open`, `url.registerHandler`, `keychain.set`, `keychain.delete`, `screen.capture`, `power.lock`, `power.sleep`, `power.displaySleep`, `power.screensaver`, `power.logOut`, `power.restart`, `power.shutdown`
+`shell.run`, `fs.write`, `fs.rename`, `http.post`, `http.put`, `http.delete`, `url.open`, `keychain.set`, `keychain.delete`, `screen.capture`, `power.lock`, `power.sleep`, `power.displaySleep`, `power.screensaver`, `power.logOut`, `power.restart`, `power.shutdown`
 
 `macotron.fs` has the same file access as Macotron itself (TCC-scoped).
 
-## Shell Command Approval
+## Shell Commands Are Not Gated
 
-First call to shell run with an unapproved command prompts:
+`shell.run` executes whatever it is given through `/bin/zsh -c`, for any plugin
+that is running, with no allowlist and no prompt. There is no per-command
+approval step. A plugin you have enabled has the same shell access you do.
 
-- **Allow Once** — run this time only
-- **Always Allow** — add to the allowlist in `settings.json`
-- **Deny** — block
+The gate is therefore the decision to enable a plugin at all: the hash ledger
+and the catalog are what stand between a plugin and this API, not anything
+inside `shell.run`. Treat enabling a plugin that calls `shell` as equivalent to
+running its commands yourself.
 
-Extra allowed commands live under `modules.shell.allowlist` in `settings.json`.
+An allowlist and a per-command prompt are both worth building. Neither exists
+today, and this section previously described both as though they did.
 
 ## Custom URL Events Are Untrusted
 
@@ -143,8 +147,8 @@ Commit often on `main`. Do not commit secrets.
 
 | Attack Surface | Mitigation |
 |---|---|
-| Plugin runs dangerous APIs | Capability tiers plus user prompts for shell |
-| Shell commands | Shell allowlist plus per-command approval |
+| Plugin runs dangerous APIs | Capability tiers. No prompt gates `shell` |
+| Shell commands | **Ungated.** Enabling a plugin grants full shell access |
 | Secrets in repo | Keychain storage. Gitignore guidance in agent docs |
 | App-owned agent files edited by users | Banner plus overwrite. Files stay gitignored |
 | Third-party plugins | Bundled catalog plus hash ledger. Community listings later |
