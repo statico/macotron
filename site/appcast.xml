@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.3.6</title>
+            <sparkle:version>0.3.6</sparkle:version>
+            <sparkle:shortVersionString>0.3.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Fri, 28 Aug 2026 20:45:17 +0000</pubDate>
+            <description><![CDATA[<ul><li>Stop an unreadable fan maximum from reading as full speed</li><li>Read the agent template from a file instead of a Swift literal</li><li>Delete APIs and config that nothing reads</li><li>Delete docs describing work that already shipped</li><li>Add the helpers the modules have each been writing privately</li><li>Route the modules through the shared helpers</li><li>Stop hand-rolling what SwiftUI and AppKit already do</li><li>Say each thing the tests check once</li><li>Add an emoji picker that reads the emoji list macOS already ships</li><li>Keep the display awake, not just the machine</li><li>Let the emoji panel ask for its rows</li><li>Add a color blindness simulator built on a frozen screenshot</li><li>List the two new plugins among the ones with no legacy name</li><li>Hold a panel message until there is a page to receive it</li><li>Make the stop() that every() and at() return actually stop the job</li><li>Hold event listeners for the length of a dispatch</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.3.6/Macotron-0.3.6.dmg" type="application/octet-stream" sparkle:edSignature="nsgSNBoWXcpMbVRnam+D2Alnu/0f7KYQkuqSrb6RoI3NvZqDtaDwANgxB7YpETXAaL9ce+wYhYw8N9gIqILVDg==" length="9182281" />
+        </item>
+        <item>
             <title>0.3.5</title>
             <sparkle:version>0.3.5</sparkle:version>
             <sparkle:shortVersionString>0.3.5</sparkle:shortVersionString>
