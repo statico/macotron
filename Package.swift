@@ -31,7 +31,10 @@ let package = Package(
         .target(
             name: "MacotronEngine",
             dependencies: ["CQuickJS", "SMCKit"],
-            path: "Sources/MacotronEngine"
+            path: "Sources/MacotronEngine",
+            resources: [
+                .copy("Resources/agents-template.md"),
+            ]
         ),
 
         // UI (LauncherPanel + MenuBar + SwiftUI views)

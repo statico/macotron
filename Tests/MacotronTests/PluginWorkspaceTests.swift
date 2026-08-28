@@ -71,4 +71,16 @@ struct PluginWorkspaceTests {
         #expect(agents.contains("macotron.checks"))
         #expect(!agents.contains("npx"))
     }
+
+    /// Byte-for-byte guard on the generated AGENTS.md. The body moved from a Swift
+    /// literal into Resources/agents-template.md; the fixture is the pre-move output.
+    /// Intentional edits to the template: regenerate the fixture from the new output.
+    @Test @MainActor
+    func agentsTemplateMatchesFixture() throws {
+        let fixture = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appending(path: "Fixtures/agents-template.md")
+        let expected = try String(contentsOf: fixture, encoding: .utf8)
+        #expect(PluginWorkspace.agentsTemplate == expected)
+    }
 }
