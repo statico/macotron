@@ -39,23 +39,34 @@ public enum MacotronHelperService {
 }
 
 public enum FanFloor {
-    /// A floor only holds while macOS wants less air than we do — otherwise the
-    /// floor would pin the fan below what cooling needs. An unreadable demand
-    /// keeps the floor, since that is the state the user asked for.
-    public static func shouldForce(demand: Double?, floor: Double) -> Bool {
-        guard let demand else { return true }
-        return demand < floor
+    /// Whether the floor should still be held. A fan in manual mode does
+    /// exactly what it is told, so a partial floor is also a ceiling and macOS
+    /// cannot ramp past it — the floor has to yield before that ceiling starts
+    /// to matter. Thermal state is the cheap way to know: it costs nothing,
+    /// needs no key names, and above all does not require handing the fan back
+    /// to find out.
+    ///
+    /// Only `.serious` and `.critical` release it. `.fair` is ordinary warm
+    /// work, where macOS is very unlikely to want more air than a floor the
+    /// user chose deliberately, and releasing there would drop the floor
+    /// constantly on a machine that is merely busy.
+    ///
+    /// A floor at full speed cannot be a ceiling, so it is never released.
+    public static func shouldForce(
+        thermalState: ProcessInfo.ThermalState, floor: Double, max: Double
+    ) -> Bool {
+        if floor >= max { return true }
+        return thermalState == .nominal || thermalState == .fair
     }
 
-    /// Whether a target-rpm reading is macOS answering, or just our own write
-    /// read back. Two readings are not answers: the floor itself, which is the
-    /// number we put in that register, and anything below the fan's own
-    /// minimum — the firmware never asks for a fan slower than it can turn, so
-    /// that is a register the thermal manager has not written yet. Zero is the
-    /// common case of the second, and it is rejected even when the minimum is
-    /// unreadable, because a demand to stop a fan is never real.
-    public static func isSystemDemand(_ value: Double, floor: Double, min: Double) -> Bool {
-        value >= Swift.max(min, 1) && abs(value - floor) >= 1
+    public static func name(_ state: ProcessInfo.ThermalState) -> String {
+        switch state {
+        case .nominal: "nominal"
+        case .fair: "fair"
+        case .serious: "serious"
+        case .critical: "critical"
+        @unknown default: "?"
+        }
     }
 
     public static func rpm(percent: Int, min: Double, max: Double) -> Double {

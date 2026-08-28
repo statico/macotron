@@ -19,7 +19,8 @@
 //
 //   1. A fan in manual mode does exactly what it is told, so the floor is
 //      also a ceiling. macOS cannot ramp past it however hot the machine
-//      gets. `systemDemand` exists to notice that and get out of the way.
+//      gets, so the floor is released once `ProcessInfo.thermalState` says
+//      the machine is in trouble.
 //   2. Manual mode is not ours by right. From the M3 generation on, the
 //      thermal manager parks the fans in mode 3 and the firmware refuses the
 //      mode write with SMC error 0x82 — hence `unlock` and the `Ftst` dance.
@@ -46,11 +47,6 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     private var modeKey = "F0Md"
     private var timer: DispatchSourceTimer?
     private var forced: Set<Int> = []
-    private var lastPeek: [Int: Date] = [:]
-    /// How often a held fan is handed back to macOS to ask what it wants. The
-    /// question is about heat, which moves in tens of seconds, and the answer
-    /// costs a brief dip in speed, so it is not worth asking often.
-    private static let peekInterval: TimeInterval = 30
 
     func setFanFloor(_ percent: Int, reply: @escaping (String?) -> Void) {
         lock.lock()
@@ -140,84 +136,36 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     }
 
     private func applyFloor(_ percent: Int, fans: [FanInfo]) throws {
+        // A forced fan sits at exactly our target, so a partial floor is also a
+        // ceiling: while the machine works hard macOS may want more air than
+        // the floor asks for, and holding it down there cooks the Mac. Thermal
+        // state is how that gets noticed. It is a coarser signal than the
+        // thermal manager's own target rpm, but reading that meant handing the
+        // fan back to auto to see it, and a fan handed back stops -- which cost
+        // a spin-down and spin-up every peek, and left the Mac with *no* air
+        // for half of every cycle. Being late to release beats that.
+        // ponytail: coarse signal, read the thermal manager's target directly
+        // if a floor is ever seen holding a hot machine down.
+        let thermal = ProcessInfo.processInfo.thermalState
         for fan in fans {
             let floorRPM = FanFloor.rpm(percent: percent, min: fan.min, max: fan.max)
-            // A forced fan sits at exactly our target, so a partial floor is
-            // also a ceiling: while the machine works hard macOS may want more
-            // air than the floor asks for, and holding it down there cooks the
-            // Mac. Ask what macOS wants and stay out of its way when it wants
-            // more. A floor at full speed cannot be a ceiling, so it never has
-            // to ask — which matters, because asking costs a handback.
-            let demand = floorRPM < fan.max
-                ? systemDemand(fan.index, floor: floorRPM, min: fan.min)
-                : nil
-            let force = FanFloor.shouldForce(demand: demand, floor: floorRPM)
+            let force = FanFloor.shouldForce(
+                thermalState: thermal, floor: floorRPM, max: fan.max
+            )
             log.info(
-                "fan \(fan.index, privacy: .public) rpm=\(Int(fan.rpm), privacy: .public) demand=\(demand.map { String(Int($0)) } ?? "?", privacy: .public) target=\(Int(floorRPM), privacy: .public) \(force ? "force" : "auto", privacy: .public)"
+                "fan \(fan.index, privacy: .public) rpm=\(Int(fan.rpm), privacy: .public) thermal=\(FanFloor.name(thermal), privacy: .public) target=\(Int(floorRPM), privacy: .public) \(force ? "force" : "auto", privacy: .public)"
             )
             if force {
                 try unlock(fan.index)
                 try smc.writeRPM(key(fan.index, "Tg"), floorRPM)
                 forced.insert(fan.index)
-            } else {
-                forced.remove(fan.index)
+            } else if forced.remove(fan.index) != nil {
+                // Dropping it from the set is not enough: a fan left in manual
+                // mode keeps obeying the target we last wrote, so the release
+                // has to actually happen.
+                try writeMode(fan.index, 0)
             }
         }
-    }
-
-    /// What macOS itself wants this fan to do. Only auto mode answers honestly
-    /// — in manual mode the target key reads back the floor we wrote — so a
-    /// forced fan has to be handed back first, and these fans spin down fast
-    /// enough to hear. So: seldom, and only until thermalmonitord has written
-    /// a number of its own, which it does on a 100ms cadence.
-    ///
-    /// `FanFloor.isSystemDemand` is what tells an answer from our own write
-    /// read back, and it is the whole reason this is not a plain read: the
-    /// register holds our floor until the thermal manager replaces it, and
-    /// early on it can read zero. Believing either one costs a fan that stops
-    /// dead every peek. nil means we never heard an answer, which keeps the
-    /// floor.
-    private func systemDemand(_ index: Int, floor: Double, min: Double) -> Double? {
-        func answer() -> Double? {
-            guard let value = try? smc.readRPM(key(index, "Tg")),
-                  FanFloor.isSystemDemand(value, floor: floor, min: min)
-            else { return nil }
-            return value
-        }
-
-        guard forced.contains(index) else { return answer() }
-
-        let now = Date()
-        guard now.timeIntervalSince(lastPeek[index] ?? .distantPast) >= Self.peekInterval else {
-            return nil
-        }
-        lastPeek[index] = now
-
-        guard (try? writeMode(index, 0)) != nil else { return nil }
-        var demand: Double?
-        for _ in 0..<10 {
-            Thread.sleep(forTimeInterval: 0.1)
-            if let value = answer() {
-                demand = value
-                break
-            }
-        }
-        // macOS wanting more air than the floor is the one case where the fan
-        // should stay in auto. Otherwise the floor still holds, so take the fan
-        // back here: `unlock` would get there eventually, but only after the
-        // `Ftst` path, and the fan coasts down the whole time it spends there.
-        if (demand ?? 0) < floor { reclaim(index, target: floor) }
-        return demand
-    }
-
-    /// Put a fan straight back under the floor after a peek. This is `unlock`'s
-    /// fast path and nothing more — if the firmware refuses, `applyFloor` still
-    /// calls `unlock`, which does the full `Ftst` dance.
-    private func reclaim(_ index: Int, target: Double) {
-        guard (try? writeMode(index, 1)) != nil,
-              (try? smc.readUInt8(modeKeyFor(index))) == 1
-        else { return }
-        try? smc.writeRPM(key(index, "Tg"), target)
     }
 
     /// Give every fan back to macOS. Mode 0 is what the machine boots with;
@@ -225,7 +173,6 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     /// behind us.
     private func restoreAuto(count: Int) throws {
         forced.removeAll()
-        lastPeek.removeAll()
         for index in 0..<count {
             try writeMode(index, 0)
         }
