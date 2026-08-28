@@ -313,11 +313,9 @@ public final class FileSystemModule: NativeModule {
                 return JS_NewCFunction(ctx, { _, _, _, _ in QJS_Undefined() }, "stop", 0)
             }
 
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else {
+            guard Engine.of(ctx) != nil else {
                 return QJS_ThrowInternalError(ctx, "fs.watch: engine not available")
             }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
 
             let expandedPath = NSString(string: path).expandingTildeInPath
 
@@ -336,7 +334,7 @@ public final class FileSystemModule: NativeModule {
             // Retrieve the FileSystemModule from the Engine-owned configStore.
             // (C function callbacks cannot capture Swift references. The engine
             // comes from JS_GetContextOpaque, so JS code cannot tamper with it.)
-            guard let module = engine.configStore["__fsModule"] as? FileSystemModule else {
+            guard let module: FileSystemModule = Engine.module(ctx, "__fsModule") else {
                 JS_FreeValue(ctx, protectedCallback)
                 return QJS_ThrowInternalError(ctx, "fs.watch: module reference lost")
             }

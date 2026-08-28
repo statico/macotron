@@ -84,9 +84,8 @@ public final class AppModule: NativeModule {
         // macotron.app.frontmost() -> {name, bundleID, pid} or null
         JS_SetPropertyStr(ctx, appObj, "frontmost",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
-            guard let ctx, let opaque = JS_GetContextOpaque(ctx) else { return QJS_Null() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            guard let module = engine.configStore["__appModule"] as? AppModule,
+            guard let ctx else { return QJS_Null() }
+            guard let module: AppModule = Engine.module(ctx, "__appModule"),
                   let info = module.frontmostInfo() else {
                 return QJS_Null()
             }

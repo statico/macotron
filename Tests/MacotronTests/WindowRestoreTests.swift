@@ -1,3 +1,5 @@
+import AppKit
+import ApplicationServices
 import Testing
 @testable import Modules
 
@@ -115,5 +117,25 @@ struct WindowRestoreTests {
             WindowRestore.Entry(app: "Music", title: nil, bundleID: nil)
         )
         #expect(id == nil)
+    }
+}
+
+@Suite("WindowAX enumeration")
+struct WindowAXEnumerateTests {
+    /// Guards the one shared enumerator that window.getAll() and the restore
+    /// snapshot both walk. It cannot compare against a second live walk --
+    /// windows open and close between the two -- so it checks the property the
+    /// consolidation could actually break: every app's windows arrive as
+    /// contiguous indices from 0, which is what windowID() encodes.
+    @Test("enumerate yields contiguous per-app indices from zero")
+    func contiguousIndices() {
+        var perApp: [pid_t: [Int]] = [:]
+        WindowAX.enumerate { app, index, _ in
+            perApp[app.processIdentifier, default: []].append(index)
+        }
+        for (pid, indices) in perApp {
+            #expect(indices == Array(0..<indices.count))
+            #expect(WindowAX.windowID(pid: pid, index: indices[0]) == Int32(pid) * 1000)
+        }
     }
 }

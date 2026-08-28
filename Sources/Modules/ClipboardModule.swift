@@ -71,9 +71,8 @@ public final class ClipboardModule: NativeModule {
         }, "setImage", 1))
 
         JS_SetPropertyStr(ctx, clipboard, "history", JS_NewCFunction(ctx, { ctx, _, _, _ in
-            guard let ctx, let opaque = JS_GetContextOpaque(ctx) else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            guard let module = engine.configStore["__clipboardModule"] as? ClipboardModule else {
+            guard let ctx else { return QJS_Undefined() }
+            guard let module = clipboardModule(ctx) else {
                 return JSBridge.newArray(ctx, [])
             }
             module.historyOptIn = true
@@ -82,18 +81,16 @@ public final class ClipboardModule: NativeModule {
         }, "history", 0))
 
         JS_SetPropertyStr(ctx, clipboard, "paste", JS_NewCFunction(ctx, { ctx, _, argc, argv in
-            guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]),
-                  let opaque = JS_GetContextOpaque(ctx) else {
+            guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]) else {
                 return JSBridge.newBool(ctx!, false)
             }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            guard let module = engine.configStore["__clipboardModule"] as? ClipboardModule,
+            guard let module = clipboardModule(ctx),
                   let item = module.history.first(where: { ($0["id"] as? String) == id }),
                   let kind = item["kind"] as? String,
                   let text = item["text"] as? String else {
                 return JSBridge.newBool(ctx, false)
             }
-            if engine.dryRun { return JSBridge.newBool(ctx, true) }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             let pb = NSPasteboard.general
             pb.clearContents()
             if kind == "image" {
@@ -106,12 +103,10 @@ public final class ClipboardModule: NativeModule {
         }, "paste", 1))
 
         JS_SetPropertyStr(ctx, clipboard, "remove", JS_NewCFunction(ctx, { ctx, _, argc, argv in
-            guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]),
-                  let opaque = JS_GetContextOpaque(ctx) else {
+            guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]) else {
                 return JSBridge.newBool(ctx!, false)
             }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            guard let module = engine.configStore["__clipboardModule"] as? ClipboardModule else {
+            guard let module = clipboardModule(ctx) else {
                 return JSBridge.newBool(ctx, false)
             }
             let before = module.history.count
@@ -120,9 +115,8 @@ public final class ClipboardModule: NativeModule {
         }, "remove", 1))
 
         JS_SetPropertyStr(ctx, clipboard, "clearHistory", JS_NewCFunction(ctx, { ctx, _, _, _ in
-            guard let ctx, let opaque = JS_GetContextOpaque(ctx) else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            (engine.configStore["__clipboardModule"] as? ClipboardModule)?.history.removeAll()
+            guard let ctx else { return QJS_Undefined() }
+            clipboardModule(ctx)?.history.removeAll()
             return QJS_Undefined()
         }, "clearHistory", 0))
 
@@ -313,9 +307,7 @@ public final class ClipboardModule: NativeModule {
 
 @MainActor
 private func clipboardModule(_ ctx: OpaquePointer) -> ClipboardModule? {
-    guard let opaque = JS_GetContextOpaque(ctx) else { return nil }
-    let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-    return engine.configStore["__clipboardModule"] as? ClipboardModule
+    Engine.module(ctx, "__clipboardModule")
 }
 
 enum ClipboardHistoryPolicy {

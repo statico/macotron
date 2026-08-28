@@ -126,13 +126,7 @@ public final class NotifyModule: NativeModule {
                 return QJS_ThrowTypeError(ctx, "notify.show: body must be a string")
             }
 
-            let opaque = JS_GetContextOpaque(ctx)
-            if let opaque {
-                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-                if engine.dryRun {
-                    return QJS_Undefined()
-                }
-            }
+            if Engine.isDryRun(ctx) { return QJS_Undefined() }
 
             // Parse optional opts object
             var sound = true
@@ -141,26 +135,9 @@ public final class NotifyModule: NativeModule {
 
             if argc > 2 && !JS_IsUndefined(argv[2]) && !JS_IsNull(argv[2]) {
                 let opts = argv[2]
-
-                let soundVal = JSBridge.getProperty(ctx, opts, "sound")
-                if !JS_IsUndefined(soundVal) {
-                    sound = JSBridge.toBool(ctx, soundVal)
-                }
-                JS_FreeValue(ctx, soundVal)
-
-                let subtitleVal = JSBridge.getProperty(ctx, opts, "subtitle")
-                if !JS_IsUndefined(subtitleVal) && !JS_IsNull(subtitleVal) {
-                    subtitle = JSBridge.toString(ctx, subtitleVal)
-                }
-                JS_FreeValue(ctx, subtitleVal)
-
-                let idVal = JSBridge.getProperty(ctx, opts, "id")
-                if !JS_IsUndefined(idVal) && !JS_IsNull(idVal) {
-                    if let customID = JSBridge.toString(ctx, idVal) {
-                        identifier = customID
-                    }
-                }
-                JS_FreeValue(ctx, idVal)
+                sound = JSBridge.bool(ctx, opts, "sound") ?? sound
+                subtitle = JSBridge.string(ctx, opts, "subtitle")
+                identifier = JSBridge.string(ctx, opts, "id") ?? identifier
             }
 
             // Build and schedule the notification
@@ -193,13 +170,7 @@ public final class NotifyModule: NativeModule {
                 return QJS_ThrowTypeError(ctx, "notify.toast: title must be a string")
             }
 
-            let opaque = JS_GetContextOpaque(ctx)
-            if let opaque {
-                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-                if engine.dryRun {
-                    return QJS_Undefined()
-                }
-            }
+            if Engine.isDryRun(ctx) { return QJS_Undefined() }
 
             var body: String?
             var opts: JSValue?
@@ -220,30 +191,14 @@ public final class NotifyModule: NativeModule {
             var sfSymbol: String?
             var color: String?
             if let opts {
-                let posVal = JSBridge.getProperty(ctx, opts, "position")
-                if !JS_IsUndefined(posVal), let name = JSBridge.toString(ctx, posVal) {
+                if let name = JSBridge.string(ctx, opts, "position") {
                     position = ToastPosition.parse(name)
                 }
-                JS_FreeValue(ctx, posVal)
-
-                let durVal = JSBridge.getProperty(ctx, opts, "duration")
-                if !JS_IsUndefined(durVal) {
-                    let ms = JSBridge.toDouble(ctx, durVal)
-                    if ms > 0 { duration = ms / 1000 }
+                if let ms = JSBridge.double(ctx, opts, "duration"), ms > 0 {
+                    duration = ms / 1000
                 }
-                JS_FreeValue(ctx, durVal)
-
-                let symVal = JSBridge.getProperty(ctx, opts, "sfSymbol")
-                if !JS_IsUndefined(symVal) {
-                    sfSymbol = JSBridge.toString(ctx, symVal)
-                }
-                JS_FreeValue(ctx, symVal)
-
-                let colorVal = JSBridge.getProperty(ctx, opts, "color")
-                if !JS_IsUndefined(colorVal) {
-                    color = JSBridge.toString(ctx, colorVal)
-                }
-                JS_FreeValue(ctx, colorVal)
+                sfSymbol = JSBridge.string(ctx, opts, "sfSymbol")
+                color = JSBridge.string(ctx, opts, "color")
             }
 
             ToastHost.shared.show(

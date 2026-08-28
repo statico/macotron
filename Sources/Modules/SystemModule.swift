@@ -228,25 +228,9 @@ enum LowPowerMode {
         if dryRun {
             return ["ok": true, "lowPowerMode": enabled]
         }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = ["-e", script(enabled)]
-        let err = Pipe()
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = err
-        do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            return [
-                "ok": false,
-                "lowPowerMode": ProcessInfo.processInfo.isLowPowerModeEnabled,
-                "error": error.localizedDescription,
-            ]
-        }
-        if process.terminationStatus != 0 {
-            let msg = String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let result = Subprocess.run("/usr/bin/osascript", ["-e", script(enabled)])
+        guard result.ok else {
+            let msg = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
             return [
                 "ok": false,
                 "lowPowerMode": ProcessInfo.processInfo.isLowPowerModeEnabled,
@@ -473,20 +457,7 @@ public final class SystemModule: NativeModule {
             }
             let wanted = limit
             return JSBridge.promise(ctx, dryRun: [Any]()) {
-                let proc = Process()
-                proc.executableURL = URL(fileURLWithPath: "/bin/ps")
-                proc.arguments = ["-Ao", "pid,pcpu,comm", "-r"]
-                let pipe = Pipe()
-                proc.standardOutput = pipe
-                proc.standardError = FileHandle.nullDevice
-                do {
-                    try proc.run()
-                    proc.waitUntilExit()
-                } catch {
-                    return .value([Any]())
-                }
-
-                let text = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                let text = Subprocess.run("/bin/ps", ["-Ao", "pid,pcpu,comm", "-r"]).stdout
                 var results: [Any] = []
                 for line in text.split(separator: "\n").dropFirst() {
                     if results.count >= wanted { break }

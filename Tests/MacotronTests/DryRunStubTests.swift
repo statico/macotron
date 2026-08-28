@@ -86,6 +86,15 @@ struct DryRunStubTests {
         #expect(error == nil)
         let (result, _) = engine.evaluate("globalThis.out")
         #expect(result == "[0,0,0,0]")
+
+        // Name and arity come off the same table row as the HTTP method and
+        // the body flag, so a misrouted magic index shows up here.
+        let (shape, shapeError) = engine.evaluate("""
+            ['get', 'post', 'put', 'delete']
+                .map(n => macotron.http[n].name + '/' + macotron.http[n].length).join(',')
+            """)
+        #expect(shapeError == nil)
+        #expect(shape == "get/2,post/3,put/3,delete/2")
     }
 
     @Test("ai chat and stream resolve empty without calling a provider")
@@ -179,6 +188,21 @@ struct DryRunStubTests {
         #expect(error == nil)
         let (result, _) = engine.evaluate("globalThis.scanOut")
         #expect(result == "null")
+    }
+
+    @Test("screen.capture and pickColor are inert")
+    func screen() {
+        let engine = dryEngine([ScreenModule()])
+        let (_, error) = engine.evaluate("""
+            globalThis.capOut = 'pending';
+            macotron.screen.capture().then(v => { globalThis.capOut = 'resolved:' + v; });
+            globalThis.selOut = String(macotron.screen.capture({ selection: true }));
+            globalThis.colorOut = String(macotron.screen.pickColor());
+            """)
+        #expect(error == nil)
+        #expect(engine.evaluate("globalThis.capOut").0 == "resolved:")
+        #expect(engine.evaluate("globalThis.selOut").0 == "")
+        #expect(engine.evaluate("globalThis.colorOut").0 == "null")
     }
 
     @Test("ocr.recognize resolves empty without running Vision")

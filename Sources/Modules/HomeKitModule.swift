@@ -47,6 +47,5 @@ public final class HomeKitModule: NativeModule {
 
 @MainActor
 private func homekitDryRun(_ ctx: OpaquePointer) -> Bool {
-    guard let opaque = JS_GetContextOpaque(ctx) else { return false }
-    return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
+    Engine.isDryRun(ctx)
 }

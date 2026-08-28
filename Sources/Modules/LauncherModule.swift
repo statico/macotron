@@ -125,9 +125,7 @@ public final class LauncherModule: NativeModule {
 
         JS_SetPropertyStr(ctx, launcher, "set", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
-            guard let opaque = JS_GetContextOpaque(ctx) else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            guard let mod = engine.configStore["__launcherModule"] as? LauncherModule,
+            guard let mod: LauncherModule = Engine.module(ctx, "__launcherModule"),
                   let provider = JSBridge.toString(ctx, argv[0]) else {
                 return QJS_Undefined()
             }
@@ -137,9 +135,7 @@ public final class LauncherModule: NativeModule {
 
         JS_SetPropertyStr(ctx, launcher, "query", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
-            guard let opaque = JS_GetContextOpaque(ctx) else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            guard let mod = engine.configStore["__launcherModule"] as? LauncherModule,
+            guard let mod: LauncherModule = Engine.module(ctx, "__launcherModule"),
                   let provider = JSBridge.toString(ctx, argv[0]),
                   JS_IsFunction(ctx, argv[1]) else {
                 return QJS_Undefined()
@@ -153,9 +149,7 @@ public final class LauncherModule: NativeModule {
 
         JS_SetPropertyStr(ctx, launcher, "remove", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-            guard let opaque = JS_GetContextOpaque(ctx) else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            guard let mod = engine.configStore["__launcherModule"] as? LauncherModule,
+            guard let mod: LauncherModule = Engine.module(ctx, "__launcherModule"),
                   let provider = JSBridge.toString(ctx, argv[0]) else {
                 return QJS_Undefined()
             }
@@ -248,34 +242,14 @@ public final class LauncherModule: NativeModule {
             defer { JS_FreeValue(ctx, elem) }
             guard JS_IsObject(elem) else { continue }
 
-            let idVal = JSBridge.getProperty(ctx, elem, "id")
-            let rawId = JSBridge.toString(ctx, idVal) ?? "\(idx)"
-            JS_FreeValue(ctx, idVal)
+            let rawId = JSBridge.string(ctx, elem, "id") ?? "\(idx)"
             let id = "launcher:\(provider)/\(rawId)"
 
-            let titleVal = JSBridge.getProperty(ctx, elem, "title")
-            let title = JSBridge.toString(ctx, titleVal) ?? rawId
-            JS_FreeValue(ctx, titleVal)
-
-            let subtitleVal = JSBridge.getProperty(ctx, elem, "subtitle")
-            let subtitle = JSBridge.isUndefined(subtitleVal) || JSBridge.isNull(subtitleVal)
-                ? "" : (JSBridge.toString(ctx, subtitleVal) ?? "")
-            JS_FreeValue(ctx, subtitleVal)
-
-            let kindVal = JSBridge.getProperty(ctx, elem, "kind")
-            let kind = JSBridge.isUndefined(kindVal) || JSBridge.isNull(kindVal)
-                ? "" : (JSBridge.toString(ctx, kindVal) ?? "")
-            JS_FreeValue(ctx, kindVal)
-
-            let appVal = JSBridge.getProperty(ctx, elem, "app")
-            let app = JSBridge.isUndefined(appVal) || JSBridge.isNull(appVal)
-                ? nil : JSBridge.toString(ctx, appVal)
-            JS_FreeValue(ctx, appVal)
-
-            let sfVal = JSBridge.getProperty(ctx, elem, "sfSymbol")
-            let sfSymbol = JSBridge.isUndefined(sfVal) || JSBridge.isNull(sfVal)
-                ? nil : JSBridge.toString(ctx, sfVal)
-            JS_FreeValue(ctx, sfVal)
+            let title = JSBridge.string(ctx, elem, "title") ?? rawId
+            let subtitle = JSBridge.string(ctx, elem, "subtitle") ?? ""
+            let kind = JSBridge.string(ctx, elem, "kind") ?? ""
+            let app = JSBridge.string(ctx, elem, "app")
+            let sfSymbol = JSBridge.string(ctx, elem, "sfSymbol")
 
             let onClickVal = JSBridge.getProperty(ctx, elem, "onClick")
             if JS_IsFunction(ctx, onClickVal) {

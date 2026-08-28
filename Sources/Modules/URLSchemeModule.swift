@@ -58,9 +58,7 @@ public final class URLSchemeModule: NativeModule {
             let host = JSBridge.toString(ctx, argv[1]) ?? ""
             let callback = argv[2]
 
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            guard let engine = Engine.of(ctx) else { return QJS_Undefined() }
 
             let receiver = URLSchemeEventReceiver.shared
             if JS_IsRegExp(argv[1]) {
@@ -108,10 +106,7 @@ public final class URLSchemeModule: NativeModule {
             let scheme = JSBridge.toString(ctx, argv[0]) ?? ""
             guard !scheme.isEmpty else { return JSBridge.newBool(ctx, false) }
 
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return JSBridge.newBool(ctx, false) }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            if engine.dryRun { return JSBridge.newBool(ctx, true) }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
 
             let status = LSSetDefaultHandlerForURLScheme(
                 scheme as CFString,

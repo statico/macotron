@@ -45,23 +45,9 @@ enum SpotlightSearch {
 
     static func run(_ raw: String, folder: String?, kind: String?) -> [[String: Any]] {
         guard let query = queryString(raw, kind: kind) else { return [] }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/mdfind")
         let dir = folder?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        process.arguments = dir.isEmpty
-            ? [query]
-            : ["-onlyin", (dir as NSString).expandingTildeInPath, query]
-        let out = Pipe()
-        process.standardOutput = out
-        process.standardError = FileHandle.nullDevice
-        do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            return []
-        }
-        let data = out.fileHandleForReading.readDataToEndOfFile()
-        return parse(String(data: data, encoding: .utf8) ?? "")
+        let args = dir.isEmpty ? [query] : ["-onlyin", (dir as NSString).expandingTildeInPath, query]
+        return parse(Subprocess.run("/usr/bin/mdfind", args).stdout)
     }
 }
 

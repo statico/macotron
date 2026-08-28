@@ -54,6 +54,23 @@ struct NetworkControlTests {
         #expect(NetworkControl.airDropPlistValue("nope") == nil)
     }
 
+    @Test("run merges stdout and stderr, trims, and reports the status")
+    func runMergesOutput() {
+        // Every networksetup caller below parses `out` as one blob and treats
+        // a non-zero status as the error path, so both halves are contract.
+        let good = NetworkControl.run("/bin/sh", ["-c", "echo out; echo err >&2"])
+        #expect(good.ok)
+        #expect(good.out.contains("out"))
+        #expect(good.out.contains("err"))
+        #expect(!good.out.hasSuffix("\n"))
+
+        let bad = NetworkControl.run("/bin/sh", ["-c", "exit 7"])
+        #expect(!bad.ok)
+        #expect(bad.out.isEmpty)
+
+        #expect(!NetworkControl.run("/nonexistent/tool", []).ok)
+    }
+
     @Test("wifi set is a no-op in dry run")
     func wifiDryRun() {
         let result = NetworkControl.setWifi(true, dryRun: true)

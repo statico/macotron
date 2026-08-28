@@ -47,36 +47,17 @@ public final class ShellModule: NativeModule {
             let dryResult: [String: Any] = ["stdout": "", "stderr": "", "exitCode": 0]
             let capturedArgs = args
             return JSBridge.promise(ctx, dryRun: dryResult) {
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: "/bin/zsh")
                 var fullCmd = command
                 for arg in capturedArgs {
                     // Simple shell-escape: wrap each arg in single quotes
                     let escaped = arg.replacingOccurrences(of: "'", with: "'\\''")
                     fullCmd += " '\(escaped)'"
                 }
-                process.arguments = ["-c", fullCmd]
-
-                let stdoutPipe = Pipe()
-                let stderrPipe = Pipe()
-                process.standardOutput = stdoutPipe
-                process.standardError = stderrPipe
-
-                do {
-                    try process.run()
-                } catch {
-                    return .failure("shell.run failed: \(error.localizedDescription)")
-                }
-                // Read before waiting: a command that fills the 64K pipe buffer
-                // blocks on write forever if nobody is draining it.
-                let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-                let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-                process.waitUntilExit()
-
+                let result = Subprocess.run("/bin/zsh", ["-c", fullCmd])
                 return .value([
-                    "stdout": String(data: stdoutData, encoding: .utf8) ?? "",
-                    "stderr": String(data: stderrData, encoding: .utf8) ?? "",
-                    "exitCode": Int(process.terminationStatus),
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                    "exitCode": Int(result.exitCode),
                 ] as [String: Any])
             }
         }, "run", 2))

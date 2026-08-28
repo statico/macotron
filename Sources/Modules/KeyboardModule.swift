@@ -88,9 +88,7 @@ public final class KeyboardModule: NativeModule {
                 return QJS_ThrowTypeError(ctx, "keyboard.on requires a default shortcut")
             }
 
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            guard let engine = Engine.of(ctx) else { return QJS_Undefined() }
             let pluginFile = engine.currentEvaluatingFile ?? ""
             let fullId = pluginFile.isEmpty ? key : "\(pluginFile)/\(key)"
             let table = CommandShortcuts.load(from: engine.configStore["keyboardShortcuts"])
@@ -156,13 +154,10 @@ public final class KeyboardModule: NativeModule {
 
 @MainActor
 private func keyboardModule(_ ctx: OpaquePointer) -> KeyboardModule? {
-    guard let opaque = JS_GetContextOpaque(ctx) else { return nil }
-    let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-    return engine.configStore["__keyboardModule"] as? KeyboardModule
+    Engine.module(ctx, "__keyboardModule")
 }
 
 @MainActor
 private func engineDryRun(_ ctx: OpaquePointer) -> Bool {
-    guard let opaque = JS_GetContextOpaque(ctx) else { return false }
-    return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
+    Engine.isDryRun(ctx)
 }

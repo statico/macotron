@@ -54,13 +54,9 @@ public final class LocalStorageModule: NativeModule {
         // --- getItem(key) → string | null ---
         JS_SetPropertyStr(ctx, storageObj, "getItem", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Null() }
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return QJS_Null() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-
             guard let key = JSBridge.toString(ctx, argv[0]) else { return QJS_Null() }
 
-            if let mod = engine.configStore["__localStorageModule"] as? LocalStorageModule,
+            if let mod: LocalStorageModule = Engine.module(ctx, "__localStorageModule"),
                let value = mod.store[key] {
                 return JSBridge.newString(ctx, value)
             }
@@ -70,14 +66,10 @@ public final class LocalStorageModule: NativeModule {
         // --- setItem(key, value) ---
         JS_SetPropertyStr(ctx, storageObj, "setItem", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-
             guard let key = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
             let value = JSBridge.toString(ctx, argv[1]) ?? ""
 
-            if let mod = engine.configStore["__localStorageModule"] as? LocalStorageModule {
+            if let mod: LocalStorageModule = Engine.module(ctx, "__localStorageModule") {
                 mod.store[key] = value
                 mod.saveToDisk()
             }
@@ -87,13 +79,9 @@ public final class LocalStorageModule: NativeModule {
         // --- removeItem(key) ---
         JS_SetPropertyStr(ctx, storageObj, "removeItem", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-
             guard let key = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
 
-            if let mod = engine.configStore["__localStorageModule"] as? LocalStorageModule {
+            if let mod: LocalStorageModule = Engine.module(ctx, "__localStorageModule") {
                 mod.store.removeValue(forKey: key)
                 mod.saveToDisk()
             }
@@ -103,11 +91,7 @@ public final class LocalStorageModule: NativeModule {
         // --- clear() ---
         JS_SetPropertyStr(ctx, storageObj, "clear", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return QJS_Undefined() }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-
-            if let mod = engine.configStore["__localStorageModule"] as? LocalStorageModule {
+            if let mod: LocalStorageModule = Engine.module(ctx, "__localStorageModule") {
                 mod.store.removeAll()
                 mod.saveToDisk()
             }

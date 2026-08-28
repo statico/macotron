@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import MacotronEngine
 
 struct NowPlayingPayload: Equatable {
     var playing = false
@@ -233,23 +234,8 @@ final class NowPlaying: @unchecked Sendable {
     """
 
     private static func readNowPlaying() -> NowPlayingPayload {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = ["-l", "JavaScript"]
-        let stdin = Pipe()
-        let stdout = Pipe()
-        process.standardInput = stdin
-        process.standardOutput = stdout
-        process.standardError = FileHandle.nullDevice
-        do {
-            try process.run()
-            stdin.fileHandleForWriting.write(Data(jxa.utf8))
-            stdin.fileHandleForWriting.closeFile()
-            process.waitUntilExit()
-        } catch {
-            return .empty
-        }
-        return NowPlayingPayload.parse(stdout.fileHandleForReading.readDataToEndOfFile())
+        let result = Subprocess.run("/usr/bin/osascript", ["-l", "JavaScript"], stdin: jxa)
+        return NowPlayingPayload.parse(Data(result.stdout.utf8))
     }
 
     private static func fetchArtwork(_ payload: NowPlayingPayload) -> String? {
@@ -261,7 +247,7 @@ final class NowPlaying: @unchecked Sendable {
             cover = coverURL(from: albumSearch)
         }
         guard let cover, let data = get(cover), !data.isEmpty else { return nil }
-        let name = "macotron-nowplaying-\(stableHash(payload.artKey)).jpg"
+        let name = "macotron-nowplaying-\(PluginHash.sha256(source: payload.artKey)).jpg"
         let path = FileManager.default.temporaryDirectory.appending(path: name)
         do {
             try data.write(to: path, options: .atomic)
@@ -297,14 +283,6 @@ final class NowPlaying: @unchecked Sendable {
         }.resume()
         _ = sem.wait(timeout: .now() + 5)
         return result
-    }
-
-    private static func stableHash(_ text: String) -> String {
-        var hash: UInt64 = 5381
-        for byte in text.utf8 {
-            hash = hash &* 33 &+ UInt64(byte)
-        }
-        return String(hash, radix: 16)
     }
 }
 

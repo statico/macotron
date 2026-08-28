@@ -126,7 +126,7 @@ public final class CameraModule: NativeModule {
 
         JS_SetPropertyStr(ctx, camera, "list", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            if CameraModule.dryRun(ctx) { return JSBridge.newArray(ctx, []) }
+            if Engine.isDryRun(ctx) { return JSBridge.newArray(ctx, []) }
             return JSBridge.newArray(ctx, CameraModule.devices().map {
                 ["id": $0.uniqueID, "name": $0.localizedName] as [String: Any]
             })
@@ -134,7 +134,7 @@ public final class CameraModule: NativeModule {
 
         JS_SetPropertyStr(ctx, camera, "preview", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
-            if CameraModule.dryRun(ctx) { return JSBridge.newBool(ctx, false) }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, false) }
             return JSBridge.newBool(ctx, CameraModule.module(ctx)?.startPreview(ctx, argc: argc, argv: argv) ?? false)
         }, "preview", 1))
 
@@ -145,7 +145,7 @@ public final class CameraModule: NativeModule {
 
         JS_SetPropertyStr(ctx, camera, "snapshot", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            if CameraModule.dryRun(ctx) { return QJS_Null() }
+            if Engine.isDryRun(ctx) { return QJS_Null() }
             guard let png = CameraModule.module(ctx)?.preview.snapshot() else { return QJS_Null() }
             return JSBridge.newString(ctx, png)
         }, "snapshot", 0))
@@ -175,21 +175,9 @@ public final class CameraModule: NativeModule {
         var height: CGFloat = 480
         if let argv, argc >= 1, JS_IsObject(argv[0]) {
             let opts = argv[0]
-            let idVal = JSBridge.getProperty(ctx, opts, "id")
-            let wVal = JSBridge.getProperty(ctx, opts, "width")
-            let hVal = JSBridge.getProperty(ctx, opts, "height")
-            if !JSBridge.isUndefined(idVal), !JSBridge.isNull(idVal) {
-                id = JSBridge.toString(ctx, idVal)
-            }
-            if !JSBridge.isUndefined(wVal), !JSBridge.isNull(wVal) {
-                width = CGFloat(max(JSBridge.toInt32(ctx, wVal), 160))
-            }
-            if !JSBridge.isUndefined(hVal), !JSBridge.isNull(hVal) {
-                height = CGFloat(max(JSBridge.toInt32(ctx, hVal), 120))
-            }
-            JS_FreeValue(ctx, idVal)
-            JS_FreeValue(ctx, wVal)
-            JS_FreeValue(ctx, hVal)
+            id = JSBridge.string(ctx, opts, "id")
+            if let w = JSBridge.int(ctx, opts, "width") { width = CGFloat(max(w, 160)) }
+            if let h = JSBridge.int(ctx, opts, "height") { height = CGFloat(max(h, 120)) }
         }
 
         let devices = Self.devices()
@@ -209,13 +197,6 @@ public final class CameraModule: NativeModule {
     }
 
     fileprivate static func module(_ ctx: OpaquePointer?) -> CameraModule? {
-        guard let ctx, let opaque = JS_GetContextOpaque(ctx) else { return nil }
-        let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-        return engine.configStore["__cameraModule"] as? CameraModule
-    }
-
-    fileprivate static func dryRun(_ ctx: OpaquePointer) -> Bool {
-        guard let opaque = JS_GetContextOpaque(ctx) else { return false }
-        return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
+        Engine.module(ctx, "__cameraModule")
     }
 }

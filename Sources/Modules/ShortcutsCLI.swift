@@ -11,30 +11,11 @@ enum ShortcutsCLI {
     }
 
     static func list() -> [String] {
-        parseList(run([binary, "list"]).stdout)
+        parseList(Subprocess.run(binary, ["list"]).stdout)
     }
 
     static func runShortcut(_ name: String) -> (ok: Bool, stdout: String, stderr: String) {
-        let result = run([binary, "run", name])
-        return (result.exitCode == 0, result.stdout, result.stderr)
-    }
-
-    private static func run(_ args: [String]) -> (stdout: String, stderr: String, exitCode: Int32) {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: args[0])
-        process.arguments = Array(args.dropFirst())
-        let out = Pipe()
-        let err = Pipe()
-        process.standardOutput = out
-        process.standardError = err
-        do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            return ("", error.localizedDescription, 1)
-        }
-        let stdout = String(data: out.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-        let stderr = String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-        return (stdout, stderr, process.terminationStatus)
+        let result = Subprocess.run(binary, ["run", name])
+        return (result.ok, result.stdout, result.stderr)
     }
 }

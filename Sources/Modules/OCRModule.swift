@@ -26,13 +26,8 @@ public final class OCRModule: NativeModule {
                 return QJS_ThrowTypeError(ctx, "ocr.recognize requires { path } or { image }")
             }
 
-            let opts = argv[0]
-            let pathValue = JSBridge.getProperty(ctx, opts, "path")
-            let imageValue = JSBridge.getProperty(ctx, opts, "image")
-            let path = JSBridge.isUndefined(pathValue) ? nil : JSBridge.toString(ctx, pathValue)
-            let image = JSBridge.isUndefined(imageValue) ? nil : JSBridge.toString(ctx, imageValue)
-            JS_FreeValue(ctx, pathValue)
-            JS_FreeValue(ctx, imageValue)
+            let path = JSBridge.string(ctx, argv[0], "path")
+            let image = JSBridge.string(ctx, argv[0], "image")
 
             let input: OCRInput
             if let path, !path.isEmpty {
@@ -43,29 +38,7 @@ public final class OCRModule: NativeModule {
                 return QJS_ThrowTypeError(ctx, "ocr.recognize requires a valid path or base64 image")
             }
 
-            var resolving = [JSValue](repeating: QJS_Undefined(), count: 2)
-            let promise = JS_NewPromiseCapability(ctx, &resolving)
-            let resolve = JS_DupValue(ctx, resolving[0])
-            let reject = JS_DupValue(ctx, resolving[1])
-            JS_FreeValue(ctx, resolving[0])
-            JS_FreeValue(ctx, resolving[1])
-
-            let opaque = JS_GetContextOpaque(ctx)
-            guard let opaque else { return promise }
-            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-            if engine.dryRun {
-                var value = JSBridge.newString(ctx, "")
-                _ = JS_Call(ctx, resolve, QJS_Undefined(), 1, &value)
-                JS_FreeValue(ctx, value)
-                JS_FreeValue(ctx, resolve)
-                JS_FreeValue(ctx, reject)
-                engine.drainJobQueue()
-                return promise
-            }
-            let token = engine.registerPending(resolve: resolve, reject: reject)
-            nonisolated(unsafe) let capturedCtx = ctx
-
-            DispatchQueue.global(qos: .userInitiated).async {
+            return JSBridge.promise(ctx, dryRun: "") {
                 do {
                     let request = VNRecognizeTextRequest()
                     request.recognitionLevel = .accurate
@@ -78,33 +51,13 @@ public final class OCRModule: NativeModule {
                         try VNImageRequestHandler(url: URL(fileURLWithPath: path)).perform([request])
                     }
 
-                    let text = (request.results ?? [])
+                    return .value((request.results ?? [])
                         .compactMap { $0.topCandidates(1).first?.string }
-                        .joined(separator: "\n")
-
-                    DispatchQueue.main.async {
-                        guard let pending = engine.claimPending(token) else { return }
-                        var value = JSBridge.newString(capturedCtx, text)
-                        _ = JS_Call(capturedCtx, pending.resolve, QJS_Undefined(), 1, &value)
-                        JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, pending.resolve)
-                        JS_FreeValue(capturedCtx, pending.reject)
-                        engine.drainJobQueue()
-                    }
+                        .joined(separator: "\n"))
                 } catch {
-                    DispatchQueue.main.async {
-                        guard let pending = engine.claimPending(token) else { return }
-                        var value = JSBridge.newString(capturedCtx, error.localizedDescription)
-                        _ = JS_Call(capturedCtx, pending.reject, QJS_Undefined(), 1, &value)
-                        JS_FreeValue(capturedCtx, value)
-                        JS_FreeValue(capturedCtx, pending.resolve)
-                        JS_FreeValue(capturedCtx, pending.reject)
-                        engine.drainJobQueue()
-                    }
+                    return .failure(error.localizedDescription)
                 }
             }
-
-            return promise
         }, "recognize", 1))
 
         JS_SetPropertyStr(ctx, macotron, "ocr", ocr)

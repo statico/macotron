@@ -94,18 +94,15 @@ public final class AudioModule: NativeModule {
 
         JS_SetPropertyStr(ctx, audio, "record", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
-            if AudioModule.dryRun(ctx) { return JSBridge.newBool(ctx, false) }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, false) }
             guard let argv, argc >= 1 else { return JSBridge.newBool(ctx, false) }
-            let pathVal = JSBridge.getProperty(ctx, argv[0], "path")
-            let path = JSBridge.toString(ctx, pathVal)
-            JS_FreeValue(ctx, pathVal)
-            guard let path, !path.isEmpty else { return JSBridge.newBool(ctx, false) }
+            guard let path = JSBridge.string(ctx, argv[0], "path"), !path.isEmpty else { return JSBridge.newBool(ctx, false) }
             return JSBridge.newBool(ctx, AudioModule.module(ctx)?.record(path) ?? false)
         }, "record", 1))
 
         JS_SetPropertyStr(ctx, audio, "stopRecord", JS_NewCFunction(ctx, { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            if AudioModule.dryRun(ctx) { return QJS_Null() }
+            if Engine.isDryRun(ctx) { return QJS_Null() }
             guard let result = AudioModule.module(ctx)?.stopRecord() else { return QJS_Null() }
             return JSBridge.newObject(ctx, result)
         }, "stopRecord", 0))
@@ -158,14 +155,7 @@ public final class AudioModule: NativeModule {
     }
 
     fileprivate static func module(_ ctx: OpaquePointer) -> AudioModule? {
-        guard let opaque = JS_GetContextOpaque(ctx) else { return nil }
-        let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-        return engine.configStore["__audioModule"] as? AudioModule
-    }
-
-    fileprivate static func dryRun(_ ctx: OpaquePointer) -> Bool {
-        guard let opaque = JS_GetContextOpaque(ctx) else { return false }
-        return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
+        Engine.module(ctx, "__audioModule")
     }
 
     fileprivate static func setDefault(_ ctx: OpaquePointer, _ spec: JSValue, input: Bool) -> Bool {

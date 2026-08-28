@@ -39,66 +39,24 @@ public final class PanelModule: NativeModule {
 
             let opts = argv[0]
 
-            let titleVal = JSBridge.getProperty(ctx, opts, "title")
-            let title = JSBridge.toString(ctx, titleVal) ?? "Macotron"
-            JS_FreeValue(ctx, titleVal)
-
-            let widthVal = JSBridge.getProperty(ctx, opts, "width")
-            let width = Int(JSBridge.toInt32(ctx, widthVal))
-            JS_FreeValue(ctx, widthVal)
-
-            let heightVal = JSBridge.getProperty(ctx, opts, "height")
-            let height = Int(JSBridge.toInt32(ctx, heightVal))
-            JS_FreeValue(ctx, heightVal)
-
-            let rawVal = JSBridge.getProperty(ctx, opts, "rawHtml")
-            let rawHtml: String? = JSBridge.isUndefined(rawVal) || JSBridge.isNull(rawVal)
-                ? nil : JSBridge.toString(ctx, rawVal)
-            JS_FreeValue(ctx, rawVal)
-
-            let htmlVal = JSBridge.getProperty(ctx, opts, "html")
-            let html: String? = JSBridge.isUndefined(htmlVal) || JSBridge.isNull(htmlVal)
-                ? nil : JSBridge.toString(ctx, htmlVal)
-            JS_FreeValue(ctx, htmlVal)
+            let title = JSBridge.string(ctx, opts, "title") ?? "Macotron"
+            let width = JSBridge.int(ctx, opts, "width") ?? 0
+            let height = JSBridge.int(ctx, opts, "height") ?? 0
+            let rawHtml = JSBridge.string(ctx, opts, "rawHtml")
+            let html = JSBridge.string(ctx, opts, "html")
 
             let glassVal = JSBridge.getProperty(ctx, opts, "glass")
-            let glass: PanelGlass
-            if JSBridge.isUndefined(glassVal) || JSBridge.isNull(glassVal) {
-                glass = .none
-            } else {
-                glass = PanelGlass.parse(JSBridge.jsToSwift(ctx, glassVal))
-            }
+            let glass: PanelGlass = JSBridge.isUndefined(glassVal) || JSBridge.isNull(glassVal)
+                ? .none : PanelGlass.parse(JSBridge.jsToSwift(ctx, glassVal))
             JS_FreeValue(ctx, glassVal)
 
-            let framelessVal = JSBridge.getProperty(ctx, opts, "frameless")
-            let frameless = JSBridge.isUndefined(framelessVal) || JSBridge.isNull(framelessVal)
-                ? false : JSBridge.toBool(ctx, framelessVal)
-            JS_FreeValue(ctx, framelessVal)
-
-            let blurVal = JSBridge.getProperty(ctx, opts, "closeOnBlur")
-            let closeOnBlur = JSBridge.isUndefined(blurVal) || JSBridge.isNull(blurVal)
-                ? false : JSBridge.toBool(ctx, blurVal)
-            JS_FreeValue(ctx, blurVal)
-
-            let escVal = JSBridge.getProperty(ctx, opts, "escapeCloses")
-            let escapeCloses = JSBridge.isUndefined(escVal) || JSBridge.isNull(escVal)
-                ? true : JSBridge.toBool(ctx, escVal)
-            JS_FreeValue(ctx, escVal)
-
-            let idVal = JSBridge.getProperty(ctx, opts, "id")
-            let requestedId: String? = JSBridge.isUndefined(idVal) || JSBridge.isNull(idVal)
-                ? nil : JSBridge.toString(ctx, idVal)
-            JS_FreeValue(ctx, idVal)
-
-            let fullscreenVal = JSBridge.getProperty(ctx, opts, "fullscreen")
-            let fullscreen = JSBridge.isUndefined(fullscreenVal) || JSBridge.isNull(fullscreenVal)
-                ? false : JSBridge.toBool(ctx, fullscreenVal)
-            JS_FreeValue(ctx, fullscreenVal)
-
-            let qrVal = JSBridge.getProperty(ctx, opts, "qr")
-            let qr: String? = JSBridge.isUndefined(qrVal) || JSBridge.isNull(qrVal)
-                ? nil : JSBridge.toString(ctx, qrVal)
-            JS_FreeValue(ctx, qrVal)
+            let frameless = JSBridge.bool(ctx, opts, "frameless") ?? false
+            let closeOnBlur = JSBridge.bool(ctx, opts, "closeOnBlur") ?? false
+            // Absent means Escape closes the panel; a plugin only opts out on purpose.
+            let escapeCloses = JSBridge.bool(ctx, opts, "escapeCloses") ?? true
+            let requestedId = JSBridge.string(ctx, opts, "id")
+            let fullscreen = JSBridge.bool(ctx, opts, "fullscreen") ?? false
+            let qr = JSBridge.string(ctx, opts, "qr")
 
             let useShell = rawHtml == nil || rawHtml?.isEmpty == true
             let body = PanelQR.append(to: html ?? "", qr: qr)

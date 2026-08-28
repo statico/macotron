@@ -25,16 +25,8 @@ public final class RemindersModule: NativeModule {
             var days: Double?
             var completed = false
             if let argv, argc > 0, !JS_IsUndefined(argv[0]), !JS_IsNull(argv[0]) {
-                let daysVal = JSBridge.getProperty(ctx, argv[0], "days")
-                if !JS_IsUndefined(daysVal), !JS_IsNull(daysVal) {
-                    days = JSBridge.toDouble(ctx, daysVal)
-                }
-                JS_FreeValue(ctx, daysVal)
-                let completedVal = JSBridge.getProperty(ctx, argv[0], "completed")
-                if !JS_IsUndefined(completedVal), !JS_IsNull(completedVal) {
-                    completed = JSBridge.toBool(ctx, completedVal)
-                }
-                JS_FreeValue(ctx, completedVal)
+                days = JSBridge.double(ctx, argv[0], "days")
+                completed = JSBridge.bool(ctx, argv[0], "completed") ?? false
             }
             // The permission prompt has to be raised on the main thread; only
             // the fetch behind it moves off.
@@ -53,21 +45,12 @@ public final class RemindersModule: NativeModule {
             guard let argv, argc >= 1 else {
                 return JSBridge.newObject(ctx, ["ok": false, "error": "title required"])
             }
-            let titleVal = JSBridge.getProperty(ctx, argv[0], "title")
-            let title = JSBridge.toString(ctx, titleVal) ?? ""
-            JS_FreeValue(ctx, titleVal)
+            let title = JSBridge.string(ctx, argv[0], "title") ?? ""
             guard !title.isEmpty else {
                 return JSBridge.newObject(ctx, ["ok": false, "error": "title required"])
             }
-            var due: Date?
-            let dueVal = JSBridge.getProperty(ctx, argv[0], "due")
-            if !JS_IsUndefined(dueVal), !JS_IsNull(dueVal) {
-                due = Date(timeIntervalSince1970: JSBridge.toDouble(ctx, dueVal) / 1000)
-            }
-            JS_FreeValue(ctx, dueVal)
-            let listVal = JSBridge.getProperty(ctx, argv[0], "list")
-            let list = JSBridge.toString(ctx, listVal)
-            JS_FreeValue(ctx, listVal)
+            let due = JSBridge.double(ctx, argv[0], "due").map { Date(timeIntervalSince1970: $0 / 1000) }
+            let list = JSBridge.string(ctx, argv[0], "list")
             return JSBridge.newObject(ctx, RemindersModule.add(
                 title: title, due: due, list: list, dryRun: Engine.isDryRun(ctx)))
         }, "add", 1))

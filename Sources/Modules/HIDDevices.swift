@@ -12,36 +12,6 @@ struct HIDFilter: Equatable {
     var serial: String?
     var path: String?
 
-    init(
-        vendorID: Int? = nil,
-        productID: Int? = nil,
-        usagePage: Int? = nil,
-        usage: Int? = nil,
-        serial: String? = nil,
-        path: String? = nil
-    ) {
-        self.vendorID = vendorID
-        self.productID = productID
-        self.usagePage = usagePage
-        self.usage = usage
-        self.serial = serial
-        self.path = path
-    }
-
-    init(_ dict: [String: Any]) {
-        if let raw = dict["vidpid"] as? String {
-            let pair = HIDFilter.parseVidPid(raw)
-            vendorID = pair.vendorID
-            productID = pair.productID
-        }
-        if let n = HIDFilter.int(dict["vendorID"]) { vendorID = n }
-        if let n = HIDFilter.int(dict["productID"]) { productID = n }
-        if let n = HIDFilter.int(dict["usagePage"]) { usagePage = n }
-        if let n = HIDFilter.int(dict["usage"]) { usage = n }
-        if let s = dict["serial"] as? String, !s.isEmpty { serial = s }
-        if let s = dict["path"] as? String, !s.isEmpty { path = s }
-    }
-
     func matches(_ row: [String: Any]) -> Bool {
         if let vendorID, HIDFilter.int(row["vendorID"]) != vendorID { return false }
         if let productID, HIDFilter.int(row["productID"]) != productID { return false }
@@ -67,12 +37,26 @@ struct HIDFilter: Equatable {
     }
 
     static func int(_ value: Any?) -> Int? {
-        switch value {
-        case let i as Int: return i
-        case let n as NSNumber: return n.intValue
-        case let d as Double: return Int(d)
-        default: return nil
+        (value as? NSNumber)?.intValue
+    }
+}
+
+extension HIDFilter {
+    /// Kept out of the main body so the compiler still synthesizes the
+    /// memberwise init, which a second init in the same body would suppress.
+    init(_ dict: [String: Any]) {
+        self.init()
+        if let raw = dict["vidpid"] as? String {
+            let pair = HIDFilter.parseVidPid(raw)
+            vendorID = pair.vendorID
+            productID = pair.productID
         }
+        if let n = HIDFilter.int(dict["vendorID"]) { vendorID = n }
+        if let n = HIDFilter.int(dict["productID"]) { productID = n }
+        if let n = HIDFilter.int(dict["usagePage"]) { usagePage = n }
+        if let n = HIDFilter.int(dict["usage"]) { usage = n }
+        if let s = dict["serial"] as? String, !s.isEmpty { serial = s }
+        if let s = dict["path"] as? String, !s.isEmpty { path = s }
     }
 }
 
@@ -111,13 +95,7 @@ enum HIDBytes {
     }
 
     static func byte(_ value: Any) -> UInt8? {
-        if let i = value as? Int, (0...255).contains(i) { return UInt8(i) }
-        if let n = value as? NSNumber {
-            let i = n.intValue
-            return (0...255).contains(i) ? UInt8(i) : nil
-        }
-        if let d = value as? Double {
-            let i = Int(d)
+        if let i = (value as? NSNumber)?.intValue {
             return (0...255).contains(i) ? UInt8(i) : nil
         }
         if let s = value as? String {
