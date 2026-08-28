@@ -2,7 +2,7 @@
 
 macotron.plugin({
     title: "Stay Awake Toggle",
-    description: "Keep this Mac awake from the menu bar.",
+    description: "Keep this Mac awake and unlocked from the menu bar.",
 });
 
 const DURATIONS = [
@@ -12,6 +12,9 @@ const DURATIONS = [
     { ms: 4 * 60 * 60 * 1000, label: "4 hours" },
 ];
 const DEFAULT_MS = 4 * 60 * 60 * 1000;
+// Without `display` the assertion only holds off system sleep: the screen
+// still dims, sleeps, and takes the lock screen with it.
+const ASSERTION = { display: true, reason: "Macotron keep awake" };
 const KEY = "power.awake";
 
 let chosen = DEFAULT_MS;
@@ -71,7 +74,7 @@ function paint() {
 function start(ms) {
     chosen = ms;
     until = Date.now() + ms;
-    macotron.power.preventSleep({ reason: "Macotron keep awake" });
+    macotron.power.preventSleep(ASSERTION);
     save();
     macotron.notify.show("Stay Awake", "Awake for " + labelFor(ms), { sound: true });
     paint();
@@ -108,7 +111,7 @@ if (saved) {
     // it again every time the plugin loads.
     if (saved.until > Date.now()) {
         until = saved.until;
-        macotron.power.preventSleep({ reason: "Macotron keep awake" });
+        macotron.power.preventSleep(ASSERTION);
     }
 }
 
