@@ -84,10 +84,6 @@ window.__macotronReceive = (d) => {
   img.src = "data:image/png;base64," + d.image;
 };
 
-// The host drops a postMessage sent before this script has parsed, so the page
-// asks for its payload instead of waiting to be handed one.
-window.webkit.messageHandlers.macotron.postMessage({ ready: 1 });
-
 document.onkeydown = (e) => {
   const n = Number(e.key);
   if (n >= 1 && n <= modes.length) { mode = n - 1; render(); }
@@ -111,9 +107,7 @@ async function simulate(mode) {
     frameless: true,
     html: PANEL_HTML,
   });
-  macotron.panel.onMessage(id, (data) => {
-    if (data && data.ready) macotron.panel.postMessage(id, { image, mode, modes: MODES });
-  });
+  macotron.panel.postMessage(id, { image, mode, modes: MODES });
 }
 
 for (let i = 0; i < MODES.length; i++) {
