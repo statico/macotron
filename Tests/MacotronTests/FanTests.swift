@@ -7,13 +7,7 @@ import Testing
 struct FanTests {
     @Test("full blast toggle toasts on and off")
     func toggleToasts() throws {
-        let pluginURL = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/fan.js")
-        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
-        let harness = """
+        let engine = try PluginHarness.load(plugin: "fan.js", mock: #"""
             var statusConfig = null;
             var floor = null;
             var toasts = [];
@@ -48,19 +42,15 @@ struct FanTests {
                 command: () => {},
                 notify: { toast: (title, body) => { toasts.push({ title: title, body: body }); } }
             };
-            \(pluginSource)
+            """#, extra: #"""
             statusConfig.onClick();
             statusConfig.onClick();
-            """
-        let engine = Engine()
-        let (_, error) = engine.evaluate(harness, filename: pluginURL.path)
-        #expect(error == nil)
-        // setFanFloor is a promise now, so the toasts land once the job queue
-        // has drained -- which the first evaluate does on its way out.
-        let (result, readError) = engine.evaluate("JSON.stringify(toasts)")
-        #expect(readError == nil)
+            """#)
+        // setFanFloor is a promise, so the toasts land once the job queue has
+        // drained -- which load()'s evaluate does on its way out.
+        let result = PluginHarness.run(engine, "JSON.stringify(toasts)")
         // The toast has to name the speed it set; "On" told the user nothing.
-        #expect(result?.contains("\"body\":\"minimum speed: 100%\"") == true)
-        #expect(result?.contains("\"body\":\"Set to automatic speed\"") == true)
+        #expect(result.contains("\"body\":\"minimum speed: 100%\""))
+        #expect(result.contains("\"body\":\"Set to automatic speed\""))
     }
 }

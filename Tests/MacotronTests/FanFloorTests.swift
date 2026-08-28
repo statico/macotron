@@ -4,20 +4,14 @@ import SMCKit
 
 @Suite("FanFloor")
 struct FanFloorTests {
-    @Test("100% is the firmware max")
-    func full() {
-        #expect(FanFloor.rpm(percent: 100, min: 1350, max: 5349) == 5349)
-    }
-
-    @Test("50% is the midpoint of the firmware range")
-    func half() {
-        #expect(FanFloor.rpm(percent: 50, min: 1000, max: 5000) == 3000)
-    }
-
-    @Test("percent is clamped")
-    func clamp() {
-        #expect(FanFloor.rpm(percent: -10, min: 1000, max: 5000) == 1000)
-        #expect(FanFloor.rpm(percent: 200, min: 1000, max: 5000) == 5000)
+    @Test("rpm scales the firmware range and clamps the percent", arguments: [
+        (100, 1350.0, 5349.0, 5349.0),  // 100% is the firmware max
+        (50, 1000.0, 5000.0, 3000.0),  // 50% is the midpoint
+        (-10, 1000.0, 5000.0, 1000.0),
+        (200, 1000.0, 5000.0, 5000.0),
+    ])
+    func rpm(percent: Int, min: Double, max: Double, expected: Double) {
+        #expect(FanFloor.rpm(percent: percent, min: min, max: max) == expected)
     }
 
     @Test("XPC helper errors stay short")

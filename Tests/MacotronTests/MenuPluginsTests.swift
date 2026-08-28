@@ -5,41 +5,9 @@ import Testing
 @MainActor
 @Suite("MenuPlugins")
 struct MenuPluginsTests {
-    private func pluginURL(_ name: String) -> URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/\(name)")
-    }
-
-    private func load(plugin: String, mock: String) throws -> Engine {
-        let url = pluginURL(plugin)
-        let source = try String(contentsOf: url, encoding: .utf8)
-        let harness = """
-            \(mock)
-            \(source)
-            """
-        let engine = Engine()
-        let (_, error) = engine.evaluate(harness, filename: url.path)
-        #expect(error == nil)
-        return engine
-    }
-
-    @discardableResult
-    private func run(_ engine: Engine, _ extra: String) -> String {
-        let (result, error) = engine.evaluate(extra)
-        #expect(error == nil)
-        return result ?? ""
-    }
-
-    private func eval(plugin: String, mock: String, extra: String) throws -> String {
-        run(try load(plugin: plugin, mock: mock), extra)
-    }
-
     @Test("mic mute click toggles input and paints a red slash")
     func micMuteToggles() throws {
-        let result = try eval(plugin: "mic-mute.js", mock: #"""
+        let result = try PluginHarness.evalSettled(plugin: "mic-mute.js", mock: #"""
             var muted = false;
             var controllable = true;
             var setCalls = [];
@@ -76,7 +44,7 @@ struct MenuPluginsTests {
     /// reports the write as failed. Say so rather than pretending it worked.
     @Test("a mic with no mute control reports instead of failing quietly")
     func micMuteUnsupported() throws {
-        let result = try eval(plugin: "mic-mute.js", mock: #"""
+        let result = try PluginHarness.evalSettled(plugin: "mic-mute.js", mock: #"""
             var muted = false;
             var controllable = false;
             var setCalls = [];
@@ -106,7 +74,7 @@ struct MenuPluginsTests {
 
     @Test("headphones unplug pauses; HDMI to speakers does not")
     func headphonePause() throws {
-        let result = try eval(plugin: "headphone-pause.js", mock: #"""
+        let result = try PluginHarness.evalSettled(plugin: "headphone-pause.js", mock: #"""
             var output = { id: 1, name: "AirPods", uid: "pods" };
             var playing = true;
             var pauses = 0;
@@ -137,7 +105,7 @@ struct MenuPluginsTests {
 
     @Test("profiles switch appearance from SSID")
     func profilesApply() throws {
-        let result = try eval(plugin: "profiles.js", mock: #"""
+        let result = try PluginHarness.evalSettled(plugin: "profiles.js", mock: #"""
             var dark = null;
             var toasts = [];
             var wifi = { ssid: "HomeNet", on: true };
@@ -164,7 +132,7 @@ struct MenuPluginsTests {
 
     @Test("USB attach speaks and toasts; remove only toasts")
     func usbAnnounces() throws {
-        let result = try eval(plugin: "usb.js", mock: #"""
+        let result = try PluginHarness.evalSettled(plugin: "usb.js", mock: #"""
             var toasts = [];
             var says = [];
             var handler = null;
@@ -189,7 +157,7 @@ struct MenuPluginsTests {
 
     @Test("translate empty selection toasts; success opens a panel")
     func translateSelection() throws {
-        let emptyEngine = try load(plugin: "translate.js", mock: #"""
+        let emptyEngine = try PluginHarness.load(plugin: "translate.js", mock: #"""
             var toast = null;
             var panels = [];
             var macotron = {
@@ -203,14 +171,14 @@ struct MenuPluginsTests {
             };
             """#)
         // The command awaits the selection, so its toast lands a microtask later.
-        run(emptyEngine, "macotron._cmd()")
-        let empty = run(emptyEngine, #"JSON.stringify({ toast: toast, panels: panels.length })"#)
+        PluginHarness.run(emptyEngine, "macotron._cmd()")
+        let empty = PluginHarness.run(emptyEngine, #"JSON.stringify({ toast: toast, panels: panels.length })"#)
         #expect(empty.contains(#""title":"Cannot translate""#))
         #expect(empty.contains("No selected text"))
         #expect(empty.contains(#""color":"error""#))
         #expect(empty.contains(#""panels":0"#))
 
-        let engine = try load(plugin: "translate.js", mock: #"""
+        let engine = try PluginHarness.load(plugin: "translate.js", mock: #"""
             var toast = null;
             var panels = [];
             var macotron = {
@@ -223,21 +191,21 @@ struct MenuPluginsTests {
                 command: (name, desc, fn) => { macotron._cmd = fn; }
             };
             """#)
-        run(engine, "macotron._cmd()")
-        let ok = run(engine, "JSON.stringify(panels[0])")
+        PluginHarness.run(engine, "macotron._cmd()")
+        let ok = PluginHarness.run(engine, "JSON.stringify(panels[0])")
         #expect(ok.contains("hello"))
         #expect(ok.contains("bonjour"))
         #expect(ok.contains(#""title":"Translate""#))
         #expect(ok.contains("Translation to fr:"))
 
         // The empty locale field hints the system locale instead of saying so in the label.
-        let placeholder = run(engine, "macotron._def.options.locale.placeholder")
+        let placeholder = PluginHarness.run(engine, "macotron._def.options.locale.placeholder")
         #expect(placeholder == "es")
     }
 
     @Test("world clock paints each zone every 30s")
     func worldClock() throws {
-        let result = try eval(plugin: "world-clock.js", mock: #"""
+        let result = try PluginHarness.evalSettled(plugin: "world-clock.js", mock: #"""
             var statuses = [];
             var everyMs = 0;
             var macotron = {
@@ -264,7 +232,7 @@ struct MenuPluginsTests {
 
     @Test("eject skips Macintosh HD and Data")
     func ejectFilter() throws {
-        let result = try eval(plugin: "eject.js", mock: #"""
+        let result = try PluginHarness.evalSettled(plugin: "eject.js", mock: #"""
             var statusConfig = null;
             var runs = [];
             var confirmOk = false;
@@ -310,7 +278,7 @@ struct MenuPluginsTests {
     func timeMachineParse() throws {
         let fixture = "BackupPhase = Copying;\nPercent = \"0.42\";\nBytes = 1024;\nRunning = 1;"
         let idle = "ClientID = \"com.apple.backupd\";\nPercent = \"-1\";\nRunning = 0;"
-        let result = try eval(plugin: "time-machine.js", mock: """
+        let result = try PluginHarness.evalSettled(plugin: "time-machine.js", mock: """
             var statusConfig = null;
             var macotron = {
                 plugin: () => ({}),
@@ -336,7 +304,7 @@ struct MenuPluginsTests {
 
     @Test("markdown converts headings, bold, and code")
     func markdownPreview() throws {
-        let result = try eval(plugin: "markdown.js", mock: #"""
+        let result = try PluginHarness.evalSettled(plugin: "markdown.js", mock: #"""
             var panel = null;
             var macotron = {
                 plugin: () => ({}),

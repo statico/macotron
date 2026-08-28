@@ -6,21 +6,10 @@ import Testing
 @Suite("DiskUsage")
 struct DiskUsageTests {
     private func eval(_ js: String) throws -> String {
-        let pluginURL = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/disk-usage.js")
-        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
-        let harness = """
-            var macotron = { plugin: () => ({}), command: () => {}, panel: {}, shell: {}, notify: {} };
-            \(pluginSource)
-            \(js)
-            """
-        let engine = Engine()
-        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
-        #expect(error == nil)
-        return result ?? ""
+        try PluginHarness.eval(
+            plugin: "disk-usage.js",
+            mock: "var macotron = { plugin: () => ({}), command: () => {}, panel: {}, shell: {}, notify: {} };",
+            extra: js)
     }
 
     @Test("df keeps Macintosh HD and /Volumes, drops system slices")

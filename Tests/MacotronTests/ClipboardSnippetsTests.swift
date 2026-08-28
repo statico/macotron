@@ -5,31 +5,9 @@ import Testing
 @MainActor
 @Suite("ClipboardSnippets")
 struct ClipboardSnippetsTests {
-    private func pluginURL(_ name: String) -> URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/\(name)")
-    }
-
-    private func eval(plugin: String, mock: String, extra: String) throws -> String {
-        let url = pluginURL(plugin)
-        let source = try String(contentsOf: url, encoding: .utf8)
-        let harness = """
-            \(mock)
-            \(source)
-            \(extra)
-            """
-        let engine = Engine()
-        let (result, error) = engine.evaluate(harness, filename: url.path)
-        #expect(error == nil)
-        return result ?? ""
-    }
-
     @Test("snippets launcher includes omw and insert calls insert")
     func snippetsOmw() throws {
-        let result = try eval(plugin: "snippets.js", mock: #"""
+        let result = try PluginHarness.eval(plugin: "snippets.js", mock: #"""
             var rows = [];
             var inserts = [];
             var commands = {};
@@ -57,7 +35,7 @@ struct ClipboardSnippetsTests {
 
     @Test("clipboard rowsFromHistory titles images as Image")
     func clipboardRows() throws {
-        let result = try eval(plugin: "clipboard-history.js", mock: #"""
+        let result = try PluginHarness.eval(plugin: "clipboard-history.js", mock: #"""
             var macotron = {
                 plugin: () => ({}),
                 command: () => {},
@@ -79,7 +57,7 @@ struct ClipboardSnippetsTests {
 
     @Test("Clipboard History opens a panel and paste closes it")
     func clipboardPanelPaste() throws {
-        let result = try eval(plugin: "clipboard-history.js", mock: #"""
+        let result = try PluginHarness.eval(plugin: "clipboard-history.js", mock: #"""
             var opened = null;
             var onMessage = null;
             var pasted = [];

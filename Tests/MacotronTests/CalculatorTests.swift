@@ -8,29 +8,19 @@ struct CalculatorTests {
     /// Runs the real plugin in the real engine, so this also proves QuickJS
     /// accepts the syntax the parser leans on (spread, lookbehind).
     private func result(_ query: String) throws -> String {
-        let pluginURL = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/calculator.js")
-        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
-        let harness = """
+        try PluginHarness.eval(plugin: "calculator.js", mock: #"""
             var __query = null;
             var macotron = {
                 plugin: () => ({}),
                 launcher: { query: (_id, fn) => { __query = fn; } },
                 clipboard: {}, notify: {},
             };
-            \(pluginSource)
+            """#, extra: """
             (function () {
                 var hits = __query(\(String(reflecting: query)));
                 return hits.length ? hits[0].title : "";
             })()
-            """
-        let engine = Engine()
-        let (value, error) = engine.evaluate(harness, filename: pluginURL.path)
-        #expect(error == nil)
-        return value ?? ""
+            """)
     }
 
     @Test("arithmetic")

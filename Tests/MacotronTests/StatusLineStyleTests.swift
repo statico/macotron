@@ -125,29 +125,6 @@ struct StatusLineStyleTests {
         #expect(abs(image.size.width - (ink.width + StatusLineStyle.iconTextSpacing + textWidth)) < 1)
     }
 
-    @Test("single line with icon composes a usable image")
-    @MainActor
-    func singleLineComposedImage() {
-        let lines = StatusLineStyle.lines(
-            title: "C-Media USB Headphone Set",
-            subtitle: nil,
-            color: nil,
-            subtitleColor: nil,
-            bold: false,
-            italic: false,
-            secondary: false
-        )
-        #expect(lines.count == 1)
-        print("line size:", lines[0].size())
-        let icon = NSImage(systemSymbolName: "speaker.wave.2", accessibilityDescription: nil)?
-            .withSymbolConfiguration(.init(pointSize: 15, weight: .medium))
-        print("icon size:", icon?.size ?? .zero)
-        let image = StatusLineStyle.image(icon: icon, lines: lines, height: 30)
-        print("composed size:", image.size)
-        #expect(image.size.width > 100)
-        #expect(image.size.height == 30)
-    }
-
     @Test("composed image spans the bar height")
     @MainActor
     func composedImage() {

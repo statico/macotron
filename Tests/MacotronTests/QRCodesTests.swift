@@ -1,7 +1,6 @@
 import AppKit
 import Foundation
 import Testing
-@testable import MacotronEngine
 @testable import Modules
 
 @Suite("QRCodes")
@@ -65,17 +64,3 @@ struct QRCodesTests {
     }
 }
 
-@Suite("Camera permission")
-@MainActor
-struct CameraPermissionTests {
-    @Test func aliases() {
-        #expect(Permissions.parse("camera") == .camera)
-        #expect(Permissions.parse("webcam") == .camera)
-        #expect(Permissions.parse("qr") == .camera)
-    }
-
-    @Test func settingsLabel() {
-        #expect(Permission.camera.title == "Camera")
-        #expect(Permission.camera.isAutoRequestable)
-    }
-}

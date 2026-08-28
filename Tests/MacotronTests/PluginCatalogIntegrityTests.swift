@@ -356,56 +356,40 @@ struct PluginCatalogTests {
         #expect(hashes.hashes == seed)
     }
 
+    /// One row per store the migration touches: seed a collision in that
+    /// store, then expect nothing anywhere moved.
     @MainActor
-    @Test func migrationKeepsStateWhenPluginSettingsCollide() throws {
+    @Test(arguments: [
+        "pluginSettings", "disabledPlugins", "commandShortcuts",
+        "keyboardShortcuts", "launcherFavorites", "approvedHashes",
+    ])
+    func migrationKeepsStateWhenNamesCollide(_ store: String) throws {
         var settings = cleanSettings()
-        settings["pluginSettings"] = [
-            "demo-weather.js": ["city": "SF"],
-            "weather.js": ["city": "NYC"],
-        ]
-        try expectMigrationKeepsState(settings: settings)
-    }
-
-    @MainActor
-    @Test func migrationKeepsStateWhenDisabledPluginsCollide() throws {
-        var settings = cleanSettings()
-        settings["disabledPlugins"] = ["demo-weather.js", "weather.js"]
-        try expectMigrationKeepsState(settings: settings)
-    }
-
-    @MainActor
-    @Test func migrationKeepsStateWhenCommandShortcutsCollide() throws {
-        var settings = cleanSettings()
-        settings["commandShortcuts"] = [
-            "demo-weather.js/Refresh": "cmd+r",
-            "weather.js/Refresh": "cmd+shift+r",
-        ]
-        try expectMigrationKeepsState(settings: settings)
-    }
-
-    @MainActor
-    @Test func migrationKeepsStateWhenKeyboardShortcutsCollide() throws {
-        var settings = cleanSettings()
-        settings["keyboardShortcuts"] = [
-            "demo-weather.js": "cmd+w",
-            "weather.js": "cmd+shift+w",
-        ]
-        try expectMigrationKeepsState(settings: settings)
-    }
-
-    @MainActor
-    @Test func migrationKeepsStateWhenLauncherFavoritesCollide() throws {
-        var settings = cleanSettings()
-        settings["launcherFavorites"] = ["demo-weather.js/Refresh", "weather.js/Refresh"]
-        try expectMigrationKeepsState(settings: settings)
-    }
-
-    @MainActor
-    @Test func migrationKeepsStateWhenApprovedHashesCollide() throws {
-        try expectMigrationKeepsState(
-            settings: cleanSettings(),
-            hashes: ["demo-weather.js": "abc123", "weather.js": "def456"]
-        )
+        var seed: [String: String] = [:]
+        switch store {
+        case "pluginSettings":
+            settings[store] = [
+                "demo-weather.js": ["city": "SF"],
+                "weather.js": ["city": "NYC"],
+            ]
+        case "disabledPlugins":
+            settings[store] = ["demo-weather.js", "weather.js"]
+        case "commandShortcuts":
+            settings[store] = [
+                "demo-weather.js/Refresh": "cmd+r",
+                "weather.js/Refresh": "cmd+shift+r",
+            ]
+        case "keyboardShortcuts":
+            settings[store] = [
+                "demo-weather.js": "cmd+w",
+                "weather.js": "cmd+shift+w",
+            ]
+        case "launcherFavorites":
+            settings[store] = ["demo-weather.js/Refresh", "weather.js/Refresh"]
+        default:
+            seed = ["demo-weather.js": "abc123", "weather.js": "def456"]
+        }
+        try expectMigrationKeepsState(settings: settings, hashes: seed)
     }
 
     @MainActor
@@ -599,8 +583,10 @@ struct PluginCatalogTests {
         #expect(hashes.read(filename: "weather.js") == nil)
     }
 
+    /// Every stored name for a plugin is rewritten by the same pass, so one
+    /// seeded settings file covers all five of them.
     @MainActor
-    @Test func migrationRewritesPluginSettingsKey() throws {
+    @Test func migrationRewritesEveryStoredName() throws {
         let (workspace, hashes) = try makeMigrationWorkspace()
         defer { try? FileManager.default.removeItem(at: workspace.root) }
         try "x".write(
@@ -610,102 +596,29 @@ struct PluginCatalogTests {
         )
         try workspace.writeSettings([
             "pluginSettings": ["demo-weather.js": ["city": "SF"]],
-            "disabledPlugins": [] as [String],
-            "commandShortcuts": [:] as [String: String],
-            "keyboardShortcuts": [:] as [String: String],
-            "launcherFavorites": [] as [String],
+            "disabledPlugins": ["demo-weather.js"],
+            "commandShortcuts": ["demo-weather.js/Refresh": "cmd+r"],
+            "keyboardShortcuts": ["demo-weather.js/Hotkey": "cmd+shift+w"],
+            "launcherFavorites": ["demo-weather.js/Refresh"],
         ])
         workspace.migratePluginNames(["demo-weather.js": "weather.js"], hashStore: hashes)
+
         let settings = workspace.readSettings()
         let pluginSettings = settings["pluginSettings"] as? [String: [String: Any]]
         #expect(pluginSettings?["weather.js"]?["city"] as? String == "SF")
         #expect(pluginSettings?["demo-weather.js"] == nil)
-    }
 
-    @MainActor
-    @Test func migrationRewritesDisabledPluginName() throws {
-        let (workspace, hashes) = try makeMigrationWorkspace()
-        defer { try? FileManager.default.removeItem(at: workspace.root) }
-        try "x".write(
-            to: workspace.pluginsDir.appending(path: "demo-weather.js"),
-            atomically: true,
-            encoding: .utf8
-        )
-        try workspace.writeSettings([
-            "pluginSettings": [:] as [String: Any],
-            "disabledPlugins": ["demo-weather.js"],
-            "commandShortcuts": [:] as [String: String],
-            "keyboardShortcuts": [:] as [String: String],
-            "launcherFavorites": [] as [String],
-        ])
-        workspace.migratePluginNames(["demo-weather.js": "weather.js"], hashStore: hashes)
-        let disabled = workspace.readSettings()["disabledPlugins"] as? [String]
-        #expect(disabled == ["weather.js"])
-    }
+        #expect(settings["disabledPlugins"] as? [String] == ["weather.js"])
 
-    @MainActor
-    @Test func migrationRewritesCommandShortcutIDs() throws {
-        let (workspace, hashes) = try makeMigrationWorkspace()
-        defer { try? FileManager.default.removeItem(at: workspace.root) }
-        try "x".write(
-            to: workspace.pluginsDir.appending(path: "demo-weather.js"),
-            atomically: true,
-            encoding: .utf8
-        )
-        try workspace.writeSettings([
-            "pluginSettings": [:] as [String: Any],
-            "disabledPlugins": [] as [String],
-            "commandShortcuts": ["demo-weather.js/Refresh": "cmd+r"],
-            "keyboardShortcuts": [:] as [String: String],
-            "launcherFavorites": [] as [String],
-        ])
-        workspace.migratePluginNames(["demo-weather.js": "weather.js"], hashStore: hashes)
-        let shortcuts = workspace.readSettings()["commandShortcuts"] as? [String: String]
-        #expect(shortcuts?["weather.js/Refresh"] == "cmd+r")
-        #expect(shortcuts?["demo-weather.js/Refresh"] == nil)
-    }
+        let commands = settings["commandShortcuts"] as? [String: String]
+        #expect(commands?["weather.js/Refresh"] == "cmd+r")
+        #expect(commands?["demo-weather.js/Refresh"] == nil)
 
-    @MainActor
-    @Test func migrationRewritesKeyboardShortcutIDs() throws {
-        let (workspace, hashes) = try makeMigrationWorkspace()
-        defer { try? FileManager.default.removeItem(at: workspace.root) }
-        try "x".write(
-            to: workspace.pluginsDir.appending(path: "demo-weather.js"),
-            atomically: true,
-            encoding: .utf8
-        )
-        try workspace.writeSettings([
-            "pluginSettings": [:] as [String: Any],
-            "disabledPlugins": [] as [String],
-            "commandShortcuts": [:] as [String: String],
-            "keyboardShortcuts": ["demo-weather.js/Hotkey": "cmd+shift+w"],
-            "launcherFavorites": [] as [String],
-        ])
-        workspace.migratePluginNames(["demo-weather.js": "weather.js"], hashStore: hashes)
-        let shortcuts = workspace.readSettings()["keyboardShortcuts"] as? [String: String]
-        #expect(shortcuts?["weather.js/Hotkey"] == "cmd+shift+w")
-        #expect(shortcuts?["demo-weather.js/Hotkey"] == nil)
-    }
+        let keyboard = settings["keyboardShortcuts"] as? [String: String]
+        #expect(keyboard?["weather.js/Hotkey"] == "cmd+shift+w")
+        #expect(keyboard?["demo-weather.js/Hotkey"] == nil)
 
-    @MainActor
-    @Test func migrationRewritesLauncherFavoriteIDs() throws {
-        let (workspace, hashes) = try makeMigrationWorkspace()
-        defer { try? FileManager.default.removeItem(at: workspace.root) }
-        try "x".write(
-            to: workspace.pluginsDir.appending(path: "demo-weather.js"),
-            atomically: true,
-            encoding: .utf8
-        )
-        try workspace.writeSettings([
-            "pluginSettings": [:] as [String: Any],
-            "disabledPlugins": [] as [String],
-            "commandShortcuts": [:] as [String: String],
-            "keyboardShortcuts": [:] as [String: String],
-            "launcherFavorites": ["demo-weather.js/Refresh"],
-        ])
-        workspace.migratePluginNames(["demo-weather.js": "weather.js"], hashStore: hashes)
-        let favorites = workspace.readSettings()["launcherFavorites"] as? [String]
-        #expect(favorites == ["weather.js/Refresh"])
+        #expect(settings["launcherFavorites"] as? [String] == ["weather.js/Refresh"])
     }
 
     @MainActor

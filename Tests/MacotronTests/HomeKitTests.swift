@@ -10,55 +10,32 @@ struct HomeKitTests {
         #expect(row["name"] as? String == "Casa")
     }
 
-    @Test("maps accessory name, room, and on")
-    func mapsAccessoryOn() {
-        let row = HomeKitAccess.accessory(HomeKitAccessorySnap(
-            id: "lamp",
-            name: "Desk lamp",
-            room: "Office",
-            type: "lightbulb",
-            on: true,
-            value: nil,
-            reachable: true
-        ))
-        #expect(row["id"] as? String == "lamp")
-        #expect(row["name"] as? String == "Desk lamp")
-        #expect(row["room"] as? String == "Office")
-        #expect(row["type"] as? String == "lightbulb")
-        #expect(row["on"] as? Bool == true)
-        #expect(row["value"] == nil)
-        #expect(row["reachable"] as? Bool == true)
-    }
-
-    @Test("unknown accessory still lists without on or value")
-    func unknownAccessory() {
-        let row = HomeKitAccess.accessory(HomeKitAccessorySnap(
-            id: "x",
-            name: "Bridge",
-            room: "",
-            type: "bridge",
-            on: nil,
-            value: nil,
-            reachable: false
-        ))
-        #expect(row["name"] as? String == "Bridge")
-        #expect(row["on"] == nil)
-        #expect(row["value"] == nil)
-        #expect(row["reachable"] as? Bool == false)
-    }
-
-    @Test("sensor value is a number")
-    func sensorValue() {
-        let row = HomeKitAccess.accessory(HomeKitAccessorySnap(
-            id: "t",
-            name: "Temp",
-            room: "Hall",
-            type: "sensor",
-            on: nil,
-            value: 21.5,
-            reachable: true
-        ))
-        #expect(row["value"] as? Double == 21.5)
-        #expect(row["on"] == nil)
+    /// An accessory row mirrors the snapshot: `on` and `value` are present only
+    /// when the accessory reports them, so an unknown type still lists.
+    @Test("accessory rows mirror the snapshot", arguments: [
+        HomeKitAccessorySnap(
+            id: "lamp", name: "Desk lamp", room: "Office", type: "lightbulb",
+            on: true, value: nil, reachable: true
+        ),
+        HomeKitAccessorySnap(
+            id: "x", name: "Bridge", room: "", type: "bridge",
+            on: nil, value: nil, reachable: false
+        ),
+        HomeKitAccessorySnap(
+            id: "t", name: "Temp", room: "Hall", type: "sensor",
+            on: nil, value: 21.5, reachable: true
+        ),
+    ])
+    func mapsAccessory(snap: HomeKitAccessorySnap) {
+        let row = HomeKitAccess.accessory(snap)
+        #expect(row["id"] as? String == snap.id)
+        #expect(row["name"] as? String == snap.name)
+        #expect(row["room"] as? String == snap.room)
+        #expect(row["type"] as? String == snap.type)
+        #expect(row["reachable"] as? Bool == snap.reachable)
+        #expect(row["on"] as? Bool == snap.on)
+        #expect((row["on"] == nil) == (snap.on == nil))
+        #expect(row["value"] as? Double == snap.value)
+        #expect((row["value"] == nil) == (snap.value == nil))
     }
 }

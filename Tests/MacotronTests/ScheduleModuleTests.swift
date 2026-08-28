@@ -14,22 +14,13 @@ struct ScheduleModuleTests {
         return engine
     }
 
-    @Test("every returns a stop function")
-    func everyReturnsStopFunction() {
+    @Test("scheduling returns a stop function", arguments: [
+        "macotron.every(1000, function() {})",
+        #"macotron.at("13:00", function() {})"#,
+    ])
+    func returnsStopFunction(js: String) {
         let engine = engineWithSchedule()
-        let (result, error) = engine.evaluate("""
-            typeof macotron.every(1000, function() {})
-            """)
-        #expect(error == nil)
-        #expect(result == "function")
-    }
-
-    @Test("at returns a stop function")
-    func atReturnsStopFunction() {
-        let engine = engineWithSchedule()
-        let (result, error) = engine.evaluate("""
-            typeof macotron.at("13:00", function() {})
-            """)
+        let (result, error) = engine.evaluate("typeof \(js)")
         #expect(error == nil)
         #expect(result == "function")
     }
@@ -63,16 +54,6 @@ struct ScheduleModuleTests {
         #expect(module?.activeJobCount == 0)
     }
 
-    @Test("invalid every string throws TypeError")
-    func invalidEveryThrows() {
-        let engine = engineWithSchedule()
-        let (_, error) = engine.evaluate("""
-            macotron.every("not-a-schedule", function() {})
-            """)
-        #expect(error != nil)
-        #expect(error?.lowercased().contains("typeerror") == true)
-    }
-
     @Test("records schedule plugin events")
     func recordsPluginEvents() {
         let engine = engineWithSchedule()
@@ -87,12 +68,13 @@ struct ScheduleModuleTests {
         #expect(engine.pluginEvents["weather.js"]?.contains(where: { $0.hasPrefix("schedule:every 1000") }) != true)
     }
 
-    @Test("invalid weekdays throws TypeError")
-    func invalidWeekdaysThrows() {
+    @Test("invalid schedule arguments throw TypeError", arguments: [
+        #"macotron.every("not-a-schedule", function() {})"#,
+        #"macotron.at("09:00", { weekdays: [7] }, function() {})"#,
+    ])
+    func invalidScheduleThrows(js: String) {
         let engine = engineWithSchedule()
-        let (_, error) = engine.evaluate("""
-            macotron.at("09:00", { weekdays: [7] }, function() {})
-            """)
+        let (_, error) = engine.evaluate(js)
         #expect(error != nil)
         #expect(error?.lowercased().contains("typeerror") == true)
     }

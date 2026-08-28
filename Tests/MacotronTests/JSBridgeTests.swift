@@ -14,151 +14,68 @@ struct JSBridgeTests {
         return (engine, engine.context!)
     }
 
-    // MARK: - JS -> Swift Conversions
+    // MARK: - Scalar round-trips
+    //
+    // One table per scalar type walks newX/toX, jsToSwift and anyToJS in a
+    // single pass. This replaces the forty-odd one-assert tests that each
+    // stood up a whole engine to check one value one way.
 
-    @Test("toString converts JS string to Swift String")
-    func testToString() {
+    @Test("String round-trips", arguments: ["hello", "", "cafe\u{0301}", "test"])
+    func stringRoundTrip(_ value: String) {
         let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.newString(ctx, "hello")
-        let result = JSBridge.toString(ctx, jsVal)
-        #expect(result == "hello")
-        JS_FreeValue(ctx, jsVal)
-        _ = engine // keep engine alive
-    }
+        let js = JSBridge.newString(ctx, value)
+        #expect(JS_IsString(js))
+        #expect(JSBridge.toString(ctx, js) == value)
+        #expect(JSBridge.jsToSwift(ctx, js) as? String == value)
+        #expect(JSBridge.isNull(js) == false)
+        JS_FreeValue(ctx, js)
 
-    @Test("toString with empty string")
-    func testToStringEmpty() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.newString(ctx, "")
-        let result = JSBridge.toString(ctx, jsVal)
-        #expect(result == "")
-        JS_FreeValue(ctx, jsVal)
+        let any = JSBridge.anyToJS(ctx, value as Any)
+        #expect(JS_IsString(any))
+        #expect(JSBridge.toString(ctx, any) == value)
+        JS_FreeValue(ctx, any)
         _ = engine
     }
 
-    @Test("toString with unicode characters")
-    func testToStringUnicode() {
+    @Test("Int32 round-trips", arguments: [42, -100, 0, 99, 7] as [Int32])
+    func int32RoundTrip(_ value: Int32) {
         let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.newString(ctx, "cafe\u{0301}")
-        let result = JSBridge.toString(ctx, jsVal)
-        #expect(result == "cafe\u{0301}")
-        JS_FreeValue(ctx, jsVal)
+        let js = JSBridge.newInt32(ctx, value)
+        #expect(JS_IsNumber(js))
+        #expect(JSBridge.toInt32(ctx, js) == value)
+        #expect(JSBridge.jsToSwift(ctx, js) as? Int == Int(value))
+        #expect(JSBridge.isUndefined(js) == false)
+        #expect(JSBridge.isException(js) == false)
+        // Both Int and Int32 reach the same JS number through anyToJS.
+        #expect(JSBridge.toInt32(ctx, JSBridge.anyToJS(ctx, Int(value) as Any)) == value)
+        #expect(JSBridge.toInt32(ctx, JSBridge.anyToJS(ctx, value as Any)) == value)
         _ = engine
     }
 
-    @Test("toInt32 converts JS number to Int32")
-    func testToInt32() {
+    @Test("Double round-trips", arguments: [3.14159, -2.5, 2.718, 1.5])
+    func doubleRoundTrip(_ value: Double) {
         let (engine, ctx) = makeContext()
-        let jsVal = JS_NewInt32(ctx, 42)
-        let result = JSBridge.toInt32(ctx, jsVal)
-        #expect(result == 42)
+        let js = JSBridge.newFloat64(ctx, value)
+        #expect(JS_IsNumber(js))
+        #expect(JSBridge.toDouble(ctx, js) == value)
+        // Non-integral, so jsToSwift must keep it a Double.
+        #expect(JSBridge.jsToSwift(ctx, js) as? Double == value)
+        let any = JSBridge.anyToJS(ctx, value as Any)
+        #expect(JS_IsNumber(any))
+        #expect(JSBridge.toDouble(ctx, any) == value)
         _ = engine
     }
 
-    @Test("toInt32 with negative number")
-    func testToInt32Negative() {
+    @Test("Bool round-trips", arguments: [true, false])
+    func boolRoundTrip(_ value: Bool) {
         let (engine, ctx) = makeContext()
-        let jsVal = JS_NewInt32(ctx, -100)
-        let result = JSBridge.toInt32(ctx, jsVal)
-        #expect(result == -100)
-        _ = engine
-    }
-
-    @Test("toInt32 with zero")
-    func testToInt32Zero() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JS_NewInt32(ctx, 0)
-        let result = JSBridge.toInt32(ctx, jsVal)
-        #expect(result == 0)
-        _ = engine
-    }
-
-    @Test("toDouble converts JS float to Double")
-    func testToDouble() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JS_NewFloat64(ctx, 3.14159)
-        let result = JSBridge.toDouble(ctx, jsVal)
-        #expect(abs(result - 3.14159) < 0.00001)
-        _ = engine
-    }
-
-    @Test("toDouble with negative value")
-    func testToDoubleNegative() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JS_NewFloat64(ctx, -2.5)
-        let result = JSBridge.toDouble(ctx, jsVal)
-        #expect(result == -2.5)
-        _ = engine
-    }
-
-    @Test("toBool converts JS true to Swift true")
-    func testToBoolTrue() {
-        let (engine, ctx) = makeContext()
-        let jsVal = QJS_NewBool(ctx, 1)
-        let result = JSBridge.toBool(ctx, jsVal)
-        #expect(result == true)
-        _ = engine
-    }
-
-    @Test("toBool converts JS false to Swift false")
-    func testToBoolFalse() {
-        let (engine, ctx) = makeContext()
-        let jsVal = QJS_NewBool(ctx, 0)
-        let result = JSBridge.toBool(ctx, jsVal)
-        #expect(result == false)
-        _ = engine
-    }
-
-    // MARK: - Swift -> JS Conversions
-
-    @Test("newString creates JS string")
-    func testNewString() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.newString(ctx, "test")
-        #expect(JS_IsString(jsVal))
-        let roundTrip = JSBridge.toString(ctx, jsVal)
-        #expect(roundTrip == "test")
-        JS_FreeValue(ctx, jsVal)
-        _ = engine
-    }
-
-    @Test("newInt32 creates JS integer")
-    func testNewInt32() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.newInt32(ctx, 99)
-        #expect(JS_IsNumber(jsVal))
-        let roundTrip = JSBridge.toInt32(ctx, jsVal)
-        #expect(roundTrip == 99)
-        _ = engine
-    }
-
-    @Test("newFloat64 creates JS float")
-    func testNewFloat64() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.newFloat64(ctx, 2.718)
-        #expect(JS_IsNumber(jsVal))
-        let roundTrip = JSBridge.toDouble(ctx, jsVal)
-        #expect(abs(roundTrip - 2.718) < 0.001)
-        _ = engine
-    }
-
-    @Test("newBool creates JS boolean true")
-    func testNewBoolTrue() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.newBool(ctx, true)
-        #expect(JS_IsBool(jsVal))
-        let roundTrip = JSBridge.toBool(ctx, jsVal)
-        #expect(roundTrip == true)
-        _ = engine
-    }
-
-    @Test("newBool creates JS boolean false")
-    func testNewBoolFalse() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.newBool(ctx, false)
-        #expect(JS_IsBool(jsVal))
-        let roundTrip = JSBridge.toBool(ctx, jsVal)
-        #expect(roundTrip == false)
+        let js = JSBridge.newBool(ctx, value)
+        #expect(JS_IsBool(js))
+        #expect(JSBridge.toBool(ctx, js) == value)
+        #expect(JSBridge.jsToSwift(ctx, js) as? Bool == value)
+        let any = JSBridge.anyToJS(ctx, value as Any)
+        #expect(JS_IsBool(any))
+        #expect(JSBridge.toBool(ctx, any) == value)
         _ = engine
     }
 
@@ -269,80 +186,15 @@ struct JSBridgeTests {
 
     // MARK: - anyToJS
 
-    @Test("anyToJS with String")
-    func testAnyToJSString() {
+    @Test("anyToJS widens an Int that does not fit Int32", arguments: [
+        1_755_470_000_000,          // a millisecond timestamp from Date.now()
+        Int(Int32.min), Int(Int32.max), Int(Int32.max) + 1, Int(Int32.min) - 1
+    ])
+    func anyToJSWideInt(_ value: Int) {
         let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.anyToJS(ctx, "hello" as Any)
-        #expect(JS_IsString(jsVal))
-        #expect(JSBridge.toString(ctx, jsVal) == "hello")
-        JS_FreeValue(ctx, jsVal)
-        _ = engine
-    }
-
-    @Test("anyToJS with Int")
-    func testAnyToJSInt() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.anyToJS(ctx, 42 as Any)
+        let jsVal = JSBridge.anyToJS(ctx, value as Any)
         #expect(JS_IsNumber(jsVal))
-        #expect(JSBridge.toInt32(ctx, jsVal) == 42)
-        _ = engine
-    }
-
-    @Test("anyToJS with an Int too wide for Int32")
-    func testAnyToJSIntBeyondInt32() {
-        let (engine, ctx) = makeContext()
-        // A millisecond timestamp, the kind a panel sends back from Date.now().
-        let timestamp = 1_755_470_000_000
-        let jsVal = JSBridge.anyToJS(ctx, timestamp as Any)
-        #expect(JS_IsNumber(jsVal))
-        #expect(JSBridge.toDouble(ctx, jsVal) == Double(timestamp))
-        _ = engine
-    }
-
-    @Test("anyToJS with Int at the edges of Int32")
-    func testAnyToJSIntEdges() {
-        let (engine, ctx) = makeContext()
-        for value in [Int(Int32.min), Int(Int32.max), Int(Int32.max) + 1, Int(Int32.min) - 1] {
-            let jsVal = JSBridge.anyToJS(ctx, value as Any)
-            #expect(JS_IsNumber(jsVal))
-            #expect(JSBridge.toDouble(ctx, jsVal) == Double(value))
-        }
-        _ = engine
-    }
-
-    @Test("anyToJS with Int32")
-    func testAnyToJSInt32() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.anyToJS(ctx, Int32(7) as Any)
-        #expect(JS_IsNumber(jsVal))
-        #expect(JSBridge.toInt32(ctx, jsVal) == 7)
-        _ = engine
-    }
-
-    @Test("anyToJS with Double")
-    func testAnyToJSDouble() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.anyToJS(ctx, 1.5 as Any)
-        #expect(JS_IsNumber(jsVal))
-        #expect(abs(JSBridge.toDouble(ctx, jsVal) - 1.5) < 0.001)
-        _ = engine
-    }
-
-    @Test("anyToJS with Bool true")
-    func testAnyToJSBoolTrue() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.anyToJS(ctx, true as Any)
-        #expect(JS_IsBool(jsVal))
-        #expect(JSBridge.toBool(ctx, jsVal) == true)
-        _ = engine
-    }
-
-    @Test("anyToJS with Bool false")
-    func testAnyToJSBoolFalse() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.anyToJS(ctx, false as Any)
-        #expect(JS_IsBool(jsVal))
-        #expect(JSBridge.toBool(ctx, jsVal) == false)
+        #expect(JSBridge.toDouble(ctx, jsVal) == Double(value))
         _ = engine
     }
 
@@ -406,44 +258,6 @@ struct JSBridgeTests {
         _ = engine
     }
 
-    @Test("jsToSwift converts JS string")
-    func testJsToSwiftString() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.newString(ctx, "test")
-        let result = JSBridge.jsToSwift(ctx, jsVal)
-        #expect(result as? String == "test")
-        JS_FreeValue(ctx, jsVal)
-        _ = engine
-    }
-
-    @Test("jsToSwift converts JS integer")
-    func testJsToSwiftInt() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.newInt32(ctx, 7)
-        let result = JSBridge.jsToSwift(ctx, jsVal)
-        #expect(result as? Int == 7)
-        _ = engine
-    }
-
-    @Test("jsToSwift converts JS float")
-    func testJsToSwiftFloat() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.newFloat64(ctx, 1.5)
-        let result = JSBridge.jsToSwift(ctx, jsVal)
-        // 1.5 should remain as Double since Int(1) != 1.5
-        #expect(result as? Double == 1.5)
-        _ = engine
-    }
-
-    @Test("jsToSwift converts JS boolean")
-    func testJsToSwiftBool() {
-        let (engine, ctx) = makeContext()
-        let jsVal = JSBridge.newBool(ctx, true)
-        let result = JSBridge.jsToSwift(ctx, jsVal)
-        #expect(result as? Bool == true)
-        _ = engine
-    }
-
     @Test("jsToSwift converts JS array")
     func testJsToSwiftArray() {
         let (engine, ctx) = makeContext()
@@ -496,54 +310,28 @@ struct JSBridgeTests {
 
     // MARK: - Predicate Checks
 
-    @Test("isUndefined returns true for undefined value")
-    func testIsUndefined() {
-        let val = QJS_Undefined()
-        #expect(JSBridge.isUndefined(val) == true)
-    }
-
-    @Test("isUndefined returns false for non-undefined value")
-    func testIsUndefinedFalse() {
+    @Test("each predicate answers for its own value and no other")
+    func testPredicates() {
         let (engine, ctx) = makeContext()
-        let val = JSBridge.newInt32(ctx, 5)
-        #expect(JSBridge.isUndefined(val) == false)
-        _ = engine
-    }
+        #expect(JSBridge.isUndefined(QJS_Undefined()) == true)
+        #expect(JSBridge.isNull(QJS_Undefined()) == false)
+        #expect(JSBridge.isNull(QJS_Null()) == true)
+        #expect(JSBridge.isUndefined(QJS_Null()) == false)
 
-    @Test("isNull returns true for null value")
-    func testIsNull() {
-        let val = QJS_Null()
-        #expect(JSBridge.isNull(val) == true)
-    }
+        let num = JSBridge.newInt32(ctx, 5)
+        #expect(JSBridge.isUndefined(num) == false)
+        #expect(JSBridge.isException(num) == false)
 
-    @Test("isNull returns false for non-null value")
-    func testIsNullFalse() {
-        let (engine, ctx) = makeContext()
-        let val = JSBridge.newString(ctx, "not null")
-        #expect(JSBridge.isNull(val) == false)
-        JS_FreeValue(ctx, val)
-        _ = engine
-    }
+        let str = JSBridge.newString(ctx, "not null")
+        #expect(JSBridge.isNull(str) == false)
+        JS_FreeValue(ctx, str)
 
-    @Test("isException returns true for exception value")
-    func testIsException() {
-        let (engine, ctx) = makeContext()
-        // Trigger an exception by evaluating bad code
-        let result = "undefinedVar.property".withCString { cStr in
-            JS_Eval(ctx, cStr, "undefinedVar.property".utf8.count, "<test>", Int32(JS_EVAL_TYPE_GLOBAL))
+        let src = "undefinedVar.property"
+        let thrown = src.withCString {
+            JS_Eval(ctx, $0, src.utf8.count, "<test>", Int32(JS_EVAL_TYPE_GLOBAL))
         }
-        #expect(JSBridge.isException(result) == true)
-        // Clean up the exception from the context
-        let exc = JS_GetException(ctx)
-        JS_FreeValue(ctx, exc)
-        _ = engine
-    }
-
-    @Test("isException returns false for normal value")
-    func testIsExceptionFalse() {
-        let (engine, ctx) = makeContext()
-        let val = JSBridge.newInt32(ctx, 10)
-        #expect(JSBridge.isException(val) == false)
+        #expect(JSBridge.isException(thrown) == true)
+        JS_FreeValue(ctx, JS_GetException(ctx))   // leave the context clean
         _ = engine
     }
 

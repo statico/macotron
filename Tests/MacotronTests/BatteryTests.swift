@@ -7,13 +7,7 @@ import Testing
 struct BatteryTests {
     @Test("click menu lists health, cycles, and settings — not a click-through")
     func menuShowsDetails() throws {
-        let pluginURL = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/battery.js")
-        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
-        let harness = """
+        let result = try PluginHarness.eval(plugin: "battery.js", mock: #"""
             var statusConfig = null;
             var macotron = {
                 plugin: () => ({}),
@@ -37,31 +31,22 @@ struct BatteryTests {
                 command: () => {},
                 notify: { toast: () => {} }
             };
-            \(pluginSource)
+            """#, extra: #"""
             JSON.stringify({
                 onClick: typeof statusConfig.onClick,
                 menu: statusConfig.menu.map((row) => row === "-" ? "-" : row.title)
             })
-            """
-        let engine = Engine()
-        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
-        #expect(error == nil)
-        #expect(result?.contains("\"onClick\":\"undefined\"") == true)
-        #expect(result?.contains("Maximum capacity 96%") == true)
-        #expect(result?.contains("69 cycles") == true)
-        #expect(result?.contains("87W adapter") == true)
-        #expect(result?.contains("Battery Settings") == true)
+            """#)
+        #expect(result.contains("\"onClick\":\"undefined\""))
+        #expect(result.contains("Maximum capacity 96%"))
+        #expect(result.contains("69 cycles"))
+        #expect(result.contains("87W adapter"))
+        #expect(result.contains("Battery Settings"))
     }
 
     @Test("low power mode menu item turns it on and toasts")
     func lowPowerModeTurnsOn() throws {
-        let pluginURL = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/battery.js")
-        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
-        let harness = """
+        let engine = try PluginHarness.load(plugin: "battery.js", mock: #"""
             var statusConfig = null;
             var setArg = null;
             var toast = null;
@@ -85,23 +70,19 @@ struct BatteryTests {
                 command: () => {},
                 notify: { toast: (title, body) => { toast = { title: title, body: body }; } }
             };
-            \(pluginSource)
+            """#, extra: #"""
             var row = statusConfig.menu.find((item) => item.title && item.title.indexOf("Low Power Mode") === 0);
             var hasClick = typeof row.onClick === "function";
             row.onClick();
-            """
-        let engine = Engine()
-        let (_, error) = engine.evaluate(harness, filename: pluginURL.path)
-        #expect(error == nil)
-        // setLowPowerMode is a promise now, so the toast lands once the job
-        // queue has drained -- which the first evaluate does on its way out.
-        let (result, readError) = engine.evaluate("""
+            """#)
+        // setLowPowerMode is a promise, so the toast lands once the job queue
+        // has drained -- which load()'s evaluate does on its way out.
+        let result = PluginHarness.run(engine, #"""
             JSON.stringify({ setArg: setArg, toast: toast, hasClick: hasClick })
-            """)
-        #expect(readError == nil)
-        #expect(result?.contains("\"hasClick\":true") == true)
-        #expect(result?.contains("\"setArg\":true") == true)
-        #expect(result?.contains("\"title\":\"Low Power Mode\"") == true)
-        #expect(result?.contains("\"body\":\"On\"") == true)
+            """#)
+        #expect(result.contains("\"hasClick\":true"))
+        #expect(result.contains("\"setArg\":true"))
+        #expect(result.contains("\"title\":\"Low Power Mode\""))
+        #expect(result.contains("\"body\":\"On\""))
     }
 }

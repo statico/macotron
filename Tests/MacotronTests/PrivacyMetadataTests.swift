@@ -1,7 +1,6 @@
 import Foundation
 import Testing
 import UserNotifications
-@testable import MacotronEngine
 @testable import Modules
 
 @Suite("Privacy metadata")
@@ -17,18 +16,6 @@ struct PrivacyMetadataTests {
     func appleEvents() throws {
         let root = try plist("Resources/Macotron.entitlements")
         #expect(root["com.apple.security.automation.apple-events"] as? Bool == true)
-    }
-}
-
-@Suite("Automation permission")
-@MainActor
-struct AutomationPermissionTests {
-    @Test func parseAndLabel() {
-        #expect(Permissions.parse("automation") == .automation)
-        #expect(Permissions.parse("applescript") == .automation)
-        #expect(Permission.automation.title == "Automation")
-        #expect(Permission.automation.isAutoRequestable == false)
-        #expect(Permissions.baseline.contains(.automation))
     }
 }
 

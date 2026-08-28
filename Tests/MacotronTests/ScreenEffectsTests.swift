@@ -5,18 +5,7 @@ import Testing
 @MainActor
 @Suite("ScreenEffects")
 struct ScreenEffectsTests {
-    private func pluginURL() -> URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/screen-effects.js")
-    }
-
-    private func eval(_ extra: String) throws -> String {
-        let url = pluginURL()
-        let pluginSource = try String(contentsOf: url, encoding: .utf8)
-        let harness = """
+    private static let mock = #"""
             var store = {};
             var localStorage = {
                 getItem: (k) => (k in store ? store[k] : null),
@@ -45,20 +34,19 @@ struct ScreenEffectsTests {
                 command: (name, desc, fn) => { commands[name] = fn; },
                 notify: { toast: (title, body) => { toasts.push({ title: title, body: body }); } }
             };
-            \(pluginSource)
-            \(extra)
-            """
-        let engine = Engine()
-        let (result, error) = engine.evaluate(harness, filename: url.path)
-        #expect(error == nil)
-        return result ?? ""
+        """#
+
+    private func eval(_ extra: String) throws -> String {
+        try PluginHarness.eval(plugin: "screen-effects.js", mock: Self.mock, extra: extra)
     }
 
-    @Test("night vision tints red then restores")
-    func nightVision() throws {
+    @Test(
+        "toggling a gamma mode off restores ColorSync",
+        arguments: ["Toggle Night Vision", "Toggle Extra Dark"])
+    func gammaToggleRestores(command: String) throws {
         let result = try eval(#"""
-            commands["Toggle Night Vision"]();
-            commands["Toggle Night Vision"]();
+            commands[\#(String(reflecting: command))]();
+            commands[\#(String(reflecting: command))]();
             JSON.stringify(calls.map(c => c.op))
             """#)
         #expect(result.contains(#""set""#))
@@ -83,17 +71,6 @@ struct ScreenEffectsTests {
             """#)
         #expect(result.contains(#""white":0"#))
         #expect(result.contains(#""black":1"#))
-    }
-
-    @Test("toggling extra dark again restores ColorSync")
-    func restore() throws {
-        let result = try eval(#"""
-            commands["Toggle Extra Dark"]();
-            commands["Toggle Extra Dark"]();
-            JSON.stringify(calls.map(c => c.op))
-            """#)
-        #expect(result.contains(#""set""#))
-        #expect(result.contains(#""restore""#))
     }
 
     @Test("switching from night vision to extra dark to night vision applies red")

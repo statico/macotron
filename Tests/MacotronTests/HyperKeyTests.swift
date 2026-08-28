@@ -6,17 +6,13 @@ import Testing
 
 @Suite("KeyCombo hyper")
 struct KeyComboHyperTests {
-    @Test("parse hyper+h is cmd+shift+ctrl+opt+h")
-    func parseHyperH() {
-        let combo = KeyCombo.parse("hyper+h")
-        #expect(combo?.keyCode == CGKeyCode(kVK_ANSI_H))
-        #expect(combo?.modifiers == [.maskCommand, .maskShift, .maskControl, .maskAlternate])
-    }
-
-    @Test("parse hyper+left is cmd+shift+ctrl+opt+left")
-    func parseHyperLeft() {
-        let combo = KeyCombo.parse("hyper+left")
-        #expect(combo?.keyCode == CGKeyCode(kVK_LeftArrow))
+    @Test("hyper+key parses as cmd+shift+ctrl+opt", arguments: [
+        ("hyper+h", CGKeyCode(kVK_ANSI_H)),
+        ("hyper+left", CGKeyCode(kVK_LeftArrow)),
+    ])
+    func parseHyper(combo raw: String, keyCode: CGKeyCode) {
+        let combo = KeyCombo.parse(raw)
+        #expect(combo?.keyCode == keyCode)
         #expect(combo?.modifiers == [.maskCommand, .maskShift, .maskControl, .maskAlternate])
     }
 

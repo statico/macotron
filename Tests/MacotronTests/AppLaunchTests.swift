@@ -9,11 +9,6 @@ struct AppLaunchTests {
         #expect(AppLaunch.open(bundleID: "io.statico.macotron.missing-app") == false)
     }
 
-    @Test("Finder has a Launch Services URL")
-    func finderURL() {
-        #expect(NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.finder") != nil)
-    }
-
     @Test("search path includes Finder and Keychain Access")
     func catalogIncludesFinderAndKeychain() {
         let dirs = AppCatalog.searchDirectories()

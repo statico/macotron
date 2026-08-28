@@ -5,28 +5,18 @@ import Testing
 @MainActor
 @Suite("LockScreen")
 struct LockScreenTests {
+    private static let mock = #"""
+        var locked = 0;
+        var commands = {};
+        var macotron = {
+            plugin: () => ({}),
+            command: (name, desc, fn) => { commands[name] = fn; },
+            power: { lock: () => { locked++; return true; } }
+        };
+        """#
+
     private func eval(_ extra: String) throws -> String {
-        let pluginURL = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/lock-screen.js")
-        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
-        let harness = """
-            var locked = 0;
-            var commands = {};
-            var macotron = {
-                plugin: () => ({}),
-                command: (name, desc, fn) => { commands[name] = fn; },
-                power: { lock: () => { locked++; return true; } }
-            };
-            \(pluginSource)
-            \(extra)
-            """
-        let engine = Engine()
-        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
-        #expect(error == nil)
-        return result ?? ""
+        try PluginHarness.eval(plugin: "lock-screen.js", mock: Self.mock, extra: extra)
     }
 
     @Test("lock screen command locks right away")

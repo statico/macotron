@@ -5,16 +5,18 @@ import Testing
 
 @Suite("AppearanceSetting")
 struct AppearanceSettingTests {
-    @Test("Parses known values")
-    func parsesKnownValues() {
-        #expect(AppearanceSetting.parse("dark") == .dark)
-        #expect(AppearanceSetting.parse("light") == .light)
-        #expect(AppearanceSetting.parse("system") == .system)
+    @Test("Parses known values, anything else is system", arguments: [
+        ("dark", AppearanceSetting.dark),
+        ("light", .light),
+        ("system", .system),
+        ("blue", .system),
+    ])
+    func parsesStrings(raw: String, expected: AppearanceSetting) {
+        #expect(AppearanceSetting.parse(raw) == expected)
     }
 
-    @Test("Unknown or missing values default to system")
+    @Test("Missing or non-string values default to system")
     func defaultsToSystem() {
-        #expect(AppearanceSetting.parse("blue") == .system)
         #expect(AppearanceSetting.parse(nil) == .system)
         #expect(AppearanceSetting.parse(42) == .system)
     }
