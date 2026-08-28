@@ -201,16 +201,36 @@ public final class LauncherPanel: NonactivatingPanel {
     /// The corners are squircles, which `NSBezierPath` cannot draw; SwiftUI's
     /// continuous rounded rectangle is the shortest way to the same curve that
     /// `cornerCurve` gives the layers.
+    ///
+    /// The mask has to agree with the layers pixel for pixel: where it is the
+    /// tighter shape it pulls the vibrancy inside the corner the layers draw,
+    /// and the hairline tracing that corner then hangs over the backdrop
+    /// instead of the panel. Two things made it the tighter shape. A continuous
+    /// corner keeps curving well past its radius, so cap insets of exactly
+    /// `radius` cut the curve short; the insets are twice the radius to hold
+    /// the whole of it. And a lone 2x representation is resampled on a 1x
+    /// display, which lands the corner off the layers' by a fraction of a
+    /// pixel, so the image carries a representation per backing scale.
+    ///
+    /// At 2x both errors are under half a point and hide beneath a half-point
+    /// hairline. At 1x they are a whole pixel and the corner shows it.
     private static func cornerMask(radius: CGFloat) -> NSImage {
-        let side = radius * 2 + 1
+        let inset = radius * 2
+        let side = inset * 2 + 1
         let renderer = ImageRenderer(
             content: RoundedRectangle(cornerRadius: radius, style: .continuous)
                 .fill(.black)
                 .frame(width: side, height: side)
         )
-        renderer.scale = 2
-        let mask = renderer.nsImage ?? NSImage(size: NSSize(width: side, height: side))
-        mask.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
+        let mask = NSImage(size: NSSize(width: side, height: side))
+        for scale in [1.0, 2.0] {
+            renderer.scale = scale
+            guard let image = renderer.cgImage else { continue }
+            let rep = NSBitmapImageRep(cgImage: image)
+            rep.size = NSSize(width: side, height: side)
+            mask.addRepresentation(rep)
+        }
+        mask.capInsets = NSEdgeInsets(top: inset, left: inset, bottom: inset, right: inset)
         mask.resizingMode = .stretch
         return mask
     }
