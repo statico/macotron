@@ -160,4 +160,26 @@ struct EventBusTests {
         let (result, _) = engine.evaluate("val")
         #expect(result == "42")
     }
+
+    // MARK: - unsubscribing from inside a listener
+
+    @Test("a listener that unsubscribes itself does not take the rest of the list with it")
+    func testOffFromInsideListener() {
+        let engine = Engine()
+        engine.evaluate("""
+            var log = [];
+            var first = function() { log.push("first"); $$__off("test:selfoff", first); };
+            var second = function() { log.push("second"); };
+            $$__on("test:selfoff", first);
+            $$__on("test:selfoff", second);
+        """)
+        // `first` releases its own callback mid-dispatch. `second` still has to
+        // run, on this emit and the next one.
+        engine.eventBus.emit("test:selfoff", engine: engine, data: nil)
+        engine.eventBus.emit("test:selfoff", engine: engine, data: nil)
+
+        let (result, _) = engine.evaluate("log.join(',')")
+        #expect(result == "first,second,second")
+    }
 }
+
