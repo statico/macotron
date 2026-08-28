@@ -25,6 +25,20 @@
 //      thermal manager parks the fans in mode 3 and the firmware refuses the
 //      mode write with SMC error 0x82 — hence `unlock` and the `Ftst` dance.
 //
+// Point 1 looks like it wants a better signal than `thermalState`, because
+// `FNTg` holds the exact rpm the thermal manager wants and reading a register
+// is free. It is not: `FNTg` reports macOS's wish only in auto mode — in
+// manual it reads back the floor we wrote — so the fan has to be handed over
+// before the number means anything. This file used to do that every 30s, and
+// the cost is not the dip the word "peek" suggests. Auto mode on a cool Mac
+// means fans *off*: they stopped dead, `unlock` spent seconds getting them
+// back through `Ftst`, and they then had to spin up from a standstill. The
+// floor went unheld for about sixteen seconds in every thirty, and it was
+// audible. The mechanism meant to keep a floor from starving a hot Mac of air
+// was the only thing ever leaving it with none. Being late to release beats
+// that, so do not trade this coarse signal back for the precise one without
+// a way to read `FNTg` that does not require giving up the fan.
+//
 // Everything here re-asserts itself on a 2s timer, because the state is not
 // ours to keep: sleep/wake clears `Ftst`, and the thermal manager can take a
 // fan back at any point. The same timer is what makes the failsafes work —
