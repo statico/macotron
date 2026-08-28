@@ -72,6 +72,11 @@ try {
 }
 ```
 
+Log the start and outcome of every periodic refresh too. A refresh that
+fails partway and leaves stale UI on screen is otherwise invisible: the
+menu bar still shows a number, and nothing in the log says it is an hour
+old.
+
 `console.log` / `info` / `debug` write at info level, `console.warn` at
 notice, `console.error` at error. `macotron.log(...)` is the same as
 `console.log`. Every line is tagged with the plugin filename, so prefix
@@ -293,6 +298,63 @@ function start(ms) {
 Host state a plugin was holding is dropped on reload as well -- a sleep
 assertion, a fan-speed floor -- so claim it back at load from what was
 saved, and do it quietly: the notification was read the first time.
+
+## Async and error handling
+
+A `macotron.every` or `macotron.at` callback, and the initial call at the
+bottom of the file, run unattended. Nobody is watching a return value. If
+the body throws, that tick stops where it threw and the menu bar or panel
+keeps whatever was last painted -- usually the placeholder from the first
+run, which then sits there looking like a real reading. Wrap the body and
+paint a terminal state on every path, failure included.
+
+Note that `macotron.http` does not reject on a dead network: it resolves
+with `status: 0` and the reason in `body`. Check the status and catch, or
+the failure you are guarding against is the one that slips through.
+
+```js
+async function refresh() {
+  console.log("weather: refreshing", url);
+  try {
+    const res = await macotron.http.get(url, { timeout: 10000 });
+    if (res.status !== 200) throw new Error("HTTP " + res.status + ": " + res.body);
+    paint(JSON.parse(res.body));
+    console.log("weather: refreshed");
+  } catch (e) {
+    console.error("weather: refresh failed", e);
+    macotron.menubar.status("weather", {
+      title: "--",
+      color: "red",
+      menu: [
+        { title: "Refresh failed: " + (e.message || e) },
+        "-",
+        { title: "Refresh", onClick: refresh },
+      ],
+    });
+  }
+}
+```
+
+Run independent awaits together with `Promise.all`. A loop of `await` over
+N items runs them one at a time, so one slow request holds up every one
+behind it, and with a timeout of 10 seconds each a list of twenty can take
+longer than the interval that started it.
+
+For a fan-out big enough to annoy a server -- one request per pull request,
+per run, per file -- cap how many are in flight:
+
+```js
+async function mapLimit(items, limit, fn) {
+  const out = new Array(items.length);
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length) out[i] = await fn(items[i], i++);
+  }));
+  return out;
+}
+```
+
+Results come back in the order of `items`, not the order they finished.
 
 ## settings.json schema
 
