@@ -61,3 +61,37 @@ struct PanelShellTests {
         #expect(PanelShell.jsonString("line\n") == "\"line\\n\"")
     }
 }
+
+@Suite("PanelHost")
+@MainActor
+struct PanelHostDeliveryTests {
+    /// Collects what the page posts back, so the test can tell "delivered late"
+    /// from "never delivered".
+    private final class Inbox { var messages: [String] = [] }
+
+    @Test("a message posted before the page loads is delivered once it does")
+    func queuesUntilPageLoads() async throws {
+        let inbox = Inbox()
+        let host = PanelHost(
+            id: "queue-test",
+            title: "Queue",
+            width: 200,
+            height: 200,
+            html: "<script>window.__macotronReceive=(d)=>"
+                + "window.webkit.messageHandlers.macotron.postMessage(String(d && d.hello));</script>",
+            hostChrome: false,
+            onMessage: { _, body in inbox.messages.append(body as? String ?? "") },
+            onClosed: {}
+        )
+        defer { host.close() }
+        host.show()
+        // Straight after open, which is when a plugin seeds its panel: the page
+        // has not parsed its script yet, so this has to wait for it.
+        host.evaluateJSON(["hello": "world"])
+
+        for _ in 0..<100 where inbox.messages.isEmpty {
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+        #expect(inbox.messages == ["world"])
+    }
+}

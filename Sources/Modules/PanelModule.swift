@@ -171,7 +171,14 @@ public final class PanelModule: NativeModule {
         let normalized = Self.normalizeMessageBody(body)
         let payload = JSBridge.anyToJS(ctx, normalized)
 
-        for cb in globalCallbacks + (perIdCallbacks[panelId] ?? []) {
+        // Hold a reference to each handler for the length of the loop. A
+        // handler is allowed to close its own panel, and closing frees this
+        // panel's callbacks -- including the one still on the stack, and every
+        // one after it in this list.
+        let handlers = (globalCallbacks + (perIdCallbacks[panelId] ?? [])).map { JS_DupValue(ctx, $0) }
+        defer { for cb in handlers { JS_FreeValue(ctx, cb) } }
+
+        for cb in handlers {
             let arg = JS_DupValue(ctx, payload)
             if let result = engine.callJS(cb, [arg], label: "panel.onMessage", drain: false) {
                 JS_FreeValue(ctx, result)

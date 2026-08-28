@@ -229,6 +229,11 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     private var zoomMonitor: Any?
     private var dragMonitor: Any?
     private var dragJSBusy = false
+    /// Messages sent before the page finished loading. `postMessage` right
+    /// after `panel.open` is the normal way to seed a panel, and the page it
+    /// is meant for does not exist yet at that point.
+    private var pendingJSON: [String] = []
+    private var pageLoaded = false
     private var queuedMouseJS: String?
     private var trackingGrid = false
 
@@ -470,6 +475,10 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        pageLoaded = true
+        let queued = pendingJSON
+        pendingJSON = []
+        for json in queued { deliver(json) }
         focusDefaultField()
     }
 
@@ -558,6 +567,14 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         } else {
             json = "null"
         }
+        guard pageLoaded else {
+            pendingJSON.append(json)
+            return
+        }
+        deliver(json)
+    }
+
+    private func deliver(_ json: String) {
         webView.evaluateJavaScript(
             "(typeof window.__macotronReceive==='function'&&window.__macotronReceive(\(json)));"
             + "window.dispatchEvent(new MessageEvent('message',{data:\(json)}));"

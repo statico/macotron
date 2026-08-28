@@ -164,8 +164,6 @@ function mark() {
 }
 function send() { if (flat[sel]) window.webkit.messageHandlers.macotron.postMessage({ e: flat[sel].e }); }
 window.__macotronReceive = (d) => { if (d && d.sections) { sections = d.sections; sel = 0; paint(); } };
-window.webkit.messageHandlers.macotron.postMessage({ ready: 1 });
-
 document.getElementById("q").oninput = (e) =>
   window.webkit.messageHandlers.macotron.postMessage({ q: e.target.value });
 document.getElementById("body").onclick = (e) => {
@@ -194,17 +192,15 @@ async function openPicker() {
     closeOnBlur: true,
     html: PANEL_HTML,
   });
+  macotron.panel.postMessage(id, { sections: sections() });
   macotron.panel.onMessage(id, (data) => {
     if (!data) return;
-    if (data.ready) {
-      macotron.panel.postMessage(id, { sections: sections() });
-    } else if (typeof data.q === "string") {
+    if (typeof data.q === "string") {
       const hits = search(data.q, 96);
       macotron.panel.postMessage(id, {
         sections: data.q.trim() ? [{ title: "Results", items: hits }] : sections(),
       });
     } else if (data.e) {
-      // pick() first: close() frees this very callback, so nothing after it runs.
       pick(data.e);
       macotron.panel.close(id);
     }
