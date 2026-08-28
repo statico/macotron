@@ -1,5 +1,5 @@
 macotron.plugin({
-    title: "Layouts",
+    title: "Window Layout Save & Restore",
     description: "Save the current window layout and restore it later.",
     permissions: ["accessibility"],
 });

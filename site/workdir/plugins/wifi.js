@@ -1,5 +1,5 @@
 macotron.plugin({
-  title: "Wi-Fi",
+  title: "Wi-Fi Toggles",
   description: "Turn Wi-Fi, Bluetooth, and AirDrop on or off from the menu bar.",
 });
 
@@ -14,8 +14,9 @@ function airDropLabel(mode) {
   return "Off";
 }
 
-function paint() {
-  const wifi = macotron.network.wifi();
+async function paint() {
+  const wifi = await macotron.network.wifi();
+  const bluetooth = await macotron.network.bluetooth();
   const title = !wifi.available ? "No Wi-Fi" : wifi.on ? clip(wifi.ssid || "On") : "Wi-Fi Off";
   macotron.menubar.status("wifi", {
     title: title,
@@ -26,11 +27,8 @@ function paint() {
         onClick: () => toast(macotron.network.setWifi(!wifi.on), "Wi-Fi", (r) => r.on ? (r.ssid || "On") : "Off"),
       },
       {
-        title: macotron.network.bluetooth().on ? "Turn Bluetooth Off" : "Turn Bluetooth On",
-        onClick: () => {
-          const on = !macotron.network.bluetooth().on;
-          toast(macotron.network.setBluetooth(on), "Bluetooth", (r) => r.on ? "On" : "Off");
-        },
+        title: bluetooth.on ? "Turn Bluetooth Off" : "Turn Bluetooth On",
+        onClick: () => toast(macotron.network.setBluetooth(!bluetooth.on), "Bluetooth", (r) => r.on ? "On" : "Off"),
       },
       {
         title: "AirDrop: " + airDropLabel(macotron.network.airDrop().mode),
@@ -44,7 +42,10 @@ function paint() {
   });
 }
 
-function toast(result, title, label) {
+// `result` may be a promise or a plain object: only the calls that shell out
+// hand one back.
+async function toast(promise, title, label) {
+  const result = await promise;
   if (!result.ok) {
     macotron.notify.toast(title, result.error || "Failed", { color: "failure" });
     return;
@@ -59,7 +60,7 @@ function setAirDrop(mode) {
 
 macotron.on("wifi:changed", paint);
 paint();
-macotron.command("Toggle Wi-Fi", "Turn Wi-Fi on or off", () => {
-  const on = !macotron.network.wifi().on;
-  toast(macotron.network.setWifi(on), "Wi-Fi", (r) => r.on ? (r.ssid || "On") : "Off");
+macotron.command("Toggle Wi-Fi", "Turn Wi-Fi on or off", async () => {
+  const wifi = await macotron.network.wifi();
+  toast(macotron.network.setWifi(!wifi.on), "Wi-Fi", (r) => r.on ? (r.ssid || "On") : "Off");
 });

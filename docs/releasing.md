@@ -98,8 +98,8 @@ secrets listed at the bottom.
 
 - `ALLOW_UNNOTARIZED=1 make release VERSION=x.y.z` builds the DMG and stops
   before tagging. Useful to test the packaging without shipping anything.
-- `make tap VERSION=x.y.z` rewrites the cask on its own, if a release went out
-  and the tap did not.
+- `scripts/update-tap.sh x.y.z <dmg>` rewrites the cask on its own, if a
+  release went out and the tap did not. `make publish` already runs it.
 - `make bundle` still builds debug. `CONFIG=release` switches it.
 - `make dmg VERSION=x.y.z` builds, signs, and notarizes the DMG and stops.
   `make publish VERSION=x.y.z` takes it from there: appcast, tag, GitHub

@@ -1,5 +1,5 @@
 const opts = macotron.plugin({
-    title: "Battery",
+    title: "Battery Meter",
     description: "Show charge level and time remaining in the menu bar.",
 });
 
@@ -97,8 +97,8 @@ function menu(s) {
     return rows;
 }
 
-function enableLowPowerMode() {
-    const r = macotron.system.setLowPowerMode(true);
+async function enableLowPowerMode() {
+    const r = await macotron.system.setLowPowerMode(true);
     if (r && r.error) {
         macotron.notify.toast("Low Power Mode", r.error, { color: "error" });
         return;

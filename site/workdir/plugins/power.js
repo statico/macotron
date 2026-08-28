@@ -1,8 +1,8 @@
 // APIs: macotron.power, macotron.menubar, macotron.notify.show, macotron.command
 
 macotron.plugin({
-  title: "Stay Awake",
-  description: "Keep this Mac awake from the menu bar.",
+    title: "Stay Awake Toggle",
+    description: "Keep this Mac awake from the menu bar.",
 });
 
 const DURATIONS = [
@@ -12,9 +12,16 @@ const DURATIONS = [
     { ms: 4 * 60 * 60 * 1000, label: "4 hours" },
 ];
 const DEFAULT_MS = 4 * 60 * 60 * 1000;
+const KEY = "power.awake";
 
 let chosen = DEFAULT_MS;
 let until = 0;
+
+// A reload drops the sleep assertion and a restart takes the whole app with
+// it, so the deadline lives in localStorage and is claimed back below.
+function save() {
+    localStorage.setItem(KEY, JSON.stringify({ chosen, until }));
+}
 
 function fmt(ms) {
     const s = Math.max(0, Math.ceil(ms / 1000));
@@ -65,12 +72,14 @@ function start(ms) {
     chosen = ms;
     until = Date.now() + ms;
     macotron.power.preventSleep({ reason: "Macotron keep awake" });
+    save();
     macotron.notify.show("Stay Awake", "Awake for " + labelFor(ms), { sound: true });
     paint();
 }
 
 function stop() {
     until = 0;
+    save();
     if (macotron.power.isPreventing()) {
         macotron.power.allowSleep();
         macotron.notify.show("Stay Awake", "Sleep allowed", { sound: true });
@@ -90,6 +99,17 @@ function tick() {
         return;
     }
     paint();
+}
+
+const saved = JSON.parse(localStorage.getItem(KEY) || "null");
+if (saved) {
+    chosen = saved.chosen || DEFAULT_MS;
+    // Resume quietly: the user asked to stay awake once, not to be told about
+    // it again every time the plugin loads.
+    if (saved.until > Date.now()) {
+        until = saved.until;
+        macotron.power.preventSleep({ reason: "Macotron keep awake" });
+    }
 }
 
 paint();

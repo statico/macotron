@@ -60,7 +60,7 @@ SPARKLE_FRAMEWORK = $(SPARKLE_DIR)/Sparkle.xcframework/macos-arm64_x86_64/Sparkl
 
 .DEFAULT_GOAL := help
 
-.PHONY: help version build run bundle check clean cleanprefs release dmg publish tap scan trace
+.PHONY: help version build run bundle check site clean cleanprefs release dmg publish scan trace
 
 ##@ General
 
@@ -150,6 +150,18 @@ run: bundle ## Bundle and launch (kills existing instance first)
 
 check: bundle ## Typecheck load plugins (ARGS='plugins/foo.js' optional)
 	$(BUNDLE)/Contents/MacOS/$(APP_NAME) --check $(ARGS)
+
+# site/ is served straight from the repo by Vercel, with no build step, so the
+# plugin browser's copies have to be committed. This re-syncs them from the
+# originals and rewrites the manifest site.js reads, so the copies cannot drift.
+site: ## Re-sync site/workdir/plugins from Examples/plugins
+	@mkdir -p site/workdir/plugins
+	@/bin/rm -f site/workdir/plugins/*.js
+	@cp Examples/plugins/*.js site/workdir/plugins/
+	@cd site/workdir/plugins && ls *.js | sed 's/.*/"&"/' | paste -sd, - | sed 's/^/[/;s/$$/]/' > index.json
+	@sed "s/{{API_VERSION}}/$$(sed -n 's/.*apiVersion = "\(.*\)"/\1/p' Sources/MacotronEngine/Engine.swift)/" \
+		Sources/MacotronEngine/Resources/agents-template.md > site/workdir/AGENTS.md
+	@echo "Synced $$(ls site/workdir/plugins/*.js | wc -l | tr -d ' ') plugins into site/workdir/plugins"
 
 # Tees to $(TRACE_LOG) because `log` refuses to run inside a sandbox: an agent
 # working in one can read the file even though it cannot run the command.
@@ -247,10 +259,6 @@ publish: ## Appcast, tag, GitHub release, and cask for a built DMG (VERSION=x.y.
 	gh release create v$(VERSION) "$(DMG)" --title "$(APP_NAME) $(VERSION)" \
 		--notes-file $(BUILD_DIR)/notes.md && \
 	git push origin HEAD && \
-	scripts/update-tap.sh $(VERSION) "$(DMG)"
-
-tap: ## Re-point the Homebrew cask at VERSION (release does this already)
-	@$(demand-version)
 	scripts/update-tap.sh $(VERSION) "$(DMG)"
 
 ##@ Maintenance

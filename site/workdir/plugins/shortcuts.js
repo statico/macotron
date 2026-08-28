@@ -3,8 +3,8 @@ macotron.plugin({
   description: "Run shortcuts from the launcher.",
 });
 
-function refresh() {
-  const items = macotron.shortcuts.list().map((name) => ({
+async function refresh() {
+  const items = (await macotron.shortcuts.list()).map((name) => ({
     id: name,
     title: name,
     sfSymbol: "square.stack.3d.up",

@@ -1,9 +1,31 @@
-macotron.plugin({
-  title: "Fan",
-  description: "Show fan speed in the menu bar, and keep fans from running slower than a set speed.",
-  permissions: ["helper"],
-  help: "Click the fan icon in the menu bar to keep fans at least 50% or 100% speed, or return control to macOS.\n\nFan speed always shows. Setting a minimum speed needs the Macotron background helper — use Install on this page.",
+// Fan control: a menu bar readout, and a floor the fans may not run below.
+//
+// The floor itself lives in the host — this plugin only asks for one — but
+// two things about it are this plugin's job. It re-applies the floor at load,
+// which is what claims it back after a reload (an unclaimed floor is released
+// once loading finishes, so deleting this plugin does release the fans). And
+// it remembers the last floor in localStorage, because when Macotron quits
+// the helper's failsafe returns the fans to macOS, so a restart would
+// otherwise come back with no floor at all.
+const opts = macotron.plugin({
+    title: "Fan Control Menu",
+    description: "Show fan speed in the menu bar, and keep fans from running slower than a set speed.",
+    permissions: ["helper"],
+    help: "Click the fan icon in the menu bar to hold the fans at a minimum speed, or return control to macOS.\n\nFan speed always shows. Setting a minimum speed needs the Macotron background helper — use Install on this page.",
+    options: {
+        clickFloor: {
+            type: "dropdown",
+            label: "Menu bar click sets",
+            default: "100",
+            choices: [
+                { value: "50", label: "50%" },
+                { value: "100", label: "100%" },
+            ],
+        },
+    },
 });
+
+const KEY = "fan.floor";
 
 function snapshot() {
     return macotron.system.fans();
@@ -61,8 +83,9 @@ function render(s) {
     macotron.checks(checkRows(s));
 }
 
-function setFloor(percent) {
-    const s = macotron.system.setFanFloor(percent);
+async function setFloor(percent) {
+    const s = await macotron.system.setFanFloor(percent);
+    if (!s.error) localStorage.setItem(KEY, JSON.stringify(percent));
     render(s);
     if (s.error) {
         if (!s.controllable) {
@@ -72,9 +95,8 @@ function setFloor(percent) {
         macotron.notify.toast("Fan", s.error, { color: "error" });
         return;
     }
-    if (percent == null) macotron.notify.toast("Fan", "Off");
-    else if (percent === 100) macotron.notify.toast("Fan", "On", { color: "success" });
-    else macotron.notify.toast("Fan", percent + "% floor", { color: "success" });
+    if (percent == null) macotron.notify.toast("Fan", "Set to automatic speed");
+    else macotron.notify.toast("Fan", "minimum speed: " + percent + "%", { color: "success" });
 }
 
 function toggle() {
@@ -88,10 +110,22 @@ function toggle() {
         macotron.settings.open();
         return;
     }
-    setFloor(s.floor ? null : 100);
+    setFloor(s.floor ? null : Number(opts.clickFloor) || 100);
 }
 
-render(snapshot());
+const initial = snapshot();
+render(initial);
+// A reload wipes plugin state while the host keeps holding the fans, and an
+// app restart drops them entirely, so claim the last chosen floor back —
+// unclaimed floors are released once loading finishes.
+const saved = initial.floor ?? JSON.parse(localStorage.getItem(KEY) || "null");
+if (saved) macotron.system.setFanFloor(saved).then(render);
 macotron.every(2000, () => render(snapshot()));
 
+macotron.command("Toggle Fan 50%", "Hold fans at half speed, or restore system default", () => {
+    const s = snapshot();
+    if (!s.controllable) return toggle();
+    setFloor(s.floor === 50 ? null : 50);
+});
 macotron.command("Toggle Fan 100%", "Hold fans at full speed, or restore system default", toggle);
+

@@ -1,6 +1,6 @@
 // APIs: app:activated event, app.frontmost, command
 macotron.plugin({
-  title: "Frontmost App",
+  title: "Frontmost App Example",
   description: "Show the app in front and the last app you switched to.",
 });
 

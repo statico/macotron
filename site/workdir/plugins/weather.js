@@ -7,12 +7,14 @@ const opts = macotron.plugin({
     options: {
         location: {
             type: "string",
-            label: "Location (city or airport, blank = IP)",
+            label: "Location",
+            help: "A city or airport code. Leave blank to locate you by IP address.",
             default: "",
         },
         refreshMs: {
             type: "number",
-            label: "Refresh interval (ms)",
+            label: "Refresh interval",
+            help: "Milliseconds between updates. The default is ten minutes.",
             default: 600000,
         },
     },

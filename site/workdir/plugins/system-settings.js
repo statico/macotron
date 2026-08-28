@@ -1,7 +1,12 @@
 macotron.plugin({
-  title: "System Settings",
+  title: "System Settings Search",
   description: "Open System Settings panes from the launcher.",
+  help: "Type a pane name in the launcher, such as Wi-Fi or Full Disk Access.\n\n"
+      + "Panes open through the x-apple.systempreferences: URL scheme. A pane that macOS "
+      + "does not recognise on this version reports an error instead of failing quietly.",
 });
+
+const SETTINGS_APP = "/System/Applications/System Settings.app";
 
 const APP = "com.apple.systempreferences";
 
@@ -85,6 +90,20 @@ macotron.launcher.set(
     app: APP,
     sfSymbol,
     kind: "Settings",
-    onClick: () => macotron.url.open("x-apple.systempreferences:" + id),
+    // url.open reports whether Launch Services took the URL. macOS drops panes
+    // between releases, so a stale id here fails rather than opening nothing.
+    onClick: () => {
+      if (!macotron.url.open("x-apple.systempreferences:" + id)) {
+        macotron.notify.toast("System Settings", "Could not open " + title, { color: "error" });
+      }
+    },
   }))
 );
+
+macotron.checks([{
+  title: "System Settings",
+  ok: macotron.fs.exists(SETTINGS_APP),
+  message: macotron.fs.exists(SETTINGS_APP)
+    ? PANES.length + " panes"
+    : "System Settings.app not found at " + SETTINGS_APP,
+}]);

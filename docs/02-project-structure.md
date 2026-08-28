@@ -1,6 +1,6 @@
 # Project Structure
 
-This layout matches the host-shell redesign. See [2026-08-17-host-shell-design.md](superpowers/specs/2026-08-17-host-shell-design.md).
+This layout matches the host-shell redesign.
 
 ## Repo Layout
 

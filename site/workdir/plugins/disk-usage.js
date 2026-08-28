@@ -1,3 +1,8 @@
+macotron.plugin({
+    title: "Storage",
+    description: "See how much space folders in your home folder use.",
+});
+
 function fmt(kb) {
     const n = Number(kb) || 0;
     if (n < 1024) return Math.round(n) + " KB";
@@ -71,11 +76,6 @@ function folderName(path, home) {
     if (base && trimmed === base) return "Home";
     return volumeName(path);
 }
-
-macotron.plugin({
-    title: "Storage",
-    description: "See how much space folders in your home folder use.",
-});
 
 macotron.command("Disk Usage", "Browse folder sizes in your home folder", () => {
     const id = macotron.panel.open({
