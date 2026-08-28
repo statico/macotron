@@ -162,6 +162,18 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
         // if a floor is ever seen holding a hot machine down.
         let thermal = ProcessInfo.processInfo.thermalState
         for fan in fans {
+            // An unreadable FNMx reads as zero, and zero is not a fan that
+            // tops out at nothing -- it is a fan we know nothing about. Every
+            // floor would compute to 0 rpm, and `shouldForce` would take the
+            // `floor >= max` branch meant for a floor at full speed and hold
+            // that 0 through `.critical`. Leave the fan to macOS instead.
+            guard fan.max > 0 else {
+                log.error("fan \(fan.index, privacy: .public) reports no maximum rpm; leaving it on auto")
+                if forced.remove(fan.index) != nil {
+                    try writeMode(fan.index, 0)
+                }
+                continue
+            }
             let floorRPM = FanFloor.rpm(percent: percent, min: fan.min, max: fan.max)
             let force = FanFloor.shouldForce(
                 thermalState: thermal, floor: floorRPM, max: fan.max
