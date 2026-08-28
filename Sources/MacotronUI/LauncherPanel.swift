@@ -463,15 +463,25 @@ private final class PaintedView: NSView {
 private final class ShadowContainerView: NSView {
     let chrome: NSView
     private let shadowView: ShadowView
-    /// Hairline just inside the panel edge, a point in from the corner curve;
-    /// decoration only, so the chrome underneath keeps the clicks. Its width is a
-    /// device pixel, so the line stays a hairline on Retina.
+    /// Hairline on the panel edge; decoration only, so the chrome underneath
+    /// keeps the clicks. Its width is a device pixel, so the line stays a
+    /// hairline on Retina.
+    ///
+    /// It shares the chrome's frame and radius rather than sitting a point
+    /// inside a radius one smaller. That arithmetic is only concentric for a
+    /// circular corner: these corners are `.continuous`, and the offset curve of
+    /// a squircle is not another squircle, so the two paths part company
+    /// diagonally into the corner. On Retina the gap hides under a half-point
+    /// line, but at 1x the line doubles in width and the corner shows a bright
+    /// notch where the hairline pulls away from the edge. `borderWidth` draws
+    /// inward from the bounds, so an identical frame puts it in the same place
+    /// the inset was aiming for, on whatever curve the chrome actually has.
     private let hairline: PaintedView = {
         let view = PaintedView(clickable: false) { view in
             view.layer?.borderWidth = 1 / (view.window?.backingScaleFactor ?? 2)
             view.layer?.borderColor = NSColor.labelColor.withAlphaComponent(0.25).cgColor
         }
-        view.layer?.cornerRadius = LauncherPanel.cornerRadius - 1
+        view.layer?.cornerRadius = LauncherPanel.cornerRadius
         view.layer?.cornerCurve = .continuous
         return view
     }()
@@ -495,7 +505,7 @@ private final class ShadowContainerView: NSView {
         let inner = bounds.insetBy(dx: padding, dy: padding)
         shadowView.frame = inner
         chrome.frame = inner
-        hairline.frame = inner.insetBy(dx: 1, dy: 1)
+        hairline.frame = inner
         for view in [shadowView, chrome, hairline] {
             view.autoresizingMask = [.width, .height]
             addSubview(view)
