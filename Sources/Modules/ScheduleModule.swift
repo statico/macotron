@@ -171,7 +171,7 @@ public final class ScheduleModule: NativeModule {
             guard let ctx else { return QJS_Undefined() }
             scheduleModule(ctx)?.cancelJob(UInt64(magic))
             return QJS_Undefined()
-        }, "stop", 0, JS_CFUNC_generic, Int32(jobID))
+        }, "stop", 0, JS_CFUNC_generic_magic, Int32(jobID))
     }
 
     /// Time spent in interval callbacks, per plugin, logged once a minute.
@@ -199,8 +199,13 @@ public final class ScheduleModule: NativeModule {
         guard let engine, !job.cancelled else { return }
         let start = CFAbsoluteTimeGetCurrent()
         defer { account(job.pluginFile, CFAbsoluteTimeGetCurrent() - start) }
+        // A job that stops itself -- poll until done, count down to zero -- runs
+        // stop() from inside this call, and stop() releases the callback that is
+        // still on the stack. Hold it for the duration.
+        let fn = JS_DupValue(engine.context, job.callback)
+        defer { JS_FreeValue(engine.context, fn) }
         engine.withEvaluatingFile(job.pluginFile) {
-            if let result = engine.callJS(job.callback, label: "schedule job \(job.id)") {
+            if let result = engine.callJS(fn, label: "schedule job \(job.id)") {
                 JS_FreeValue(engine.context, result)
             }
         }
