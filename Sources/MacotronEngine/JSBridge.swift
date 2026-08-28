@@ -114,6 +114,73 @@ public enum JSBridge {
         JS_SetPropertyStr(ctx, obj, key, val)
     }
 
+    // MARK: - Reading options off a JS object
+    //
+    // Every module takes an options object and picks values out of it, and
+    // each pick is the same four steps: get the property, treat undefined and
+    // null as absent, convert, free. Written out at a hundred-odd call sites
+    // that is where a missing `JS_FreeValue` hides, and one of them read
+    // `undefined` as a real value because the null half of the check was
+    // forgotten. These do the four steps once.
+    //
+    // Each returns nil when the key is absent, so a caller that wants a
+    // default writes `?? fallback` and a caller that must distinguish absent
+    // from present does not have to guess.
+
+    /// A string option, or nil when the key is absent or is not a string.
+    public static func string(_ ctx: OpaquePointer, _ obj: JSValue, _ key: String) -> String? {
+        option(ctx, obj, key) { toString(ctx, $0) }
+    }
+
+    /// An integer option, or nil when the key is absent.
+    public static func int(_ ctx: OpaquePointer, _ obj: JSValue, _ key: String) -> Int? {
+        option(ctx, obj, key) { Int(toInt32(ctx, $0)) }
+    }
+
+    /// A double option, or nil when the key is absent.
+    public static func double(_ ctx: OpaquePointer, _ obj: JSValue, _ key: String) -> Double? {
+        option(ctx, obj, key) { toDouble(ctx, $0) }
+    }
+
+    /// A boolean option, or nil when the key is absent. Present-but-falsy is
+    /// `false`, which is not the same answer as absent.
+    public static func bool(_ ctx: OpaquePointer, _ obj: JSValue, _ key: String) -> Bool? {
+        option(ctx, obj, key) { toBool(ctx, $0) }
+    }
+
+    /// An array option read as strings, or nil when the key is absent or
+    /// holds something that is not an array.
+    ///
+    /// Undefined and null elements are dropped rather than stringified. The
+    /// hand-written loops this replaces used `toString` directly, which turns
+    /// a null element into the four-character word "null" — and one of those
+    /// loops was building an argument list for a shell command.
+    public static func stringArray(_ ctx: OpaquePointer, _ obj: JSValue, _ key: String) -> [String]? {
+        option(ctx, obj, key) { value in
+            guard JS_IsArray(value) else { return nil }
+            let lengthValue = getProperty(ctx, value, "length")
+            let count = toInt32(ctx, lengthValue)
+            JS_FreeValue(ctx, lengthValue)
+            return (0..<count).compactMap { index in
+                let element = JS_GetPropertyUint32(ctx, value, UInt32(index))
+                defer { JS_FreeValue(ctx, element) }
+                guard !isUndefined(element), !isNull(element) else { return nil }
+                return toString(ctx, element)
+            }
+        }
+    }
+
+    /// The shared four steps. `convert` never sees undefined or null, and the
+    /// value is freed however it returns.
+    private static func option<T>(
+        _ ctx: OpaquePointer, _ obj: JSValue, _ key: String, _ convert: (JSValue) -> T?
+    ) -> T? {
+        let value = getProperty(ctx, obj, key)
+        defer { JS_FreeValue(ctx, value) }
+        guard !isUndefined(value), !isNull(value) else { return nil }
+        return convert(value)
+    }
+
     /// Check if a JSValue is undefined
     public static func isUndefined(_ val: JSValue) -> Bool {
         JS_IsUndefined(val)

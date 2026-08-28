@@ -124,8 +124,14 @@ public final class Engine {
     }
 
     public static func isDryRun(_ ctx: OpaquePointer?) -> Bool {
-        guard let ctx, let opaque = JS_GetContextOpaque(ctx) else { return false }
-        return Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue().dryRun
+        of(ctx)?.dryRun ?? false
+    }
+
+    /// A module the app stashed in `configStore` under `key`, for the bindings
+    /// that need to call back into their own module instance. Every module
+    /// that needs one writes the same private lookup; this is that lookup.
+    public static func module<T>(_ ctx: OpaquePointer?, _ key: String) -> T? {
+        of(ctx)?.configStore[key] as? T
     }
 
     /// Base directory for resolving ES module imports (set by ModuleManager)
