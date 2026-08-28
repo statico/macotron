@@ -45,7 +45,13 @@ public final class EventBus {
         budget: TimeInterval? = nil
     ) {
         guard let callbacks = listeners[event] else { return }
-        for listener in callbacks {
+        // A listener is allowed to unsubscribe itself -- listen once, then off()
+        // -- and off() releases the callback. Hold a reference to each one for
+        // the length of the loop so that frees nothing still to be called.
+        let held = callbacks.map { (ctx: $0.ctx, callback: JS_DupValue($0.ctx, $0.callback)) }
+        defer { for h in held { JS_FreeValue(h.ctx, h.callback) } }
+
+        for listener in held {
             let result = engine.callJS(
                 listener.callback,
                 data.map { [$0] } ?? [],
