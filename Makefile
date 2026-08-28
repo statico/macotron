@@ -100,6 +100,7 @@ bundle: build ## Create ~/Applications/Macotron.app
 	fi
 	@cp Sources/Macotron/Resources/macotron-runtime.js "$(BUNDLE)/Contents/Resources/"
 	@cp Sources/Macotron/Resources/macotron.d.ts "$(BUNDLE)/Contents/Resources/"
+	@cp Sources/MacotronEngine/Resources/agents-template.md "$(BUNDLE)/Contents/Resources/"
 	@xcrun actool $(CURDIR)/Resources/$(APP_NAME).icon --compile "$(BUNDLE)/Contents/Resources" \
 		--app-icon $(APP_NAME) --output-partial-info-plist $(BUILD_DIR)/icon-partial.plist \
 		--platform macosx --minimum-deployment-target 15.0 --errors --warnings >/dev/null
