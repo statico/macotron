@@ -1,5 +1,6 @@
 // LauncherPanel.swift — Floating NSPanel for the launcher
 import AppKit
+import SwiftUI
 import MacotronEngine
 
 private extension NSView {
@@ -15,7 +16,7 @@ private extension NSView {
 @MainActor
 public final class LauncherPanel: NSPanel {
     private static let minHeight: CGFloat = LauncherPlacement.minHeight
-    private static let cornerRadius: CGFloat = 12
+    static let cornerRadius: CGFloat = 12
     private static let shadowPadding: CGFloat = LauncherPlacement.shadowPadding
     private static let showDuration: TimeInterval = 0.06
     private static let hideDuration: TimeInterval = 0.05
@@ -102,6 +103,7 @@ public final class LauncherPanel: NSPanel {
                 let clip = NSView(frame: frame)
                 clip.wantsLayer = true
                 clip.layer?.cornerRadius = cornerRadius
+                clip.layer?.cornerCurve = .continuous
                 clip.layer?.masksToBounds = true
                 clip.autoresizingMask = [.width, .height]
                 let glass = NSGlassEffectView(frame: clip.bounds)
@@ -121,6 +123,7 @@ public final class LauncherPanel: NSPanel {
             visual.maskImage = cornerMask(radius: cornerRadius)
             visual.wantsLayer = true
             visual.layer?.cornerRadius = cornerRadius
+            visual.layer?.cornerCurve = .continuous
             visual.layer?.masksToBounds = true
             visual.autoresizingMask = [.width, .height]
             let tint = LauncherTintView(frame: visual.bounds)
@@ -141,13 +144,19 @@ public final class LauncherPanel: NSPanel {
     /// shadow is cast from the panel's square frame, so the transparent corners
     /// land on unshadowed backdrop and read as bright notches over flat, light
     /// windows. Cap insets keep the corners fixed as the panel resizes.
+    ///
+    /// The corners are squircles, which `NSBezierPath` cannot draw; SwiftUI's
+    /// continuous rounded rectangle is the shortest way to the same curve that
+    /// `cornerCurve` gives the layers.
     private static func cornerMask(radius: CGFloat) -> NSImage {
         let side = radius * 2 + 1
-        let mask = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
-            NSColor.black.setFill()
-            NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
-            return true
-        }
+        let renderer = ImageRenderer(
+            content: RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .fill(.black)
+                .frame(width: side, height: side)
+        )
+        renderer.scale = 2
+        let mask = renderer.nsImage ?? NSImage(size: NSSize(width: side, height: side))
         mask.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
         mask.resizingMode = .stretch
         return mask
@@ -292,10 +301,12 @@ public final class LauncherPanel: NSPanel {
             context.duration = Self.hideDuration
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             animator().alphaValue = 0
-        }, completionHandler: { [weak self] in
-            // A reveal during the fade clears the flag and claims the window.
-            guard let self, self.isDismissing else { return }
-            self.orderOut(nil)
+        }, completionHandler: {
+            MainActor.assumeIsolated {
+                // A reveal during the fade clears the flag and claims the window.
+                guard self.isDismissing else { return }
+                self.orderOut(nil)
+            }
         })
     }
 
@@ -411,6 +422,7 @@ private final class OpaqueLauncherChrome: NSView {
         super.init(frame: frameRect)
         wantsLayer = true
         layer?.cornerRadius = 12
+        layer?.cornerCurve = .continuous
         layer?.masksToBounds = true
         paint()
     }
@@ -437,6 +449,7 @@ private final class OpaqueLauncherChrome: NSView {
 private final class ShadowContainerView: NSView {
     let chrome: NSView
     private let shadowView: ShadowView
+    private let hairline = HairlineView(cornerRadius: LauncherPanel.cornerRadius - 1)
 
     var drawsShadow = true {
         didSet { paint() }
@@ -455,12 +468,13 @@ private final class ShadowContainerView: NSView {
         wantsLayer = true
         layer?.masksToBounds = false
         let inner = bounds.insetBy(dx: padding, dy: padding)
-        for view in [shadowView, chrome] {
-            view.frame = inner
+        shadowView.frame = inner
+        chrome.frame = inner
+        hairline.frame = inner.insetBy(dx: 1, dy: 1)
+        for view in [shadowView, chrome, hairline] {
             view.autoresizingMask = [.width, .height]
+            addSubview(view)
         }
-        addSubview(shadowView)
-        addSubview(chrome)
         paint()
     }
 
@@ -495,6 +509,7 @@ private final class ShadowView: NSView {
         super.init(frame: .zero)
         wantsLayer = true
         layer?.cornerRadius = cornerRadius
+        layer?.cornerCurve = .continuous
         layer?.masksToBounds = false
         // The fill is what casts; the chrome covers it pixel for pixel.
         layer?.backgroundColor = NSColor.black.cgColor
@@ -515,5 +530,40 @@ private final class ShadowView: NSView {
         drop.shadowBlurRadius = Self.blurRadius
         drop.shadowOffset = Self.offset
         shadow = drop
+    }
+}
+
+/// Hairline just inside the panel edge, a point in from the corner curve.
+private final class HairlineView: NSView {
+    private let cornerRadius: CGFloat
+
+    init(cornerRadius: CGFloat) {
+        self.cornerRadius = cornerRadius
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.cornerRadius = cornerRadius
+        layer?.cornerCurve = .continuous
+        paint()
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    /// Decoration only; the chrome underneath keeps the clicks.
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func viewDidChangeEffectiveAppearance() {
+        paint()
+    }
+
+    /// A device pixel, so the line stays a hairline on Retina.
+    override func viewDidChangeBackingProperties() {
+        paint()
+    }
+
+    private func paint() {
+        layer?.borderWidth = 1 / (window?.backingScaleFactor ?? 2)
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            layer?.borderColor = NSColor.labelColor.withAlphaComponent(0.25).cgColor
+        }
     }
 }
