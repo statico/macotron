@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.3.8</title>
+            <sparkle:version>0.3.8</sparkle:version>
+            <sparkle:shortVersionString>0.3.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Fri, 28 Aug 2026 23:56:49 +0000</pubDate>
+            <description><![CDATA[<ul><li>Hand the window server the whole corner curve, at its own scale</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.3.8/Macotron-0.3.8.dmg" type="application/octet-stream" sparkle:edSignature="uYp49pizjl4eCkFMh9FtRie0BME+y+FEhRPHzUvtQiDy/33hTYhsTK3wff9WExYwwdn0I/+VeSRh07DfQOSqDQ==" length="9183811" />
+        </item>
+        <item>
             <title>0.3.7</title>
             <sparkle:version>0.3.7</sparkle:version>
             <sparkle:shortVersionString>0.3.7</sparkle:shortVersionString>
