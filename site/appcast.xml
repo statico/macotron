@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.3.7</title>
+            <sparkle:version>0.3.7</sparkle:version>
+            <sparkle:shortVersionString>0.3.7</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Fri, 28 Aug 2026 23:19:29 +0000</pubDate>
+            <description><![CDATA[<ul><li>Put the launcher hairline on the edge it is tracing</li><li>Write down the http timeout that already exists</li><li>Tell plugin authors what an unattended tick does when it throws</li><li>Say the plugin docs' points once instead of arguing them</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.3.7/Macotron-0.3.7.dmg" type="application/octet-stream" sparkle:edSignature="GgNzgXos3jMTdWc5PHctT9036rCvK8N1wWFT2I2MWbxi9c5ATnonzk1+CjzD2Iw0oriq/JhG7OAAat2WlhuZAQ==" length="9183789" />
+        </item>
+        <item>
             <title>0.3.6</title>
             <sparkle:version>0.3.6</sparkle:version>
             <sparkle:shortVersionString>0.3.6</sparkle:shortVersionString>
