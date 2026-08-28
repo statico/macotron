@@ -4,28 +4,23 @@ import Testing
 
 @Suite("CalendarUpcoming")
 struct CalendarUpcomingTests {
-    @Test("prefers event.url over an https location")
-    func prefersEventURL() {
-        #expect(CalendarEventURL.pick(url: "https://meet.example/a", location: "https://zoom.example/b") == "https://meet.example/a")
-    }
-
-    @Test("uses https location when event.url is missing")
-    func usesHTTPSLocation() {
-        #expect(CalendarEventURL.pick(url: nil, location: "https://zoom.example/b") == "https://zoom.example/b")
-        #expect(CalendarEventURL.pick(url: "", location: "Join https://meet.example/c") == "https://meet.example/c")
-    }
-
-    @Test("digs the join link out of the notes, meeting host first")
-    func picksMeetingLinkFromNotes() {
-        let notes = "Agenda: https://docs.example/agenda\nJoin Zoom Meeting\nhttps://acme.zoom.us/j/123?pwd=abc."
-        #expect(CalendarEventURL.pick(url: nil, location: "Room 3", notes: notes) == "https://acme.zoom.us/j/123?pwd=abc")
-        #expect(CalendarEventURL.pick(url: nil, location: nil, notes: "see https://docs.example/agenda") == "https://docs.example/agenda")
-    }
-
-    @Test("empty when there is no url and location has no https")
-    func emptyWithoutHTTPS() {
-        #expect(CalendarEventURL.pick(url: nil, location: "Conference Room A") == "")
-        #expect(CalendarEventURL.pick(url: nil, location: "http://insecure.example") == "")
-        #expect(CalendarEventURL.pick(url: nil, location: nil) == "")
+    /// event.url wins, then an https link in the location, then the join link
+    /// dug out of the notes (meeting host first), then nothing.
+    @Test("picks the best join link", arguments: [
+        ("https://meet.example/a", "https://zoom.example/b", nil, "https://meet.example/a"),
+        (nil, "https://zoom.example/b", nil, "https://zoom.example/b"),
+        ("", "Join https://meet.example/c", nil, "https://meet.example/c"),
+        (
+            nil, "Room 3",
+            "Agenda: https://docs.example/agenda\nJoin Zoom Meeting\nhttps://acme.zoom.us/j/123?pwd=abc.",
+            "https://acme.zoom.us/j/123?pwd=abc"
+        ),
+        (nil, nil, "see https://docs.example/agenda", "https://docs.example/agenda"),
+        (nil, "Conference Room A", nil, ""),
+        (nil, "http://insecure.example", nil, ""),
+        (nil, nil, nil, ""),
+    ])
+    func picks(url: String?, location: String?, notes: String?, expected: String) {
+        #expect(CalendarEventURL.pick(url: url, location: location, notes: notes) == expected)
     }
 }

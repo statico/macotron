@@ -5,36 +5,26 @@ import Testing
 @MainActor
 @Suite("FileSearch")
 struct FileSearchTests {
+    private static let mock = #"""
+        var html = "";
+        var opened = null;
+        var macotron = {
+            plugin: () => ({}),
+            command: (n, d, fn) => { fn(); },
+            panel: {
+                open: (opts) => { opened = opts; html = opts.html; return "panel"; },
+                onMessage: () => {},
+                postMessage: () => {},
+                close: () => {}
+            },
+            spotlight: { search: async () => [] },
+            shell: { run: async () => ({}) },
+            notify: { toast: () => {} }
+        };
+        """#
+
     private func eval(_ js: String) throws -> String {
-        let pluginURL = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/file-search.js")
-        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
-        let harness = """
-            var html = "";
-            var opened = null;
-            var macotron = {
-                plugin: () => ({}),
-                command: (n, d, fn) => { fn(); },
-                panel: {
-                    open: (opts) => { opened = opts; html = opts.html; return "panel"; },
-                    onMessage: () => {},
-                    postMessage: () => {},
-                    close: () => {}
-                },
-                spotlight: { search: async () => [] },
-                shell: { run: async () => ({}) },
-                notify: { toast: () => {} }
-            };
-            \(pluginSource)
-            \(js)
-            """
-        let engine = Engine()
-        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
-        #expect(error == nil)
-        return result ?? ""
+        try PluginHarness.eval(plugin: "file-search.js", mock: Self.mock, extra: js)
     }
 
     @Test("ctrl-p and up move to the previous row")

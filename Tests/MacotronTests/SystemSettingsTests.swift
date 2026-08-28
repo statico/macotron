@@ -5,34 +5,24 @@ import Testing
 @MainActor
 @Suite("SystemSettings")
 struct SystemSettingsTests {
+    private static let mock = #"""
+        var provider = "";
+        var items = [];
+        var opened = [];
+        var checkRows = [];
+        var toasts = [];
+        var macotron = {
+            plugin: () => ({}),
+            launcher: { set: (id, rows) => { provider = id; items = rows; } },
+            url: { open: (u) => { opened.push(u); return true; } },
+            fs: { exists: () => true },
+            checks: (rows) => { checkRows = rows; },
+            notify: { toast: (t, b) => { toasts.push(b); } }
+        };
+        """#
+
     private func eval(_ extra: String) throws -> String {
-        let pluginURL = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/system-settings.js")
-        let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
-        let harness = """
-            var provider = "";
-            var items = [];
-            var opened = [];
-            var checkRows = [];
-            var toasts = [];
-            var macotron = {
-                plugin: () => ({}),
-                launcher: { set: (id, rows) => { provider = id; items = rows; } },
-                url: { open: (u) => { opened.push(u); return true; } },
-                fs: { exists: () => true },
-                checks: (rows) => { checkRows = rows; },
-                notify: { toast: (t, b) => { toasts.push(b); } }
-            };
-            \(pluginSource)
-            \(extra)
-            """
-        let engine = Engine()
-        let (result, error) = engine.evaluate(harness, filename: pluginURL.path)
-        #expect(error == nil)
-        return result ?? ""
+        try PluginHarness.eval(plugin: "system-settings.js", mock: Self.mock, extra: extra)
     }
 
     @Test("registers searchable System Settings panes")

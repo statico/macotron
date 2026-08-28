@@ -111,59 +111,23 @@ struct DryRunStubTests {
         #expect(result == "resolved:|resolved:")
     }
 
-    @Test("url.open reports success without opening")
-    func urlOpen() {
-        let engine = dryEngine([URLSchemeModule()])
-        let (result, error) = engine.evaluate("macotron.url.open('https://example.com')")
-        #expect(error == nil)
-        #expect(result == "true")
-    }
-
-    @Test("shortcuts.run reports success without spawning")
-    func shortcutsRun() {
-        let engine = dryEngine([ShortcutsModule()])
-        let (_, error) = engine.evaluate("""
-            globalThis.out = null;
-            macotron.shortcuts.run('Does Not Exist').then(ok => { globalThis.out = ok; });
-            """)
-        #expect(error == nil)
-        let (result, _) = engine.evaluate("globalThis.out")
-        #expect(result == "true")
-    }
-
-    @Test("hid send is inert")
-    func hidSend() {
-        let engine = dryEngine([HIDModule()])
+    /// The inert-and-returns-true modules, on one engine: each of these only
+    /// has to report success without doing anything, so they do not each need
+    /// an engine of their own.
+    @Test("url, shortcuts, hid, app and window calls are inert")
+    func inertModules() {
+        let engine = dryEngine([URLSchemeModule(), ShortcutsModule(), HIDModule(), AppModule(), WindowModule()])
         let (result, error) = engine.evaluate("""
+            globalThis.shortcutOut = null;
+            macotron.shortcuts.run('Does Not Exist').then(ok => { globalThis.shortcutOut = ok; });
             JSON.stringify([
+                macotron.url.open('https://example.com'),
                 macotron.hid.sendOutput('dev', [1, 2]).ok,
                 macotron.hid.sendFeature('dev', [1, 2]).ok,
-            ])
-            """)
-        #expect(error == nil)
-        #expect(result == "[true,true]")
-    }
-
-    @Test("app launch/switch/quit/hide are inert")
-    func app() {
-        let engine = dryEngine([AppModule()])
-        let (result, error) = engine.evaluate("""
-            JSON.stringify([
                 macotron.app.launch('com.apple.Finder'),
                 macotron.app.switch('com.apple.Finder'),
                 macotron.app.quit('com.apple.Finder'),
                 macotron.app.hide('com.apple.Finder'),
-            ])
-            """)
-        #expect(error == nil)
-        #expect(result == "[true,true,true,true]")
-    }
-
-    @Test("window mutators are inert")
-    func window() {
-        let engine = dryEngine([WindowModule()])
-        let (result, error) = engine.evaluate("""
-            JSON.stringify([
                 macotron.window.focus(1),
                 macotron.window.move(1, { x: 0, y: 0 }),
                 macotron.window.moveToFraction(1, { x: 0, y: 0, w: 1, h: 1 }),
@@ -174,7 +138,8 @@ struct DryRunStubTests {
             ])
             """)
         #expect(error == nil)
-        #expect(result == "[true,true,true,true,true,true,1]")
+        #expect(result == "[true,true,true,true,true,true,true,true,true,true,true,true,true,1]")
+        #expect(engine.evaluate("globalThis.shortcutOut").0 == "true")
     }
 
     @Test("qr.show and qr.scan are inert")

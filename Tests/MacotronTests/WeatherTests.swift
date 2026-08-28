@@ -57,11 +57,7 @@ struct WeatherTests {
         let engine = Engine()
 
         init(measurement: String, localObservation: Bool = true) throws {
-            let repository = URL(fileURLWithPath: #filePath)
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-            let pluginURL = repository.appending(path: "Examples/plugins/weather.js")
+            let pluginURL = PluginHarness.url("weather.js")
             let pluginSource = try String(contentsOf: pluginURL, encoding: .utf8)
             let harness = """
                 var capturedURLs = [];
@@ -109,6 +105,28 @@ struct WeatherTests {
         func value(_ expression: String) -> String? {
             let (result, _) = engine.evaluate(expression)
             return result
+        }
+
+        /// The painted menu as JSON. Menu rows carry click handlers, which
+        /// JSON.stringify drops silently -- the replacer makes that explicit so
+        /// two snapshots compare on data alone. `dropErrors` leaves out the row
+        /// a failed refresh adds, so the rest can be compared to a snapshot
+        /// taken before the failure.
+        func menuSnapshot(dropErrors: Bool = false) -> String? {
+            let rows = dropErrors
+                ? "statusConfig.menu.filter(x => !/error|failed/i.test(x.title))"
+                : "statusConfig.menu"
+            return value("""
+                JSON.stringify(
+                    \(rows),
+                    (_, value) => typeof value === 'function' ? undefined : value
+                )
+                """)
+        }
+
+        /// How many menu rows report a failed refresh.
+        func errorRowCount() -> String? {
+            value("statusConfig.menu.filter(x => /error|failed/i.test(x.title)).length")
         }
     }
 
@@ -192,22 +210,12 @@ struct WeatherTests {
     func refreshError() throws {
         let harness = try Harness(measurement: "metric")
         let previousTitle = harness.value("statusConfig.title")
-        let previousMenu = harness.value("""
-            JSON.stringify(
-                statusConfig.menu,
-                (_, value) => typeof value === 'function' ? undefined : value
-            )
-            """)
+        let previousMenu = harness.menuSnapshot()
 
         #expect(harness.value("rejectNextRequest = true; refreshWeather(); 'requested'") == "requested")
         #expect(harness.value("statusConfig.title") == previousTitle)
-        #expect(harness.value("""
-            JSON.stringify(
-                statusConfig.menu.filter(x => !/error|failed/i.test(x.title)),
-                (_, value) => typeof value === 'function' ? undefined : value
-            )
-            """) == previousMenu)
-        #expect(harness.value("statusConfig.menu.filter(x => /error|failed/i.test(x.title)).length") == "1")
+        #expect(harness.menuSnapshot(dropErrors: true) == previousMenu)
+        #expect(harness.errorRowCount() == "1")
     }
 
     @Test("uses provider local-time fallback when local observation is absent")
@@ -232,19 +240,9 @@ struct WeatherTests {
             )
             """) == expected)
 
-        let previousMenu = harness.value("""
-            JSON.stringify(
-                statusConfig.menu,
-                (_, value) => typeof value === 'function' ? undefined : value
-            )
-            """)
+        let previousMenu = harness.menuSnapshot()
         #expect(harness.value("rejectNextRequest = true; refreshWeather(); 'requested'") == "requested")
-        #expect(harness.value("""
-            JSON.stringify(
-                statusConfig.menu.filter(x => !/error|failed/i.test(x.title)),
-                (_, value) => typeof value === 'function' ? undefined : value
-            )
-            """) == previousMenu)
+        #expect(harness.menuSnapshot(dropErrors: true) == previousMenu)
     }
 
     @Test("rejects incomplete responses without replacing cached weather")
@@ -255,7 +253,7 @@ struct WeatherTests {
         #expect(harness.value("responseBody = '{\"current_condition\":[{}],\"weather\":[]}'; refreshWeather(); 'requested'") == "requested")
         #expect(harness.value("statusConfig.title") == previousTitle)
         #expect(harness.value("lastWeather.weather.length") == "3")
-        #expect(harness.value("statusConfig.menu.filter(x => /error|failed/i.test(x.title)).length") == "1")
+        #expect(harness.errorRowCount() == "1")
 
         #expect(harness.value("lastWeather = null; refreshWeather(); 'requested'") == "requested")
         #expect(harness.value("lastWeather === null") == "true")
@@ -265,57 +263,32 @@ struct WeatherTests {
     @Test("rejects skipped or irregular forecast periods")
     func irregularForecastPeriods() throws {
         let skipped = try Harness(measurement: "metric")
-        let skippedMenu = skipped.value("""
-            JSON.stringify(
-                statusConfig.menu,
-                (_, value) => typeof value === 'function' ? undefined : value
-            )
-            """)
+        let skippedMenu = skipped.menuSnapshot()
         #expect(skipped.value("""
             responseData.weather[1].hourly.splice(1, 1);
             responseBody = JSON.stringify(responseData);
             refreshWeather();
             'requested'
             """) == "requested")
-        #expect(skipped.value("""
-            JSON.stringify(
-                statusConfig.menu.filter(x => !/error|failed/i.test(x.title)),
-                (_, value) => typeof value === 'function' ? undefined : value
-            )
-            """) == skippedMenu)
-        #expect(skipped.value("statusConfig.menu.filter(x => /error|failed/i.test(x.title)).length") == "1")
+        #expect(skipped.menuSnapshot(dropErrors: true) == skippedMenu)
+        #expect(skipped.errorRowCount() == "1")
 
         let irregular = try Harness(measurement: "metric")
-        let irregularMenu = irregular.value("""
-            JSON.stringify(
-                statusConfig.menu,
-                (_, value) => typeof value === 'function' ? undefined : value
-            )
-            """)
+        let irregularMenu = irregular.menuSnapshot()
         #expect(irregular.value("""
             responseData.weather[1].hourly[1].time = '400';
             responseBody = JSON.stringify(responseData);
             refreshWeather();
             'requested'
             """) == "requested")
-        #expect(irregular.value("""
-            JSON.stringify(
-                statusConfig.menu.filter(x => !/error|failed/i.test(x.title)),
-                (_, value) => typeof value === 'function' ? undefined : value
-            )
-            """) == irregularMenu)
-        #expect(irregular.value("statusConfig.menu.filter(x => /error|failed/i.test(x.title)).length") == "1")
+        #expect(irregular.menuSnapshot(dropErrors: true) == irregularMenu)
+        #expect(irregular.errorRowCount() == "1")
     }
 
     @Test("rejects malformed numeric date and time values")
     func malformedProviderValues() throws {
         let harness = try Harness(measurement: "metric")
-        let previousMenu = harness.value("""
-            JSON.stringify(
-                statusConfig.menu,
-                (_, value) => typeof value === 'function' ? undefined : value
-            )
-            """)
+        let previousMenu = harness.menuSnapshot()
 
         for mutation in [
             "responseData.current_condition[0].temp_C = ''",
@@ -324,25 +297,15 @@ struct WeatherTests {
             "responseData.weather[0].date = '2026-08-20'; responseData.weather[1].hourly[1].time = '2460'",
         ] {
             #expect(harness.value("\(mutation); responseBody = JSON.stringify(responseData); refreshWeather(); 'requested'") == "requested")
-            #expect(harness.value("""
-                JSON.stringify(
-                    statusConfig.menu.filter(x => !/error|failed/i.test(x.title)),
-                    (_, value) => typeof value === 'function' ? undefined : value
-                )
-                """) == previousMenu)
-            #expect(harness.value("statusConfig.menu.filter(x => /error|failed/i.test(x.title)).length") == "1")
+            #expect(harness.menuSnapshot(dropErrors: true) == previousMenu)
+            #expect(harness.errorRowCount() == "1")
         }
     }
 
     @Test("rejects malformed local time without replacing cached weather")
     func malformedLocalTime() throws {
         let harness = try Harness(measurement: "metric")
-        let previousMenu = harness.value("""
-            JSON.stringify(
-                statusConfig.menu,
-                (_, value) => typeof value === 'function' ? undefined : value
-            )
-            """)
+        let previousMenu = harness.menuSnapshot()
 
         #expect(harness.value("""
             responseData.current_condition[0].localObsDateTime = 'not-a-time';
@@ -352,13 +315,8 @@ struct WeatherTests {
             """) == "requested")
         #expect(harness.value("capturedURLs.filter(x => x.includes('format=%T')).length") == "0")
         #expect(harness.value("lastObservation") == "2026-08-20 08:30 PM")
-        #expect(harness.value("""
-            JSON.stringify(
-                statusConfig.menu.filter(x => !/error|failed/i.test(x.title)),
-                (_, value) => typeof value === 'function' ? undefined : value
-            )
-            """) == previousMenu)
-        #expect(harness.value("statusConfig.menu.filter(x => /error|failed/i.test(x.title)).length") == "1")
+        #expect(harness.menuSnapshot(dropErrors: true) == previousMenu)
+        #expect(harness.errorRowCount() == "1")
     }
 
     @Test("reports refresh result and failure toast")

@@ -13,22 +13,6 @@ struct EngineTests {
         #expect(engine.context != nil)
     }
 
-    @Test("Evaluate simple expression")
-    func testEvaluate() {
-        let engine = Engine()
-        let (result, error) = engine.evaluate("1 + 2")
-        #expect(error == nil)
-        #expect(result == "3")
-    }
-
-    @Test("Evaluate string expression")
-    func testEvaluateString() {
-        let engine = Engine()
-        let (result, error) = engine.evaluate("'hello' + ' ' + 'world'")
-        #expect(error == nil)
-        #expect(result == "hello world")
-    }
-
     @Test("Evaluate error returns error string")
     func testEvaluateError() {
         let engine = Engine()
@@ -107,81 +91,26 @@ struct EngineTests {
 
     // MARK: - Type Return Tests
 
-    @Test("Evaluate returns number type correctly")
-    func testEvaluateNumber() {
+    @Test("evaluate stringifies each result type", arguments: [
+        ("1 + 2", "3"),
+        ("'hello' + ' ' + 'world'", "hello world"),
+        ("42", "42"),
+        ("3.14", "3.14"),
+        ("true", "true"),
+        ("false", "false"),
+        ("JSON.stringify({a: 1, b: 'two'})", "{\"a\":1,\"b\":\"two\"}"),
+        ("JSON.stringify([1, 2, 3])", "[1,2,3]"),
+        // QuickJS JS_ToCString renders undefined and null as their names, and
+        // a var declaration evaluates to undefined.
+        ("undefined", "undefined"),
+        ("null", "null"),
+        ("var y = 10", "undefined"),
+    ])
+    func evaluatesTo(_ source: String, _ expected: String) {
         let engine = Engine()
-        let (result, error) = engine.evaluate("42")
+        let (result, error) = engine.evaluate(source)
         #expect(error == nil)
-        #expect(result == "42")
-    }
-
-    @Test("Evaluate returns floating point number")
-    func testEvaluateFloat() {
-        let engine = Engine()
-        let (result, error) = engine.evaluate("3.14")
-        #expect(error == nil)
-        #expect(result == "3.14")
-    }
-
-    @Test("Evaluate returns boolean true")
-    func testEvaluateBoolTrue() {
-        let engine = Engine()
-        let (result, error) = engine.evaluate("true")
-        #expect(error == nil)
-        #expect(result == "true")
-    }
-
-    @Test("Evaluate returns boolean false")
-    func testEvaluateBoolFalse() {
-        let engine = Engine()
-        let (result, error) = engine.evaluate("false")
-        #expect(error == nil)
-        #expect(result == "false")
-    }
-
-    @Test("Evaluate returns object as string representation")
-    func testEvaluateObject() {
-        let engine = Engine()
-        let (result, error) = engine.evaluate("JSON.stringify({a: 1, b: 'two'})")
-        #expect(error == nil)
-        #expect(result == "{\"a\":1,\"b\":\"two\"}")
-    }
-
-    @Test("Evaluate returns array as string representation")
-    func testEvaluateArray() {
-        let engine = Engine()
-        let (result, error) = engine.evaluate("JSON.stringify([1, 2, 3])")
-        #expect(error == nil)
-        #expect(result == "[1,2,3]")
-    }
-
-    // MARK: - Undefined / Null Handling
-
-    @Test("Evaluate undefined returns 'undefined' string with no error")
-    func testEvaluateUndefined() {
-        let engine = Engine()
-        let (result, error) = engine.evaluate("undefined")
-        #expect(error == nil)
-        // QuickJS JS_ToCString converts undefined to the string "undefined"
-        #expect(result == "undefined")
-    }
-
-    @Test("Evaluate null returns nil result with no error")
-    func testEvaluateNull() {
-        let engine = Engine()
-        let (result, error) = engine.evaluate("null")
-        #expect(error == nil)
-        #expect(result == "null")
-    }
-
-    @Test("Evaluate void expression returns 'undefined'")
-    func testEvaluateVoid() {
-        let engine = Engine()
-        // var declaration evaluates to undefined in JS
-        let (result, error) = engine.evaluate("var y = 10")
-        #expect(error == nil)
-        // QuickJS JS_ToCString converts undefined to "undefined"
-        #expect(result == "undefined")
+        #expect(result == expected)
     }
 
     // MARK: - Timer Tests
@@ -289,41 +218,19 @@ struct EngineTests {
 
     // MARK: - Error Isolation Tests
 
-    @Test("JS error in one evaluate doesn't break subsequent evaluates")
-    func testErrorIsolation() {
+    @Test("a failed evaluate leaves the engine usable", arguments: [
+        ("throw new Error('boom')", "1 + 1", "2"),
+        ("nonExistent.foo", "var z = 99; z", "99"),
+        ("function {{{", "'still works'", "still works"),
+    ])
+    func errorIsolation(_ bad: String, _ next: String, _ expected: String) {
         let engine = Engine()
-        // First call: produce an error
-        let (_, error1) = engine.evaluate("throw new Error('boom')")
+        let (_, error1) = engine.evaluate(bad)
         #expect(error1 != nil)
 
-        // Second call: should still work fine
-        let (result2, error2) = engine.evaluate("1 + 1")
+        let (result, error2) = engine.evaluate(next)
         #expect(error2 == nil)
-        #expect(result2 == "2")
-    }
-
-    @Test("ReferenceError doesn't corrupt engine state")
-    func testReferenceErrorIsolation() {
-        let engine = Engine()
-        let (_, error1) = engine.evaluate("nonExistent.foo")
-        #expect(error1 != nil)
-
-        // Engine should still be usable
-        engine.evaluate("var z = 99")
-        let (result, error2) = engine.evaluate("z")
-        #expect(error2 == nil)
-        #expect(result == "99")
-    }
-
-    @Test("SyntaxError doesn't corrupt engine state")
-    func testSyntaxErrorIsolation() {
-        let engine = Engine()
-        let (_, error1) = engine.evaluate("function {{{")
-        #expect(error1 != nil)
-
-        let (result, error2) = engine.evaluate("'still works'")
-        #expect(error2 == nil)
-        #expect(result == "still works")
+        #expect(result == expected)
     }
 
     // MARK: - Log Handler Tests

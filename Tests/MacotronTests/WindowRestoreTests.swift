@@ -14,109 +14,44 @@ struct WindowRestoreTests {
         WindowRestore.Window(id: id, app: app, title: title, bundleID: bundleID)
     }
 
-    @Test("bundleID match when both present")
-    func bundleIDMatch() {
-        let windows = [
-            win(1, app: "Safari", title: "Home", bundleID: "com.apple.Safari"),
-            win(2, app: "Chrome", title: "Home", bundleID: "com.google.Chrome"),
-        ]
-        let id = WindowRestore.match(
-            windows,
-            WindowRestore.Entry(app: "Ignored", title: "Home", bundleID: "com.google.Chrome")
-        )
-        #expect(id == 2)
+    private func entry(_ app: String, _ title: String? = nil, _ bundleID: String? = nil) -> WindowRestore.Entry {
+        WindowRestore.Entry(app: app, title: title, bundleID: bundleID)
     }
 
-    @Test("bundleID mismatch ignores app name")
-    func bundleIDMismatch() {
-        let windows = [win(1, app: "Safari", title: "Home", bundleID: "com.apple.Safari")]
+    /// One shape for every rule: build the windows on screen, build the saved
+    /// entry, expect the id it should land on (or nil for no match).
+    @Test("match picks the window each rule says it should", arguments: [
+        // bundleID wins over app name, both when it matches and when it does not
+        ([(Int32(1), "Safari", "Home", "com.apple.Safari"), (2, "Chrome", "Home", "com.google.Chrome")],
+         ("Ignored", "Home", "com.google.Chrome"), Int32(2)),
+        ([(Int32(1), "Safari", "Home", "com.apple.Safari")],
+         ("Safari", "Home", "com.google.Chrome"), nil),
+        // app name, case-insensitive, when a bundleID is missing on either side
+        ([(Int32(3), "Notes", "Inbox", nil)], ("notes", nil, nil), Int32(3)),
+        ([(Int32(4), "Mail", "Inbox", "com.apple.mail")], ("Mail", "Inbox", nil), Int32(4)),
+        // exact title beats a prefix, prefix is used when nothing is exact
+        ([(Int32(5), "Code", "README", nil), (6, "Code", "README.md — repo", nil)],
+         ("Code", "README", nil), Int32(5)),
+        ([(Int32(7), "Code", "Other", nil), (8, "Code", "README.md — repo", nil)],
+         ("Code", "README", nil), Int32(8)),
+        // title missing or absent falls back to that app's first window
+        ([(Int32(9), "Preview", "A.pdf", nil), (10, "Preview", "B.pdf", nil)],
+         ("Preview", "Missing", nil), Int32(9)),
+        ([(Int32(11), "Terminal", "zsh", nil), (12, "Terminal", "bash", nil)],
+         ("Terminal", nil, nil), Int32(11)),
+        // unknown app matches nothing
+        ([(Int32(13), "Finder", "Desktop", nil)], ("Music", nil, nil), nil),
+    ] as [([(Int32, String, String, String?)], (String, String?, String?), Int32?)])
+    func matches(
+        _ windows: [(Int32, String, String, String?)],
+        _ saved: (String, String?, String?),
+        _ expected: Int32?
+    ) {
         let id = WindowRestore.match(
-            windows,
-            WindowRestore.Entry(app: "Safari", title: "Home", bundleID: "com.google.Chrome")
+            windows.map { win($0.0, app: $0.1, title: $0.2, bundleID: $0.3) },
+            entry(saved.0, saved.1, saved.2)
         )
-        #expect(id == nil)
-    }
-
-    @Test("app name is case-insensitive when bundleID is missing")
-    func appNameCaseInsensitive() {
-        let windows = [win(3, app: "Notes", title: "Inbox")]
-        let id = WindowRestore.match(
-            windows,
-            WindowRestore.Entry(app: "notes", title: nil, bundleID: nil)
-        )
-        #expect(id == 3)
-    }
-
-    @Test("missing bundleID on either side falls back to app name")
-    func bundleIDFallback() {
-        let windows = [win(4, app: "Mail", title: "Inbox", bundleID: "com.apple.mail")]
-        let id = WindowRestore.match(
-            windows,
-            WindowRestore.Entry(app: "Mail", title: "Inbox", bundleID: nil)
-        )
-        #expect(id == 4)
-    }
-
-    @Test("title exact match")
-    func titleExact() {
-        let windows = [
-            win(5, app: "Code", title: "README"),
-            win(6, app: "Code", title: "README.md — repo"),
-        ]
-        let id = WindowRestore.match(
-            windows,
-            WindowRestore.Entry(app: "Code", title: "README", bundleID: nil)
-        )
-        #expect(id == 5)
-    }
-
-    @Test("title prefix when no exact")
-    func titlePrefix() {
-        let windows = [
-            win(7, app: "Code", title: "Other"),
-            win(8, app: "Code", title: "README.md — repo"),
-        ]
-        let id = WindowRestore.match(
-            windows,
-            WindowRestore.Entry(app: "Code", title: "README", bundleID: nil)
-        )
-        #expect(id == 8)
-    }
-
-    @Test("first window of that app when title misses")
-    func firstWindowOfApp() {
-        let windows = [
-            win(9, app: "Preview", title: "A.pdf"),
-            win(10, app: "Preview", title: "B.pdf"),
-        ]
-        let id = WindowRestore.match(
-            windows,
-            WindowRestore.Entry(app: "Preview", title: "Missing", bundleID: nil)
-        )
-        #expect(id == 9)
-    }
-
-    @Test("first window of that app when title omitted")
-    func firstWindowNoTitle() {
-        let windows = [
-            win(11, app: "Terminal", title: "zsh"),
-            win(12, app: "Terminal", title: "bash"),
-        ]
-        let id = WindowRestore.match(
-            windows,
-            WindowRestore.Entry(app: "Terminal", title: nil, bundleID: nil)
-        )
-        #expect(id == 11)
-    }
-
-    @Test("no match when app is unknown")
-    func noMatch() {
-        let windows = [win(13, app: "Finder", title: "Desktop")]
-        let id = WindowRestore.match(
-            windows,
-            WindowRestore.Entry(app: "Music", title: nil, bundleID: nil)
-        )
-        #expect(id == nil)
+        #expect(id == expected)
     }
 }
 

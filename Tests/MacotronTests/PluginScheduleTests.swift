@@ -14,49 +14,21 @@ struct PluginScheduleTests {
         calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute, second: second))!
     }
 
-    @Test("every 1h from 12:30 UTC aligns to 13:00")
-    func everyHourFrom1230() throws {
+    @Test("every N aligns to the next boundary", arguments: [
+        ("1h", 12, 30, 13, 0),      // mid-hour rounds up
+        ("1h", 13, 0, 14, 0),       // already on a boundary still advances
+        ("15m", 12, 7, 12, 15),
+        ("30m", 12, 30, 13, 0),     // crosses the hour
+        ("15m", 12, 50, 13, 0),     // crosses the hour
+    ])
+    func everyAlignsToBoundary(
+        _ spec: String, _ hour: Int, _ minute: Int, _ nextHour: Int, _ nextMinute: Int
+    ) throws {
         let calendar = utcCalendar()
-        let schedule = try PluginSchedule.parseEvery("1h")
-        let after = date(2026, 8, 20, 12, 30, calendar: calendar)
+        let schedule = try PluginSchedule.parseEvery(spec)
+        let after = date(2026, 8, 20, hour, minute, calendar: calendar)
         let next = schedule.nextDate(after: after, calendar: calendar)
-        #expect(next == date(2026, 8, 20, 13, 0, calendar: calendar))
-    }
-
-    @Test("every 1h from exact hour boundary advances to next hour")
-    func everyHourFromExactBoundary() throws {
-        let calendar = utcCalendar()
-        let schedule = try PluginSchedule.parseEvery("1h")
-        let after = date(2026, 8, 20, 13, 0, 0, calendar: calendar)
-        let next = schedule.nextDate(after: after, calendar: calendar)
-        #expect(next == date(2026, 8, 20, 14, 0, calendar: calendar))
-    }
-
-    @Test("every 15m from 12:07 UTC aligns to 12:15")
-    func every15MinutesFrom1207() throws {
-        let calendar = utcCalendar()
-        let schedule = try PluginSchedule.parseEvery("15m")
-        let after = date(2026, 8, 20, 12, 7, calendar: calendar)
-        let next = schedule.nextDate(after: after, calendar: calendar)
-        #expect(next == date(2026, 8, 20, 12, 15, calendar: calendar))
-    }
-
-    @Test("every 30m from 12:30 UTC aligns to 13:00")
-    func every30MinutesFrom1230CrossesHour() throws {
-        let calendar = utcCalendar()
-        let schedule = try PluginSchedule.parseEvery("30m")
-        let after = date(2026, 8, 20, 12, 30, calendar: calendar)
-        let next = schedule.nextDate(after: after, calendar: calendar)
-        #expect(next == date(2026, 8, 20, 13, 0, calendar: calendar))
-    }
-
-    @Test("every 15m from 12:50 UTC aligns to 13:00")
-    func every15MinutesFrom1250CrossesHour() throws {
-        let calendar = utcCalendar()
-        let schedule = try PluginSchedule.parseEvery("15m")
-        let after = date(2026, 8, 20, 12, 50, calendar: calendar)
-        let next = schedule.nextDate(after: after, calendar: calendar)
-        #expect(next == date(2026, 8, 20, 13, 0, calendar: calendar))
+        #expect(next == date(2026, 8, 20, nextHour, nextMinute, calendar: calendar))
     }
 
     @Test("at 13:00 after 13:05 UTC fires next day")
@@ -103,19 +75,11 @@ struct PluginScheduleTests {
         #expect(next == date(2026, 8, 21, 13, 0, calendar: calendar))
     }
 
-    @Test("parse rejects garbage")
-    func parseRejectsGarbage() {
+    @Test("parsers reject malformed specs")
+    func parseRejectsMalformed() {
         #expect(throws: Error.self) { try PluginSchedule.parseEvery("foo") }
         #expect(throws: Error.self) { try PluginSchedule.parseEvery("0h") }
-    }
-
-    @Test("parseAt rejects invalid seconds")
-    func parseAtRejectsInvalidSeconds() {
         #expect(throws: Error.self) { try PluginSchedule.parseAt("13:00:xx", weekdays: nil) }
-    }
-
-    @Test("parseAt rejects invalid weekday")
-    func parseAtRejectsInvalidWeekday() {
         #expect(throws: Error.self) { try PluginSchedule.parseAt("09:00", weekdays: [7]) }
         #expect(throws: Error.self) { try PluginSchedule.parseAt("09:00", weekdays: []) }
     }

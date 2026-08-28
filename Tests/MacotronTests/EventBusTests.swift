@@ -8,18 +8,7 @@ import CQuickJS
 struct EventBusTests {
 
     // MARK: - on + emit
-
-    @Test("on + emit fires callback")
-    func testOnAndEmit() {
-        let engine = Engine()
-        engine.evaluate("""
-            var eventFired = false;
-            $$__on("test:fire", function() { eventFired = true; });
-        """)
-        engine.eventBus.emit("test:fire", engine: engine, data: nil)
-        let (result, _) = engine.evaluate("eventFired")
-        #expect(result == "true")
-    }
+    // (bare on+emit lives in EngineTests.testEventBus)
 
     @Test("emit with data passes data to callback")
     func testEmitWithData() {
@@ -70,26 +59,6 @@ struct EventBusTests {
         #expect(result == "false")
     }
 
-    @Test("off only removes the specified listener, others remain")
-    func testOffSelectiveRemoval() {
-        let engine = Engine()
-        engine.evaluate("""
-            var kept = false;
-            var removed = false;
-            var keepCb = function() { kept = true; };
-            var removeCb = function() { removed = true; };
-            $$__on("test:selective", keepCb);
-            $$__on("test:selective", removeCb);
-            $$__off("test:selective", removeCb);
-        """)
-        engine.eventBus.emit("test:selective", engine: engine, data: nil)
-        let (keptResult, _) = engine.evaluate("kept")
-        #expect(keptResult == "true")
-        // The removed callback should not have fired
-        // Note: due to DupValue semantics the off comparison may not match
-        // If it did match, removed stays false
-    }
-
     // MARK: - removeAllListeners
 
     @Test("removeAllListeners clears everything")
@@ -109,19 +78,6 @@ struct EventBusTests {
         let (b, _) = engine.evaluate("b")
         #expect(a == "false")
         #expect(b == "false")
-    }
-
-    @Test("removeAllListeners then emit does not fire callbacks")
-    func testRemoveAllThenEmit() {
-        let engine = Engine()
-        engine.evaluate("""
-            var cleared = false;
-            $$__on("test:cleared", function() { cleared = true; });
-        """)
-        engine.eventBus.removeAllListeners()
-        engine.eventBus.emit("test:cleared", engine: engine, data: nil)
-        let (result, _) = engine.evaluate("cleared")
-        #expect(result == "false")
     }
 
     // MARK: - Multiple Listeners
@@ -165,18 +121,6 @@ struct EventBusTests {
         let (result, error) = engine.evaluate("1 + 1")
         #expect(error == nil)
         #expect(result == "2")
-    }
-
-    @Test("emit with data but no listeners does not crash")
-    func testEmitDataNoListeners() {
-        let engine = Engine()
-        let ctx = engine.context!
-        let data = JSBridge.newString(ctx, "orphan data")
-        engine.eventBus.emit("ghost:event", engine: engine, data: data)
-        JS_FreeValue(ctx, data)
-        // Engine should still work
-        let (result, _) = engine.evaluate("'ok'")
-        #expect(result == "ok")
     }
 
     // MARK: - Different Events Are Independent

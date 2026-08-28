@@ -6,30 +6,9 @@ import Testing
 @MainActor
 @Suite("LauncherSearch")
 struct LauncherSearchTests {
-    private func pluginURL(_ name: String) -> URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Examples/plugins/\(name)")
-    }
-
-    private func eval(plugin: String, mock: String, extra: String) throws -> String {
-        let url = pluginURL(plugin)
-        let source = try String(contentsOf: url, encoding: .utf8)
-        let engine = Engine()
-        // A plugin that paints from a promise only settles once evaluate()
-        // drains the job queue, so `extra` has to run after that, not with it.
-        let (_, error) = engine.evaluate("\(mock)\n\(source)", filename: url.path)
-        #expect(error == nil)
-        let (result, extraError) = engine.evaluate(extra, filename: url.path)
-        #expect(extraError == nil)
-        return result ?? ""
-    }
-
     @Test("contacts email and phone clicks open mailto and tel")
     func contactsOpen() throws {
-        let result = try eval(plugin: "contacts.js", mock: #"""
+        let result = try PluginHarness.evalSettled(plugin: "contacts.js", mock: #"""
             var opened = [];
             var items = [];
             var macotron = {
@@ -54,7 +33,7 @@ struct LauncherSearchTests {
 
     @Test("Search Google opens a google URL with the query")
     func searchGoogle() throws {
-        let result = try eval(plugin: "web-search.js", mock: #"""
+        let result = try PluginHarness.evalSettled(plugin: "web-search.js", mock: #"""
             var opened = [];
             var commands = {};
             var macotron = {
@@ -74,7 +53,7 @@ struct LauncherSearchTests {
 
     @Test("Define opens dict:// for the word")
     func define() throws {
-        let result = try eval(plugin: "web-search.js", mock: #"""
+        let result = try PluginHarness.evalSettled(plugin: "web-search.js", mock: #"""
             var runs = [];
             var commands = {};
             var macotron = {

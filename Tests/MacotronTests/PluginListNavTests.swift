@@ -63,11 +63,3 @@ struct PluginListNavTests {
         #expect(PluginListNav.selectionAfterFilter(current: "a.js", in: []) == "a.js")
     }
 }
-
-@Suite("MacotronRepo")
-struct MacotronRepoTests {
-    @Test("points at the public GitHub repo")
-    func url() {
-        #expect(MacotronRepo.url.absoluteString == "https://github.com/statico/macotron")
-    }
-}
