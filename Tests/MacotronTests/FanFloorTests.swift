@@ -39,6 +39,16 @@ struct FanFloorTests {
         #expect(!FanFloor.shouldForce(thermalState: .critical, floor: 3000, max: 5000))
     }
 
+    @Test("a fan with no readable maximum is never forced")
+    func unreadableMaxIsNotFullSpeed() {
+        // FNMx failed to read, so both bounds come back zero. Without this the
+        // `floor >= max` test reads 0 >= 0 as "pinned at full speed" and holds
+        // a 0 rpm target through every thermal state.
+        #expect(FanFloor.rpm(percent: 100, min: 0, max: 0) == 0)
+        #expect(!FanFloor.shouldForce(thermalState: .nominal, floor: 0, max: 0))
+        #expect(!FanFloor.shouldForce(thermalState: .critical, floor: 0, max: 0))
+    }
+
     @Test("a floor at full speed is never released")
     func fullFloorIsNeverACeiling() {
         // Nothing macOS could want is above the firmware maximum, so handing

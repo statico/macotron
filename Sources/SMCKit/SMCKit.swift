@@ -52,9 +52,15 @@ public enum FanFloor {
     /// constantly on a machine that is merely busy.
     ///
     /// A floor at full speed cannot be a ceiling, so it is never released.
+    ///
+    /// A fan whose maximum reads as zero is unreadable, not slow: forcing it
+    /// would write a 0 rpm target and, because `floor >= max` holds for two
+    /// zeroes, hold that through `.critical`. Never force a fan we cannot
+    /// measure.
     public static func shouldForce(
         thermalState: ProcessInfo.ThermalState, floor: Double, max: Double
     ) -> Bool {
+        if max <= 0 { return false }
         if floor >= max { return true }
         return thermalState == .nominal || thermalState == .fair
     }
