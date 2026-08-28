@@ -47,6 +47,17 @@ public enum FanFloor {
         return demand < floor
     }
 
+    /// Whether a target-rpm reading is macOS answering, or just our own write
+    /// read back. Two readings are not answers: the floor itself, which is the
+    /// number we put in that register, and anything below the fan's own
+    /// minimum — the firmware never asks for a fan slower than it can turn, so
+    /// that is a register the thermal manager has not written yet. Zero is the
+    /// common case of the second, and it is rejected even when the minimum is
+    /// unreadable, because a demand to stop a fan is never real.
+    public static func isSystemDemand(_ value: Double, floor: Double, min: Double) -> Bool {
+        value >= Swift.max(min, 1) && abs(value - floor) >= 1
+    }
+
     public static func rpm(percent: Int, min: Double, max: Double) -> Double {
         let lo = Swift.min(min, max)
         let hi = Swift.max(min, max)

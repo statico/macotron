@@ -148,7 +148,9 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
             // Mac. Ask what macOS wants and stay out of its way when it wants
             // more. A floor at full speed cannot be a ceiling, so it never has
             // to ask — which matters, because asking costs a handback.
-            let demand = floorRPM < fan.max ? systemDemand(fan.index, floor: floorRPM) : nil
+            let demand = floorRPM < fan.max
+                ? systemDemand(fan.index, floor: floorRPM, min: fan.min)
+                : nil
             let force = FanFloor.shouldForce(demand: demand, floor: floorRPM)
             log.info(
                 "fan \(fan.index, privacy: .public) rpm=\(Int(fan.rpm), privacy: .public) demand=\(demand.map { String(Int($0)) } ?? "?", privacy: .public) target=\(Int(floorRPM), privacy: .public) \(force ? "force" : "auto", privacy: .public)"
@@ -167,10 +169,23 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     /// — in manual mode the target key reads back the floor we wrote — so a
     /// forced fan has to be handed back first, and these fans spin down fast
     /// enough to hear. So: seldom, and only until thermalmonitord has written
-    /// a number of its own, which it does on a 100ms cadence. A reading that
-    /// still equals our own floor is not an answer; nil keeps the floor.
-    private func systemDemand(_ index: Int, floor: Double) -> Double? {
-        guard forced.contains(index) else { return try? smc.readRPM(key(index, "Tg")) }
+    /// a number of its own, which it does on a 100ms cadence.
+    ///
+    /// `FanFloor.isSystemDemand` is what tells an answer from our own write
+    /// read back, and it is the whole reason this is not a plain read: the
+    /// register holds our floor until the thermal manager replaces it, and
+    /// early on it can read zero. Believing either one costs a fan that stops
+    /// dead every peek. nil means we never heard an answer, which keeps the
+    /// floor.
+    private func systemDemand(_ index: Int, floor: Double, min: Double) -> Double? {
+        func answer() -> Double? {
+            guard let value = try? smc.readRPM(key(index, "Tg")),
+                  FanFloor.isSystemDemand(value, floor: floor, min: min)
+            else { return nil }
+            return value
+        }
+
+        guard forced.contains(index) else { return answer() }
 
         let now = Date()
         guard now.timeIntervalSince(lastPeek[index] ?? .distantPast) >= Self.peekInterval else {
@@ -179,12 +194,30 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
         lastPeek[index] = now
 
         guard (try? writeMode(index, 0)) != nil else { return nil }
+        var demand: Double?
         for _ in 0..<10 {
             Thread.sleep(forTimeInterval: 0.1)
-            guard let value = try? smc.readRPM(key(index, "Tg")) else { continue }
-            if abs(value - floor) >= 1 { return value }
+            if let value = answer() {
+                demand = value
+                break
+            }
         }
-        return nil
+        // macOS wanting more air than the floor is the one case where the fan
+        // should stay in auto. Otherwise the floor still holds, so take the fan
+        // back here: `unlock` would get there eventually, but only after the
+        // `Ftst` path, and the fan coasts down the whole time it spends there.
+        if (demand ?? 0) < floor { reclaim(index, target: floor) }
+        return demand
+    }
+
+    /// Put a fan straight back under the floor after a peek. This is `unlock`'s
+    /// fast path and nothing more — if the firmware refuses, `applyFloor` still
+    /// calls `unlock`, which does the full `Ftst` dance.
+    private func reclaim(_ index: Int, target: Double) {
+        guard (try? writeMode(index, 1)) != nil,
+              (try? smc.readUInt8(modeKeyFor(index))) == 1
+        else { return }
+        try? smc.writeRPM(key(index, "Tg"), target)
     }
 
     /// Give every fan back to macOS. Mode 0 is what the machine boots with;
