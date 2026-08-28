@@ -611,4 +611,74 @@ struct JSBridgeTests {
         JS_FreeValue(ctx, obj)
         _ = engine
     }
+    // MARK: - Option readers
+
+    /// Build an options object by evaluating a JS literal, the way a plugin
+    /// would hand one to a module binding.
+    @MainActor
+    private func options(_ engine: Engine, _ literal: String) -> JSValue {
+        let ctx = engine.context!
+        return literal.withCString { JS_Eval(ctx, $0, strlen($0), "<opts>", JS_EVAL_TYPE_GLOBAL) }
+    }
+
+    @Test("option readers convert each type")
+    func optionReaders() {
+        let (engine, ctx) = makeContext()
+        let opts = options(engine, "({s: 'hi', i: 7, d: 1.5, b: true, arr: ['a', 'b']})")
+        defer { JS_FreeValue(ctx, opts) }
+        #expect(JSBridge.string(ctx, opts, "s") == "hi")
+        #expect(JSBridge.int(ctx, opts, "i") == 7)
+        #expect(JSBridge.double(ctx, opts, "d") == 1.5)
+        #expect(JSBridge.bool(ctx, opts, "b") == true)
+        #expect(JSBridge.stringArray(ctx, opts, "arr") == ["a", "b"])
+    }
+
+    @Test("a missing key is nil, so the caller's default applies")
+    func optionMissingKey() {
+        let (engine, ctx) = makeContext()
+        let opts = options(engine, "({})")
+        defer { JS_FreeValue(ctx, opts) }
+        #expect(JSBridge.string(ctx, opts, "nope") == nil)
+        #expect(JSBridge.int(ctx, opts, "nope") == nil)
+        #expect(JSBridge.double(ctx, opts, "nope") == nil)
+        #expect(JSBridge.bool(ctx, opts, "nope") == nil)
+        #expect(JSBridge.stringArray(ctx, opts, "nope") == nil)
+        #expect(JSBridge.int(ctx, opts, "nope") ?? 42 == 42)
+    }
+
+    @Test("undefined and null read as absent, not as values")
+    func optionUndefinedAndNull() {
+        // The hand-rolled version of this check was four lines and one call
+        // site forgot the null half, so an explicit null read back as 0.
+        let (engine, ctx) = makeContext()
+        let opts = options(engine, "({u: undefined, n: null})")
+        defer { JS_FreeValue(ctx, opts) }
+        for key in ["u", "n"] {
+            #expect(JSBridge.string(ctx, opts, key) == nil)
+            #expect(JSBridge.int(ctx, opts, key) == nil)
+            #expect(JSBridge.bool(ctx, opts, key) == nil)
+        }
+    }
+
+    @Test("present-but-falsy is not the same answer as absent")
+    func optionFalsyIsPresent() {
+        let (engine, ctx) = makeContext()
+        let opts = options(engine, "({b: false, i: 0, s: ''})")
+        defer { JS_FreeValue(ctx, opts) }
+        #expect(JSBridge.bool(ctx, opts, "b") == false)
+        #expect(JSBridge.int(ctx, opts, "i") == 0)
+        #expect(JSBridge.string(ctx, opts, "s") == "")
+        // The distinction that matters: an explicit false must not fall
+        // through to a `?? true` default.
+        #expect((JSBridge.bool(ctx, opts, "b") ?? true) == false)
+    }
+
+    @Test("stringArray rejects a non-array and skips non-string elements")
+    func optionStringArrayShape() {
+        let (engine, ctx) = makeContext()
+        let opts = options(engine, "({notArr: 'abc', mixed: ['a', 1, null, 'b']})")
+        defer { JS_FreeValue(ctx, opts) }
+        #expect(JSBridge.stringArray(ctx, opts, "notArr") == nil)
+        #expect(JSBridge.stringArray(ctx, opts, "mixed") == ["a", "1", "b"])
+    }
 }
