@@ -699,11 +699,24 @@ declare const macotron: {
         }>;
     };
 
+    /**
+     * A request that fails resolves with `status: 0` and the reason in `body`
+     * rather than rejecting, so one status check covers a 500 and a dead
+     * network alike.
+     *
+     * `timeout` is milliseconds and defaults to 30000. It is enforced by
+     * URLSession, so a request that runs out of time is actually cancelled --
+     * racing the promise against setTimeout in the plugin would leave the
+     * request and its socket running.
+     *
+     * `headers` carries the common ones: Content-Type, Authorization, Accept,
+     * User-Agent, X-API-Key, X-Request-ID. Others are dropped.
+     */
     http: {
-        get(url: string, opts?: { headers?: Record<string, string> }): Promise<{ status: number; body: string; headers: Record<string, string> }>;
-        post(url: string, body: any, opts?: { headers?: Record<string, string> }): Promise<{ status: number; body: string; headers: Record<string, string> }>;
-        put(url: string, body: any, opts?: { headers?: Record<string, string> }): Promise<{ status: number; body: string; headers: Record<string, string> }>;
-        delete(url: string, opts?: { headers?: Record<string, string> }): Promise<{ status: number; body: string; headers: Record<string, string> }>;
+        get(url: string, opts?: HTTPOptions): Promise<HTTPResponse>;
+        post(url: string, body: any, opts?: HTTPOptions): Promise<HTTPResponse>;
+        put(url: string, body: any, opts?: HTTPOptions): Promise<HTTPResponse>;
+        delete(url: string, opts?: HTTPOptions): Promise<HTTPResponse>;
     };
 
     menubar: {
@@ -920,6 +933,19 @@ type MacotronPluginOption =
     | { type: "password"; label: string; required?: boolean; placeholder?: string; help?: string }
     | { type: "file"; label: string; default?: string; required?: boolean; placeholder?: string; help?: string }
     | { type: "directory"; label: string; default?: string; required?: boolean; placeholder?: string; help?: string };
+
+interface HTTPOptions {
+    headers?: Record<string, string>;
+    /** Milliseconds. Default 30000. */
+    timeout?: number;
+}
+
+interface HTTPResponse {
+    /** 0 when the request never completed; `body` is then the reason. */
+    status: number;
+    body: string;
+    headers: Record<string, string>;
+}
 
 interface AIChatMessage {
     role: "user" | "assistant";
