@@ -21,7 +21,10 @@ struct LauncherPanelTests {
     func translucentCornerMask() throws {
         let panel = LauncherPanel(contentView: NSView(frame: .zero), windowFrame: LauncherFrame())
         panel.applyBackground(.translucent)
-        let visual = try #require(panel.contentView as? NSVisualEffectView)
+        // The chrome sits inside the shadow-halo container, not at the root.
+        let visual = try #require(
+            panel.contentView?.subviews.compactMap { $0 as? NSVisualEffectView }.first
+        )
         #expect(visual.blendingMode == .behindWindow)
 
         let mask = try #require(visual.maskImage)

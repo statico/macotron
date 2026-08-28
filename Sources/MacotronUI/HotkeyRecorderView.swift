@@ -34,7 +34,7 @@ public struct HotkeyRecorderView: View {
 
             if isRecording {
                 if !combo.isEmpty {
-                    ForEach(displayParts(combo), id: \.self) { part in
+                    ForEach(KeyCombo.glyphs(combo), id: \.self) { part in
                         keyCap(part)
                             .opacity(0.35)
                     }
@@ -48,7 +48,7 @@ public struct HotkeyRecorderView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.tertiary)
             } else {
-                ForEach(displayParts(combo), id: \.self) { part in
+                ForEach(KeyCombo.glyphs(combo), id: \.self) { part in
                     keyCap(part)
                 }
             }
@@ -193,16 +193,12 @@ public struct HotkeyRecorderView: View {
         onSave()
     }
 
-    private func displayParts(_ combo: String) -> [String] {
-        KeyCombo.glyphs(combo)
-    }
-
     private func modifierSymbols(_ flags: NSEvent.ModifierFlags) -> [String] {
-        var syms: [String] = []
-        if flags.contains(.control) { syms.append("\u{2303}") }
-        if flags.contains(.option) { syms.append("\u{2325}") }
-        if flags.contains(.shift) { syms.append("\u{21E7}") }
-        if flags.contains(.command) { syms.append("\u{2318}") }
-        return syms
+        var parts: [String] = []
+        if flags.contains(.control) { parts.append("ctrl") }
+        if flags.contains(.option) { parts.append("opt") }
+        if flags.contains(.shift) { parts.append("shift") }
+        if flags.contains(.command) { parts.append("cmd") }
+        return KeyCombo.glyphs(parts.joined(separator: "+"))
     }
 }

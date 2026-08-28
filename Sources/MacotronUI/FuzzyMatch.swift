@@ -46,4 +46,20 @@ public enum FuzzyMatch {
         if q.isEmpty { return 0 }
         return targets.filter { !$0.isEmpty }.compactMap { score(query: q, target: $0) }.max()
     }
+
+    /// Items whose targets match `query`, best score first. An empty query keeps
+    /// the input order; non-matches are dropped. `tieBreak` orders equal scores.
+    public static func rank<T>(
+        _ items: [T],
+        query: String,
+        targets: (T) -> [String],
+        tieBreak: (T, T) -> Bool = { _, _ in false }
+    ) -> [T] {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return items }
+        return items
+            .compactMap { item in best(query: q, targets: targets(item)).map { (item, $0) } }
+            .sorted { $0.1 == $1.1 ? tieBreak($0.0, $1.0) : $0.1 > $1.1 }
+            .map(\.0)
+    }
 }

@@ -91,18 +91,12 @@ struct CommunityBrowser: View {
     /// Fuzzy over the title, the repository, and the description. GitHub already
     /// sorted by stars, so an empty query keeps that order.
     private var filtered: [CommunityEntry] {
-        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty else { return state.communityEntries }
-        return state.communityEntries
-            .compactMap { entry -> (CommunityEntry, Int)? in
-                guard let score = FuzzyMatch.best(
-                    query: q,
-                    targets: [entry.title, entry.repo, entry.summary]
-                ) else { return nil }
-                return (entry, score)
-            }
-            .sorted { $0.1 == $1.1 ? $0.0.stars > $1.0.stars : $0.1 > $1.1 }
-            .map(\.0)
+        FuzzyMatch.rank(
+            state.communityEntries,
+            query: query,
+            targets: { [$0.title, $0.repo, $0.summary] },
+            tieBreak: { $0.stars > $1.stars }
+        )
     }
 }
 

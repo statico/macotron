@@ -73,13 +73,10 @@ struct HotkeysOverlayView: View {
 }
 
 @MainActor
-public final class HotkeysOverlayPanel: NSPanel {
+public final class HotkeysOverlayPanel: NonactivatingPanel {
     private static let width: CGFloat = 420
 
     private let hostingView: NSHostingView<HotkeysOverlayView>
-    private var isOrderingOut = false
-    private var dismissOnResign = false
-    private var isShown = false
 
     public init() {
         hostingView = NSHostingView(rootView: HotkeysOverlayView(rows: []))
@@ -89,22 +86,10 @@ public final class HotkeysOverlayPanel: NSPanel {
             backing: .buffered,
             defer: false
         )
-        level = .floating
-        backgroundColor = .clear
-        isOpaque = false
+        configureFloatingPanel()
         hasShadow = true
-        isMovable = false
-        animationBehavior = .none
-        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        isFloatingPanel = true
-        becomesKeyOnlyIfNeeded = false
-        hidesOnDeactivate = false
         applyChrome()
-        delegate = self
     }
-
-    public override var canBecomeKey: Bool { true }
-    public override var canBecomeMain: Bool { false }
 
     public func toggle(rows: [ShowHotkeysRow]) {
         if isVisible || isShown {
@@ -133,13 +118,7 @@ public final class HotkeysOverlayPanel: NSPanel {
         orderFrontRegardless()
         makeKey()
         isShown = true
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            self.dismissOnResign = true
-            if self.isShown && self.isVisible && !self.isKeyWindow {
-                self.orderOut(nil)
-            }
-        }
+        armDismissOnResign()
     }
 
     public func dismiss() {
@@ -158,14 +137,6 @@ public final class HotkeysOverlayPanel: NSPanel {
         dismiss()
     }
 
-    public override func orderOut(_ sender: Any?) {
-        isOrderingOut = true
-        super.orderOut(sender)
-        isOrderingOut = false
-        isShown = false
-        dismissOnResign = false
-    }
-
     private func applyChrome() {
         hostingView.removeFromSuperview()
         let visual = NSVisualEffectView(frame: contentView?.bounds ?? .zero)
@@ -181,12 +152,5 @@ public final class HotkeysOverlayPanel: NSPanel {
         visual.addSubview(hostingView)
         contentView = visual
         invalidateShadow()
-    }
-}
-
-extension HotkeysOverlayPanel: NSWindowDelegate {
-    public func windowDidResignKey(_ notification: Notification) {
-        guard isShown, isVisible, !isOrderingOut, dismissOnResign else { return }
-        orderOut(nil)
     }
 }

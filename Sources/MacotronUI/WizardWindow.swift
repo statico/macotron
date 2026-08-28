@@ -13,7 +13,6 @@ private class EscClosableWindow: NSWindow {
 @MainActor
 public final class WizardWindow {
     private var window: NSWindow?
-    private var closeObserver: NSObjectProtocol?
     private let wizardState: WizardState
     private let permissionsState: SettingsState
 
@@ -37,7 +36,7 @@ public final class WizardWindow {
         }
 
         // Must be .regular before creating the window so it can become key
-        NSApp.setActivationPolicy(.regular)
+        WindowActivationPolicy.borrowRegular()
 
         let wizardView = WizardView(state: wizardState, permissions: permissionsState)
             .frame(width: Self.contentSize.width, height: Self.contentSize.height)
@@ -65,22 +64,8 @@ public final class WizardWindow {
             w.makeKeyAndOrderFront(nil)
         }
 
-        // Macotron is a menu bar app; .regular is borrowed for as long as a
-        // window of ours is up, and handed back when it closes — including
-        // when the user closes this one with Escape or the close button.
-        closeObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification,
-            object: w,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                NSApp.setActivationPolicy(.accessory)
-                if let observer = self?.closeObserver {
-                    NotificationCenter.default.removeObserver(observer)
-                    self?.closeObserver = nil
-                }
-            }
-        }
+        // Includes the user closing it with Escape or the close button.
+        WindowActivationPolicy.handBackWhenClosed(w)
 
         self.window = w
     }

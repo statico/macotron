@@ -70,6 +70,13 @@ final class PluginStatusItem: NSObject {
 
     var autosaveName: String? { item.autosaveName }
 
+    // Read-only windows onto what apply() actually painted, so tests can check
+    // that each argument lands somewhere instead of trusting the plumbing.
+    var renderedImage: Data? { item.button?.image?.tiffRepresentation }
+    var renderedLength: CGFloat { item.length }
+    var renderedToolTip: String? { item.button?.toolTip }
+    var ownsMenu: Bool { item.menu != nil }
+
     func restore() {
         item.isVisible = true
     }
@@ -102,6 +109,23 @@ final class PluginStatusItem: NSObject {
         button.sendAction(on: [.leftMouseDown, .rightMouseDown])
     }
 
+    /// The dozen values one repaint carries. Boxed because apply(), its
+    /// change check, and the deferred re-apply all pass the same set along.
+    struct Spec {
+        var title: String
+        var subtitle: String?
+        var color: String?
+        var subtitleColor: String?
+        var bold: Bool
+        var italic: Bool
+        var secondary: Bool
+        var minWidth: Double?
+        var sfSymbol: String?
+        var imagePath: String?
+        var onClick: (() -> Void)?
+        var menu: [MenuBarEntry] = []
+    }
+
     func apply(
         title: String,
         subtitle: String?,
@@ -116,20 +140,28 @@ final class PluginStatusItem: NSObject {
         onClick: (() -> Void)?,
         menu: [MenuBarEntry] = []
     ) {
+        apply(Spec(
+            title: title, subtitle: subtitle, color: color, subtitleColor: subtitleColor,
+            bold: bold, italic: italic, secondary: secondary, minWidth: minWidth,
+            sfSymbol: sfSymbol, imagePath: imagePath, onClick: onClick, menu: menu
+        ))
+    }
+
+    func apply(_ spec: Spec) {
         reapplyWork?.cancel()
-        self.onClick = onClick
-        if menu.isEmpty {
+        self.onClick = spec.onClick
+        if spec.menu.isEmpty {
             menuKeep.removeAll()
             dropdown = nil
         } else {
             let bar = dropdown ?? NSMenu()
             dropdown = bar
-            PluginMenu.sync(bar, to: menu, retaining: &menuKeep)
+            PluginMenu.sync(bar, to: spec.menu, retaining: &menuKeep)
         }
         // With no click handler the menu is the whole item, so hand it to
         // AppKit: it anchors under the icon, highlights the button, and opens
         // on the press. Doing it ourselves is what put the menu at the mouse.
-        item.menu = onClick == nil ? dropdown : nil
+        item.menu = spec.onClick == nil ? dropdown : nil
         let button = item.button
         button?.target = self
         button?.action = #selector(clicked)
@@ -137,29 +169,34 @@ final class PluginStatusItem: NSObject {
         // work below -- rasterize, compose, re-measure the item -- is the
         // expensive half of a tick. Skip it when nothing would change.
         var signature = [
-            title, subtitle ?? "", color ?? "", subtitleColor ?? "",
-            "\(bold)\(italic)\(secondary)", "\(minWidth ?? -1)",
-            sfSymbol ?? "", imagePath ?? "",
+            spec.title, spec.subtitle ?? "", spec.color ?? "", spec.subtitleColor ?? "",
+            "\(spec.bold)\(spec.italic)\(spec.secondary)", "\(spec.minWidth ?? -1)",
+            spec.sfSymbol ?? "", spec.imagePath ?? "",
         ].joined(separator: "|")
-        if let imagePath, let attrs = try? FileManager.default.attributesOfItem(atPath: imagePath) {
+        if let imagePath = spec.imagePath,
+           let attrs = try? FileManager.default.attributesOfItem(atPath: imagePath) {
             let stamp = (attrs[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
             signature += "|\(attrs[.size] as? Int ?? 0)@\(stamp)"
         }
         if signature == lastSignature { return }
 
-        let nsColor = Self.parseColor(color)
-        let nsSubtitleColor = Self.parseColor(subtitleColor)
-        let iconOnly = title.isEmpty && (subtitle ?? "").isEmpty
-        let image = Self.loadImage(sfSymbol: sfSymbol, path: imagePath, color: iconOnly ? nsColor : nil)
+        let nsColor = Self.parseColor(spec.color)
+        let nsSubtitleColor = Self.parseColor(spec.subtitleColor)
+        let iconOnly = spec.title.isEmpty && (spec.subtitle ?? "").isEmpty
+        let image = Self.loadImage(
+            sfSymbol: spec.sfSymbol,
+            path: spec.imagePath,
+            color: iconOnly ? nsColor : nil
+        )
         button?.contentTintColor = nil
         let lines = StatusLineStyle.lines(
-            title: title,
-            subtitle: subtitle,
+            title: spec.title,
+            subtitle: spec.subtitle,
             color: nsColor,
             subtitleColor: nsSubtitleColor,
-            bold: bold,
-            italic: italic,
-            secondary: secondary
+            bold: spec.bold,
+            italic: spec.italic,
+            secondary: spec.secondary
         )
         reapplyPending = false
         if iconOnly {
@@ -175,24 +212,19 @@ final class PluginStatusItem: NSObject {
             let height = windowHeight > 0 ? windowHeight : NSStatusBar.system.thickness
             if windowHeight <= 0 {
                 reapplyPending = true
-                scheduleReapply(
-                    title: title, subtitle: subtitle, color: color,
-                    subtitleColor: subtitleColor, bold: bold, italic: italic,
-                    secondary: secondary, minWidth: minWidth, sfSymbol: sfSymbol,
-                    imagePath: imagePath, onClick: onClick, menu: menu
-                )
+                scheduleReapply(spec)
             }
             button?.image = StatusLineStyle.image(icon: image, lines: lines, height: height)
             button?.imagePosition = .imageOnly
         }
         button?.attributedTitle = NSAttributedString()
         let natural = ceil(button?.image?.size.width ?? 0)
-        if natural > 0 || minWidth != nil {
-            item.length = StatusLineStyle.length(naturalWidth: natural, minWidth: minWidth)
+        if natural > 0 || spec.minWidth != nil {
+            item.length = StatusLineStyle.length(naturalWidth: natural, minWidth: spec.minWidth)
         } else {
             item.length = NSStatusItem.variableLength
         }
-        button?.toolTip = subtitle.map { "\(title) — \($0)" } ?? title
+        button?.toolTip = spec.subtitle.map { "\(spec.title) — \($0)" } ?? spec.title
         // A layout measured against a zero-height window is provisional, so
         // leave the door open for the reapply to redo it.
         lastSignature = reapplyPending ? nil : signature
@@ -203,22 +235,12 @@ final class PluginStatusItem: NSObject {
     private var reapplyWork: DispatchWorkItem?
     private var reapplyAttempts = 0
 
-    private func scheduleReapply(
-        title: String, subtitle: String?, color: String?, subtitleColor: String?,
-        bold: Bool, italic: Bool, secondary: Bool, minWidth: Double?,
-        sfSymbol: String?, imagePath: String?, onClick: (() -> Void)?,
-        menu: [MenuBarEntry]
-    ) {
+    private func scheduleReapply(_ spec: Spec) {
         guard reapplyAttempts < 20, item.isVisible else { return }
         reapplyAttempts += 1
         reapplyWork?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            self?.apply(
-                title: title, subtitle: subtitle, color: color,
-                subtitleColor: subtitleColor, bold: bold, italic: italic,
-                secondary: secondary, minWidth: minWidth, sfSymbol: sfSymbol,
-                imagePath: imagePath, onClick: onClick, menu: menu
-            )
+            self?.apply(spec)
         }
         reapplyWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: work)

@@ -7,13 +7,23 @@ import UniformTypeIdentifiers
 
 private let settingsLogger = Logger(subsystem: "io.statico.macotron", category: "settings")
 
+/// What the plugin sidebar should have selected. Arrow keys, the highlight and
+/// scroll-to-selection are `List`'s job; these are the two rules `List` has no
+/// opinion about.
 enum PluginListNav {
-    static func neighbor(of selected: String?, in filenames: [String], delta: Int) -> String? {
-        guard !filenames.isEmpty else { return selected }
-        guard let selected, let index = filenames.firstIndex(of: selected) else {
-            return delta >= 0 ? filenames.first : filenames.last
-        }
-        return filenames[min(max(index + delta, 0), filenames.count - 1)]
+    /// Prefer the first plugin that still needs setup, but never yank a
+    /// selection the user made while that plugin is still on disk.
+    static func initialSelection(current: String?, in summaries: [ModuleSummary]) -> String? {
+        if let current, summaries.contains(where: { $0.filename == current }) { return current }
+        return summaries.first { $0.needsSetup }?.filename ?? summaries.first?.filename
+    }
+
+    /// After type-select narrows the list: keep the selection if it survived
+    /// the filter, otherwise jump to the first match. A filter that matches
+    /// nothing leaves the selection alone.
+    static func selectionAfterFilter(current: String?, in filtered: [ModuleSummary]) -> String? {
+        if let current, filtered.contains(where: { $0.filename == current }) { return current }
+        return filtered.first?.filename ?? current
     }
 }
 
@@ -229,18 +239,11 @@ public final class SettingsState: ObservableObject {
     public var readHotkey: (() -> String)?
     public var writeHotkey: ((String) -> Void)?
     public var readShowHotkeysHotkey: (() -> String)?
-    public var readShowMenuBarIcon: (() -> Bool)?
-    public var writeShowMenuBarIcon: ((Bool) -> Void)?
-    public var readLaunchAtLogin: (() -> Bool)?
-    public var writeLaunchAtLogin: ((Bool) -> Void)?
-    public var readAutomaticUpdates: (() -> Bool)?
-    public var writeAutomaticUpdates: ((Bool) -> Void)?
-    public var readAppearance: (() -> AppearanceSetting)?
-    public var writeAppearance: ((AppearanceSetting) -> Void)?
-    public var readTextScale: (() -> Double)?
-    public var writeTextScale: ((Double) -> Void)?
-    public var readLauncherBackground: (() -> LauncherBackground)?
-    public var writeLauncherBackground: ((LauncherBackground) -> Void)?
+    /// The whole `ui.*` block of settings.json, read and written by key. The
+    /// host applies whatever a write changed, so there is nothing per-pref to
+    /// wire up here.
+    public var readUIValue: ((String) -> Any?)?
+    public var writeUIValue: ((String, Any) -> Void)?
     public var loadModuleSummaries: (() -> [ModuleSummary])?
     public var loadAppShortcuts: (() -> [AppShortcutSummary])?
     public var searchInstalledApps: ((String) -> [AppShortcutSummary])?
@@ -265,12 +268,12 @@ public final class SettingsState: ObservableObject {
     public func load() {
         launcherHotkey = readHotkey?() ?? "opt+space"
         showHotkeysHotkey = readShowHotkeysHotkey?() ?? ""
-        showMenuBarIcon = readShowMenuBarIcon?() ?? true
-        launchAtLogin = readLaunchAtLogin?() ?? false
-        automaticUpdates = readAutomaticUpdates?() ?? true
-        appearance = readAppearance?() ?? .system
-        textScale = readTextScale?() ?? 1.0
-        launcherBackground = readLauncherBackground?() ?? .translucent
+        showMenuBarIcon = readUIValue?("showMenuBarIcon") as? Bool ?? true
+        appearance = AppearanceSetting.parse(readUIValue?("appearance"))
+        textScale = LauncherPrefs.snapTextScale(readUIValue?("textScale") as? Double ?? 1.0)
+        launcherBackground = LauncherBackground.parse(readUIValue?("launcherBackground"))
+        launchAtLogin = LaunchAtLogin.isEnabled
+        automaticUpdates = Updater.automaticallyChecks
         catalogPlugins = PluginCatalog.load()
         refreshModules()
         refreshAppShortcuts()
@@ -317,13 +320,13 @@ public final class SettingsState: ObservableObject {
 
     public func toggleMenuBarIcon(_ value: Bool) {
         showMenuBarIcon = value
-        writeShowMenuBarIcon?(value)
+        writeUIValue?("showMenuBarIcon", value)
     }
 
     /// Re-reads the system status so a failed registration reverts the toggle.
     public func toggleLaunchAtLogin(_ value: Bool) {
-        writeLaunchAtLogin?(value)
-        let actual = readLaunchAtLogin?() ?? false
+        LaunchAtLogin.setEnabled(value)
+        let actual = LaunchAtLogin.isEnabled
         launchAtLogin = actual
         if actual != value {
             Task { @MainActor in
@@ -338,23 +341,23 @@ public final class SettingsState: ObservableObject {
     }
 
     public func setAutomaticUpdates(_ value: Bool) {
-        writeAutomaticUpdates?(value)
-        automaticUpdates = readAutomaticUpdates?() ?? value
+        Updater.automaticallyChecks = value
+        automaticUpdates = Updater.automaticallyChecks
     }
 
     public func selectAppearance(_ value: AppearanceSetting) {
         appearance = value
-        writeAppearance?(value)
+        writeUIValue?("appearance", value.rawValue)
     }
 
     public func selectTextScale(_ value: Double) {
         textScale = value
-        writeTextScale?(value)
+        writeUIValue?("textScale", value)
     }
 
     public func selectLauncherBackground(_ value: LauncherBackground) {
         launcherBackground = value
-        writeLauncherBackground?(value)
+        writeUIValue?("launcherBackground", value.rawValue)
     }
 
     public func setHotReload(_ value: Bool) {
@@ -959,39 +962,29 @@ public struct SettingsView: View {
                 if state.moduleSummaries.isEmpty {
                     emptyPluginsPlaceholder
                 } else {
-                    ScrollViewReader { proxy in
-                        ScrollView {
-                            VStack(spacing: 1) {
-                                ForEach(filteredPlugins) { summary in
-                                    let selected = selectedPlugin == summary.filename
-                                    Button {
-                                        selectedPlugin = summary.filename
-                                        pluginListFocused = true
-                                    } label: {
-                                        PluginListRow(
-                                            summary: summary,
-                                            hasShortcutConflict: state.pluginHasShortcutConflict(summary.filename),
-                                            hasUpdate: state.catalogUpdate(for: summary) != nil
-                                        )
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 5)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 5)
-                                                    .fill(selected ? Color.accentColor.opacity(0.18) : Color.clear)
-                                            )
-                                            .contentShape(Rectangle())
-                                    }
-                                    .buttonStyle(.plain)
-                                    .id(summary.filename)
-                                }
-                            }
-                            .padding(6)
-                        }
-                        .onChange(of: selectedPlugin) { _, file in
-                            if let file { proxy.scrollTo(file, anchor: .center) }
-                        }
+                    // List brings arrow keys, the selection highlight and
+                    // scroll-to-selection with it. Type-select is ours, so the
+                    // key handlers below sit on the List to get first refusal.
+                    List(filteredPlugins, selection: $selectedPlugin) { summary in
+                        PluginListRow(
+                            summary: summary,
+                            hasShortcutConflict: state.pluginHasShortcutConflict(summary.filename),
+                            hasUpdate: state.catalogUpdate(for: summary) != nil
+                        )
                     }
+                    .listStyle(.sidebar)
+                    .focused($pluginListFocused)
+                    .onKeyPress(.escape) {
+                        guard !pluginFilter.isEmpty else { return .ignored }
+                        clearPluginFilter()
+                        return .handled
+                    }
+                    .onKeyPress(.delete) {
+                        guard !pluginFilter.isEmpty else { return .ignored }
+                        pluginFilter.removeLast()
+                        return .handled
+                    }
+                    .onKeyPress { press in typePluginFilter(press) }
                     .frame(maxHeight: .infinity)
                 }
 
@@ -1023,22 +1016,6 @@ public struct SettingsView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .focusable()
-        .focused($pluginListFocused)
-        .focusEffectDisabled()
-        .onKeyPress(.upArrow) { handlePluginArrow(-1) }
-        .onKeyPress(.downArrow) { handlePluginArrow(1) }
-        .onKeyPress(.escape) {
-            guard !pluginFilter.isEmpty else { return .ignored }
-            clearPluginFilter()
-            return .handled
-        }
-        .onKeyPress(.delete) {
-            guard !pluginFilter.isEmpty else { return .ignored }
-            pluginFilter.removeLast()
-            return .handled
-        }
-        .onKeyPress { press in typePluginFilter(press) }
         .onAppear {
             selectInitialPlugin()
             pluginListFocused = true
@@ -1122,9 +1099,8 @@ public struct SettingsView: View {
               !(NSApp.keyWindow?.firstResponder is NSTextView),
               PluginFilter.accepts(press.characters, existing: pluginFilter) else { return .ignored }
         pluginFilter += press.characters
-        if let first = filteredPlugins.first, !filteredPlugins.contains(where: { $0.filename == selectedPlugin }) {
-            selectedPlugin = first.filename
-        }
+        selectedPlugin = PluginListNav.selectionAfterFilter(
+            current: selectedPlugin, in: filteredPlugins)
         return .handled
     }
 
@@ -1132,31 +1108,9 @@ public struct SettingsView: View {
         pluginFilter = ""
     }
 
-    /// Prefer the first plugin that needs setup; otherwise keep the current
-    /// selection while it still exists on disk.
     private func selectInitialPlugin() {
-        let filenames = state.moduleSummaries.map(\.filename)
-        if let selectedPlugin, filenames.contains(selectedPlugin) { return }
-        selectedPlugin = state.moduleSummaries.first { summary in
-            summary.options.contains { $0.needsSetup }
-        }?.filename ?? filenames.first
-    }
-
-    private func handlePluginArrow(_ delta: Int) -> KeyPress.Result {
-        if NSApp.keyWindow?.firstResponder is NSTextView { return .ignored }
-        guard movePluginSelection(delta) else { return .ignored }
-        return .handled
-    }
-
-    @discardableResult
-    private func movePluginSelection(_ delta: Int) -> Bool {
-        let files = filteredPlugins.map(\.filename)
-        guard let next = PluginListNav.neighbor(of: selectedPlugin, in: files, delta: delta) else {
-            return false
-        }
-        selectedPlugin = next
-        pluginListFocused = true
-        return true
+        selectedPlugin = PluginListNav.initialSelection(
+            current: selectedPlugin, in: state.moduleSummaries)
     }
 
     private var shortcutsTab: some View {
