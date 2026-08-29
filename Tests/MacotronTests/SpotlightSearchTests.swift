@@ -11,17 +11,19 @@ struct SpotlightSearchTests {
         #expect(SpotlightSearch.parse("").isEmpty)
     }
 
-    @Test("query uses Spotlight equality wildcards, not Cocoa LIKE")
+    @Test("query seeks the index by prefix instead of scanning it")
     func queryFormat() {
         let q = SpotlightSearch.queryString("Notes")
-        #expect(q?.contains("kMDItemDisplayName == '*Notes*'cd") == true)
+        // A leading wildcard is the 100x slower shape; `w` keeps mid-name words matching.
+        #expect(q?.contains("kMDItemFSName == 'Notes*'cw") == true)
+        #expect(q?.contains("'*Notes") != true)
         #expect(q?.contains("LIKE") != true)
     }
 
     @Test("query escapes Spotlight special characters")
     func escape() {
         let q = SpotlightSearch.queryString(#"a*"b"#)
-        #expect(q?.contains(#"*a\*"b*"#) == true)
+        #expect(q?.contains(#"a\*"b*"#) == true)
     }
 
     @Test("parse takes paths from mdfind output")
