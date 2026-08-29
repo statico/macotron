@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import MacotronEngine
+@testable import MacotronUI
 @testable import Modules
 
 @MainActor
@@ -201,5 +202,26 @@ struct LauncherLiveHitsTests {
             engine.evaluate("__settles[1]()")
             #expect(refreshes == 1)
         }
+    }
+}
+
+@MainActor
+@Suite("LauncherResultMerge")
+struct LauncherResultMergeTests {
+    private func rows(_ prefix: String, _ count: Int) -> [SearchResult] {
+        (0..<count).map { SearchResult(id: "\(prefix)\($0)", title: "\(prefix)\($0)", subtitle: "", type: .app) }
+    }
+
+    @Test("a full screen of apps still leaves room for file rows")
+    func trailingSurvivesAFullList() {
+        let merged = SearchResult.merge(leading: [], main: rows("app", 30), trailing: rows("file", 8))
+        #expect(merged.count == 20)
+        #expect(merged.suffix(5).allSatisfy { $0.id.hasPrefix("file") })
+    }
+
+    @Test("a short list keeps every row and does not pad")
+    func shortListIsUntouched() {
+        let merged = SearchResult.merge(leading: rows("calc", 1), main: rows("app", 3), trailing: rows("file", 2))
+        #expect(merged.map(\.id) == ["calc0", "app0", "app1", "app2", "file0", "file1"])
     }
 }

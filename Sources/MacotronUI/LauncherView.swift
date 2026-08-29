@@ -57,6 +57,23 @@ public struct SearchResult: Identifiable {
     }
 }
 
+extension SearchResult {
+    /// The launcher shows one screenful. Live file rows answer a keystroke a beat
+    /// late and sort last, so any query matching a screenful of apps pushed every
+    /// one of them off the end: the tail holds a few slots back for them.
+    public static func merge(
+        leading: [SearchResult],
+        main: [SearchResult],
+        trailing: [SearchResult],
+        limit: Int = 20,
+        tail: Int = 5
+    ) -> [SearchResult] {
+        let end = Array(trailing.prefix(tail))
+        return Array((leading + main).prefix(limit - end.count)) + end
+    }
+}
+
+
 public struct LauncherView: View {
     @ObservedObject private var prefs: LauncherPrefs
     @ObservedObject private var session: LauncherSession
