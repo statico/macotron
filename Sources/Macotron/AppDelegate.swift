@@ -1381,23 +1381,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Score once per result rather than twice per comparison: sorting
-        // otherwise re-runs the matcher O(n log n) times on every keystroke.
-        let action: (SearchResult.ResultType) -> Bool = { $0 == .command || $0 == .plugin }
-        results = results
-            .map { ($0, FuzzyMatch.best(query: q, targets: [$0.title, $0.subtitle]) ?? 0) }
-            .sorted { a, b in
-                if a.1 != b.1 { return a.1 > b.1 }
-                return action(a.0.type) && !action(b.0.type)
-            }
-            .map(\.0)
-
         // Live providers answer the query itself rather than matching a name, so
         // they skip fuzzy ranking and lead. A calculator result belongs above a
         // list of apps that happen to share a letter with the sum. A provider
         // that answers every query, not only its own syntax, marks its rows
-        // secondary and trails instead: a file arriving a keystroke late must
-        // not outrank the app whose name the user actually typed.
+        // secondary and is ranked with everything else, losing only ties.
         let live = StepTimer.measure("search live providers", threshold: 0.005) {
             launcherModule?.liveHits(query: q) ?? []
         }
@@ -1414,9 +1402,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         }
         let leading = live.filter { !$0.secondary }.map(row)
-        let trailing = live.filter(\.secondary).map(row)
+        let late = live.filter(\.secondary).map(row)
 
-        return SearchResult.merge(leading: leading, main: results, trailing: trailing)
+        return leading + SearchResult.ranked(
+            query: q,
+            rows: results + late,
+            late: Set(late.map(\.id)),
+            limit: max(0, 20 - leading.count)
+        )
     }
 
     /// Leads the empty-query list while Macotron is missing something it needs,

@@ -206,22 +206,36 @@ struct LauncherLiveHitsTests {
 }
 
 @MainActor
-@Suite("LauncherResultMerge")
-struct LauncherResultMergeTests {
-    private func rows(_ prefix: String, _ count: Int) -> [SearchResult] {
-        (0..<count).map { SearchResult(id: "\(prefix)\($0)", title: "\(prefix)\($0)", subtitle: "", type: .app) }
+@Suite("LauncherResultRanking")
+struct LauncherResultRankingTests {
+    private func row(_ id: String, _ title: String, _ type: SearchResult.ResultType) -> SearchResult {
+        SearchResult(id: id, title: title, subtitle: "", type: type)
     }
 
-    @Test("a full screen of apps still leaves room for file rows")
-    func trailingSurvivesAFullList() {
-        let merged = SearchResult.merge(leading: [], main: rows("app", 30), trailing: rows("file", 8))
-        #expect(merged.count == 20)
-        #expect(merged.suffix(5).allSatisfy { $0.id.hasPrefix("file") })
+    @Test("a folder the user named outranks a contact that shares a few letters")
+    func fileBeatsWeakerPluginRow() {
+        let file = row("/Applications", "Applications", .plugin)
+        let ranked = SearchResult.ranked(
+            query: "applic",
+            rows: [row("c1", "Apple Inc.", .plugin), file],
+            late: ["/Applications"]
+        )
+        #expect(ranked.first?.id == "/Applications")
     }
 
-    @Test("a short list keeps every row and does not pad")
-    func shortListIsUntouched() {
-        let merged = SearchResult.merge(leading: rows("calc", 1), main: rows("app", 3), trailing: rows("file", 2))
-        #expect(merged.map(\.id) == ["calc0", "app0", "app1", "app2", "file0", "file1"])
+    @Test("an app whose name was typed still leads an equally good file")
+    func appWinsTies() {
+        let ranked = SearchResult.ranked(
+            query: "safari",
+            rows: [row("~/Safari", "Safari", .plugin), row("com.apple.Safari", "Safari", .app)],
+            late: ["~/Safari"]
+        )
+        #expect(ranked.map(\.id) == ["com.apple.Safari", "~/Safari"])
+    }
+
+    @Test("the list is capped at one screenful")
+    func capped() {
+        let rows = (0..<40).map { row("app\($0)", "Note \($0)", .app) }
+        #expect(SearchResult.ranked(query: "note", rows: rows).count == 20)
     }
 }

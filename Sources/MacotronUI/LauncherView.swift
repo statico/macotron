@@ -58,18 +58,31 @@ public struct SearchResult: Identifiable {
 }
 
 extension SearchResult {
-    /// The launcher shows one screenful. Live file rows answer a keystroke a beat
-    /// late and sort last, so any query matching a screenful of apps pushed every
-    /// one of them off the end: the tail holds a few slots back for them.
-    public static func merge(
-        leading: [SearchResult],
-        main: [SearchResult],
-        trailing: [SearchResult],
-        limit: Int = 20,
-        tail: Int = 5
+    /// One screenful, best match first.
+    ///
+    /// `late` names the rows a live provider answered a keystroke behind — file
+    /// hits, mostly. They used to sort below everything, which put a contact who
+    /// shares three letters with the query above the folder the user named, and
+    /// pushed files off the end entirely whenever apps filled the list. So they
+    /// are scored like everything else, and only lose ties: an app whose name
+    /// was actually typed still leads a file that matches it just as well.
+    public static func ranked(
+        query: String,
+        rows: [SearchResult],
+        late: Set<String> = [],
+        limit: Int = 20
     ) -> [SearchResult] {
-        let end = Array(trailing.prefix(tail))
-        return Array((leading + main).prefix(limit - end.count)) + end
+        // Score once per row rather than twice per comparison: sorting otherwise
+        // re-runs the matcher O(n log n) times on every keystroke.
+        let action: (ResultType) -> Bool = { $0 == .command || $0 == .plugin }
+        let scored = rows.map { ($0, FuzzyMatch.best(query: query, targets: [$0.title, $0.subtitle]) ?? 0) }
+            .sorted { a, b in
+                if a.1 != b.1 { return a.1 > b.1 }
+                let aLate = late.contains(a.0.id), bLate = late.contains(b.0.id)
+                if aLate != bLate { return bLate }
+                return action(a.0.type) && !action(b.0.type)
+            }
+        return Array(scored.prefix(limit).map(\.0))
     }
 }
 
