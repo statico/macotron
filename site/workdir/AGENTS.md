@@ -56,11 +56,10 @@ Do not edit `AGENTS.md` / `CLAUDE.md`.
 
 ## Logging
 
-Log as you write. A plugin runs inside the app with no console attached,
-so the log is the only record of what it did; a plugin written without
-logging cannot be debugged later without being rewritten first. Log at
-least the load, the start and result of each command or hotkey, and every
-caught error — with the values that decided the outcome, not just "failed".
+Log as you write. A plugin runs with no console attached, so the log is
+the only record of what it did. Log the load, the start and result of each
+command or hotkey, and every caught error — with the values that decided
+the outcome, not just "failed".
 
 ```js
 console.log("weather: loaded, city =", opts.city);
@@ -71,6 +70,10 @@ try {
   console.error("weather: request failed for", url, e);
 }
 ```
+
+Log every periodic refresh too. One that fails partway leaves stale UI
+that still looks live — the menu bar shows a number, and nothing says it
+is an hour old.
 
 `console.log` / `info` / `debug` write at info level, `console.warn` at
 notice, `console.error` at error. `macotron.log(...)` is the same as
@@ -127,18 +130,16 @@ one-line HUD on the screen under the cursor (3s default). `color` is `info`,
 `macotron.screen.pickColor()` opens the system magnifier and returns
 `{ hex, r, g, b, x, y }` or `null`.
 `macotron.hid.list/open/sendFeature/sendOutput/readFeature/readInput/listen`
-talks to HID devices (report id is the first send byte). `hid:input` is
-`{ id, reportId, data }`.
-`await macotron.hid.readInput(id, { timeout: 500 })` waits for the next
-input report on the interrupt pipe — what the device answers a query
-with — and resolves `{ id, reportId, data }`, or `null` on timeout. Use
-it for request/response protocols: reports queue from the moment `open`
-returns, so a reply that beats your `readInput` call is not lost. Use
-`listen(id)` plus the `hid:input` event for a device that reports on its
-own (a button, a dial); while listening, reports are delivered as events
-instead of queued.
-`readFeature` and `readInputReport` are control GetReports; most devices
-never answer the input one.
+talks to HID devices (report id is the first send byte). Both an
+`hid:input` event and `readInput` give `{ id, reportId, data }`.
+- `await readInput(id, { timeout: 500 })` for request/response: reports
+  queue from the moment `open` returns, so a fast reply is not lost.
+  Resolves `null` on timeout.
+- `listen(id)` plus the `hid:input` event for a device that reports on its
+  own (a button, a dial). While listening, reports arrive as events
+  instead of queueing.
+- `readFeature` / `readInputReport` are control GetReports; most devices
+  never answer the input one.
 `macotron.qr.detect({ image|path })`, `qr.scan({ camera|screenshot })`,
 `qr.image(text)`, and `qr.show(text)` read and display QR codes.
 
@@ -167,11 +168,10 @@ macotron.command("Generate Lorem Ipsum", "Placeholder text", (args) => {
 });
 ```
 
-The three-argument form still works. `id` is optional; the default is `{filename}/{name}`.
-Set `id` if the user will assign a shortcut. Users set shortcuts in Settings → Plugins
-or in the launcher with ⌘K on the selected result (apps too). Do not call `keyboard.on`
-for launcher commands. `keyboard.on(id, default, callback)` is for global hotkeys;
-those combos are also overridable in Settings → Plugins.
+The three-argument form still works. `id` is optional (default `{filename}/{name}`);
+set it if the user will assign a shortcut, in Settings → Plugins or in the launcher
+with ⌘K on the selected result (apps too). Do not call `keyboard.on` for launcher
+commands — that is for global hotkeys, overridable in the same place.
 
 ## Panel API (stub)
 
@@ -243,14 +243,14 @@ const opts = macotron.plugin({
 Option types: `string`, `text`, `boolean`, `number`, `keybinding`, `dropdown`
 (requires `choices: [{ value, label }]`), `password`, `file`, `directory`.
 
+Every option takes `label`, and optional `default`, `required` (Settings
+shows a "Needs setup" hint until it is set), and `help`, a sentence under
+the field. Keep `label` to a few words; put the explanation in `help`.
+
 Text, number, password, file, and directory options accept `placeholder`,
-the grey hint shown while the field is empty. It is read at plugin load,
-so it can show live state such as the current system locale. Use it
-instead of writing the fallback into the label.
-Every option takes `label`, optional `default`, and optional `required`
-(Settings shows a "Needs setup" hint while a required option is unset),
-and optional `help`, a sentence shown under the field. Keep `label` to
-a few words and put the explanation in `help`.
+the grey hint shown while the field is empty. It is read at load, so it
+can show live state such as the current locale — use it instead of
+writing the fallback into the label.
 
 `password` options: the secret lives in the macOS Keychain. `settings.json`
 stores only a Keychain ref like `macotron.plugin.chat.js.apiKey`. Refs may
@@ -271,13 +271,12 @@ macotron.checks([
 
 ## Remembering state
 
-Plugin variables do not survive. Editing any plugin reloads all of them,
-and quitting the app clears the lot, so every choice the user made -- a
-mode, a toggle, a deadline, a list they built up -- belongs in
-`localStorage`: write it when it changes, read it back at load. Options
-declared in `macotron.plugin()` are already saved by the host; do not
-copy those into `localStorage`. Do not save what the system can be asked
-for either (volume, battery, current network) -- read those at load.
+Plugin variables do not survive: editing any plugin reloads all of them,
+and quitting clears the lot. Every choice the user made -- a mode, a
+deadline, a list they built up -- belongs in `localStorage`: write it when
+it changes, read it back at load. Do not copy in what is already saved
+elsewhere: options declared in `macotron.plugin()`, or state the system
+can be asked for (volume, battery, current network).
 
 ```js
 const KEY = "pomodoro.session"; // one store for all plugins: prefix keys
@@ -290,9 +289,63 @@ function start(ms) {
 }
 ```
 
-Host state a plugin was holding is dropped on reload as well -- a sleep
+Host state a plugin was holding is dropped on reload too -- a sleep
 assertion, a fan-speed floor -- so claim it back at load from what was
-saved, and do it quietly: the notification was read the first time.
+saved, and quietly: the notification was read the first time.
+
+## Async and error handling
+
+A `macotron.every` or `macotron.at` callback, and the initial call at the
+bottom of the file, run unattended -- nobody sees the return value. If the
+body throws, that tick stops there and the menu bar or panel keeps what
+was last painted, usually the first run's placeholder, which then sits
+there looking like a real reading. Wrap the body and paint a terminal
+state on every path, failure included.
+
+`macotron.http` does not reject on a dead network: it resolves with
+`status: 0` and the reason in `body`. Check the status *and* catch, or the
+failure you are guarding against is the one that slips through.
+
+```js
+async function refresh() {
+  console.log("weather: refreshing", url);
+  try {
+    const res = await macotron.http.get(url, { timeout: 10000 });
+    if (res.status !== 200) throw new Error("HTTP " + res.status + ": " + res.body);
+    paint(JSON.parse(res.body));
+    console.log("weather: refreshed");
+  } catch (e) {
+    console.error("weather: refresh failed", e);
+    macotron.menubar.status("weather", {
+      title: "--",
+      color: "red",
+      menu: [
+        { title: "Refresh failed: " + (e.message || e) },
+        "-",
+        { title: "Refresh", onClick: refresh },
+      ],
+    });
+  }
+}
+```
+
+Run independent awaits together with `Promise.all`. A loop of `await`
+runs them one at a time, so at a 10s timeout twenty items can outlast the
+interval that started them. For a fan-out big enough to annoy a server,
+cap how many are in flight:
+
+```js
+async function mapLimit(items, limit, fn) {
+  const out = new Array(items.length);
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length) out[i] = await fn(items[i], i++);
+  }));
+  return out;
+}
+```
+
+Results come back in the order of `items`, not the order they finished.
 
 ## settings.json schema
 
