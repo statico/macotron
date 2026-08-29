@@ -37,6 +37,15 @@ public enum FuzzyMatch {
         // Bonus for shorter targets (more specific matches)
         score += max(0, 20 - targetChars.count)
 
+        // Typing the beginning of a name is the least ambiguous thing a person
+        // can do, and it has to beat the bonuses above: without this, "applic"
+        // ranked the contact "Apple Inc." over the folder "Applications",
+        // because the short name and its second word-start out-scored six
+        // letters landing in a row.
+        if targetChars.starts(with: queryChars) {
+            score += 40
+        }
+
         return score
     }
 
