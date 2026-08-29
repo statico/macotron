@@ -1416,7 +1416,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let leading = live.filter { !$0.secondary }.map(row)
         let trailing = live.filter(\.secondary).map(row)
 
-        return Array((leading + results + trailing).prefix(20))
+        return SearchResult.merge(leading: leading, main: results, trailing: trailing)
     }
 
     /// Leads the empty-query list while Macotron is missing something it needs,
