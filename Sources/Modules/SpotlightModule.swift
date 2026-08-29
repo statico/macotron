@@ -5,7 +5,6 @@ import MacotronEngine
 
 enum SpotlightSearch {
     static let limit = 50
-    static let rankCap = 500
 
     static func queryString(_ raw: String, kind: String? = nil) -> String? {
         let q = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -36,32 +35,55 @@ enum SpotlightSearch {
         return out
     }
 
-    /// mdfind emits index order, which reads as random, so the cap keeps the
-    /// most recently used rather than whichever the index named first.
-    // ponytail: one stat per hit over the whole result set; NSMetadataQuery with
-    // kMDItemLastUsedDate sorting (and live updates) if that ever costs too much.
-    static func parse(_ stdout: String) -> [[String: Any]] {
-        // ponytail: a common prefix still matches five figures of files and each one
-        // costs a stat, so only the first few hundred are ranked. Raise the cap if
-        // the good answer starts landing outside it.
-        let urls: [URL] = stdout.split(whereSeparator: \.isNewline)
-            .prefix(rankCap)
-            .map { URL(fileURLWithPath: String($0)) }
-        let dated: [(url: URL, used: Date)] = urls.map { url in
-            let values = try? url.resourceValues(forKeys: [.contentAccessDateKey])
-            return (url, values?.contentAccessDate ?? .distantPast)
+    /// How obvious a hit is for what was typed. mdfind emits index order, which
+    /// reads as random, so every hit is scored against these before the cut.
+    ///
+    /// Shortest path first is the whole idea: typing "downloads" should find
+    /// ~/Downloads, not the fourth `downloads` folder inside a node_modules
+    /// tree. Depth alone gets most of the way there, and the flags ahead of it
+    /// cover what depth cannot see.
+    struct Rank: Comparable {
+        /// Each flag is 0 for the better answer, so the whole rank sorts ascending.
+        let notExact: Int
+        let hidden: Int
+        let elsewhere: Int
+        let depth: Int
+        let path: String
+
+        static func < (lhs: Rank, rhs: Rank) -> Bool {
+            (lhs.notExact, lhs.hidden, lhs.elsewhere, lhs.depth, lhs.path)
+                < (rhs.notExact, rhs.hidden, rhs.elsewhere, rhs.depth, rhs.path)
         }
-        // mdfind's own order varies between runs of the same search, so ties break
-        // on the path. An unstable order here reads as changed rows to the launcher,
-        // which asks again, which shuffles again.
-        let ranked = dated.sorted {
-            $0.used == $1.used ? $0.url.path < $1.url.path : $0.used > $1.used
-        }
+    }
+
+    static func rank(path: String, term: String, home: String) -> Rank {
+        let components = path.split(separator: "/")
+        let name = String(components.last ?? "")
+        return Rank(
+            notExact: name.lowercased() == term.lowercased() ? 0 : 1,
+            // A dot component means .git, .cache, .build: thousands of files
+            // nobody opens by name, and always more of them than of the answer.
+            hidden: components.contains { $0.hasPrefix(".") } ? 1 : 0,
+            elsewhere: path.hasPrefix(home + "/") || path.hasPrefix("/Applications/")
+                || path == home || path == "/Applications" ? 0 : 1,
+            depth: components.count,
+            path: path
+        )
+    }
+
+    static func parse(_ stdout: String, term: String = "", home: String = NSHomeDirectory()) -> [[String: Any]] {
+        let ranked = stdout.split(whereSeparator: \.isNewline)
+            .map { line -> (path: String, rank: Rank) in
+                let path = String(line)
+                return (path, rank(path: path, term: term, home: home))
+            }
+            .sorted { $0.rank < $1.rank }
         return ranked.prefix(limit).map { row in
-            [
-                "path": row.url.path,
-                "name": row.url.lastPathComponent,
-                "kind": row.url.pathExtension,
+            let url = URL(fileURLWithPath: row.path)
+            return [
+                "path": row.path,
+                "name": url.lastPathComponent,
+                "kind": url.pathExtension,
             ]
         }
     }
@@ -70,7 +92,7 @@ enum SpotlightSearch {
         guard let query = queryString(raw, kind: kind) else { return [] }
         let dir = folder?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let args = dir.isEmpty ? [query] : ["-onlyin", (dir as NSString).expandingTildeInPath, query]
-        return parse(Subprocess.run("/usr/bin/mdfind", args).stdout)
+        return parse(Subprocess.run("/usr/bin/mdfind", args).stdout, term: raw.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }
 
