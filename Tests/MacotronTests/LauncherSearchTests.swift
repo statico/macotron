@@ -156,6 +156,28 @@ struct LauncherLiveHitsTests {
         }
     }
 
+    @Test("a late answer survives the next keystroke instead of being cleared")
+    func lateAnswerSurvives() {
+        withModule("""
+            globalThis.__settle = null;
+            macotron.launcher.query("p", function (q) {
+                return new Promise(function (resolve) {
+                    globalThis.__settle = function () {
+                        resolve([{ id: "1", title: "late " + q }]);
+                    };
+                });
+            });
+            """) { engine, module in
+            #expect(module.liveHits(query: "hi").isEmpty)
+            engine.evaluate("__settle()")
+
+            // The launcher asks again the moment the answer lands. Clearing the
+            // bucket for the new promise would drop the row that just arrived,
+            // and a provider that never resolves synchronously would show nothing.
+            #expect(module.liveHits(query: "hi").map(\.title) == ["late hi"])
+        }
+    }
+
     @Test("an answer to an abandoned keystroke is dropped")
     func staleAnswer() {
         withModule("""
