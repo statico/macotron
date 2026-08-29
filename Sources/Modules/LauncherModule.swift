@@ -28,7 +28,12 @@ public final class LauncherModule: NativeModule {
     private var secondary: Set<String> = []
     private var awaitGlue: JSValue?
     private var push: JSValue?
-    private var generation: Int32 = 0
+    /// The text the newest round of live queries was asked about. A promise
+    /// settles against the query it answered, not against a counter: every
+    /// `liveHits` call used to bump a counter, so a refresh triggered by any
+    /// other provider invalidated an answer to the query still on screen and
+    /// the launcher waited out another whole round trip for the same rows.
+    private var currentQuery = ""
     private var isCollecting = false
 
     /// Called when a provider answers after `liveHits` has already returned, so
@@ -54,7 +59,7 @@ public final class LauncherModule: NativeModule {
     /// settles and `onLiveUpdate` tells the launcher to ask again.
     public func liveHits(query: String) -> [LauncherHit] {
         guard let engine, let ctx = engine.context, !queries.isEmpty else { return [] }
-        generation &+= 1
+        currentQuery = query
         isCollecting = true
         defer { isCollecting = false }
         let buckets = queries.keys.sorted().map { $0 + Self.liveSuffix }
@@ -100,7 +105,7 @@ public final class LauncherModule: NativeModule {
             JS_DupValue(ctx, push),
             JS_DupValue(ctx, promise),
             JSBridge.newString(ctx, bucket),
-            JSBridge.newInt32(ctx, generation),
+            JSBridge.newString(ctx, currentQuery),
         ]
         if let result = engine.callJS(glue, args, label: "launcher await \(bucket)") {
             JS_FreeValue(ctx, result)
@@ -219,7 +224,7 @@ public final class LauncherModule: NativeModule {
             guard let engine = Engine.of(ctx) else { return QJS_Undefined() }
             guard let mod = engine.configStore["__launcherModule"] as? LauncherModule,
                   let bucket = JSBridge.toString(ctx, argv[0]),
-                  JSBridge.toInt32(ctx, argv[2]) == mod.generation else {
+                  JSBridge.toString(ctx, argv[2]) == mod.currentQuery else {
                 return QJS_Undefined()
             }
             let before = mod.fingerprint(bucket)
@@ -235,8 +240,8 @@ public final class LauncherModule: NativeModule {
         // A rejected provider hands `replace` a non-array, which clears the
         // bucket, so one handler covers both outcomes.
         engine.evaluate("""
-            globalThis.__macotronLauncherAwait = function (push, promise, bucket, gen) {
-                var settle = function (rows) { push(bucket, rows, gen); };
+            globalThis.__macotronLauncherAwait = function (push, promise, bucket, asked) {
+                var settle = function (rows) { push(bucket, rows, asked); };
                 Promise.resolve(promise).then(settle, settle);
             };
             """, filename: "<launcher-await>")
