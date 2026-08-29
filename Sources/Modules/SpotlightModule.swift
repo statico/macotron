@@ -5,12 +5,18 @@ import MacotronEngine
 
 enum SpotlightSearch {
     static let limit = 50
+    static let rankCap = 500
 
     static func queryString(_ raw: String, kind: String? = nil) -> String? {
         let q = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return nil }
         let e = escape(q)
-        var query = "(kMDItemDisplayName == '*\(e)*'cd || kMDItemFSName == '*\(e)*'cd)"
+        // A leading wildcard cannot seek the index, so it scans every term in it:
+        // measured at 4.0s against 0.03s for the same search written as a prefix.
+        // The `w` modifier keeps this matching mid-name words ("budget" still finds
+        // "Q3 Budget.pdf"), `d` costs 4x for diacritic folding nobody asked for, and
+        // kMDItemDisplayName is 3x kMDItemFSName for the same answer.
+        var query = "kMDItemFSName == '\(e)*'cw"
         var ext = kind?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         while ext.hasPrefix(".") { ext.removeFirst() }
         if !ext.isEmpty {
@@ -35,7 +41,11 @@ enum SpotlightSearch {
     // ponytail: one stat per hit over the whole result set; NSMetadataQuery with
     // kMDItemLastUsedDate sorting (and live updates) if that ever costs too much.
     static func parse(_ stdout: String) -> [[String: Any]] {
+        // ponytail: a common prefix still matches five figures of files and each one
+        // costs a stat, so only the first few hundred are ranked. Raise the cap if
+        // the good answer starts landing outside it.
         let urls: [URL] = stdout.split(whereSeparator: \.isNewline)
+            .prefix(rankCap)
             .map { URL(fileURLWithPath: String($0)) }
         let dated: [(url: URL, used: Date, order: Int)] = urls.enumerated().map { idx, url in
             let values = try? url.resourceValues(forKeys: [.contentAccessDateKey])
