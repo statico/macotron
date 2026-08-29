@@ -47,12 +47,16 @@ enum SpotlightSearch {
         let urls: [URL] = stdout.split(whereSeparator: \.isNewline)
             .prefix(rankCap)
             .map { URL(fileURLWithPath: String($0)) }
-        let dated: [(url: URL, used: Date, order: Int)] = urls.enumerated().map { idx, url in
+        let dated: [(url: URL, used: Date)] = urls.map { url in
             let values = try? url.resourceValues(forKeys: [.contentAccessDateKey])
-            return (url, values?.contentAccessDate ?? .distantPast, idx)
+            return (url, values?.contentAccessDate ?? .distantPast)
         }
-        // Sorting is not stable, so untouched files keep mdfind's order.
-        let ranked = dated.sorted { $0.used == $1.used ? $0.order < $1.order : $0.used > $1.used }
+        // mdfind's own order varies between runs of the same search, so ties break
+        // on the path. An unstable order here reads as changed rows to the launcher,
+        // which asks again, which shuffles again.
+        let ranked = dated.sorted {
+            $0.used == $1.used ? $0.url.path < $1.url.path : $0.used > $1.used
+        }
         return ranked.prefix(limit).map { row in
             [
                 "path": row.url.path,

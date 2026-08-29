@@ -73,9 +73,11 @@ public final class LauncherModule: NativeModule {
                 continue
             }
             if isThenable(ctx, result) {
-                // The rows still in the bucket answer an older keystroke, so
-                // they go now rather than linger until this promise settles.
-                drop(provider: bucket, ctx: ctx)
+                // The rows already in the bucket answer an older keystroke, and
+                // they stay until this promise settles. Clearing them here empties
+                // the bucket one tick before the answer arrives -- and this method
+                // returns the bucket -- so a provider that is always async would
+                // never show a row, and every settle would trigger another round.
                 awaitRows(ctx, engine: engine, promise: result, bucket: bucket)
             } else {
                 replace(provider: bucket, items: result, ctx: ctx)
