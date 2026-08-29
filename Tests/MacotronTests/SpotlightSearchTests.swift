@@ -29,15 +29,46 @@ struct SpotlightSearchTests {
     @Test("parse takes paths from mdfind output, in a stable order")
     func parse() {
         let out = "/tmp/Hello World.txt\n/Users/alex/Notes.md\n"
-        let rows = SpotlightSearch.parse(out)
+        let rows = SpotlightSearch.parse(out, term: "note", home: "/Users/alex")
         #expect(rows.count == 2)
-        // Neither path exists, so both rank as never-used and the path breaks the
-        // tie. mdfind's own order is not stable between runs of the same search.
+        // Home beats /tmp, and the path breaks any remaining tie: mdfind's own
+        // order is not stable between runs of the same search.
         #expect(rows[0]["path"] as? String == "/Users/alex/Notes.md")
         #expect(rows[0]["name"] as? String == "Notes.md")
         #expect(rows[1]["name"] as? String == "Hello World.txt")
-        #expect(SpotlightSearch.parse(out).map { $0["path"] as? String } ==
+        #expect(SpotlightSearch.parse(out, term: "note", home: "/Users/alex").map { $0["path"] as? String } ==
                 rows.map { $0["path"] as? String })
+    }
+
+    @Test("the obvious folder outranks a deeper one with the same name")
+    func shortestPathWins() {
+        let out = """
+            /Users/alex/dev/app/node_modules/downloads/index.js
+            /Users/alex/dev/downloads
+            /Users/alex/Downloads
+            /Library/Caches/downloads
+            """
+        let rows = SpotlightSearch.parse(out, term: "downloads", home: "/Users/alex")
+        #expect(rows.map { $0["path"] as? String } == [
+            "/Users/alex/Downloads",
+            "/Users/alex/dev/downloads",
+            "/Library/Caches/downloads",
+            "/Users/alex/dev/app/node_modules/downloads/index.js",
+        ])
+    }
+
+    @Test("an exact name wins even from a deeper path")
+    func exactNameLeads() {
+        let out = "/Users/alex/Budget notes.txt\n/Users/alex/work/2026/Budget\n"
+        let rows = SpotlightSearch.parse(out, term: "budget", home: "/Users/alex")
+        #expect(rows[0]["path"] as? String == "/Users/alex/work/2026/Budget")
+    }
+
+    @Test("dot directories sink below everything they would otherwise outrank")
+    func hiddenSinks() {
+        let out = "/Users/alex/.cache/report\n/Users/alex/work/notes/2026/report\n"
+        let rows = SpotlightSearch.parse(out, term: "report", home: "/Users/alex")
+        #expect(rows[0]["path"] as? String == "/Users/alex/work/notes/2026/report")
     }
 
     @Test("kind pdf appears in the query as *.pdf")
