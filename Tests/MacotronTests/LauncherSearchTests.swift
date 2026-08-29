@@ -111,6 +111,17 @@ struct LauncherLiveHitsTests {
         }
     }
 
+    @Test("a provider that declares itself secondary marks its rows")
+    func secondaryFlag() {
+        withModule("""
+            macotron.launcher.query("p", function () { return [{ id: "1", title: "row" }]; },
+                                    { secondary: true });
+            macotron.launcher.query("q", function () { return [{ id: "1", title: "row" }]; });
+            """) { _, module in
+            #expect(module.liveHits(query: "hi").map(\.secondary) == [true, false])
+        }
+    }
+
     @Test("a provider returning a settled promise answers the same keystroke")
     func settledPromise() {
         withModule("""
