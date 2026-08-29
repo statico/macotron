@@ -1394,10 +1394,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Live providers answer the query itself rather than matching a name, so
         // they skip fuzzy ranking and lead. A calculator result belongs above a
-        // list of apps that happen to share a letter with the sum.
+        // list of apps that happen to share a letter with the sum. A provider
+        // that answers every query, not only its own syntax, marks its rows
+        // secondary and trails instead: a file arriving a keystroke late must
+        // not outrank the app whose name the user actually typed.
         let live = StepTimer.measure("search live providers", threshold: 0.005) {
             launcherModule?.liveHits(query: q) ?? []
-        }.map { hit in
+        }
+        let row = { (hit: LauncherHit) in
             SearchResult(
                 id: hit.id,
                 title: hit.title,
@@ -1409,8 +1413,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 path: hit.path
             )
         }
+        let leading = live.filter { !$0.secondary }.map(row)
+        let trailing = live.filter(\.secondary).map(row)
 
-        return Array((live + results).prefix(20))
+        return Array((leading + results + trailing).prefix(20))
     }
 
     /// Leads the empty-query list while Macotron is missing something it needs,

@@ -32,19 +32,18 @@ struct FileSearchTests {
         return PluginHarness.run(engine, "JSON.stringify(__rows)")
     }
 
-    @Test("only the f and file prefixes search")
-    func prefixGate() throws {
-        #expect(try rows("f budget").contains("budget.pdf"))
-        #expect(try rows("file budget").contains("budget.pdf"))
-        #expect(try rows("budget") == "[]")
-        #expect(try rows("f b") == "[]")
+    @Test("any query of three characters searches")
+    func lengthGate() throws {
+        #expect(try rows("budget").contains("budget.pdf"))
+        #expect(try rows("bud").contains("bud.pdf"))
+        #expect(try rows("bu") == "[]")
     }
 
     @Test("a row carries the spotlight path as its id, path, and action")
     func rowShape() throws {
         let engine = try PluginHarness.load(
             plugin: "file-search.js", mock: Self.mock,
-            extra: #"__query("f budget").then((r) => { __rows = r; });"#
+            extra: #"__query("budget").then((r) => { __rows = r; });"#
         )
         let shape = PluginHarness.run(engine, #"""
             JSON.stringify({

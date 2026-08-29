@@ -10,6 +10,9 @@ public struct LauncherHit {
     public let kind: String
     public let image: NSImage?
     public let path: String
+    /// Set by a provider that answers any query rather than a name, so its rows
+    /// sort below what the user actually typed.
+    public let secondary: Bool
 }
 
 @MainActor
@@ -22,6 +25,7 @@ public final class LauncherModule: NativeModule {
     private var icons: [String: NSImage] = [:]
     private var queries: [String: JSValue] = [:]
     private var resolvers: [String: JSValue] = [:]
+    private var secondary: Set<String> = []
     private var awaitGlue: JSValue?
     private var push: JSValue?
     private var generation: Int32 = 0
@@ -183,12 +187,16 @@ public final class LauncherModule: NativeModule {
             if let old = mod.resolvers.removeValue(forKey: provider) {
                 JS_FreeValue(ctx, old)
             }
+            mod.secondary.remove(provider)
             if argc >= 3, JS_IsObject(argv[2]) {
                 let run = JSBridge.getProperty(ctx, argv[2], "run")
                 if JS_IsFunction(ctx, run) {
                     mod.resolvers[provider] = JS_DupValue(ctx, run)
                 }
                 JS_FreeValue(ctx, run)
+                if JSBridge.bool(ctx, argv[2], "secondary") == true {
+                    mod.secondary.insert(provider)
+                }
             }
             return QJS_Undefined()
         }, "query", 3))
@@ -254,6 +262,7 @@ public final class LauncherModule: NativeModule {
             JS_FreeValue(ctx, cb)
         }
         resolvers.removeAll()
+        secondary.removeAll()
         if let glue = awaitGlue { JS_FreeValue(ctx, glue) }
         awaitGlue = nil
         if let push { JS_FreeValue(ctx, push) }
@@ -279,6 +288,7 @@ public final class LauncherModule: NativeModule {
         if let resolver = resolvers.removeValue(forKey: provider) {
             JS_FreeValue(ctx, resolver)
         }
+        secondary.remove(provider)
         drop(provider: provider + Self.liveSuffix, ctx: ctx)
     }
 
@@ -293,6 +303,7 @@ public final class LauncherModule: NativeModule {
         // The id handed out drops the internal live bucket marker so a saved
         // shortcut survives the launcher closing; callbacks stay keyed by bucket.
         let shown = Self.stripLive(provider)
+        let isSecondary = secondary.contains(shown)
         for idx in 0..<len {
             let elem = JS_GetPropertyUint32(ctx, items, UInt32(idx))
             defer { JS_FreeValue(ctx, elem) }
@@ -321,7 +332,8 @@ public final class LauncherModule: NativeModule {
                 subtitle: subtitle,
                 kind: kind,
                 image: icon(app: app, path: path, sfSymbol: sfSymbol),
-                path: path
+                path: path,
+                secondary: isSecondary
             ))
         }
         hits[provider] = list
