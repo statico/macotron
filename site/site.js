@@ -202,7 +202,7 @@ const CARDS = [
   ["Featured plugins", [
     ["Calculator", "Evaluate an expression as you type."],
     ["Clipboard History", "Search recent clips from the launcher."],
-    ["File Search", "Spotlight results, then copy a path."],
+    ["File Search", "Spotlight results in the launcher."],
     ["Lock Screen", "Lock this Mac from the launcher."],
     ["Meetings", "Next calendar event in the menu bar."],
     ["Notes", "Search Apple Notes from the launcher."],

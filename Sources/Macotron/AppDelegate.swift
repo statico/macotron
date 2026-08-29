@@ -230,7 +230,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 // Finder cannot come forward while the floating launcher panel
                 // still holds key focus, so hide it first, as Return does.
                 self.launcherPanel.dismiss()
-                self.appSearchProvider.revealInFinder(bundleID: id)
+                if id.hasPrefix("/") {
+                    NSWorkspace.shared.revealInFinder(URL(fileURLWithPath: id))
+                } else {
+                    self.appSearchProvider.revealInFinder(bundleID: id)
+                }
             },
             onSearch: { [weak self] query in
                 self?.search(query) ?? []
@@ -1371,7 +1375,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     type: .plugin,
                     nsImage: hit.image,
                     kind: hit.kind,
-                    isFavorite: favorites.contains(hit.id)
+                    isFavorite: favorites.contains(hit.id),
+                    path: hit.path
                 ))
             }
         }
@@ -1400,7 +1405,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 type: .plugin,
                 nsImage: hit.image,
                 kind: hit.kind,
-                isFavorite: favorites.contains(hit.id)
+                isFavorite: favorites.contains(hit.id),
+                path: hit.path
             )
         }
 
@@ -1435,7 +1441,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 type: .plugin,
                 nsImage: hit.image,
                 kind: hit.kind,
-                isFavorite: isFavorite
+                isFavorite: isFavorite,
+                path: hit.path
             )
         }
         if let host = HostCommands.definition(for: id) {
