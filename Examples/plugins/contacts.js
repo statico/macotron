@@ -11,7 +11,10 @@ async function paint() {
             id: p.id,
             title: p.name,
             subtitle: p.emails[0] || p.phones[0] || p.organization,
-            app: "com.apple.Contacts",
+            // Contacts.app has carried the Address Book identifier since it was
+            // renamed; the symbol covers a Mac where the app is missing.
+            app: "com.apple.AddressBook",
+            sfSymbol: "person.crop.circle",
             kind: "Contact",
             onClick: () => {
                 if (p.emails[0]) macotron.url.open("mailto:" + p.emails[0]);
