@@ -73,6 +73,19 @@ struct LauncherSearchTests {
 }
 
 @MainActor
+@Suite("LauncherRowID")
+struct LauncherRowIDTests {
+    @Test("a row id splits at the first slash and drops the live bucket marker")
+    func split() {
+        let parsed = LauncherModule.split("launcher:file-search\u{1}live//Users/alex/a b.pdf")
+        #expect(parsed?.provider == "file-search")
+        #expect(parsed?.rowId == "/Users/alex/a b.pdf")
+        #expect(LauncherModule.split("launcher:calc/1")?.provider == "calc")
+        #expect(LauncherModule.split("com.apple.Safari") == nil)
+    }
+}
+
+@MainActor
 @Suite("LauncherLiveHits")
 struct LauncherLiveHitsTests {
     /// The module only holds the engine weakly, so the engine has to outlive

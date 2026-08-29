@@ -22,6 +22,8 @@ public struct SearchResult: Identifiable {
     public let shortcut: String
     public let kind: String
     public let isFavorite: Bool
+    /// Where the row lives on disk, when it is a file: what Cmd-Return reveals.
+    public let path: String
     /// Draws an orange warning badge in place of the favorite star.
     public let warning: Bool
 
@@ -38,6 +40,7 @@ public struct SearchResult: Identifiable {
         shortcut: String = "",
         kind: String = "",
         isFavorite: Bool = false,
+        path: String = "",
         warning: Bool = false
     ) {
         self.id = id
@@ -49,6 +52,7 @@ public struct SearchResult: Identifiable {
         self.shortcut = shortcut
         self.kind = kind
         self.isFavorite = isFavorite
+        self.path = path
         self.warning = warning
     }
 }
@@ -272,7 +276,8 @@ public struct LauncherView: View {
 
     private func executeSelectedWithModifier() {
         guard selectedIndex < results.count else { return }
-        onRevealInFinder?(results[selectedIndex].id)
+        let result = results[selectedIndex]
+        onRevealInFinder?(result.path.isEmpty ? result.id : result.path)
     }
 
     private func executeResult(_ result: SearchResult) {

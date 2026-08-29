@@ -100,7 +100,14 @@ final class AppSearchProvider {
     }
 
     /// Launch or switch to an app by bundle ID. A shortcut can hide if it is already front.
+    ///
+    /// Every unresolved id lands here, so a shortcut saved against a launcher row
+    /// whose plugin is gone stops short of launching a bundle id made of its path.
     func launchApp(bundleID: String, hideIfFrontmost: Bool = false) {
+        guard !bundleID.hasPrefix("launcher:") else {
+            ToastHost.shared.flash("That plugin no longer offers this result")
+            return
+        }
         AppLaunch.open(bundleID: bundleID, hideIfFrontmost: hideIfFrontmost)
     }
 

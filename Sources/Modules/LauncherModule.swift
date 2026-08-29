@@ -9,6 +9,7 @@ public struct LauncherHit {
     public let subtitle: String
     public let kind: String
     public let image: NSImage?
+    public let path: String
 }
 
 @MainActor
@@ -20,6 +21,7 @@ public final class LauncherModule: NativeModule {
     private var hits: [String: [LauncherHit]] = [:]
     private var icons: [String: NSImage] = [:]
     private var queries: [String: JSValue] = [:]
+    private var resolvers: [String: JSValue] = [:]
     private var awaitGlue: JSValue?
     private var push: JSValue?
     private var generation: Int32 = 0
@@ -105,13 +107,47 @@ public final class LauncherModule: NativeModule {
     }
 
     public func run(_ id: String) -> Bool {
-        guard let engine, let ctx = engine.context, let cb = callbacks[id] else { return false }
-        let fn = JS_DupValue(ctx, cb)
-        if let result = engine.callJS(fn, label: "launcher run \(id)") {
+        guard let engine, let ctx = engine.context else { return false }
+        let parsed = Self.split(id)
+        var callback = callbacks[id]
+        if callback == nil, let parsed {
+            callback = callbacks["launcher:\(parsed.provider)\(Self.liveSuffix)/\(parsed.rowId)"]
+        }
+        if let callback {
+            let fn = JS_DupValue(ctx, callback)
+            if let result = engine.callJS(fn, label: "launcher run \(id)") {
+                JS_FreeValue(ctx, result)
+            }
+            JS_FreeValue(ctx, fn)
+            return true
+        }
+        // The row answered an older keystroke or died with a restart, so the
+        // provider gets to replay it from the id alone.
+        guard let parsed, let resolver = resolvers[parsed.provider] else { return false }
+        let arg = JSBridge.newString(ctx, parsed.rowId)
+        if let result = engine.callJS(
+            resolver, [arg],
+            budget: Engine.inputBudget,
+            label: "launcher resolve \(parsed.provider)"
+        ) {
             JS_FreeValue(ctx, result)
         }
-        JS_FreeValue(ctx, fn)
+        JS_FreeValue(ctx, arg)
         return true
+    }
+
+    /// A row id is often a file path, so only the first "/" after the prefix
+    /// separates the provider from the row.
+    static func split(_ id: String) -> (provider: String, rowId: String)? {
+        guard id.hasPrefix("launcher:") else { return nil }
+        let rest = id.dropFirst("launcher:".count)
+        guard let slash = rest.firstIndex(of: "/") else { return nil }
+        return (stripLive(String(rest[rest.startIndex..<slash])),
+                String(rest[rest.index(after: slash)...]))
+    }
+
+    static func stripLive(_ provider: String) -> String {
+        provider.hasSuffix(liveSuffix) ? String(provider.dropLast(liveSuffix.count)) : provider
     }
 
     public func register(in engine: Engine, options: [String: Any]) {
@@ -144,8 +180,18 @@ public final class LauncherModule: NativeModule {
                 JS_FreeValue(ctx, old)
             }
             mod.queries[provider] = JS_DupValue(ctx, argv[1])
+            if let old = mod.resolvers.removeValue(forKey: provider) {
+                JS_FreeValue(ctx, old)
+            }
+            if argc >= 3, JS_IsObject(argv[2]) {
+                let run = JSBridge.getProperty(ctx, argv[2], "run")
+                if JS_IsFunction(ctx, run) {
+                    mod.resolvers[provider] = JS_DupValue(ctx, run)
+                }
+                JS_FreeValue(ctx, run)
+            }
             return QJS_Undefined()
-        }, "query", 2))
+        }, "query", 3))
 
         JS_SetPropertyStr(ctx, launcher, "remove", JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
@@ -204,6 +250,10 @@ public final class LauncherModule: NativeModule {
             JS_FreeValue(ctx, cb)
         }
         queries.removeAll()
+        for (_, cb) in resolvers {
+            JS_FreeValue(ctx, cb)
+        }
+        resolvers.removeAll()
         if let glue = awaitGlue { JS_FreeValue(ctx, glue) }
         awaitGlue = nil
         if let push { JS_FreeValue(ctx, push) }
@@ -226,6 +276,9 @@ public final class LauncherModule: NativeModule {
         if let callback = queries.removeValue(forKey: provider) {
             JS_FreeValue(ctx, callback)
         }
+        if let resolver = resolvers.removeValue(forKey: provider) {
+            JS_FreeValue(ctx, resolver)
+        }
         drop(provider: provider + Self.liveSuffix, ctx: ctx)
     }
 
@@ -237,6 +290,9 @@ public final class LauncherModule: NativeModule {
         JS_FreeValue(ctx, lenVal)
         var list: [LauncherHit] = []
         list.reserveCapacity(Int(len))
+        // The id handed out drops the internal live bucket marker so a saved
+        // shortcut survives the launcher closing; callbacks stay keyed by bucket.
+        let shown = Self.stripLive(provider)
         for idx in 0..<len {
             let elem = JS_GetPropertyUint32(ctx, items, UInt32(idx))
             defer { JS_FreeValue(ctx, elem) }
@@ -244,12 +300,14 @@ public final class LauncherModule: NativeModule {
 
             let rawId = JSBridge.string(ctx, elem, "id") ?? "\(idx)"
             let id = "launcher:\(provider)/\(rawId)"
+            let shownId = "launcher:\(shown)/\(rawId)"
 
             let title = JSBridge.string(ctx, elem, "title") ?? rawId
             let subtitle = JSBridge.string(ctx, elem, "subtitle") ?? ""
             let kind = JSBridge.string(ctx, elem, "kind") ?? ""
             let app = JSBridge.string(ctx, elem, "app")
             let sfSymbol = JSBridge.string(ctx, elem, "sfSymbol")
+            let path = JSBridge.string(ctx, elem, "path") ?? ""
 
             let onClickVal = JSBridge.getProperty(ctx, elem, "onClick")
             if JS_IsFunction(ctx, onClickVal) {
@@ -258,17 +316,18 @@ public final class LauncherModule: NativeModule {
             JS_FreeValue(ctx, onClickVal)
 
             list.append(LauncherHit(
-                id: id,
+                id: shownId,
                 title: title,
                 subtitle: subtitle,
                 kind: kind,
-                image: icon(app: app, sfSymbol: sfSymbol)
+                image: icon(app: app, path: path, sfSymbol: sfSymbol),
+                path: path
             ))
         }
         hits[provider] = list
     }
 
-    private func icon(app: String?, sfSymbol: String?) -> NSImage? {
+    private func icon(app: String?, path: String, sfSymbol: String?) -> NSImage? {
         if let app, !app.isEmpty {
             if let cached = icons[app] { return cached }
             guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: app) else {
@@ -277,6 +336,13 @@ public final class LauncherModule: NativeModule {
             let image = NSWorkspace.shared.icon(forFile: url.path)
             image.size = NSSize(width: 20, height: 20)
             icons[app] = image
+            return image
+        }
+        // File rows are few and their paths all differ, so caching them would
+        // only grow a dictionary keyed for bundle ids.
+        if !path.isEmpty {
+            let image = NSWorkspace.shared.icon(forFile: path)
+            image.size = NSSize(width: 20, height: 20)
             return image
         }
         return symbol(sfSymbol)

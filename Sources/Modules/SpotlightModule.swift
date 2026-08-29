@@ -30,15 +30,24 @@ enum SpotlightSearch {
         return out
     }
 
+    /// mdfind emits index order, which reads as random, so the cap keeps the
+    /// most recently used rather than whichever the index named first.
+    // ponytail: one stat per hit over the whole result set; NSMetadataQuery with
+    // kMDItemLastUsedDate sorting (and live updates) if that ever costs too much.
     static func parse(_ stdout: String) -> [[String: Any]] {
-        stdout.split(whereSeparator: \.isNewline).prefix(limit).compactMap { line in
-            let path = String(line)
-            guard !path.isEmpty else { return nil }
-            let url = URL(fileURLWithPath: path)
-            return [
-                "path": path,
-                "name": url.lastPathComponent,
-                "kind": url.pathExtension,
+        let urls: [URL] = stdout.split(whereSeparator: \.isNewline)
+            .map { URL(fileURLWithPath: String($0)) }
+        let dated: [(url: URL, used: Date, order: Int)] = urls.enumerated().map { idx, url in
+            let values = try? url.resourceValues(forKeys: [.contentAccessDateKey])
+            return (url, values?.contentAccessDate ?? .distantPast, idx)
+        }
+        // Sorting is not stable, so untouched files keep mdfind's order.
+        let ranked = dated.sorted { $0.used == $1.used ? $0.order < $1.order : $0.used > $1.used }
+        return ranked.prefix(limit).map { row in
+            [
+                "path": row.url.path,
+                "name": row.url.lastPathComponent,
+                "kind": row.url.pathExtension,
             ]
         }
     }
