@@ -193,7 +193,6 @@ enum AudioDevices {
 
     private static func muteAddress(_ id: AudioDeviceID, preferInput: Bool) -> AudioObjectPropertyAddress {
         let hasInput = hasStreams(id, kAudioDevicePropertyScopeInput)
-        let hasOutput = hasStreams(id, kAudioDevicePropertyScopeOutput)
         let scope = preferInput && hasInput ? kAudioObjectPropertyScopeInput : kAudioObjectPropertyScopeOutput
         var addr = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyMute,
