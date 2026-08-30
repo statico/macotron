@@ -233,6 +233,22 @@ struct LauncherResultRankingTests {
         #expect(ranked.map(\.id) == ["com.apple.Safari", "~/Safari"])
     }
 
+    @Test("a folder at the top of the disk beats a longer path with a shorter name")
+    func shallowPathWins() {
+        let file = { (path: String, title: String) in
+            SearchResult(id: path, title: title, subtitle: path, type: .plugin, path: path)
+        }
+        let ranked = SearchResult.ranked(
+            query: "applica",
+            rows: [
+                file("/Users/x/Library/Photos/Libraries/Application", "Application"),
+                file("/Applications", "Applications"),
+            ],
+            late: ["/Users/x/Library/Photos/Libraries/Application", "/Applications"]
+        )
+        #expect(ranked.first?.id == "/Applications")
+    }
+
     @Test("the list is capped at one screenful")
     func capped() {
         let rows = (0..<40).map { row("app\($0)", "Note \($0)", .app) }

@@ -1381,11 +1381,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Live providers answer the query itself rather than matching a name, so
-        // they skip fuzzy ranking and lead. A calculator result belongs above a
-        // list of apps that happen to share a letter with the sum. A provider
-        // that answers every query, not only its own syntax, marks its rows
-        // secondary and is ranked with everything else, losing only ties.
+        // A live row the typed text cannot find by name is answering the query
+        // itself — a sum, a unit conversion — and leads, because "4" belongs
+        // above every app sharing a letter with "2+2". A row that does match by
+        // name is competing on that name, so it is ranked with everything else:
+        // a symbol whose description happens to contain the word typed has no
+        // claim on the top of the list. Providers that answer every query, not
+        // only their own syntax, mark their rows secondary and lose ties.
         let live = StepTimer.measure("search live providers", threshold: 0.005) {
             launcherModule?.liveHits(query: q) ?? []
         }
@@ -1401,14 +1403,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 path: hit.path
             )
         }
-        let leading = live.filter { !$0.secondary }.map(row)
-        let late = live.filter(\.secondary).map(row)
+        let answers = live.filter {
+            !$0.secondary && FuzzyMatch.best(query: q, targets: [$0.title, $0.subtitle]) == nil
+        }
+        let answered = Set(answers.map(\.id))
+        let rest = live.filter { !answered.contains($0.id) }
 
-        return leading + SearchResult.ranked(
+        return answers.map(row) + SearchResult.ranked(
             query: q,
-            rows: results + late,
-            late: Set(late.map(\.id)),
-            limit: max(0, 20 - leading.count)
+            rows: results + rest.map(row),
+            late: Set(rest.filter(\.secondary).map(\.id)),
+            limit: max(0, 20 - answers.count)
         )
     }
 

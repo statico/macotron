@@ -75,14 +75,30 @@ extension SearchResult {
         // Score once per row rather than twice per comparison: sorting otherwise
         // re-runs the matcher O(n log n) times on every keystroke.
         let action: (ResultType) -> Bool = { $0 == .command || $0 == .plugin }
-        let scored = rows.map { ($0, FuzzyMatch.best(query: query, targets: [$0.title, $0.subtitle]) ?? 0) }
+        let scored = rows.enumerated()
+            .map { i, r in
+                (r, (FuzzyMatch.best(query: query, targets: [r.title, r.subtitle]) ?? 0)
+                    - (late.contains(r.id) ? buried(r.path) : 0), i)
+            }
             .sorted { a, b in
                 if a.1 != b.1 { return a.1 > b.1 }
                 let aLate = late.contains(a.0.id), bLate = late.contains(b.0.id)
                 if aLate != bLate { return bLate }
-                return action(a.0.type) && !action(b.0.type)
+                if action(a.0.type) != action(b.0.type) { return action(a.0.type) }
+                // Sorting is not stable, so the order the provider chose — which
+                // is where the count of how often a file was opened lives — needs
+                // saying out loud to survive a tie.
+                return a.2 < b.2
             }
         return Array(scored.prefix(limit).map(\.0))
+    }
+
+    /// How far off the beaten track a file is. Names alone put the folder
+    /// "Application" five levels inside a photo library above /Applications,
+    /// because it is one letter shorter; the path is the only thing that knows
+    /// which one the user meant.
+    private static func buried(_ path: String) -> Int {
+        path.isEmpty ? 0 : 4 * max(0, path.split(separator: "/").count - 1)
     }
 }
 
