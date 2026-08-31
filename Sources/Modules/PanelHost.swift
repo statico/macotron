@@ -243,6 +243,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         width: Int,
         height: Int,
         html: String,
+        url: URL? = nil,
         hostChrome: Bool,
         glass: PanelGlass = .none,
         frameless: Bool = false,
@@ -308,7 +309,13 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         controller.add(self, name: "macotron")
         wv.uiDelegate = self
         wv.navigationDelegate = self
-        wv.loadHTMLString(html, baseURL: URL(string: "about:blank"))
+        if let url {
+            // First-party load: site storage (localStorage etc.) persists in the
+            // default data store, unlike an iframe's partitioned storage.
+            wv.load(URLRequest(url: url))
+        } else {
+            wv.loadHTMLString(html, baseURL: URL(string: "about:blank"))
+        }
         zoomMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, event.window === self.panel else { return event }
             return self.handleKey(event) ? nil : event

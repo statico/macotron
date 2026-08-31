@@ -44,6 +44,11 @@ public final class PanelModule: NativeModule {
             let height = JSBridge.int(ctx, opts, "height") ?? 0
             let rawHtml = JSBridge.string(ctx, opts, "rawHtml")
             let html = JSBridge.string(ctx, opts, "html")
+            let urlString = JSBridge.string(ctx, opts, "url")
+            let url = urlString.flatMap(URL.init(string:))
+            if let urlString, url == nil || !(url?.scheme == "https" || url?.scheme == "http") {
+                return QJS_ThrowTypeError(ctx, "panel.open: url must be http(s), got \(urlString)")
+            }
 
             let glassVal = JSBridge.getProperty(ctx, opts, "glass")
             let glass: PanelGlass = JSBridge.isUndefined(glassVal) || JSBridge.isNull(glassVal)
@@ -58,15 +63,18 @@ public final class PanelModule: NativeModule {
             let fullscreen = JSBridge.bool(ctx, opts, "fullscreen") ?? false
             let qr = JSBridge.string(ctx, opts, "qr")
 
-            let useShell = rawHtml == nil || rawHtml?.isEmpty == true
+            let useShell = url == nil && (rawHtml == nil || rawHtml?.isEmpty == true)
             let body = PanelQR.append(to: html ?? "", qr: qr)
-            let document = useShell ? PanelShell.document(body: body, glass: glass.isEnabled) : PanelQR.append(to: rawHtml!, qr: qr)
+            let document = url != nil ? ""
+                : useShell ? PanelShell.document(body: body, glass: glass.isEnabled)
+                : PanelQR.append(to: rawHtml!, qr: qr)
 
             let id = module.openPanel(
                 title: title,
                 width: width > 0 ? width : 420,
                 height: height > 0 ? height : 520,
                 html: document,
+                url: url,
                 hostChrome: useShell,
                 glass: glass,
                 frameless: frameless,
@@ -119,7 +127,7 @@ public final class PanelModule: NativeModule {
         PanelModuleState.shared.module = nil
     }
 
-    private func openPanel(title: String, width: Int, height: Int, html: String, hostChrome: Bool, glass: PanelGlass, frameless: Bool, fullscreen: Bool, closeOnBlur: Bool, escapeCloses: Bool, id requestedId: String?) -> String {
+    private func openPanel(title: String, width: Int, height: Int, html: String, url: URL? = nil, hostChrome: Bool, glass: PanelGlass, frameless: Bool, fullscreen: Bool, closeOnBlur: Bool, escapeCloses: Bool, id requestedId: String?) -> String {
         let id: String
         if let requestedId, !requestedId.isEmpty {
             closePanel(requestedId)
@@ -130,7 +138,7 @@ public final class PanelModule: NativeModule {
         if engine?.dryRun == true {
             return id
         }
-        let host = PanelHost(id: id, title: title, width: width, height: height, html: html, hostChrome: hostChrome, glass: glass, frameless: frameless, fullscreen: fullscreen, escapeCloses: escapeCloses, closeOnBlur: closeOnBlur, onMessage: { [weak self] panelId, body in
+        let host = PanelHost(id: id, title: title, width: width, height: height, html: html, url: url, hostChrome: hostChrome, glass: glass, frameless: frameless, fullscreen: fullscreen, escapeCloses: escapeCloses, closeOnBlur: closeOnBlur, onMessage: { [weak self] panelId, body in
             self?.dispatchMessage(panelId: panelId, body: body)
         }, onClosed: { [weak self] in
             self?.forgetPanel(id)
