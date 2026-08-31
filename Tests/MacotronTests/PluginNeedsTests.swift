@@ -26,7 +26,7 @@ struct PluginNeedsTests {
 
     @Test("Unmet needs fails compare")
     func testUnmetNeedsFailsCompare() {
-        guard case .success(let needs) = PluginNeeds.parse("// @macotron needs 1.2\n") else {
+        guard case .success(let needs) = PluginNeeds.parse("// @macotron needs 99.9\n") else {
             Issue.record("expected success")
             return
         }
@@ -34,7 +34,7 @@ struct PluginNeedsTests {
         #expect(needs > host)
         #expect(!(host >= needs))
         #expect(PluginNeeds.unmetMessage(needs: needs, host: host)
-                == "Needs Macotron API 1.2 (this host is 1.1)")
+                == "Needs Macotron API 99.9 (this host is 1.2)")
     }
 
     @Test("Invalid pragma fails")

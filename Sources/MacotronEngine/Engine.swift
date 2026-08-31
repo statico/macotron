@@ -43,7 +43,7 @@ public struct RegisteredHotkey {
 @MainActor
 public final class Engine {
     /// Semver of the plugin-facing JS API (`macotron.version.api`).
-    nonisolated public static let apiVersion = "1.1.0"
+    nonisolated public static let apiVersion = "1.2.0"
 
     /// Heap ceiling for all plugins together. Generous for scripting work, low
     /// enough that a runaway allocation throws instead of swapping the Mac.

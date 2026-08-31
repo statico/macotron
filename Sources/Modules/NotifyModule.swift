@@ -1,4 +1,5 @@
 // NotifyModule.swift — macotron.notify: native macOS notifications from JS
+import AppKit
 import CQuickJS
 import Foundation
 import MacotronEngine
@@ -21,7 +22,17 @@ private final class NotifyPresenter: NSObject, UNUserNotificationCenterDelegate 
         didReceive response: UNNotificationResponse
     ) async {
         let id = response.notification.request.identifier
-        await MainActor.run { NotifyModule.onTap[id]?() }
+        // The URL rides in userInfo so a click still works after the app
+        // restarts, when any in-memory handler is gone.
+        let url = (response.notification.request.content.userInfo["url"] as? String)
+            .flatMap(URL.init(string:))
+        await MainActor.run {
+            if let url {
+                logger.notice("notification \(id, privacy: .public) opens \(url.absoluteString, privacy: .public)")
+                NSWorkspace.shared.open(url)
+            }
+            NotifyModule.onTap[id]?()
+        }
     }
 }
 
@@ -113,6 +124,7 @@ public final class NotifyModule: NativeModule {
         //   opts.sound   — Bool (default true)
         //   opts.subtitle — String (optional)
         //   opts.id      — String (optional, for replacing existing)
+        //   opts.url     — String (optional, opened when the banner is clicked)
         // -----------------------------------------------------------------
         JS_SetPropertyStr(ctx, notifyObj, "show", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else {
@@ -132,12 +144,18 @@ public final class NotifyModule: NativeModule {
             var sound = true
             var subtitle: String? = nil
             var identifier = UUID().uuidString
+            var url: String? = nil
 
             if argc > 2 && !JS_IsUndefined(argv[2]) && !JS_IsNull(argv[2]) {
                 let opts = argv[2]
                 sound = JSBridge.bool(ctx, opts, "sound") ?? sound
                 subtitle = JSBridge.string(ctx, opts, "subtitle")
                 identifier = JSBridge.string(ctx, opts, "id") ?? identifier
+                url = JSBridge.string(ctx, opts, "url")
+            }
+
+            if let url, URL(string: url) == nil {
+                return QJS_ThrowTypeError(ctx, "notify.show: url is not a valid URL")
             }
 
             // Build and schedule the notification
@@ -146,6 +164,7 @@ public final class NotifyModule: NativeModule {
             content.body = body
             if let subtitle { content.subtitle = subtitle }
             if sound { content.sound = .default }
+            if let url { content.userInfo = ["url": url] }
 
             let request = UNNotificationRequest(
                 identifier: identifier,

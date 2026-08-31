@@ -22,7 +22,7 @@ or inside the installed app at
 
 ## API version
 
-Current plugin API version is `1.1.0` (`macotron.version.api`).
+Current plugin API version is `1.2.0` (`macotron.version.api`).
 Bump only when the plugin-facing JS contract changes.
 
 ## Built-in macOS only
@@ -126,7 +126,7 @@ The id is the Settings label. Ids are unique per plugin. Users override the comb
 `macotron.notify.toast(title, body?, { position, duration, sfSymbol, color })` is a
 one-line HUD on the screen under the cursor (3s default). `color` is `info`,
 `success` (green check), `error` (red x), or `warning` (orange triangle).
-`macotron.notify.show` is a system banner.
+`macotron.notify.show(title, body, { url? })` is a system banner; a `url` opens on click.
 `macotron.screen.pickColor()` opens the system magnifier and returns
 `{ hex, r, g, b, x, y }` or `null`.
 `macotron.hid.list/open/sendFeature/sendOutput/readFeature/readInput/listen`
