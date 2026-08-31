@@ -22,8 +22,13 @@ public final class SettingsWindow {
 
         settingsState.load()
 
-        // Reuse the window after a close too, so it keeps one close observer.
+        // Reuse the window after a close. The close observer removed itself
+        // with the last close, so a reopen must arm a fresh one, or .regular
+        // is never handed back and the Dock icon outlives the window.
         if let window {
+            if !window.isVisible {
+                WindowActivationPolicy.handBackWhenClosed(window)
+            }
             bringToFront(window)
             return
         }
