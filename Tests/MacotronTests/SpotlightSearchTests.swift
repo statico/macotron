@@ -124,6 +124,28 @@ struct SpotlightSearchTests {
             == home.appendingPathComponent("Documents/3D Printing").path)
     }
 
+    @Test("dot and dot-dot walk instead of matching names")
+    func dotSegments() throws {
+        let home = try makeHome(["dev/notes", ".fzf.zsh"])
+        defer { try? FileManager.default.removeItem(at: home) }
+        #expect(SpotlightSearch.pathComplete("~/dev/./notes", home: home.path).first
+            == home.appendingPathComponent("dev/notes").path)
+        #expect(SpotlightSearch.pathComplete("~/dev/../dev/notes", home: home.path).first
+            == home.appendingPathComponent("dev/notes").path)
+        // ".." must not fuzzy-match dotfiles with two dots in their names.
+        #expect(SpotlightSearch.pathComplete("~/..", home: home.path)
+            == [(home.path as NSString).deletingLastPathComponent])
+    }
+
+    @Test("a scoped folder roots a relative path query")
+    func scopedPathQuery() throws {
+        let home = try makeHome(["project/src/main", "src"])
+        defer { try? FileManager.default.removeItem(at: home) }
+        let scoped = SpotlightSearch.pathComplete(
+            "src/main", home: home.path, root: home.appendingPathComponent("project").path)
+        #expect(scoped.first == home.appendingPathComponent("project/src/main").path)
+    }
+
     @Test("a bare tilde-slash lists home")
     func tildeListsHome() throws {
         let home = try makeHome(["Desktop", "Documents"])
@@ -132,6 +154,21 @@ struct SpotlightSearchTests {
             home.appendingPathComponent("Desktop").path,
             home.appendingPathComponent("Documents").path,
         ])
+    }
+
+    @Test("an exact name buried deep loses to the obvious shallow folder")
+    func buriedExactLoses() {
+        let out = "/Users/alex/Documents\n/Applications/tools/sdk/v6/firmware/help/doc\n"
+        let rows = SpotlightSearch.parse(out, term: "doc", home: "/Users/alex")
+        #expect(rows[0]["path"] as? String == "/Users/alex/Documents")
+    }
+
+    @Test("a bare tilde lists home")
+    func bareTilde() throws {
+        let home = try makeHome(["Desktop"])
+        defer { try? FileManager.default.removeItem(at: home) }
+        #expect(SpotlightSearch.pathComplete("~", home: home.path)
+            == [home.appendingPathComponent("Desktop").path])
     }
 
     @Test("kind pdf appears in the query as *.pdf")

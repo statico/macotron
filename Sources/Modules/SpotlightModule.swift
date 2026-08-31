@@ -18,9 +18,11 @@ public enum SpotlightSearch {
     /// A query with a slash is a path being typed, not a name. Each segment
     /// fuzzy-completes one directory level, so a couple of letters per level
     /// reach a deep folder without spelling any level out.
-    public static func pathComplete(_ term: String, home: String = NSHomeDirectory()) -> [String] {
-        guard term.contains("/") else { return [] }
-        var rest = Substring(term)
+    public static func pathComplete(
+        _ term: String, home: String = NSHomeDirectory(), root: String? = nil
+    ) -> [String] {
+        guard term.contains("/") || term == "~" else { return [] }
+        var rest = term == "~" ? Substring("~/") : Substring(term)
         var frontier: [String]
         if rest.hasPrefix("~/") {
             frontier = [home]
@@ -29,12 +31,23 @@ public enum SpotlightSearch {
             frontier = [""]
             rest = rest.dropFirst()
         } else {
-            // "d/notes" means the same place as "~/d/notes", minus two keys.
-            frontier = [home]
+            // "d/notes" means the same place as "~/d/notes", minus two keys —
+            // unless the caller scoped the search to a folder.
+            frontier = [root ?? home]
         }
         // From the original term: "~/" has already had its slash stripped.
-        let listAll = term.hasSuffix("/")
+        let listAll = term.hasSuffix("/") || term == "~"
         for segment in rest.split(separator: "/") {
+            // Shell habits carry over: "." and ".." are steps, not names.
+            if segment == "." { continue }
+            if segment == ".." {
+                var seen = Set<String>()
+                frontier = frontier
+                    .map { $0.isEmpty ? "" : ($0 as NSString).deletingLastPathComponent }
+                    .map { $0 == "/" ? "" : $0 }
+                    .filter { seen.insert($0).inserted }
+                continue
+            }
             frontier = step(frontier, segment: String(segment))
             if frontier.isEmpty { return [] }
         }
@@ -72,9 +85,14 @@ public enum SpotlightSearch {
     /// be matched here. node_modules and ~/Library are not descended into:
     /// they hold more folders than the rest of home combined and nobody
     /// reaches them by three fuzzy letters.
+    /// Guarded by walkLock: searches run on a concurrent queue, one per
+    /// keystroke, so two can be in here at once.
     nonisolated(unsafe) private static var walkCache: (home: String, paths: [String], stamp: Date)?
+    private static let walkLock = NSLock()
 
     static func folderWalk(home: String = NSHomeDirectory()) -> [String] {
+        walkLock.lock()
+        defer { walkLock.unlock() }
         if let c = walkCache, c.home == home, Date().timeIntervalSince(c.stamp) < 60 {
             return c.paths
         }
@@ -153,44 +171,41 @@ public enum SpotlightSearch {
         return out
     }
 
-    /// How obvious a hit is for what was typed. mdfind emits index order, which
-    /// reads as random, so every hit is scored against these before the cut.
+    /// How obvious a hit is for what was typed, as a penalty: lower sorts
+    /// first. mdfind emits index order, which reads as random, so every hit is
+    /// scored before the cut.
     ///
     /// Shortest path first is the whole idea: typing "downloads" should find
     /// ~/Downloads, not the fourth `downloads` folder inside a node_modules
-    /// tree. Depth alone gets most of the way there, and the flags ahead of it
-    /// cover what depth cannot see.
+    /// tree. The signals are weighed against each other rather than tiered,
+    /// because each one can lie: an exact name is strong evidence, but a `doc`
+    /// folder eight levels down a toolchain is still worse than ~/Documents,
+    /// so exactness buys about two levels of depth and no more.
     struct Rank: Comparable {
-        /// Each flag is 0 for the better answer, so the whole rank sorts ascending.
-        let notExact: Int
-        let notPrefix: Int
-        let hidden: Int
-        let elsewhere: Int
-        let depth: Int
+        let penalty: Int
         let path: String
 
         static func < (lhs: Rank, rhs: Rank) -> Bool {
-            (lhs.notExact, lhs.notPrefix, lhs.hidden, lhs.elsewhere, lhs.depth, lhs.path)
-                < (rhs.notExact, rhs.notPrefix, rhs.hidden, rhs.elsewhere, rhs.depth, rhs.path)
+            (lhs.penalty, lhs.path) < (rhs.penalty, rhs.path)
         }
     }
 
     static func rank(path: String, term: String, home: String) -> Rank {
         let components = path.split(separator: "/")
-        let name = String(components.last ?? "")
-        return Rank(
-            notExact: name.lowercased() == term.lowercased() ? 0 : 1,
-            // Typing the start of a name is less ambiguous than hitting the
-            // middle of one: "Desktop" over "Remote Desktop.app".
-            notPrefix: name.lowercased().hasPrefix(term.lowercased()) ? 0 : 1,
-            // A dot component means .git, .cache, .build: thousands of files
-            // nobody opens by name, and always more of them than of the answer.
-            hidden: components.contains { $0.hasPrefix(".") } ? 1 : 0,
-            elsewhere: path.hasPrefix(home + "/") || path.hasPrefix("/Applications/")
-                || path == home || path == "/Applications" ? 0 : 1,
-            depth: components.count,
-            path: path
-        )
+        let name = String(components.last ?? "").lowercased()
+        let t = term.lowercased()
+        var penalty = components.count * 10
+        if name != t { penalty += 25 }
+        // Typing the start of a name is less ambiguous than hitting the
+        // middle of one: "Desktop" over "Remote Desktop.app".
+        if !name.hasPrefix(t) { penalty += 20 }
+        // A dot component means .git, .cache, .build: thousands of files
+        // nobody opens by name, and always more of them than of the answer.
+        if components.contains(where: { $0.hasPrefix(".") }) { penalty += 100 }
+        let nearby = path.hasPrefix(home + "/") || path.hasPrefix("/Applications/")
+            || path == home || path == "/Applications"
+        if !nearby { penalty += 50 }
+        return Rank(penalty: penalty, path: path)
     }
 
     /// The roots Spotlight is blind to, plus the one everybody types.
@@ -233,17 +248,20 @@ public enum SpotlightSearch {
 
     public static func run(_ raw: String, folder: String?, kind: String?) -> [[String: Any]] {
         let term = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        let ext = kind.map { "." + $0.drop(while: { $0 == "." }).lowercased() } ?? "."
-        if term.contains("/") {
-            var paths = pathComplete(term)
+        let ext = kind.map {
+            "." + $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                .drop(while: { $0 == "." }).lowercased()
+        } ?? "."
+        let dir = folder?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let root = (dir as NSString).expandingTildeInPath
+        if term.contains("/") || term == "~" {
+            var paths = pathComplete(term, root: dir.isEmpty ? nil : root)
             if ext != "." {
                 paths = paths.filter { $0.lowercased().hasSuffix(ext) }
             }
             return paths.map(row)
         }
         guard let query = queryString(raw, kind: kind) else { return [] }
-        let dir = folder?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let root = (dir as NSString).expandingTildeInPath
         let args = dir.isEmpty ? [query] : ["-onlyin", root, query]
         var extra = shallow(term, roots: dir.isEmpty ? defaultRoots() : [root])
         if ext != "." {
