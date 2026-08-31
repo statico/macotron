@@ -263,6 +263,23 @@ struct LauncherResultRankingTests {
         #expect(ranked.first?.id == "exact")
     }
 
+    @Test("a same-query refresh keeps the arrowed-to row selected")
+    func refreshKeepsSelection() {
+        let rows = ["a", "b", "c"].map { row($0, $0, .app) }
+        let refreshed = [row("x", "x", .app)] + rows
+        // Late answer lands after ctrl-n: follow row "b" to its new position.
+        #expect(LauncherView.preservedSelection(
+            query: "q", applied: "q", selected: 1, old: rows, new: refreshed) == 2)
+        // A new query, or a selection still on top, goes back to the top.
+        #expect(LauncherView.preservedSelection(
+            query: "qq", applied: "q", selected: 1, old: rows, new: refreshed) == 0)
+        #expect(LauncherView.preservedSelection(
+            query: "q", applied: "q", selected: 0, old: rows, new: refreshed) == 0)
+        // The selected row vanished from the refresh.
+        #expect(LauncherView.preservedSelection(
+            query: "q", applied: "q", selected: 1, old: rows, new: [row("z", "z", .app)]) == 0)
+    }
+
     @Test("the list is capped at one screenful")
     func capped() {
         let rows = (0..<40).map { row("app\($0)", "Note \($0)", .app) }
