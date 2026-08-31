@@ -83,4 +83,27 @@ struct SpotlightSearchTests {
         #expect(q == SpotlightSearch.queryString("Notes"))
         #expect(q?.contains("*.") != true)
     }
+
+    @Test("the top of a home directory is scanned, since Spotlight will not return it")
+    func shallowRootsAreScanned() throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("macotron-shallow-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(
+            at: dir.appendingPathComponent("Desktop"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: dir.appendingPathComponent(".hidden"), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let found = SpotlightSearch.shallow("desk", roots: [dir.path])
+        #expect(found == [dir.appendingPathComponent("Desktop").path])
+        #expect(SpotlightSearch.shallow("hid", roots: [dir.path]).isEmpty)
+    }
+
+    @Test("a scanned folder is not repeated when Spotlight also returns it")
+    func extraIsDeduped() {
+        let rows = SpotlightSearch.parse(
+            "/Users/alex/Desktop\n", extra: ["/Users/alex/Desktop"],
+            term: "desktop", home: "/Users/alex")
+        #expect(rows.count == 1)
+    }
 }
