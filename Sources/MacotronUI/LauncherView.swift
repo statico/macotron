@@ -70,6 +70,7 @@ extension SearchResult {
         query: String,
         rows: [SearchResult],
         late: Set<String> = [],
+        uses: [String: Int] = [:],
         limit: Int = 20
     ) -> [SearchResult] {
         // Score once per row rather than twice per comparison: sorting otherwise
@@ -78,6 +79,10 @@ extension SearchResult {
         let scored = rows.enumerated()
             .map { i, r in
                 (r, (FuzzyMatch.best(query: query, targets: [r.title, r.subtitle]) ?? 0)
+                    // What gets picked is evidence the matcher cannot see. The
+                    // cap keeps a habit from drowning an exact match forever:
+                    // five picks buys as much as typing the name's prefix.
+                    + 8 * min(uses[r.id] ?? 0, 5)
                     - (late.contains(r.id) ? buried(r.path) : 0), i)
             }
             .sorted { a, b in

@@ -249,6 +249,20 @@ struct LauncherResultRankingTests {
         #expect(ranked.first?.id == "/Applications")
     }
 
+    @Test("a frequently picked row rises above an otherwise equal one")
+    func frequentRowRises() {
+        let rows = [row("a", "Notes A", .app), row("b", "Notes B", .app)]
+        #expect(SearchResult.ranked(query: "notes", rows: rows).first?.id == "a")
+        #expect(SearchResult.ranked(query: "notes", rows: rows, uses: ["b": 3]).first?.id == "b")
+    }
+
+    @Test("the pick bonus caps, so a habit cannot outscore typing the name")
+    func pickBonusCaps() {
+        let rows = [row("exact", "Notes", .app), row("habit", "Nothing Else Studio", .app)]
+        let ranked = SearchResult.ranked(query: "notes", rows: rows, uses: ["habit": 100])
+        #expect(ranked.first?.id == "exact")
+    }
+
     @Test("the list is capped at one screenful")
     func capped() {
         let rows = (0..<40).map { row("app\($0)", "Note \($0)", .app) }
