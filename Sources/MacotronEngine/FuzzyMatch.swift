@@ -23,7 +23,7 @@ public enum FuzzyMatch {
                     score += 5
                 }
                 // Start-of-word bonus
-                if i == 0 || targetChars[i - 1] == " " || targetChars[i - 1] == "-" || targetChars[i - 1] == "_" {
+                if i == 0 || " -_/.".contains(targetChars[i - 1]) {
                     score += 8
                 }
                 lastMatchIdx = i

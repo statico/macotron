@@ -404,6 +404,13 @@ declare const macotron: {
     };
 
     spotlight: {
+        /**
+         * Find files and folders by name. A plain query matches by name prefix
+         * first, then fuzzily across folder names, so a few letters spanning a
+         * parent and child folder still land. A query containing "/" is
+         * completed as a path, one segment per level, with "~" for home and a
+         * trailing "/" listing a folder's children.
+         */
         search(query: string, opts?: { folder?: string; kind?: string }): Promise<Array<{ path: string; name: string; kind: string }>>;
     };
 

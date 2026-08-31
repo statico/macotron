@@ -1,6 +1,6 @@
 // FuzzyMatchTests.swift — Tests for fuzzy matching scoring
 import Testing
-@testable import MacotronUI
+@testable import MacotronEngine
 
 @MainActor
 @Suite("FuzzyMatch Tests")

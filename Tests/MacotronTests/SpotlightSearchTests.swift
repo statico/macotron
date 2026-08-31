@@ -71,6 +71,56 @@ struct SpotlightSearchTests {
         #expect(rows[0]["path"] as? String == "/Users/alex/work/notes/2026/report")
     }
 
+    @Test("a name-prefix hit outranks a mid-name hit from a shallower path")
+    func prefixBeatsMidName() {
+        let out = "/Applications/Remote Desktop.app\n/Users/alex/Desktop\n"
+        let rows = SpotlightSearch.parse(out, term: "deskt", home: "/Users/alex")
+        #expect(rows[0]["path"] as? String == "/Users/alex/Desktop")
+    }
+
+    private func makeHome(_ folders: [String]) throws -> URL {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("macotron-home-\(UUID().uuidString)")
+        for folder in folders {
+            try FileManager.default.createDirectory(
+                at: dir.appendingPathComponent(folder), withIntermediateDirectories: true)
+        }
+        return dir
+    }
+
+    @Test("a slash query completes each path segment in turn")
+    func pathCompletion() throws {
+        let home = try makeHome(["dev/notes", "Desktop", "Documents"])
+        defer { try? FileManager.default.removeItem(at: home) }
+        #expect(SpotlightSearch.pathComplete("~/d/notes", home: home.path).first
+            == home.appendingPathComponent("dev/notes").path)
+        // No tilde means the same place, and a dead segment means no rows.
+        #expect(SpotlightSearch.pathComplete("d/notes", home: home.path).first
+            == home.appendingPathComponent("dev/notes").path)
+        #expect(SpotlightSearch.pathComplete("~/zz/notes", home: home.path).isEmpty)
+    }
+
+    @Test("a trailing slash lists the folder's children")
+    func trailingSlashLists() throws {
+        let home = try makeHome(["dev/notes", "dev/tools"])
+        defer { try? FileManager.default.removeItem(at: home) }
+        #expect(SpotlightSearch.pathComplete("~/dev/", home: home.path) == [
+            home.appendingPathComponent("dev/notes").path,
+            home.appendingPathComponent("dev/tools").path,
+        ])
+    }
+
+    @Test("a fuzzy query spans path segments")
+    func fuzzySpansSegments() throws {
+        let home = try makeHome(["Documents/3D Printing", "Downloads"])
+        defer { try? FileManager.default.removeItem(at: home) }
+        #expect(SpotlightSearch.fuzzy("doc3d", home: home.path).first
+            == home.appendingPathComponent("Documents/3D Printing").path)
+        // Slash queries and short queries stay with their own machinery.
+        #expect(SpotlightSearch.fuzzy("a/b", home: home.path).isEmpty)
+        #expect(SpotlightSearch.fuzzy("do", home: home.path).isEmpty)
+    }
+
     @Test("kind pdf appears in the query as *.pdf")
     func kindPdf() {
         let q = SpotlightSearch.queryString("Notes", kind: "pdf")
