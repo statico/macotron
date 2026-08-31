@@ -35,6 +35,13 @@ public final class LauncherModule: NativeModule {
     /// the launcher waited out another whole round trip for the same rows.
     private var currentQuery = ""
     private var isCollecting = false
+    /// The query each live bucket last answered. Rows are only served while the
+    /// query on screen is related to the one they answered — typing forward or
+    /// backward along the same text — so a bucket that answered "desktop" is
+    /// never dressed up as an answer to "applications".
+    private var answered: [String: String] = [:]
+    /// Bumped per liveHits round so only the newest watchdog fires.
+    private var watchdogGeneration = 0
 
     /// Called when a provider answers after `liveHits` has already returned, so
     /// the launcher can refresh a list that would otherwise stay stale.
@@ -75,6 +82,7 @@ public final class LauncherModule: NativeModule {
             JS_FreeValue(ctx, arg)
             guard let result else {
                 drop(provider: bucket, ctx: ctx)
+                answered[bucket] = query
                 continue
             }
             if isThenable(ctx, result) {
@@ -86,10 +94,44 @@ public final class LauncherModule: NativeModule {
                 awaitRows(ctx, engine: engine, promise: result, bucket: bucket)
             } else {
                 replace(provider: bucket, items: result, ctx: ctx)
+                answered[bucket] = query
             }
             JS_FreeValue(ctx, result)
         }
-        return buckets.flatMap { hits[$0] ?? [] }
+        if buckets.contains(where: { answered[$0] != query }) {
+            armWatchdog(for: query)
+        }
+        return buckets.flatMap { bucket in
+            related(answered[bucket], to: query) ? hits[bucket] ?? [] : []
+        }
+    }
+
+    /// Old rows stay on screen while the text is still the same thought —
+    /// extended or trimmed — and vanish the moment it is a different one.
+    private func related(_ answeredQuery: String?, to query: String) -> Bool {
+        guard let answeredQuery else { return false }
+        return query.hasPrefix(answeredQuery) || answeredQuery.hasPrefix(query)
+    }
+
+    /// A settled promise is the only thing that refreshes the launcher, and a
+    /// settle can be lost: a plugin job over its budget is interrupted, and an
+    /// interrupted promise reaction is consumed without ever running, so
+    /// nothing would ask again. One second of silence on the same query means
+    /// asking again, which fires fresh promises and heals the buckets.
+    private func armWatchdog(for query: String) {
+        watchdogGeneration += 1
+        let generation = watchdogGeneration
+        // A runloop timer, not asyncAfter: it fires even when the main queue
+        // is occupied by whoever is pumping the runloop.
+        Timer.scheduledTimer(withTimeInterval: 1, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, generation == self.watchdogGeneration,
+                      query == self.currentQuery,
+                      self.queries.keys.contains(where: { self.answered[$0 + Self.liveSuffix] != query })
+                else { return }
+                self.onLiveUpdate?()
+            }
+        }
     }
 
     private func isThenable(_ ctx: OpaquePointer, _ value: JSValue) -> Bool {
@@ -229,6 +271,7 @@ public final class LauncherModule: NativeModule {
             }
             let before = mod.fingerprint(bucket)
             mod.replace(provider: bucket, items: argv[1], ctx: ctx)
+            mod.answered[bucket] = mod.currentQuery
             // Refreshing on an unchanged answer would ask the provider again,
             // which would resolve again: the same rows end the round trip.
             if !mod.isCollecting, before != mod.fingerprint(bucket) {
@@ -275,6 +318,7 @@ public final class LauncherModule: NativeModule {
         if let push { JS_FreeValue(ctx, push) }
         push = nil
         hits.removeAll()
+        answered.removeAll()
         engine = nil
     }
 
