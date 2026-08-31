@@ -10,6 +10,7 @@ const DURATIONS = [
     { ms: 60 * 60 * 1000, label: "1 hour" },
     { ms: 2 * 60 * 60 * 1000, label: "2 hours" },
     { ms: 4 * 60 * 60 * 1000, label: "4 hours" },
+    { ms: 8 * 60 * 60 * 1000, label: "8 hours" },
 ];
 const DEFAULT_MS = 4 * 60 * 60 * 1000;
 // Without `display` the assertion only holds off system sleep: the screen
