@@ -38,7 +38,7 @@ macotron.launcher.query("file-search", async (query) => {
     // Two letters match half the disk, so the search waits for a third — but
     // a slash means a path is being typed, and "~/" already says everything.
     const term = String(query || "").trim();
-    if (term.length < 3 && !term.includes("/")) return [];
+    if (term.length < 3 && !term.includes("/") && term !== "~") return [];
     const hits = await macotron.spotlight.search(term).catch(() => []);
     // Sort is stable, so files you have never opened keep the order the host
     // ranked them in and only the ones you have actually opened move.
