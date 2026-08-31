@@ -35,6 +35,24 @@
             </array>
         </dict>
     </array>
+    <!-- Being the default http/https handler makes Macotron the system browser,
+         and macOS then hands it .html files too. Claim them so Launch Services
+         doesn't refuse with "cannot open files in the HTML text format"; the
+         open lands in application(_:open:) and routes like any other link. -->
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Web Page</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.html</string>
+                <string>public.xhtml</string>
+            </array>
+        </dict>
+    </array>
     <key>NSAppleEventsUsageDescription</key>
     <string>Macotron plugins can control other apps through Apple events.</string>
     <key>NSFocusStatusUsageDescription</key>

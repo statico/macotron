@@ -122,6 +122,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
+    /// Finder sends .html files here when Macotron is the default browser.
+    /// Route them like any link: the browser-picker fallback opens the file
+    /// in whichever browser the user configured.
+    public func application(_ application: NSApplication, open urls: [URL]) {
+        URLSchemeModule.handle(urls)
+    }
+
     @objc private func handleGetURL(
         _ event: NSAppleEventDescriptor,
         withReply reply: NSAppleEventDescriptor
