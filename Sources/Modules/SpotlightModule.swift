@@ -71,12 +71,40 @@ enum SpotlightSearch {
         )
     }
 
-    static func parse(_ stdout: String, term: String = "", home: String = NSHomeDirectory()) -> [[String: Any]] {
-        let ranked = stdout.split(whereSeparator: \.isNewline)
-            .map { line -> (path: String, rank: Rank) in
-                let path = String(line)
-                return (path, rank(path: path, term: term, home: home))
-            }
+    /// The roots Spotlight is blind to, plus the one everybody types.
+    static func defaultRoots(home: String = NSHomeDirectory()) -> [String] {
+        ["/", "/Applications", home]
+    }
+
+    /// Spotlight never returns the top level of a home directory: no query finds
+    /// ~/Desktop or ~/dev, only things underneath them. Those are exactly the
+    /// folders someone types three letters of, so the handful of roots that
+    /// matter are read directly — a few dozen names, no index involved.
+    static func shallow(_ term: String, roots: [String]) -> [String] {
+        let t = term.lowercased()
+        guard !t.isEmpty else { return [] }
+        return roots.flatMap { root -> [String] in
+            let names = (try? FileManager.default.contentsOfDirectory(atPath: root)) ?? []
+            return names
+                .filter { name in
+                    !name.hasPrefix(".") && name.lowercased()
+                        .split(whereSeparator: { $0 == " " || $0 == "-" || $0 == "_" })
+                        .contains { $0.hasPrefix(t) }
+                }
+                .map { root == "/" ? "/" + $0 : root + "/" + $0 }
+        }
+    }
+
+    static func parse(
+        _ stdout: String,
+        extra: [String] = [],
+        term: String = "",
+        home: String = NSHomeDirectory()
+    ) -> [[String: Any]] {
+        var seen = Set<String>()
+        let ranked = (extra + stdout.split(whereSeparator: \.isNewline).map(String.init))
+            .filter { seen.insert($0).inserted }
+            .map { path in (path: path, rank: rank(path: path, term: term, home: home)) }
             .sorted { $0.rank < $1.rank }
         return ranked.prefix(limit).map { row in
             let url = URL(fileURLWithPath: row.path)
@@ -91,8 +119,15 @@ enum SpotlightSearch {
     static func run(_ raw: String, folder: String?, kind: String?) -> [[String: Any]] {
         guard let query = queryString(raw, kind: kind) else { return [] }
         let dir = folder?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let args = dir.isEmpty ? [query] : ["-onlyin", (dir as NSString).expandingTildeInPath, query]
-        return parse(Subprocess.run("/usr/bin/mdfind", args).stdout, term: raw.trimmingCharacters(in: .whitespacesAndNewlines))
+        let root = (dir as NSString).expandingTildeInPath
+        let args = dir.isEmpty ? [query] : ["-onlyin", root, query]
+        let term = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        var extra = shallow(term, roots: dir.isEmpty ? defaultRoots() : [root])
+        if let ext = kind?.trimmingCharacters(in: .whitespacesAndNewlines), !ext.isEmpty {
+            let suffix = "." + ext.drop(while: { $0 == "." }).lowercased()
+            extra = extra.filter { $0.lowercased().hasSuffix(suffix) }
+        }
+        return parse(Subprocess.run("/usr/bin/mdfind", args).stdout, extra: extra, term: term)
     }
 }
 
