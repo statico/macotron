@@ -29,6 +29,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var wizardWindow: WizardWindow?
     private let wizardState = WizardState()
     private var appSearchProvider: AppSearchProvider!
+    private var fileIconCache: [String: NSImage] = [:]
     /// Which permissions have already been asked for. The first refresh runs
     /// before the plugins are loaded, so at that point only the baseline is
     /// known — a one-shot latch here would mean camera and microphone, which
@@ -1121,6 +1122,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func executeCommandBody(_ id: String, args: [String: Any]) {
         launcherPanel.dismiss()
+        recordUse(id)
         if runHostCommand(id) {
             return
         }
@@ -1154,6 +1156,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         case HostCommands.fixPermissionsID:
             settingsState.requestedTab = SettingsTab.permissions.rawValue
             openSettingsAction()
+            return true
+        case HostCommands.resetRankingID:
+            try? workspace.updateSettings { $0["launcherUses"] = [String: Int]() }
+            ToastHost.shared.flash("Launcher ranking reset")
             return true
         default:
             return false
@@ -1315,11 +1321,22 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let settings = workspace.readSettings()
         let favorites = Self.favoriteIDs(from: settings["launcherFavorites"])
         let shortcuts = CommandShortcuts.load(from: settings["commandShortcuts"])
+        let uses = settings["launcherUses"] as? [String: Int] ?? [:]
 
         if q.isEmpty {
+            // Favorites first, then what actually gets picked: the launcher
+            // opens onto the usual suspects before a letter is typed.
+            let frequent = uses
+                .sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }
+                .map(\.key)
+                .filter { !favorites.contains($0) }
+                .compactMap { id in
+                    result(id: id, pluginHits: pluginHits, shortcuts: shortcuts, isFavorite: false)
+                }
+                .prefix(5)
             return permissionResult() + favorites.compactMap { id in
                 result(id: id, pluginHits: pluginHits, shortcuts: shortcuts, isFavorite: true)
-            }
+            } + frequent
         }
 
         var results: [SearchResult] = []
@@ -1373,7 +1390,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     title: hit.title,
                     subtitle: hit.subtitle,
                     type: .plugin,
-                    nsImage: hit.image,
+                    nsImage: hit.image ?? fileIcon(hit.path),
                     kind: hit.kind,
                     isFavorite: favorites.contains(hit.id),
                     path: hit.path
@@ -1397,7 +1414,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 title: hit.title,
                 subtitle: hit.subtitle,
                 type: .plugin,
-                nsImage: hit.image,
+                nsImage: hit.image ?? self.fileIcon(hit.path),
                 kind: hit.kind,
                 isFavorite: favorites.contains(hit.id),
                 path: hit.path
@@ -1413,8 +1430,35 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             query: q,
             rows: results + rest.map(row),
             late: Set(rest.filter(\.secondary).map(\.id)),
+            uses: uses,
             limit: max(0, 20 - answers.count)
         )
+    }
+
+    /// What gets picked is the best ranking signal there is, and the one the
+    /// matcher cannot see. Counts persist in settings; the Reset Launcher
+    /// Ranking command clears them.
+    private func recordUse(_ id: String) {
+        try? workspace.updateSettings { settings in
+            var counts = settings["launcherUses"] as? [String: Int] ?? [:]
+            counts[id, default: 0] += 1
+            settings["launcherUses"] = counts
+        }
+    }
+
+    /// Finder's icon for a row that lives on disk, so a folder looks like that
+    /// folder. NSWorkspace resolves per call, so hits are kept for the panel's
+    /// redraw rate.
+    private func fileIcon(_ path: String) -> NSImage? {
+        guard !path.isEmpty else { return nil }
+        if let icon = fileIconCache[path] { return icon }
+        // ponytail: drop the whole cache past 512 entries instead of LRU;
+        // revisit if icon fetches ever show up in the search StepTimer.
+        if fileIconCache.count > 512 { fileIconCache.removeAll() }
+        let icon = NSWorkspace.shared.icon(forFile: path)
+        icon.size = NSSize(width: 32, height: 32)
+        fileIconCache[path] = icon
+        return icon
     }
 
     /// Leads the empty-query list while Macotron is missing something it needs,
@@ -1443,7 +1487,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 title: hit.title,
                 subtitle: hit.subtitle,
                 type: .plugin,
-                nsImage: hit.image,
+                nsImage: hit.image ?? fileIcon(hit.path),
                 kind: hit.kind,
                 isFavorite: isFavorite,
                 path: hit.path

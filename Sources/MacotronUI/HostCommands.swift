@@ -5,6 +5,7 @@ public enum HostCommands {
     public static let openSettingsID = "macotron.settings"
     public static let openPluginsID = "macotron.plugins"
     public static let quitID = "macotron.quit"
+    public static let resetRankingID = "macotron.reset-ranking"
     /// Deliberately absent from `all`: the launcher only offers this row while a
     /// required permission is actually missing.
     public static let fixPermissionsID = "macotron.fix-permissions"
@@ -41,6 +42,11 @@ public enum HostCommands {
             id: quitID,
             name: "Quit Macotron",
             description: "Stop Macotron, its hotkeys, and its plugins"
+        ),
+        Definition(
+            id: resetRankingID,
+            name: "Reset Launcher Ranking",
+            description: "Forget which results are picked most often"
         ),
     ]
 
