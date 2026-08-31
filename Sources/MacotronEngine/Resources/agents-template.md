@@ -183,7 +183,9 @@ macotron.panel.onMessage(id, (data) => { /* ... */ });
 ```
 
 `html` is inserted into a host document (system font, padding, light/dark).
-`rawHtml` is a full document. `glass: true` (or `"regular"`) uses Liquid Glass
+`rawHtml` is a full document. `url` loads an http(s) page first-party — use it
+for embedding a website (its localStorage persists, unlike an iframe's).
+`glass: true` (or `"regular"`) uses Liquid Glass
 with a transparent page background; `glass: "clear"` is the clearer variant;
 `glass: "translucent"` is a HUD blur. `closeOnBlur: true` closes on unfocus.
 `frameless: true` hides the title bar; Escape closes.

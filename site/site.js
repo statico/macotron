@@ -366,7 +366,7 @@ const APIS = [
     "chat and stream with onChunk",
   ]],
   ["macotron.panel", [
-    "html or rawHtml, glass, frameless",
+    "html, rawHtml, or url; glass, frameless",
     "closeOnBlur, fullscreen, qr",
     "postMessage / onMessage",
   ]],

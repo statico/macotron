@@ -831,13 +831,15 @@ declare const macotron: {
     };
 
     panel: {
-        /** `html` is body markup in a host document (fonts, padding, light/dark). `rawHtml` is a full document. `glass` is Liquid Glass (`true`/`"regular"` or `"clear"`) or `"translucent"` for a HUD blur. `frameless` hides the title bar. `closeOnBlur` closes when the panel loses key focus. */
+        /** `html` is body markup in a host document (fonts, padding, light/dark). `rawHtml` is a full document. `url` loads a web page first-party, so its localStorage persists. `glass` is Liquid Glass (`true`/`"regular"` or `"clear"`) or `"translucent"` for a HUD blur. `frameless` hides the title bar. `closeOnBlur` closes when the panel loses key focus. */
         open(opts: {
             title?: string;
             width?: number;
             height?: number;
             html?: string;
             rawHtml?: string;
+            /** http(s) page to load instead of html/rawHtml. First-party, so site storage persists. */
+            url?: string;
             glass?: boolean | "regular" | "clear" | "translucent";
             /** No title bar. Escape closes. */
             frameless?: boolean;
