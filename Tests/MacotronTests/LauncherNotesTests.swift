@@ -1,5 +1,6 @@
 import Testing
 @testable import Modules
+import MacotronEngine
 import MacotronUI
 
 @Suite("LauncherMatch")

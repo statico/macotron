@@ -4,9 +4,11 @@ macotron.plugin({
     title: "File Search",
     description: "Find files with Spotlight as you type in the launcher.",
     help: "Open the launcher and type part of a file name — matching files appear "
-        + "below the apps and commands. Return opens the file, ⌘Return reveals it in "
-        + "Finder. Files you open climb the list; \"Reset File Ranking\" puts them back, "
-        + "for one path or for all of them.",
+        + "below the apps and commands. A few letters can span folder names, and a "
+        + "query with a slash completes as a path: each segment matches one level, "
+        + "~ is home, and a trailing slash lists a folder. Return opens the file, "
+        + "⌘Return reveals it in Finder. Files you open climb the list; \"Reset File "
+        + "Ranking\" puts them back, for one path or for all of them.",
 });
 
 // What you open is the best evidence of what you meant, and the one signal
@@ -33,9 +35,10 @@ const open = (path) => {
 const short = (path) => path.replace(/^\/Users\/[^/]+\//, "~/");
 
 macotron.launcher.query("file-search", async (query) => {
-    // Two letters match half the disk, so the search waits for a third.
+    // Two letters match half the disk, so the search waits for a third — but
+    // a slash means a path is being typed, and "~/" already says everything.
     const term = String(query || "").trim();
-    if (term.length < 3) return [];
+    if (term.length < 3 && !term.includes("/")) return [];
     const hits = await macotron.spotlight.search(term).catch(() => []);
     // Sort is stable, so files you have never opened keep the order the host
     // ranked them in and only the ones you have actually opened move.

@@ -85,6 +85,13 @@ let package = Package(
             ]
         ),
 
+        // Development probe: run the launcher's file/app search from a shell.
+        .executableTarget(
+            name: "SearchProbe",
+            dependencies: ["Modules", "MacotronEngine"],
+            path: "Sources/SearchProbeCLI"
+        ),
+
         // Main app executable
         .executableTarget(
             name: "Macotron",

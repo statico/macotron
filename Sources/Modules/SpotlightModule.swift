@@ -3,8 +3,122 @@ import CQuickJS
 import Foundation
 import MacotronEngine
 
-enum SpotlightSearch {
+public enum SpotlightSearch {
     static let limit = 50
+
+    static func row(_ path: String) -> [String: Any] {
+        let url = URL(fileURLWithPath: path)
+        return ["path": path, "name": url.lastPathComponent, "kind": url.pathExtension]
+    }
+
+    static func children(_ dir: String) -> [String] {
+        (try? FileManager.default.contentsOfDirectory(atPath: dir.isEmpty ? "/" : dir)) ?? []
+    }
+
+    /// A query with a slash is a path being typed, not a name. Each segment
+    /// fuzzy-completes one directory level, so a couple of letters per level
+    /// reach a deep folder without spelling any level out.
+    public static func pathComplete(_ term: String, home: String = NSHomeDirectory()) -> [String] {
+        guard term.contains("/") else { return [] }
+        var rest = Substring(term)
+        var frontier: [String]
+        if rest.hasPrefix("~/") {
+            frontier = [home]
+            rest = rest.dropFirst(2)
+        } else if rest.hasPrefix("/") {
+            frontier = [""]
+            rest = rest.dropFirst()
+        } else {
+            // "d/notes" means the same place as "~/d/notes", minus two keys.
+            frontier = [home]
+        }
+        let listAll = rest.hasSuffix("/")
+        for segment in rest.split(separator: "/") {
+            frontier = step(frontier, segment: String(segment))
+            if frontier.isEmpty { return [] }
+        }
+        if listAll {
+            frontier = frontier.flatMap { dir in
+                children(dir).filter { !$0.hasPrefix(".") }.sorted().map { dir + "/" + $0 }
+            }
+        }
+        return Array(frontier.prefix(limit))
+    }
+
+    /// One level of completion: every entry of every frontier directory that
+    /// fuzzy-matches the segment, best score first. The cap keeps a vague
+    /// early segment from exploding the walk; scoring puts prefixes ahead of
+    /// scattered matches, so the folders someone means survive the cut.
+    private static func step(_ dirs: [String], segment: String) -> [String] {
+        let showHidden = segment.hasPrefix(".")
+        var scored: [(path: String, score: Int)] = []
+        for dir in dirs {
+            for name in children(dir) {
+                if !showHidden && name.hasPrefix(".") { continue }
+                if let s = FuzzyMatch.score(query: segment, target: name) {
+                    scored.append((dir + "/" + name, s))
+                }
+            }
+        }
+        return scored
+            .sorted { $0.score == $1.score ? $0.path < $1.path : $0.score > $1.score }
+            .prefix(32).map(\.path)
+    }
+
+    /// Visible folders a few levels under home, cached briefly. This is the
+    /// candidate pool for fuzzy matches the index cannot express: mdfind only
+    /// seeks by name prefix, so a query that jumps across path segments has to
+    /// be matched here. node_modules and ~/Library are not descended into:
+    /// they hold more folders than the rest of home combined and nobody
+    /// reaches them by three fuzzy letters.
+    nonisolated(unsafe) private static var walkCache: (home: String, paths: [String], stamp: Date)?
+
+    static func folderWalk(home: String = NSHomeDirectory()) -> [String] {
+        if let c = walkCache, c.home == home, Date().timeIntervalSince(c.stamp) < 60 {
+            return c.paths
+        }
+        let fm = FileManager.default
+        var out: [String] = []
+        var level = [home]
+        for _ in 0..<3 {
+            var next: [String] = []
+            for dir in level {
+                for name in children(dir) where !name.hasPrefix(".") && !name.hasSuffix(".app") {
+                    let path = dir + "/" + name
+                    var isDir: ObjCBool = false
+                    guard fm.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue
+                    else { continue }
+                    out.append(path)
+                    if name != "node_modules" && path != home + "/Library" {
+                        next.append(path)
+                    }
+                }
+            }
+            level = next
+            // ponytail: hard cap instead of smarter pruning; revisit if a huge
+            // home tree makes fuzzy results miss folders people actually want.
+            if out.count > 20_000 { break }
+        }
+        walkCache = (home, out, Date())
+        return out
+    }
+
+    /// Fuzzy folder hits for a query the prefix search cannot answer, best
+    /// first. Scored against the path relative to home so the query can span
+    /// segments: letters from a parent folder and its child match together.
+    public static func fuzzy(_ term: String, home: String = NSHomeDirectory()) -> [String] {
+        guard term.count >= 3, !term.contains("/") else { return [] }
+        let prefixLen = home.count + 1
+        var scored: [(path: String, score: Int)] = []
+        for path in folderWalk(home: home) {
+            let relative = String(path.dropFirst(prefixLen))
+            if let s = FuzzyMatch.score(query: term, target: relative) {
+                scored.append((path, s))
+            }
+        }
+        scored.sort { $0.score == $1.score ? $0.path < $1.path : $0.score > $1.score }
+        return scored.prefix(12).map(\.path)
+    }
 
     static func queryString(_ raw: String, kind: String? = nil) -> String? {
         let q = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -45,14 +159,15 @@ enum SpotlightSearch {
     struct Rank: Comparable {
         /// Each flag is 0 for the better answer, so the whole rank sorts ascending.
         let notExact: Int
+        let notPrefix: Int
         let hidden: Int
         let elsewhere: Int
         let depth: Int
         let path: String
 
         static func < (lhs: Rank, rhs: Rank) -> Bool {
-            (lhs.notExact, lhs.hidden, lhs.elsewhere, lhs.depth, lhs.path)
-                < (rhs.notExact, rhs.hidden, rhs.elsewhere, rhs.depth, rhs.path)
+            (lhs.notExact, lhs.notPrefix, lhs.hidden, lhs.elsewhere, lhs.depth, lhs.path)
+                < (rhs.notExact, rhs.notPrefix, rhs.hidden, rhs.elsewhere, rhs.depth, rhs.path)
         }
     }
 
@@ -61,6 +176,9 @@ enum SpotlightSearch {
         let name = String(components.last ?? "")
         return Rank(
             notExact: name.lowercased() == term.lowercased() ? 0 : 1,
+            // Typing the start of a name is less ambiguous than hitting the
+            // middle of one: "Desktop" over "Remote Desktop.app".
+            notPrefix: name.lowercased().hasPrefix(term.lowercased()) ? 0 : 1,
             // A dot component means .git, .cache, .build: thousands of files
             // nobody opens by name, and always more of them than of the answer.
             hidden: components.contains { $0.hasPrefix(".") } ? 1 : 0,
@@ -106,28 +224,36 @@ enum SpotlightSearch {
             .filter { seen.insert($0).inserted }
             .map { path in (path: path, rank: rank(path: path, term: term, home: home)) }
             .sorted { $0.rank < $1.rank }
-        return ranked.prefix(limit).map { row in
-            let url = URL(fileURLWithPath: row.path)
-            return [
-                "path": row.path,
-                "name": url.lastPathComponent,
-                "kind": url.pathExtension,
-            ]
-        }
+        return ranked.prefix(limit).map { row($0.path) }
     }
 
-    static func run(_ raw: String, folder: String?, kind: String?) -> [[String: Any]] {
+    public static func run(_ raw: String, folder: String?, kind: String?) -> [[String: Any]] {
+        let term = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ext = kind.map { "." + $0.drop(while: { $0 == "." }).lowercased() } ?? "."
+        if term.contains("/") {
+            var paths = pathComplete(term)
+            if ext != "." {
+                paths = paths.filter { $0.lowercased().hasSuffix(ext) }
+            }
+            return paths.map(row)
+        }
         guard let query = queryString(raw, kind: kind) else { return [] }
         let dir = folder?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let root = (dir as NSString).expandingTildeInPath
         let args = dir.isEmpty ? [query] : ["-onlyin", root, query]
-        let term = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         var extra = shallow(term, roots: dir.isEmpty ? defaultRoots() : [root])
-        if let ext = kind?.trimmingCharacters(in: .whitespacesAndNewlines), !ext.isEmpty {
-            let suffix = "." + ext.drop(while: { $0 == "." }).lowercased()
-            extra = extra.filter { $0.lowercased().hasSuffix(suffix) }
+        if ext != "." {
+            extra = extra.filter { $0.lowercased().hasSuffix(ext) }
         }
-        return parse(Subprocess.run("/usr/bin/mdfind", args).stdout, extra: extra, term: term)
+        var rows = parse(Subprocess.run("/usr/bin/mdfind", args).stdout, extra: extra, term: term)
+        // Fuzzy hits go below every prefix hit: only a query the index cannot
+        // answer at all surfaces them at the top. Folders carry no extension,
+        // so a kind filter rules them out wholesale.
+        if ext == "." && dir.isEmpty {
+            let have = Set(rows.compactMap { $0["path"] as? String })
+            rows += fuzzy(term).filter { !have.contains($0) }.map(row)
+        }
+        return Array(rows.prefix(limit))
     }
 }
 
