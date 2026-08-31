@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.4.0</title>
+            <sparkle:version>0.4.0</sparkle:version>
+            <sparkle:shortVersionString>0.4.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Mon, 31 Aug 2026 18:41:41 +0000</pubDate>
+            <description><![CDATA[<ul><li>Search files from the launcher, and keep a shortcut to what it found</li><li>Show files for what you typed, not for a prefix you had to know</li><li>Ask the index a question it can seek, not one it must scan</li><li>Stop deleting a launcher provider's answer one tick before showing it</li><li>Keep room for file rows in a list already full of apps</li><li>Give contact rows the Contacts icon they were asking for</li><li>Put the obvious file first</li><li>Let the files you open climb the file search</li><li>Answer the query on screen, not the one three keystrokes ago</li><li>Rank a file the same way as everything else it competes with</li><li>Drop a mute scope check nobody read</li><li>Put the folder at the top of the disk at the top of the list</li><li>Find the folders Spotlight refuses to admit exist</li><li>Reach any folder by a few letters per level, or none at all</li><li>List home for a bare tilde and let a space match no space</li><li>Weigh the ranking signals instead of tiering them</li><li>Let what gets picked climb, and show files as Finder draws them</li><li>Never dress up one query's rows as another's, and heal lost answers</li><li>Keep the arrowed-to row selected when late results land</li><li>Open .html files instead of refusing them as the default browser</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.4.0/Macotron-0.4.0.dmg" type="application/octet-stream" sparkle:edSignature="XQpdG/PQA7Nwpszy9lSl8SsMuOvdecfO21vbyKsh/+MLRI7xw7maKAx+wl5K8kUVZdjZTqeVv0e9mGbeiEzUDQ==" length="9210569" />
+        </item>
+        <item>
             <title>0.3.8</title>
             <sparkle:version>0.3.8</sparkle:version>
             <sparkle:shortVersionString>0.3.8</sparkle:shortVersionString>
