@@ -119,6 +119,19 @@ struct SpotlightSearchTests {
         // Slash queries and short queries stay with their own machinery.
         #expect(SpotlightSearch.fuzzy("a/b", home: home.path).isEmpty)
         #expect(SpotlightSearch.fuzzy("do", home: home.path).isEmpty)
+        // A space in the query does not demand a space on the path.
+        #expect(SpotlightSearch.fuzzy("doc 3d", home: home.path).first
+            == home.appendingPathComponent("Documents/3D Printing").path)
+    }
+
+    @Test("a bare tilde-slash lists home")
+    func tildeListsHome() throws {
+        let home = try makeHome(["Desktop", "Documents"])
+        defer { try? FileManager.default.removeItem(at: home) }
+        #expect(SpotlightSearch.pathComplete("~/", home: home.path) == [
+            home.appendingPathComponent("Desktop").path,
+            home.appendingPathComponent("Documents").path,
+        ])
     }
 
     @Test("kind pdf appears in the query as *.pdf")
