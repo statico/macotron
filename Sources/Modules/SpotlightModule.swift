@@ -32,7 +32,8 @@ public enum SpotlightSearch {
             // "d/notes" means the same place as "~/d/notes", minus two keys.
             frontier = [home]
         }
-        let listAll = rest.hasSuffix("/")
+        // From the original term: "~/" has already had its slash stripped.
+        let listAll = term.hasSuffix("/")
         for segment in rest.split(separator: "/") {
             frontier = step(frontier, segment: String(segment))
             if frontier.isEmpty { return [] }
@@ -107,6 +108,9 @@ public enum SpotlightSearch {
     /// first. Scored against the path relative to home so the query can span
     /// segments: letters from a parent folder and its child match together.
     public static func fuzzy(_ term: String, home: String = NSHomeDirectory()) -> [String] {
+        // Spaces separate ideas, not characters: "doc 3d" should match a
+        // child folder of Documents even though no space sits on the way.
+        let term = term.replacingOccurrences(of: " ", with: "")
         guard term.count >= 3, !term.contains("/") else { return [] }
         let prefixLen = home.count + 1
         var scored: [(path: String, score: Int)] = []
