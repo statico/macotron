@@ -348,25 +348,60 @@ enum DarkMode {
         return ["ok": true, "darkMode": on]
     }
 
-    private static let themeGet: (@convention(c) () -> Bool)? = {
-        guard let handle = dlopen(
-            "/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight",
-            RTLD_LAZY
-        ), let sym = dlsym(handle, "SLSGetAppearanceThemeLegacy") else {
-            return nil
-        }
-        return unsafeBitCast(sym, to: (@convention(c) () -> Bool).self)
-    }()
+    /// "light", "dark", or "auto" — auto meaning macOS switches with the time
+    /// of day. When auto is on, `isOn()` still answers with whichever theme is
+    /// currently showing.
+    static func appearance() -> String {
+        if autoGet?() == true { return "auto" }
+        return isOn() ? "dark" : "light"
+    }
 
-    private static let themeSet: (@convention(c) (Bool) -> Void)? = {
+    static func parseAppearance(_ text: String) -> String? {
+        let s = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return ["light", "dark", "auto"].contains(s) ? s : nil
+    }
+
+    static func setAppearance(_ mode: String, dryRun: Bool) -> [String: Any] {
+        if dryRun {
+            return ["ok": true, "appearance": mode]
+        }
+        if mode == "auto" {
+            guard let autoSet else {
+                return ["ok": false, "appearance": appearance(),
+                        "error": "Auto appearance is unavailable on this macOS"]
+            }
+            autoSet(true)
+            return ["ok": true, "appearance": "auto"]
+        }
+        // An explicit theme must clear the auto flag first, or the system
+        // keeps switching underneath the choice.
+        autoSet?(false)
+        var result = set(mode == "dark", dryRun: false)
+        result["appearance"] = result["ok"] as? Bool == true ? mode : appearance()
+        return result
+    }
+
+    private static func skyLight<T>(_ name: String, as type: T.Type) -> T? {
         guard let handle = dlopen(
             "/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight",
             RTLD_LAZY
-        ), let sym = dlsym(handle, "SLSSetAppearanceThemeLegacy") else {
+        ), let sym = dlsym(handle, name) else {
             return nil
         }
-        return unsafeBitCast(sym, to: (@convention(c) (Bool) -> Void).self)
-    }()
+        return unsafeBitCast(sym, to: T.self)
+    }
+
+    private static let themeGet: (@convention(c) () -> Bool)? =
+        skyLight("SLSGetAppearanceThemeLegacy", as: (@convention(c) () -> Bool).self)
+
+    private static let themeSet: (@convention(c) (Bool) -> Void)? =
+        skyLight("SLSSetAppearanceThemeLegacy", as: (@convention(c) (Bool) -> Void).self)
+
+    private static let autoGet: (@convention(c) () -> Bool)? =
+        skyLight("SLSGetAppearanceThemeSwitchesAutomatically", as: (@convention(c) () -> Bool).self)
+
+    private static let autoSet: (@convention(c) (Bool) -> Void)? =
+        skyLight("SLSSetAppearanceThemeSwitchesAutomatically", as: (@convention(c) (Bool) -> Void).self)
 }
 
 enum FocusStatus {

@@ -523,6 +523,25 @@ public final class SystemModule: NativeModule {
             }
         }, "setDarkMode", 1))
 
+        JS_SetPropertyStr(ctx, systemObj, "appearance",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newString(ctx, DarkMode.appearance())
+        }, "appearance", 0))
+
+        JS_SetPropertyStr(ctx, systemObj, "setAppearance",
+                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+            guard let argv, argc >= 1,
+                  let raw = JSBridge.toString(ctx, argv[0]),
+                  let mode = DarkMode.parseAppearance(raw) else {
+                return QJS_ThrowTypeError(ctx, "setAppearance requires \"light\", \"dark\", or \"auto\"")
+            }
+            return JSBridge.promise(ctx, dryRun: DarkMode.setAppearance(mode, dryRun: true)) {
+                .value(DarkMode.setAppearance(mode, dryRun: false))
+            }
+        }, "setAppearance", 1))
+
         JS_SetPropertyStr(ctx, systemObj, "focus",
                           JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
