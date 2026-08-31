@@ -66,6 +66,16 @@ struct ToastLayoutTests {
         #expect(ToastLayout.kind(nil).defaultSymbol == nil)
     }
 
+    @Test("custom colors tint the icon but never the text")
+    func customColorTextStaysLegible() {
+        let custom = ToastLayout.kind("#ff00ff")
+        #expect(custom.tint != nil)
+        #expect(custom.textTint == nil)
+        #expect(ToastLayout.kind("success").textTint == .systemGreen)
+        #expect(ToastLayout.kind("error").textTint == .systemRed)
+        #expect(ToastLayout.kind(nil).textTint == nil)
+    }
+
     @Test("position parse defaults to bottom")
     func parsePosition() {
         #expect(ToastPosition.parse("top") == .top)

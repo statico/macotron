@@ -34,6 +34,15 @@ enum ToastLayout {
             }
         }
 
+        /// Semantic kinds color the text as part of the message. A custom
+        /// color is data — a picked pixel, a brand color — and an arbitrary
+        /// color over the toast background is unreadable, so it tints only
+        /// the icon and the text stays legible.
+        var textTint: NSColor? {
+            if case .custom = self { return nil }
+            return tint
+        }
+
         var defaultSymbol: String? {
             switch self {
             case .success: return "checkmark.circle.fill"
@@ -121,7 +130,7 @@ public final class ToastHost {
         self.panel = panel
         titleField?.stringValue = ToastLayout.line(title, body)
         let kind = ToastLayout.kind(color)
-        titleField?.textColor = kind.tint ?? .labelColor
+        titleField?.textColor = kind.textTint ?? .labelColor
         applyIcon(sfSymbol: sfSymbol ?? kind.defaultSymbol, tint: kind.tint)
         layoutAndPlace(panel, position: position)
         panel.alphaValue = 0
