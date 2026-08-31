@@ -132,4 +132,20 @@ struct DarkModeTests {
         #expect(result["ok"] as? Bool == true)
         #expect(result["darkMode"] as? Bool == true)
     }
+
+    @Test("appearance modes parse case-insensitively, everything else is nil")
+    func parseAppearance() {
+        #expect(DarkMode.parseAppearance("Light") == "light")
+        #expect(DarkMode.parseAppearance(" dark\n") == "dark")
+        #expect(DarkMode.parseAppearance("AUTO") == "auto")
+        #expect(DarkMode.parseAppearance("blue") == nil)
+        #expect(DarkMode.parseAppearance("") == nil)
+    }
+
+    @Test("setAppearance is a no-op in dry run")
+    func setAppearanceDryRun() {
+        let result = DarkMode.setAppearance("auto", dryRun: true)
+        #expect(result["ok"] as? Bool == true)
+        #expect(result["appearance"] as? String == "auto")
+    }
 }

@@ -146,7 +146,7 @@ talks to HID devices (report id is the first send byte). Both an
 Control Center-style toggles live on the host: `macotron.audio.volume` /
 `setVolume` / `setMuted`, `network.wifi` / `setWifi`, `network.bluetooth` /
 `setBluetooth`, `network.airDrop` / `setAirDrop("off"|"contacts"|"everyone")`,
-`system.darkMode` / `setDarkMode`, `system.focus()` (`{ focused }`, read-only).
+`system.darkMode` / `setDarkMode`, `system.appearance()` (`"light"|"dark"|"auto"`) / `setAppearance(mode)`, `system.focus()` (`{ focused }`, read-only).
 
 ## Launcher commands
 
