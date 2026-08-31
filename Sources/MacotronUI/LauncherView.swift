@@ -393,10 +393,24 @@ public struct LauncherView: View {
     }
 
     private func applySearch(_ query: String) {
-        results = onSearch?(query) ?? []
+        let rows = onSearch?(query) ?? []
+        selectedIndex = Self.preservedSelection(
+            query: query, applied: appliedQuery,
+            selected: selectedIndex, old: results, new: rows)
+        results = rows
         appliedQuery = query
-        selectedIndex = 0
         isRecordingShortcut = false
+    }
+
+    /// A refresh of the query already on screen — a late provider answer, the
+    /// watchdog — must not steal the row the user arrowed to. A new query, or a
+    /// selection still resting on the top row, starts back at the top.
+    static func preservedSelection(query: String, applied: String, selected: Int,
+                                   old: [SearchResult], new: [SearchResult]) -> Int {
+        guard query == applied, selected > 0, selected < old.count,
+              let idx = new.firstIndex(where: { $0.id == old[selected].id })
+        else { return 0 }
+        return idx
     }
 
     private func beginShortcutRecording() {
