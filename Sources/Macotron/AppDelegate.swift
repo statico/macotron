@@ -1331,19 +1331,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let uses = settings["launcherUses"] as? [String: Int] ?? [:]
 
         if q.isEmpty {
-            // Favorites first, then what actually gets picked: the launcher
-            // opens onto the usual suspects before a letter is typed.
-            let frequent = uses
-                .sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }
-                .map(\.key)
-                .filter { !favorites.contains($0) }
-                .compactMap { id in
-                    result(id: id, pluginHits: pluginHits, shortcuts: shortcuts, isFavorite: false)
-                }
-                .prefix(5)
+            // Starred results only: the empty launcher is the user's own list,
+            // not a guess at what they might want.
             return permissionResult() + favorites.compactMap { id in
                 result(id: id, pluginHits: pluginHits, shortcuts: shortcuts, isFavorite: true)
-            } + frequent
+            }
         }
 
         var results: [SearchResult] = []
