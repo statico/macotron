@@ -93,6 +93,12 @@ public final class PanelModule: NativeModule {
             return QJS_Undefined()
         }, "close", 1))
 
+        JS_SetPropertyStr(ctx, panelObj, "focus", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx, let argv, argc >= 1 else { return QJS_False() }
+            let id = JSBridge.toString(ctx, argv[0]) ?? ""
+            return JSBridge.newBool(ctx, PanelModuleState.shared.module?.focusPanel(id) ?? false)
+        }, "focus", 1))
+
         JS_SetPropertyStr(ctx, panelObj, "postMessage", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
             let id = JSBridge.toString(ctx, argv[0]) ?? ""
@@ -146,6 +152,13 @@ public final class PanelModule: NativeModule {
         panels[id] = host
         host.show(fullscreen: fullscreen)
         return id
+    }
+
+    /// Brings an open panel forward. False when no panel has that id.
+    private func focusPanel(_ id: String) -> Bool {
+        guard let host = panels[id] else { return false }
+        host.focus()
+        return true
     }
 
     private func closePanel(_ id: String) {
