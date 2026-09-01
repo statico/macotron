@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.4.3</title>
+            <sparkle:version>0.4.3</sparkle:version>
+            <sparkle:shortVersionString>0.4.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Tue, 01 Sep 2026 21:12:48 +0000</pubDate>
+            <description><![CDATA[<ul><li>Give Stay Awake an 8 hour option</li><li>Let panel.open load a web page first-party so its settings persist</li><li>Hand back the accessory policy every time Settings closes</li><li>Keep toast text legible when the color is data, not status</li><li>Add light/dark/auto appearance control and a Cycle Appearance command</li><li>Let a notification carry a URL that opens on click</li><li>Let a plugin bring an open panel forward</li><li>Ask for the display assertion Apple still documents</li><li>Show only starred results when the launcher query is empty</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.4.3/Macotron-0.4.3.dmg" type="application/octet-stream" sparkle:edSignature="j6sess1nge2i/uyV8loserZmKUaOCBKAARhwuDaKWXQ5ZXAdBRIVQ6ZHoyR5gIhtZC7Dyq9MfAJGYV5ro7cxCQ==" length="9214689" />
+        </item>
+        <item>
             <title>0.4.2</title>
             <sparkle:version>0.4.2</sparkle:version>
             <sparkle:shortVersionString>0.4.2</sparkle:shortVersionString>
