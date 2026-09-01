@@ -91,7 +91,7 @@ public final class PowerModule: NativeModule {
             return true
         }
         let type = (display
-            ? kIOPMAssertionTypeNoDisplaySleep
+            ? kIOPMAssertionTypePreventUserIdleDisplaySleep
             : kIOPMAssertPreventUserIdleSystemSleep) as CFString
         var id: IOPMAssertionID = 0
         let status = IOPMAssertionCreateWithName(
