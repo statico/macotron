@@ -854,6 +854,8 @@ declare const macotron: {
             qr?: string;
         }): string;
         close(id: string): void;
+        /** Brings an open panel forward without reloading it. False if no panel has that id. */
+        focus(id: string): boolean;
         postMessage(id: string, data: any): void;
         onMessage(id: string, callback: (data: any) => void): void;
     };

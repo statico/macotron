@@ -409,6 +409,16 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         }
     }
 
+    /// Reveal an already-open panel without reloading its page.
+    func focus() {
+        blurArmed = false
+        bringToFront()
+        DispatchQueue.main.async { [weak self] in
+            self?.bringToFront()
+            DispatchQueue.main.async { self?.blurArmed = true }
+        }
+    }
+
     private func bringToFront() {
         panel.orderFrontRegardless()
         panel.makeKey()

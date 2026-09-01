@@ -178,6 +178,7 @@ commands — that is for global hotkeys, overridable in the same place.
 ```js
 const id = macotron.panel.open({ title: "Chat", width: 420, height: 520, html: "<p>Hi</p>", glass: true });
 macotron.panel.close(id);
+macotron.panel.focus(id); // brings an open panel forward; false if it is gone
 macotron.panel.postMessage(id, { hello: true });
 macotron.panel.onMessage(id, (data) => { /* ... */ });
 ```
