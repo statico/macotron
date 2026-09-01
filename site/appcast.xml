@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.4.2</title>
+            <sparkle:version>0.4.2</sparkle:version>
+            <sparkle:shortVersionString>0.4.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Tue, 01 Sep 2026 20:14:34 +0000</pubDate>
+            <description><![CDATA[<ul></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.4.2/Macotron-0.4.2.dmg" type="application/octet-stream" sparkle:edSignature="nX9G7b+TFYp1+pb9sTj4lXuQQstk6TuYzNkXQ+c/09oumAy8u02S6yWTPA+8XfAr43xZYKBHRgIzL4H6yS2IBA==" length="9210655" />
+        </item>
+        <item>
             <title>0.4.1</title>
             <sparkle:version>0.4.1</sparkle:version>
             <sparkle:shortVersionString>0.4.1</sparkle:shortVersionString>
