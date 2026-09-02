@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.4.5</title>
+            <sparkle:version>0.4.5</sparkle:version>
+            <sparkle:shortVersionString>0.4.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Wed, 02 Sep 2026 20:48:26 +0000</pubDate>
+            <description><![CDATA[<ul><li>Keep the meetings menu bar item honest after a meeting passes</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.4.5/Macotron-0.4.5.dmg" type="application/octet-stream" sparkle:edSignature="hD2dlvOft4UJbhaQGgGweR/VVBDyyYamjJxtBJnqfKwIOPOoysMDGQiIVgGyyQxolJ/9SqKlovt26WnZY5lrCw==" length="9218729" />
+        </item>
+        <item>
             <title>0.4.4</title>
             <sparkle:version>0.4.4</sparkle:version>
             <sparkle:shortVersionString>0.4.4</sparkle:shortVersionString>
