@@ -43,7 +43,7 @@ h1 { font-size: 42px; }
 img { width: 200px; height: 200px; background: #fff; border-radius: 16px; padding: 12px; }
 </style>
 <h1>${esc(event.title || "Meeting")}</h1>
-<p id="cd" class="muted">starting now</p>
+<p id="cd" class="muted">Starting now</p>
 <div class="row">
 ${url ? `<button class="primary" onclick='send({ url: ${JSON.stringify(url)} })'>Join</button>` : ""}
 <button onclick='send({ close: true })'>Close</button>
@@ -53,7 +53,7 @@ function send(msg) { webkit.messageHandlers.macotron.postMessage(msg); }
 const start = ${event.start};
 setInterval(() => {
   const m = Math.round((Date.now() - start) / 60000);
-  document.getElementById("cd").textContent = m ? "started " + m + "m ago" : "starting now";
+  document.getElementById("cd").textContent = m ? "Started " + m + "m ago" : "Starting now";
 }, 1000);
 </script>`;
         const id = macotron.panel.open({
