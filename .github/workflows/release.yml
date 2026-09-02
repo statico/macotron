@@ -1,6 +1,6 @@
 # Builds and ships a release from GitHub, so every DMG carries a signed build
-# provenance attestation and an SBOM. `make release` on a Mac still works and
-# does the same steps; this runs them somewhere anyone can audit.
+# provenance attestation and an SBOM. `make release` checks the tree and
+# dispatches this; `make dmg` + `make publish` on a Mac still do the same steps.
 #
 # Verify a download afterwards with:
 #   gh attestation verify Macotron-x.y.z.dmg --repo statico/macotron
