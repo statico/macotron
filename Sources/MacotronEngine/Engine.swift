@@ -149,9 +149,55 @@ public final class Engine {
         JS_SetMaxStackSize(runtime, Self.stackLimit)
         context = JS_NewContext(runtime)
         setupInterruptHandler()
+        setupRejectionTracker()
         setupModuleLoader()
         setupTimerGlobals()
         setupCoreGlobals()
+    }
+
+    /// Most recent unhandled promise rejection, so tests can assert the
+    /// tracker is actually wired through the C calling convention.
+    public var lastUnhandledRejection: String?
+
+    /// Rejections seen without a handler, held until the job queue drains:
+    /// a handler attached later in the same tick un-reports its rejection,
+    /// so judging at rejection time would flag ordinary reject-then-catch.
+    private var pendingRejections: [String] = []
+
+    /// An async plugin callback that throws after its first `await` never
+    /// surfaces through `callJS` — the call already returned a promise by
+    /// then. Without this hook the plugin just stops painting with no trace.
+    private func setupRejectionTracker() {
+        let opaque = Unmanaged.passUnretained(self).toOpaque()
+        JS_SetHostPromiseRejectionTracker(runtime, { ctx, _, reason, isHandled, opaque in
+            guard let ctx, let opaque else { return }
+            let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
+            var message = JSBridge.toString(ctx, reason) ?? "unknown"
+            let stack = JSBridge.getProperty(ctx, reason, "stack")
+            if !JS_IsUndefined(stack), let text = JSBridge.toString(ctx, stack),
+               !text.isEmpty {
+                message += "\n" + text
+            }
+            JS_FreeValue(ctx, stack)
+            if isHandled {
+                // ponytail: matched by message, not promise identity; two
+                // simultaneous identical rejections could un-report both.
+                if let idx = engine.pendingRejections.firstIndex(of: message) {
+                    engine.pendingRejections.remove(at: idx)
+                }
+            } else {
+                engine.pendingRejections.append(message)
+            }
+        }, opaque)
+    }
+
+    /// Report rejections still unhandled once the microtask queue is empty.
+    private func flushPendingRejections() {
+        for message in pendingRejections {
+            lastUnhandledRejection = message
+            logger.error("unhandled promise rejection: \(message, privacy: .public)")
+        }
+        pendingRejections.removeAll()
     }
 
     // MARK: - ES Module Loader
@@ -689,6 +735,7 @@ public final class Engine {
                 }
             }
         }
+        flushPendingRejections()
     }
 
     // MARK: - Evaluate

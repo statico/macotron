@@ -84,7 +84,9 @@ async function upcoming() {
     const configured = Number(opts.hours);
     const hours = configured > 0 ? Math.max(configured, hoursUntilTomorrow()) : hoursUntilTomorrow();
     const events = await macotron.calendar.upcoming({ hours });
-    return events.filter((event) => !hidden(event, regs));
+    // Sort defensively: an older host hands the list back in EventKit's
+    // undefined order, and both the title and the menu assume soonest-first.
+    return events.filter((event) => !hidden(event, regs)).sort((a, b) => a.start - b.start);
 }
 
 function nextTimed(events) {
@@ -135,8 +137,16 @@ function menu(events, next) {
     return rows;
 }
 
+let lastEvents = [];
+
 async function paint() {
-    const events = await upcoming();
+    try {
+        lastEvents = await upcoming();
+    } catch (err) {
+        // Keep the last fetch; the repaint below still advances the clock.
+    }
+    // Even on a stale fetch, a meeting that has ended must drop out.
+    const events = lastEvents.filter((event) => event.end > Date.now());
     const next = nextTimed(events);
     macotron.menubar.status("meetings", {
         title: next ? clip(next.title || "Untitled", 22) : "No meetings",

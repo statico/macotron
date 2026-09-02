@@ -22,7 +22,7 @@ or inside the installed app at
 
 ## API version
 
-Current plugin API version is `1.1.0` (`macotron.version.api`).
+Current plugin API version is `1.2.0` (`macotron.version.api`).
 Bump only when the plugin-facing JS contract changes.
 
 ## Built-in macOS only
@@ -126,7 +126,7 @@ The id is the Settings label. Ids are unique per plugin. Users override the comb
 `macotron.notify.toast(title, body?, { position, duration, sfSymbol, color })` is a
 one-line HUD on the screen under the cursor (3s default). `color` is `info`,
 `success` (green check), `error` (red x), or `warning` (orange triangle).
-`macotron.notify.show` is a system banner.
+`macotron.notify.show(title, body, { url? })` is a system banner; a `url` opens on click.
 `macotron.screen.pickColor()` opens the system magnifier and returns
 `{ hex, r, g, b, x, y }` or `null`.
 `macotron.hid.list/open/sendFeature/sendOutput/readFeature/readInput/listen`
@@ -146,7 +146,7 @@ talks to HID devices (report id is the first send byte). Both an
 Control Center-style toggles live on the host: `macotron.audio.volume` /
 `setVolume` / `setMuted`, `network.wifi` / `setWifi`, `network.bluetooth` /
 `setBluetooth`, `network.airDrop` / `setAirDrop("off"|"contacts"|"everyone")`,
-`system.darkMode` / `setDarkMode`, `system.focus()` (`{ focused }`, read-only).
+`system.darkMode` / `setDarkMode`, `system.appearance()` (`"light"|"dark"|"auto"`) / `setAppearance(mode)`, `system.focus()` (`{ focused }`, read-only).
 
 ## Launcher commands
 
@@ -183,7 +183,9 @@ macotron.panel.onMessage(id, (data) => { /* ... */ });
 ```
 
 `html` is inserted into a host document (system font, padding, light/dark).
-`rawHtml` is a full document. `glass: true` (or `"regular"`) uses Liquid Glass
+`rawHtml` is a full document. `url` loads an http(s) page first-party — use it
+for embedding a website (its localStorage persists, unlike an iframe's).
+`glass: true` (or `"regular"`) uses Liquid Glass
 with a transparent page background; `glass: "clear"` is the clearer variant;
 `glass: "translucent"` is a HUD blur. `closeOnBlur: true` closes on unfocus.
 `frameless: true` hides the title bar; Escape closes.

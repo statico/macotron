@@ -73,7 +73,11 @@ public final class CalendarModule: NativeModule {
         let end = start.addingTimeInterval(max(0, hours) * 3600)
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
 
-        return store.events(matching: predicate).map { event in
+        // EventKit documents the result order as undefined, and every consumer
+        // assumes soonest-first.
+        return store.events(matching: predicate)
+            .sorted { $0.compareStartDate(with: $1) == .orderedAscending }
+            .map { event in
             [
                 "id": event.eventIdentifier ?? event.calendarItemIdentifier,
                 "title": event.title ?? "",
