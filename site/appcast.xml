@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.4.6</title>
+            <sparkle:version>0.4.6</sparkle:version>
+            <sparkle:shortVersionString>0.4.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Wed, 02 Sep 2026 21:04:48 +0000</pubDate>
+            <description><![CDATA[<ul><li>Make release a preflighted dispatch of the Release workflow</li><li>Show only the calendar icon when no meetings are coming up</li><li>Next Meeting joins the meeting; overlay countdown gets sentence case</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.4.6/Macotron-0.4.6.dmg" type="application/octet-stream" sparkle:edSignature="WVf22XUn0jNTNNnHnpiTMwUqVO878wgZ8tw+UAUtZLe6cMqmuwC2QJonr5ilChJFgbULBZmGrNPZJ5Bdqh9VAQ==" length="9217578" />
+        </item>
+        <item>
             <title>0.4.5</title>
             <sparkle:version>0.4.5</sparkle:version>
             <sparkle:shortVersionString>0.4.5</sparkle:shortVersionString>
