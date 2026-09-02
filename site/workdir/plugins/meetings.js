@@ -161,10 +161,12 @@ async function paint() {
 paint();
 macotron.every(30000, paint);
 
-macotron.command("Next Meeting", "Show the next calendar event", async () => {
+macotron.command("Next Meeting", "Open the next calendar event's meeting link", async () => {
     const next = nextTimed(await upcoming());
-    macotron.notify.toast(
-        next ? next.title || "Untitled" : "No meetings",
-        next ? timeLabel(next.start) : "Nothing in the next " + (opts.hours || 12) + " hours"
-    );
+    if (!next) {
+        macotron.notify.toast("No meetings", "Nothing in the next " + (opts.hours || 12) + " hours");
+        return;
+    }
+    macotron.notify.toast(next.title || "Untitled", timeLabel(next.start));
+    joinOrOpen(next);
 });
