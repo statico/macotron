@@ -107,7 +107,7 @@ function joinOrOpen(event) {
 function menu(events, next) {
     if (!events.length) {
         return [
-            { title: "No upcoming events" },
+            { title: "No meetings" },
             "-",
             { title: "Refresh", onClick: paint },
             { title: "Open Calendar", onClick: openCalendar },
@@ -149,7 +149,7 @@ async function paint() {
     const events = lastEvents.filter((event) => event.end > Date.now());
     const next = nextTimed(events);
     macotron.menubar.status("meetings", {
-        title: next ? clip(next.title || "Untitled", 22) : "No meetings",
+        title: next ? clip(next.title || "Untitled", 22) : "",
         subtitle: next ? timeLabel(next.start) : "",
         sfSymbol: next ? "calendar.badge.clock" : "calendar",
         secondary: true,
