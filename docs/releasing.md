@@ -1,7 +1,9 @@
 # Releasing
 
-Releases go out from GitHub. Open the **Release** workflow in the Actions tab,
-give it a version, and run it. It builds on a `macos-26` runner, which does one
+Releases go out from GitHub. Run `make release VERSION=x.y.z` on a clean,
+pushed `main`: it checks the tree matches `origin/main`, that the tag is new,
+and dispatches the **Release** workflow (the Actions tab works too). The
+workflow builds on a `macos-26` runner, which does one
 thing this Mac cannot: it attaches a signed build provenance attestation and an
 SBOM to the DMG, so anyone can ask GitHub what made the file they downloaded.
 
@@ -23,9 +25,9 @@ required reviewer, and keep the secret list short.
 The build takes long enough that `main` can move under it. The publish step
 checks, and stops without shipping anything if it did. Run it again.
 
-`make release VERSION=x.y.z` on a Mac still works and runs the same Makefile
-targets, minus the attestation. It is the fallback for when Actions is down, and
-it needs the local setup below.
+`make dmg VERSION=x.y.z` followed by `make publish VERSION=x.y.z` on a Mac
+still runs the same Makefile targets, minus the attestation. That is the
+fallback for when Actions is down, and it needs the local setup below.
 
 The appcast is signed after notarization, not before: stapling rewrites the
 DMG, and the EdDSA signature covers every byte of the file people download. The
@@ -49,11 +51,11 @@ brew install statico/tap/macotron
 
 ## One-time setup for a local release
 
-Only `make release` needs these. The workflow gets the same things from the
-secrets listed at the bottom.
+Only a local `make dmg` + `make publish` needs these. The workflow gets the
+same things from the secrets listed at the bottom.
 
 - A **Developer ID Application** certificate in the login keychain. Without it
-  `make release` refuses to package, because an unsigned DMG downloads fine and
+  `make dmg` refuses to package, because an unsigned DMG downloads fine and
   then tells the user the app is damaged.
 - A notary profile named `personal-notary`, so `xcrun notarytool` can submit
   without a prompt. The key authorizes the team, TA59XVWN77, so the same
@@ -67,7 +69,7 @@ secrets listed at the bottom.
     --key ~/private_keys/AuthKey_KEYID.p8 --key-id KEYID --issuer ISSUER-UUID
   ```
 
-  Use another name with `NOTARY_PROFILE=...`. Without a profile `make release`
+  Use another name with `NOTARY_PROFILE=...`. Without a profile `make dmg`
   refuses to package: a signed but unnotarized DMG downloads fine and then
   tells the user that Apple could not verify the app is free of malware. Pass
   `ALLOW_UNNOTARIZED=1` to build one anyway for local testing.
@@ -85,7 +87,7 @@ secrets listed at the bottom.
   the service `https://sparkle-project.org` and the account `ed25519`, and
   prints the public key. The public key is already in `Info.plist`, so a fresh
   key pair would strand every installed copy. `sign_update`, which
-  `make release` runs, sits in that same `bin` directory and reads the private
+  `make publish` runs, sits in that same `bin` directory and reads the private
   key back out of the keychain. The first run may raise a keychain access
   prompt: click Always Allow, or every release stops to ask again.
 
@@ -96,15 +98,14 @@ secrets listed at the bottom.
 
 ## Pieces
 
-- `ALLOW_UNNOTARIZED=1 make release VERSION=x.y.z` builds the DMG and stops
-  before tagging. Useful to test the packaging without shipping anything.
+- `ALLOW_UNNOTARIZED=1 make dmg VERSION=x.y.z` builds the DMG without
+  notarizing it. Useful to test the packaging without shipping anything.
 - `scripts/update-tap.sh x.y.z <dmg>` rewrites the cask on its own, if a
   release went out and the tap did not. `make publish` already runs it.
 - `make bundle` still builds debug. `CONFIG=release` switches it.
 - `make dmg VERSION=x.y.z` builds, signs, and notarizes the DMG and stops.
   `make publish VERSION=x.y.z` takes it from there: appcast, tag, GitHub
-  release, cask. `make release` runs both, and the workflow runs them with the
-  attestation step in between.
+  release, cask. The workflow runs both with the attestation step in between.
 - The window a downloader sees comes from `scripts/dmg-background.swift`, which
   draws the picture, and `scripts/dmg-layout.sh`, which asks Finder to place the
   app and the Applications alias on it. Finder is the only thing that can write

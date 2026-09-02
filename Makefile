@@ -177,20 +177,20 @@ scan: ## Sweep built-in plugins + tmp/malware with the on-device scanner
 	swift run --build-path $(BUILD_DIR) PluginScan --runs $${SCAN_RUNS:-3} --concurrency $${SCAN_CONCURRENCY:-16} \
 		Examples/plugins --fail tmp/malware --out tmp/scan-sweep.jsonl $(ARGS)
 
-release: ## Tag, build, and ship a release + Homebrew cask (VERSION=x.y.z)
+release: ## Check main is clean and pushed, then release via GitHub Actions (VERSION=x.y.z)
 	@$(demand-version)
-	@test -n "$(ALLOW_UNNOTARIZED)" || git diff --quiet HEAD || \
-		{ echo "Working tree is dirty."; exit 1; }
-	@# Whatever is about to be tagged has to be what everyone else can see.
-	@test -n "$(ALLOW_UNNOTARIZED)" || { \
-		git fetch --quiet origin main && \
-		test -z "$$(git rev-list origin/main..HEAD)" -a -z "$$(git rev-list HEAD..origin/main)"; \
-	} || { echo "main and origin/main have diverged. Push or pull first."; exit 1; }
-	@$(MAKE) dmg VERSION=$(VERSION)
-	@# An unnotarized DMG is a local test build; nobody should download it.
-	@if [ -n "$(ALLOW_UNNOTARIZED)" ]; then echo "Not published: ALLOW_UNNOTARIZED."; else \
-		$(MAKE) publish VERSION=$(VERSION); \
-	fi
+	@test "$$(git branch --show-current)" = "main" || \
+		{ echo "Not on main."; exit 1; }
+	@test -z "$$(git status --porcelain)" || \
+		{ git status --short; echo "Working tree is not clean."; exit 1; }
+	@git fetch --quiet --tags origin main
+	@git tag --list 'v$(VERSION)' | grep -q . && \
+		{ echo "v$(VERSION) already exists."; exit 1; } || true
+	@# The runner builds origin/main, so HEAD has to be exactly that.
+	@test "$$(git rev-parse HEAD)" = "$$(git rev-parse origin/main)" || \
+		{ echo "HEAD and origin/main differ. Push or pull first."; exit 1; }
+	gh workflow run release.yml -f version=$(VERSION)
+	@echo "Dispatched. Follow along: gh run watch, or gh run list --workflow=release.yml"
 
 dmg: ## Build, sign, and notarize the DMG only (VERSION=x.y.z)
 	@$(demand-version)
