@@ -223,11 +223,17 @@ public final class SettingsState: ObservableObject {
     @Published public var installingRepo: String?
     private var communityFetchedAt: Date?
     private var communityTask: Task<Void, Never>?
+    /// Bytes the staleness check already downloaded, keyed by repo, so an
+    /// update does not fetch the same file twice.
+    private var communityFetched: [String: (source: String, url: URL)] = [:]
+    /// Community updates queued behind Update All. Each opens its own review
+    /// sheet; the sheet's dismissal advances the queue.
+    var communityUpdateQueue: [CommunityEntry] = []
 
     public var onSetHotReload: ((Bool) -> Void)?
     public var onScanCatalog: ((CatalogPlugin) -> Void)?
     public var onInstallCatalog: ((CatalogPlugin, Bool) -> Void)?
-    public var onInstallAll: (([CatalogPlugin]) -> Void)?
+    public var onInstallAll: (([CatalogPlugin], _ overwrite: Bool) -> Void)?
     public var restoreStatusItem: ((String) -> Void)?
     /// nil reviews the whole queue; a filename reviews just that plugin.
     public var onReviewPending: ((String?) -> Void)?
@@ -417,7 +423,49 @@ public final class SettingsState: ObservableObject {
         overwrite = nil
         isReviewing = false
         installTarget = nil
-        onInstallAll?(pending)
+        onInstallAll?(pending, false)
+    }
+
+    // MARK: - Update All
+
+    /// Installed plugins whose file differs from the bundled catalog copy.
+    public var catalogUpdates: [CatalogPlugin] {
+        moduleSummaries.compactMap { catalogUpdate(for: $0) }
+    }
+
+    /// Installed community plugins whose published bytes changed.
+    public var communityUpdatableEntries: [CommunityEntry] {
+        communityEntries.filter {
+            communityUpdates.contains($0.repo) && installedPluginNames.contains($0.filename)
+        }
+    }
+
+    public func communityUpdate(for summary: ModuleSummary) -> CommunityEntry? {
+        communityUpdatableEntries.first { $0.filename == summary.filename }
+    }
+
+    public var updateCount: Int {
+        catalogUpdates.count + communityUpdatableEntries.count
+    }
+
+    /// Built-in updates write straight through: those bytes ship inside the
+    /// signed app bundle. Community updates queue up one review sheet each,
+    /// because downloaded code is read before it runs — see
+    /// docs/11-community-plugins.md.
+    public func updateAll() {
+        let builtIn = catalogUpdates
+        if !builtIn.isEmpty { onInstallAll?(builtIn, true) }
+        communityUpdateQueue = communityUpdatableEntries
+        advanceCommunityQueue()
+    }
+
+    /// Opens the next queued community update. Called when a review sheet
+    /// closes, whether it installed or was cancelled: Update All walks the
+    /// whole set and lets the user decide each one.
+    func advanceCommunityQueue() {
+        guard installTarget == nil, installingRepo == nil,
+              !communityUpdateQueue.isEmpty else { return }
+        beginCommunityInstall(communityUpdateQueue.removeFirst())
     }
 
     /// Catalog plugins ship inside the signed app bundle, so their bytes are already
@@ -521,6 +569,7 @@ public final class SettingsState: ObservableObject {
             let local = PluginHash.sha256(file: dir.appending(path: entry.filename))
             guard let local else { continue }
             guard let fetched = try? await CommunityCatalog.fetchSource(entry) else { continue }
+            communityFetched[entry.repo] = fetched
             if PluginHash.sha256(source: fetched.source) != local { stale.insert(entry.repo) }
         }
         communityUpdates = stale
@@ -535,7 +584,13 @@ public final class SettingsState: ObservableObject {
         Task { @MainActor in
             defer { installingRepo = nil }
             do {
-                let fetched = try await CommunityCatalog.fetchSource(entry)
+                let fetched: (source: String, url: URL)
+                if let cached = communityFetched[entry.repo] {
+                    fetched = cached
+                } else {
+                    fetched = try await CommunityCatalog.fetchSource(entry)
+                    communityFetched[entry.repo] = fetched
+                }
                 let header = PluginHeader.parse(fetched.source)
                 let plugin = CatalogPlugin(
                     filename: entry.filename,
@@ -562,6 +617,9 @@ public final class SettingsState: ObservableObject {
                 scanInstallTarget()
             } catch {
                 communityError = error.localizedDescription
+                // No sheet opened, so no dismissal advances the queue. A fresh
+                // task runs after the defer above clears installingRepo.
+                Task { @MainActor in self.advanceCommunityQueue() }
             }
         }
     }
@@ -585,6 +643,7 @@ public struct SettingsView: View {
     @State private var showCatalog = false
     @State private var catalogSection: CatalogSection = .builtIn
     @State private var showNewPlugin = false
+    @State private var showUpdateAll = false
     @FocusState private var pluginListFocused: Bool
 
     public init(state: SettingsState, initialTab: Int = 0) {
@@ -970,6 +1029,7 @@ public struct SettingsView: View {
                             summary: summary,
                             hasShortcutConflict: state.pluginHasShortcutConflict(summary.filename),
                             hasUpdate: state.catalogUpdate(for: summary) != nil
+                                || state.communityUpdate(for: summary) != nil
                         )
                     }
                     .listStyle(.sidebar)
@@ -998,6 +1058,16 @@ public struct SettingsView: View {
                     .controlSize(.small)
                     .padding(8)
                 }
+
+                if state.updateCount > 0 {
+                    Divider()
+
+                    Button("Update All (\(state.updateCount))…") {
+                        showUpdateAll = true
+                    }
+                    .controlSize(.small)
+                    .padding(8)
+                }
             }
             .frame(width: 240)
             .frame(maxHeight: .infinity)
@@ -1019,10 +1089,39 @@ public struct SettingsView: View {
         .onAppear {
             selectInitialPlugin()
             pluginListFocused = true
+            // The community staleness check rides on the catalog search, which
+            // is cached for an hour, so this is at most one search plus one
+            // CDN request per installed community plugin.
+            state.loadCommunity()
         }
         .onChange(of: state.moduleSummaries.map(\.filename)) {
             selectInitialPlugin()
         }
+        .alert("Update All Plugins?", isPresented: $showUpdateAll) {
+            Button("Cancel", role: .cancel) {}
+            Button("Update", role: .destructive) {
+                state.updateAll()
+            }
+        } message: {
+            Text(updateAllMessage)
+        }
+    }
+
+    private var updateAllMessage: String {
+        let builtIn = state.catalogUpdates.count
+        let community = state.communityUpdatableEntries.count
+        var parts: [String] = []
+        if builtIn > 0 {
+            parts.append(builtIn == 1
+                ? "1 plugin is replaced with the copy that ships with Macotron. Changes you made to that file are lost."
+                : "\(builtIn) plugins are replaced with the copies that ship with Macotron. Changes you made to those files are lost.")
+        }
+        if community > 0 {
+            parts.append(community == 1
+                ? "1 community plugin opens for review before it installs."
+                : "\(community) community plugins open for review, one at a time, before they install.")
+        }
+        return parts.joined(separator: " ")
     }
 
     private var pluginSidebarActions: some View {
@@ -1261,7 +1360,11 @@ struct PluginDetailView: View {
                 header
 
                 if state.pendingReview.contains(summary.filename) { reviewBox }
-                if let update = state.catalogUpdate(for: summary) { updateBox(update) }
+                if let update = state.catalogUpdate(for: summary) {
+                    updateBox(update)
+                } else if let entry = state.communityUpdate(for: summary) {
+                    communityUpdateBox(entry)
+                }
                 if summary.hasErrors { errorBox }
                 if !summary.help.isEmpty { helpBox }
                 if !summary.permissions.isEmpty { permissionsSection }
@@ -1301,6 +1404,27 @@ struct PluginDetailView: View {
         } message: {
             Text("This replaces \(summary.filename) with the copy that ships with Macotron. Any changes you made to the file are lost.")
         }
+    }
+
+    /// The repository published new bytes. The update goes through the same
+    /// review sheet as a first install: the user reads the code, then approves.
+    private func communityUpdateBox(_ entry: CommunityEntry) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            Image(systemName: "arrow.down.circle.fill")
+                .font(.system(size: 11))
+            Text("A newer version is published on GitHub (\(entry.repo)).")
+                .font(.system(size: 11))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            Button("Update…") { state.beginCommunityInstall(entry) }
+                .controlSize(.small)
+                .disabled(state.installingRepo != nil)
+        }
+        .foregroundStyle(.blue)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.blue.opacity(0.08))
+        .cornerRadius(6)
     }
 
     /// The file differs from the copy in the catalog -- either the user edited
