@@ -263,6 +263,7 @@ private struct CatalogInstaller: ViewModifier {
             set: { state.installTarget = $0 }
         ), onDismiss: {
             state.isReviewing = false
+            state.advanceCommunityQueue()
         }) { plugin in
             CatalogInstallSheet(
                 state: state,

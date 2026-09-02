@@ -374,8 +374,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsState.restoreStatusItem = { [weak self] id in
             self?.menuBarManager?.restoreStatus(id: id)
         }
-        settingsState.onInstallAll = { [weak self] plugins in
-            self?.installCatalogPlugins(plugins)
+        settingsState.onInstallAll = { [weak self] plugins, overwrite in
+            self?.installCatalogPlugins(plugins, overwrite: overwrite)
         }
         settingsState.onReviewPending = { [weak self] only in
             self?.reviewPendingPlugins(only: only)
@@ -987,15 +987,15 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Bulk add. One reload at the end: reloading per plugin would replay every
-    /// other plugin once per file.
-    private func installCatalogPlugins(_ plugins: [CatalogPlugin]) {
+    /// Bulk add, or with `overwrite` a bulk update. One reload at the end:
+    /// reloading per plugin would replay every other plugin once per file.
+    private func installCatalogPlugins(_ plugins: [CatalogPlugin], overwrite: Bool = false) {
         let timer = StepTimer("install \(plugins.count) plugins", category: "app")
         guard let workspace else { return }
         var installed = 0
         for plugin in plugins {
             let dest = workspace.pluginsDir.appending(path: plugin.filename)
-            guard !FileManager.default.fileExists(atPath: dest.path(percentEncoded: false)) else {
+            guard overwrite || !FileManager.default.fileExists(atPath: dest.path(percentEncoded: false)) else {
                 continue
             }
             do {
@@ -1010,6 +1010,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         moduleManager.reloadAll()
         timer.step("reloadAll")
         refreshIntegrity()
+        settingsState.refreshModules()
         timer.total()
     }
 
