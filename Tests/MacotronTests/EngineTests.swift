@@ -13,6 +13,17 @@ struct EngineTests {
         #expect(engine.context != nil)
     }
 
+    @Test("unhandled promise rejection is recorded")
+    func testUnhandledRejection() {
+        let engine = Engine()
+        engine.evaluate("(async () => { throw new Error('boom') })()")
+        #expect(engine.lastUnhandledRejection?.contains("boom") == true)
+
+        engine.lastUnhandledRejection = nil
+        engine.evaluate("(async () => { throw new Error('caught') })().catch(() => {})")
+        #expect(engine.lastUnhandledRejection == nil)
+    }
+
     @Test("Evaluate error returns error string")
     func testEvaluateError() {
         let engine = Engine()
