@@ -25,12 +25,16 @@ public final class CalendarModule: NativeModule {
             guard let ctx else { return QJS_Undefined() }
 
             var hours = 24.0
+            var titles: [String]?
             if let argv, argc > 0, !JS_IsUndefined(argv[0]), !JS_IsNull(argv[0]) {
                 let value = JSBridge.getProperty(ctx, argv[0], "hours")
                 if !JS_IsUndefined(value) {
                     hours = JSBridge.toDouble(ctx, value)
                 }
                 JS_FreeValue(ctx, value)
+                if let list = JSBridge.stringArray(ctx, argv[0], "calendars"), !list.isEmpty {
+                    titles = list
+                }
             }
 
             // The permission prompt has to be raised on the main thread; only
@@ -40,8 +44,9 @@ public final class CalendarModule: NativeModule {
             }
             nonisolated(unsafe) let store = CalendarModule.store
             let window = hours
+            let wanted = titles
             return JSBridge.promise(ctx, dryRun: [Any]()) {
-                .value(CalendarModule.upcoming(store: store, hours: window))
+                .value(CalendarModule.upcoming(store: store, hours: window, titles: wanted))
             }
         }, "upcoming", 1))
 
@@ -68,10 +73,22 @@ public final class CalendarModule: NativeModule {
 
     /// Apple's guidance for this synchronous fetch is to keep it off the main
     /// thread; the store is shared, so the granted access comes with it.
-    private nonisolated static func upcoming(store: EKEventStore, hours: Double) -> [Any] {
+    /// `titles` narrows the search to calendars with those names; nil is all
+    /// of them. Names, not identifiers: they read plainly in settings.json
+    /// and survive an account re-sync, which regenerates identifiers.
+    private nonisolated static func upcoming(store: EKEventStore, hours: Double, titles: [String]? = nil) -> [Any] {
+        var calendars: [EKCalendar]?
+        if let titles {
+            let picked = store.calendars(for: .event).filter { titles.contains($0.title) }
+            // Every picked calendar is gone (renamed, account removed): answer
+            // with no events rather than handing EventKit an empty array,
+            // whose behavior its docs leave undefined.
+            guard !picked.isEmpty else { return [] }
+            calendars = picked
+        }
         let start = Date()
         let end = start.addingTimeInterval(max(0, hours) * 3600)
-        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
+        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: calendars)
 
         // EventKit documents the result order as undefined, and every consumer
         // assumes soonest-first.

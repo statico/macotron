@@ -1,6 +1,7 @@
 // AppDelegate.swift — NSApplicationDelegate, app lifecycle
 import AppKit
 import CoreServices
+import EventKit
 import SwiftUI
 import MacotronEngine
 import MacotronUI
@@ -501,6 +502,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         StepTimer.measure("buildPluginSummaries") { buildPluginSummariesBody() }
     }
 
+    /// The user's calendars, for `calendars` plugin options. Values are titles:
+    /// they read plainly in settings.json and survive an account re-sync, which
+    /// regenerates identifiers. Two calendars sharing a title across accounts
+    /// collapse into one row — that checkbox selects both.
+    private static func calendarChoices() -> [ModuleOptionChoice] {
+        guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { return [] }
+        let titles = Permissions.calendarStore.calendars(for: .event).map(\.title)
+        return Set(titles).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+            .map { ModuleOptionChoice(value: $0, label: $0) }
+    }
+
     private func buildPluginSummariesBody() -> [ModuleSummary] {
         let errorMap = Dictionary(
             moduleManager.lastReloadErrors.map { ($0.filename, $0.error) },
@@ -542,13 +554,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     let placeholder = def["placeholder"] as? String ?? ""
                     let help = def["help"] as? String ?? ""
 
-                    let choices = ((def["choices"] as? [[String: Any]]) ?? []).compactMap { choice -> ModuleOptionChoice? in
+                    var choices = ((def["choices"] as? [[String: Any]]) ?? []).compactMap { choice -> ModuleOptionChoice? in
                         guard let value = choice["value"] as? String,
                               let choiceLabel = choice["label"] as? String else { return nil }
                         return ModuleOptionChoice(value: value, label: choiceLabel)
                     }
                     if type == "dropdown" && choices.isEmpty {
                         NSLog("[Macotron] \(file.filename): dropdown option '\(key)' is missing choices")
+                    }
+                    // A `calendars` option lists the user's actual calendars,
+                    // so its choices come from EventKit, not the plugin.
+                    if type == "calendars" {
+                        choices = Self.calendarChoices()
                     }
 
                     let isSet: Bool

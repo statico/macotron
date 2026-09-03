@@ -242,7 +242,7 @@ const opts = macotron.plugin({
 // opts.apiKey === resolved secret string (or "")
 ```
 
-Option types: `string`, `text`, `boolean`, `number`, `keybinding`, `dropdown`
+Option types: `string`, `text`, `boolean`, `number`, `keybinding`, `dropdown`, `calendars`
 (requires `choices: [{ value, label }]`), `password`, `file`, `directory`.
 
 Every option takes `label`, and optional `default`, `required` (Settings

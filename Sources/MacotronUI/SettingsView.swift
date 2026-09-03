@@ -1814,6 +1814,29 @@ struct ModuleOptionRow: View {
                 .labelsHidden()
                 .fixedSize()
             }
+        case "calendars":
+            if option.choices.isEmpty {
+                Text("No calendars available. Grant Calendar access in the Permissions tab first.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+            } else {
+                let selected = (option.currentValue as? [String]).map(Set.init) ?? []
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(option.choices) { choice in
+                        Toggle(choice.label, isOn: Binding(
+                            get: { selected.contains(choice.value) },
+                            set: { include in
+                                var next = selected
+                                if include { next.insert(choice.value) } else { next.remove(choice.value) }
+                                state.saveModuleOption?(filename, option.key, next.sorted())
+                                state.refreshModules()
+                            }
+                        ))
+                        .toggleStyle(.checkbox)
+                        .font(.system(size: 12))
+                    }
+                }
+            }
         case "password":
             HStack(spacing: 8) {
                 SecureField(option.placeholder.isEmpty ? "Enter value" : option.placeholder, text: $passwordValue)
