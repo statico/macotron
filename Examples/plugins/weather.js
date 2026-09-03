@@ -31,6 +31,25 @@ const SYMBOLS = {
     "cloud.sleet.fill": [182, 185, 281, 284, 311, 314, 317, 320, 350, 362, 365, 374, 377],
 };
 
+// After sunset the sun in a symbol becomes a moon; a clear sky shows the
+// phase wttr reports. Overcast, fog, snow and sleet look the same either way.
+const NIGHT = {
+    "cloud.sun.fill": "cloud.moon.fill",
+    "cloud.rain.fill": "cloud.moon.rain.fill",
+    "cloud.bolt.rain.fill": "cloud.moon.bolt.fill",
+};
+const MOON = {
+    "New Moon": "moonphase.new.moon",
+    "Waxing Crescent": "moonphase.waxing.crescent",
+    "First Quarter": "moonphase.first.quarter",
+    "Waxing Gibbous": "moonphase.waxing.gibbous",
+    "Full Moon": "moonphase.full.moon",
+    "Waning Gibbous": "moonphase.waning.gibbous",
+    "Last Quarter": "moonphase.last.quarter",
+    "Third Quarter": "moonphase.last.quarter",
+    "Waning Crescent": "moonphase.waning.crescent",
+};
+
 let lastWeather = null;
 let lastObservation = null;
 
@@ -40,6 +59,33 @@ function weatherSymbol(code) {
         if (SYMBOLS[symbol].includes(number)) return symbol;
     }
     return "cloud.fill";
+}
+
+// "06:11 AM" (wttr's astronomy clock) as minutes since midnight, or null.
+function clockMinutes(value) {
+    const m = String(value || "").trim().match(/^(\d{1,2}):(\d{2}) ([AP]M)$/);
+    if (!m || Number(m[1]) < 1 || Number(m[1]) > 12 || Number(m[2]) > 59) return null;
+    return ((Number(m[1]) % 12) + (m[3] === "PM" ? 12 : 0)) * 60 + Number(m[2]);
+}
+
+// The symbol for a code at `minutes` into `day`, by that day's sunrise and
+// sunset. Without astronomy data it is daytime.
+function nightSymbol(code, day, minutes) {
+    const symbol = weatherSymbol(code);
+    const astro = (day && day.astronomy && day.astronomy[0]) || {};
+    const rise = clockMinutes(astro.sunrise);
+    const set = clockMinutes(astro.sunset);
+    if (rise === null || set === null || (minutes >= rise && minutes < set)) return symbol;
+    if (symbol === "sun.max.fill") return MOON[astro.moon_phase] || "moon.stars.fill";
+    return NIGHT[symbol] || symbol;
+}
+
+// The current symbol: the observation's clock time against its own day.
+function currentSymbol(data, observation) {
+    const key = observationKey(data.weather, observation);
+    const minutes = ((key % 1440) + 1440) % 1440;
+    const day = data.weather.find((d) => dateMinutes(d.date, 0) === key - minutes) || data.weather[0];
+    return nightSymbol(data.current_condition[0].weatherCode, day, minutes);
 }
 
 function description(value) {
@@ -113,7 +159,7 @@ function forecastHours(weather, observation) {
         for (const hour of day.hourly || []) {
             const time = String(hour.time || "0").padStart(4, "0");
             const key = dateMinutes(day.date, time);
-            if (key >= after) entries.push({ date: day.date, time: time, value: hour });
+            if (key >= after) entries.push({ date: day.date, time: time, value: hour, day });
         }
     }
     entries.sort((a, b) => dateMinutes(a.date, a.time) - dateMinutes(b.date, b.time));
@@ -213,7 +259,7 @@ function weatherMenu(data, units, error, observation) {
     const rows = [
         {
             title: locationName(data) + " · " + description(current),
-            icon: weatherSymbol(current.weatherCode),
+            icon: currentSymbol(data, observation),
         },
         "-",
         { title: "Feels like " + feelsLike + "°", icon: "thermometer.medium" },
@@ -232,7 +278,7 @@ function weatherMenu(data, units, error, observation) {
                 return {
                     title: timeLabel(entry.time) + " · "
                         + (us ? hour.tempF : hour.tempC) + "° · " + description(hour),
-                    icon: weatherSymbol(hour.weatherCode),
+                    icon: nightSymbol(hour.weatherCode, entry.day, hourMinutes(entry.time)),
                 };
             }),
         },
@@ -256,7 +302,7 @@ function renderWeather(data, observation, units, error) {
     const current = data.current_condition[0];
     macotron.menubar.status("weather", {
         title: (units === "us" ? current.temp_F : current.temp_C) + "°",
-        sfSymbol: weatherSymbol(current.weatherCode),
+        sfSymbol: currentSymbol(data, observation),
         menu: weatherMenu(data, units, error, observation),
     });
 }
