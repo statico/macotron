@@ -541,7 +541,9 @@ declare const macotron: {
     };
 
     calendar: {
-        upcoming(opts?: { hours?: number }): Promise<Array<{
+        /** `calendars` narrows the fetch to calendars with those titles; omit
+         *  it (or pass an empty array) to search every calendar. */
+        upcoming(opts?: { hours?: number; calendars?: string[] }): Promise<Array<{
             id: string;
             title: string;
             start: number;
@@ -879,6 +881,9 @@ declare const macotron: {
      *                   never the ref. `default` is ignored; passwords start unset.
      * - "file"        — absolute path chosen via NSOpenPanel (files).
      * - "directory"   — absolute path chosen via NSOpenPanel (directories).
+     * - "calendars"   — checkbox list of the user's calendars (Settings fills
+     *                   in the choices). Plugin sees an array of calendar
+     *                   titles; an empty array means every calendar.
      *
      * Every option takes `label` (shown in Settings), optional `default`,
      * and optional `required` (Settings shows a "Needs setup" hint while unset;
@@ -943,7 +948,8 @@ type MacotronPluginOption =
     | { type: "dropdown"; label: string; default?: string; required?: boolean; choices: Array<{ value: string; label: string }>; help?: string }
     | { type: "password"; label: string; required?: boolean; placeholder?: string; help?: string }
     | { type: "file"; label: string; default?: string; required?: boolean; placeholder?: string; help?: string }
-    | { type: "directory"; label: string; default?: string; required?: boolean; placeholder?: string; help?: string };
+    | { type: "directory"; label: string; default?: string; required?: boolean; placeholder?: string; help?: string }
+    | { type: "calendars"; label: string; default?: string[]; required?: boolean; help?: string };
 
 interface HTTPOptions {
     headers?: Record<string, string>;
