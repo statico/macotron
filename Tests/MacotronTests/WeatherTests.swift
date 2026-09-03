@@ -25,6 +25,7 @@ struct WeatherTests {
         {
           "date": "2026-08-20", "mintempC": "13", "maxtempC": "21",
           "mintempF": "55", "maxtempF": "70",
+          "astronomy": [{"sunrise": "06:05 AM", "sunset": "07:45 PM", "moon_phase": "Waxing Gibbous"}],
           "hourly": [
             {"time": "1200", "tempC": "20", "tempF": "68", "weatherCode": "389", "weatherDesc": [{"value": "Thunder"}]},
             {"time": "1800", "tempC": "19", "tempF": "66", "weatherCode": "113", "weatherDesc": [{"value": "Clear"}]},
@@ -34,6 +35,7 @@ struct WeatherTests {
         {
           "date": "2026-08-21", "mintempC": "12", "maxtempC": "20",
           "mintempF": "54", "maxtempF": "68",
+          "astronomy": [{"sunrise": "06:06 AM", "sunset": "07:43 PM", "moon_phase": "Waxing Gibbous"}],
           "hourly": [
             {"time": "0", "tempC": "15", "tempF": "59", "weatherCode": "119", "weatherDesc": [{"value": "Cloudy"}]},
             {"time": "300", "tempC": "14", "tempF": "57", "weatherCode": "143", "weatherDesc": [{"value": "Fog"}]},
@@ -144,7 +146,7 @@ struct WeatherTests {
 
         #expect(value("capturedURLs.length") == "1")
         #expect(value("capturedURLs[0].includes('format=j1')") == "true")
-        #expect(value("statusConfig.sfSymbol") == "cloud.sun.fill")
+        #expect(value("statusConfig.sfSymbol") == "cloud.moon.fill")
         #expect(value("statusConfig.menu.find(x => x.title === 'Next 12 Hours').menu.length") == "4")
         #expect(value("""
             JSON.stringify(
@@ -204,6 +206,24 @@ struct WeatherTests {
                     .map(weatherSymbol)
             )
             """) == #"["sun.max.fill","cloud.sun.fill","cloud.fill","cloud.fog.fill","cloud.rain.fill","cloud.bolt.rain.fill","cloud.snow.fill","cloud.sleet.fill","cloud.fill"]"#)
+    }
+
+    @Test("shows a moon between sunset and sunrise, the phase when clear")
+    func nightSymbols() throws {
+        let harness = try Harness(measurement: "metric")
+        // 8:30 PM is after the 7:45 PM sunset, and so is the 6 AM hour before sunrise.
+        #expect(harness.value("""
+            JSON.stringify(
+                statusConfig.menu.find(x => x.title === 'Next 12 Hours').menu.map(x => x.icon)
+            )
+            """) == #"["cloud.moon.fill","cloud.fill","cloud.fog.fill","cloud.moon.rain.fill"]"#)
+        #expect(harness.value("nightSymbol(113, responseData.weather[0], 22 * 60)") == "moonphase.waxing.gibbous")
+        #expect(harness.value("nightSymbol(113, responseData.weather[0], 12 * 60)") == "sun.max.fill")
+        #expect(harness.value("nightSymbol(113, responseData.weather[2], 22 * 60)") == "sun.max.fill")
+        #expect(harness.value("nightSymbol(389, { astronomy: [{ sunrise: '06:05 AM', sunset: '07:45 PM' }] }, 5 * 60)")
+            == "cloud.moon.bolt.fill")
+        #expect(harness.value("nightSymbol(113, { astronomy: [{ sunrise: '06:05 AM', sunset: '07:45 PM', moon_phase: 'Blue' }] }, 0)")
+            == "moon.stars.fill")
     }
 
     @Test("retains weather after a refresh error")
