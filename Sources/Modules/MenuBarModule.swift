@@ -31,6 +31,7 @@ public protocol MenuBarModuleDelegate: AnyObject {
         required: Bool
     )
     func removeStatus(id: String)
+    func isStatusShowing(id: String) -> Bool
     func removeAllStatus()
     func beginStatusReload()
     func finishStatusReload()
@@ -226,6 +227,13 @@ public final class MenuBarModule: NativeModule {
             JS_FreeValue(ctx, onClickVal)
             return QJS_Undefined()
         }, "status", 2))
+
+        JS_SetPropertyStr(ctx, menubarObj, "isVisible", JS_NewCFunction(ctx, { ctx, _, argc, argv -> JSValue in
+            guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]),
+                  let mod: MenuBarModule = Engine.module(ctx, "__menuBarModule")
+            else { return JS_NewBool(ctx, false) }
+            return JS_NewBool(ctx, mod.delegate?.isStatusShowing(id: id) == true)
+        }, "isVisible", 1))
 
         JS_SetPropertyStr(ctx, macotron, "menubar", menubarObj)
         JS_FreeValue(ctx, macotron)

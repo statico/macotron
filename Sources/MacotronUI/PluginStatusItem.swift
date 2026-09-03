@@ -68,6 +68,31 @@ final class PluginStatusItem: NSObject {
 
     var isVisible: Bool { item.isVisible }
 
+    /// True when the item is in the bar but macOS is not drawing it: no room
+    /// right of the notch, or (rarely) another window over the bar. AppKit
+    /// keeps `isVisible` true in both cases, so this is inferred the way
+    /// Tailscale and Ice do it -- the item's own window says it is not
+    /// visible, or sits left of the notch's safe area.
+    var isOccluded: Bool {
+        guard item.isVisible, let window = item.button?.window else { return false }
+        return Self.occluded(
+            frame: window.frame,
+            drawn: window.occlusionState.contains(.visible),
+            safeRight: window.screen?.auxiliaryTopRightArea
+        )
+    }
+
+    static func occluded(frame: NSRect, drawn: Bool, safeRight: NSRect?) -> Bool {
+        if !drawn { return true }
+        guard let safeRight, frame.width > 0 else { return false }
+        return frame.minX < safeRight.minX
+    }
+
+    var onOcclusionChange: ((String, Bool) -> Void)?
+    private var occlusionObservers: [any NSObjectProtocol] = []
+    private var occlusionWork: DispatchWorkItem?
+    private var lastOccluded = false
+
     var autosaveName: String? { item.autosaveName }
 
     // Read-only windows onto what apply() actually painted, so tests can check
@@ -107,6 +132,35 @@ final class PluginStatusItem: NSObject {
         // Menu bar buttons act on the press, not the release: waiting for
         // mouse-up is the "slight delay" every other item does not have.
         button.sendAction(on: [.leftMouseDown, .rightMouseDown])
+        // The button has no window yet, so match on identity at fire time.
+        // Lid and display changes fire a burst of spurious states, hence the
+        // settle delay before reporting.
+        let center = NotificationCenter.default
+        let react: @Sendable (Notification) -> Void = { [weak self] note in
+            let sender = (note.object as? NSWindow).map(ObjectIdentifier.init)
+            MainActor.assumeIsolated {
+                guard let self, let window = self.item.button?.window else { return }
+                if let sender, sender != ObjectIdentifier(window) { return }
+                self.scheduleOcclusionCheck()
+            }
+        }
+        occlusionObservers = [
+            center.addObserver(forName: NSWindow.didChangeOcclusionStateNotification, object: nil, queue: .main, using: react),
+            center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main, using: react),
+        ]
+    }
+
+    private func scheduleOcclusionCheck() {
+        occlusionWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, !self.removed else { return }
+            let now = self.isOccluded
+            guard now != self.lastOccluded else { return }
+            self.lastOccluded = now
+            self.onOcclusionChange?(self.id, now)
+        }
+        occlusionWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
     }
 
     /// The dozen values one repaint carries. Boxed because apply(), its
@@ -225,6 +279,7 @@ final class PluginStatusItem: NSObject {
             item.length = NSStatusItem.variableLength
         }
         button?.toolTip = spec.subtitle.map { "\(spec.title) — \($0)" } ?? spec.title
+        scheduleOcclusionCheck()
         // A layout measured against a zero-height window is provisional, so
         // leave the door open for the reapply to redo it.
         lastSignature = reapplyPending ? nil : signature
@@ -248,9 +303,13 @@ final class PluginStatusItem: NSObject {
 
     func remove() {
         reapplyWork?.cancel()
+        occlusionWork?.cancel()
+        occlusionObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        occlusionObservers = []
         visibility?.invalidate()
         visibility = nil
         onVisibilityChange = nil
+        onOcclusionChange = nil
         // Removing an item twice raises, and a reload can race a removal.
         guard !removed else { return }
         removed = true
