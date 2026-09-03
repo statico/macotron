@@ -382,10 +382,8 @@ public final class MenuBarManager: NSObject {
 
         for section in sectionOrder {
             if !section.isEmpty {
-                menu.addItem(.separator())
-                let header = NSMenuItem(title: section, action: nil, keyEquivalent: "")
-                header.isEnabled = false
-                menu.addItem(header)
+                addSeparator()
+                menu.addItem(.sectionHeader(title: section))
             }
             for item in sections[section]! {
                 let menuItem = PluginMenu.item(title: item.config.title, icon: item.config.icon)
@@ -400,14 +398,14 @@ public final class MenuBarManager: NSObject {
             }
         }
 
-        // Standard items at bottom
-        menu.addItem(.separator())
-
+        // Standard items at bottom, grouped: launcher / plugin development / app.
+        addSeparator()
         let (launcherKey, launcherMods) = parseHotkey(launcherShortcut)
         addRow("Open Launcher", symbol: "magnifyingglass", key: launcherKey) { [weak self] in
             self?.onToggleLauncher?()
         }.keyEquivalentModifierMask = launcherMods
 
+        addSeparator()
         addRow("Reload Plugins", symbol: "arrow.clockwise", key: "r") { [weak self] in self?.onReload?() }
 
         addRow(
@@ -423,6 +421,7 @@ public final class MenuBarManager: NSObject {
 
         addRow("Open Config Folder", symbol: "folder", key: ",") { [weak self] in self?.onOpenConfig?() }
 
+        addSeparator()
         let pending = Updater.pendingVersion
         addRow(
             pending.map { "Update to \($0)..." } ?? "Check for Updates...",
@@ -431,10 +430,16 @@ public final class MenuBarManager: NSObject {
 
         addRow("Settings...", symbol: "gearshape") { [weak self] in self?.onOpenSettings?() }
 
-        menu.addItem(.separator())
+        addSeparator()
         let quit = NSMenuItem(title: "Quit Macotron", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quit.image = Self.menuSymbol("xmark.circle")
         menu.addItem(quit)
+    }
+
+    /// Separator that never leads the menu or doubles up.
+    private func addSeparator() {
+        guard let last = menu.items.last, !last.isSeparatorItem else { return }
+        menu.addItem(.separator())
     }
 
     /// One static menu row. The closure is boxed in a `PluginMenu.Action` kept
@@ -488,7 +493,7 @@ public final class MenuBarManager: NSObject {
                 .font: NSFont.menuFont(ofSize: NSFont.smallSystemFontSize),
             ]
         )
-        menu.addItem(.separator())
+        addSeparator()
     }
 
     private func addIntegrityWarningIfNeeded() {
@@ -502,7 +507,7 @@ public final class MenuBarManager: NSObject {
                     .font: NSFont.menuFont(ofSize: 0),
                 ]
             )
-            menu.addItem(.separator())
+            addSeparator()
         } else if hotReload {
             let item = addRow("Hot Reload is on") { [weak self] in self.map { $0.onToggleHotReload?(!$0.hotReload) } }
             item.attributedTitle = NSAttributedString(
@@ -512,7 +517,7 @@ public final class MenuBarManager: NSObject {
                     .font: NSFont.menuFont(ofSize: 0),
                 ]
             )
-            menu.addItem(.separator())
+            addSeparator()
         }
     }
 
