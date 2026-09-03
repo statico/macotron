@@ -255,3 +255,41 @@ fn unicode_names_match_either_normalization() {
     assert_eq!(hits.len(), 1);
     assert!(hits[0].path.ends_with("re\u{301}sume\u{301}.pdf"));
 }
+
+#[test]
+fn nested_roots() {
+    let t = tempfile::tempdir().unwrap();
+    tree(t.path(), &["Library/CloudStorage/Drive/doc.txt", "Library/other.txt", "plain.txt", "sub/a.txt", "b.txt"]);
+    let cloud = t.path().join("Library/CloudStorage");
+    let c = Config {
+        roots: vec![t.path().to_path_buf(), cloud.clone(), t.path().join("sub"), t.path().join("missing")],
+        ignore: vec!["Library".into()],
+        ..cfg(t.path())
+    }
+    .normalized();
+    let cloud = cloud.canonicalize().unwrap();
+    let lock = RwLock::new(Index::build(&c));
+    let idx = lock.read().unwrap();
+    // Nested root under an ignored parent is walked with its own rules; the parent's Library stays ignored.
+    assert_eq!(names(&idx, "doc"), vec!["doc.txt"]);
+    assert!(names(&idx, "other").is_empty());
+    // Relative-path fuzzy match and folder filter use the nested root as base.
+    assert_eq!(names(&idx, "drivedoc"), vec!["doc.txt"]);
+    let hits = idx.search(&Query { query: "txt", limit: 50, folder: Some(&cloud), kind: None, dirs_only: false });
+    assert_eq!(hits.len(), 1);
+    assert_eq!(hits[0].path, cloud.join("Drive/doc.txt"));
+    // A nested root the parent does not ignore is indexed exactly once.
+    assert_eq!(idx.search(&Query { query: "a.txt", limit: 50, folder: None, kind: None, dirs_only: false }).iter().filter(|h| h.name == "a.txt").count(), 1);
+    // roots: t, cloud, sub (missing skipped) + Drive, doc.txt, plain.txt, a.txt, b.txt
+    assert_eq!(idx.len(), 8);
+    drop(idx);
+
+    // Events inside the nested roots, plus one on the parent root, update in place without duplicates.
+    tree(t.path(), &["Library/CloudStorage/Drive/new.txt", "sub/c.txt"]);
+    let paths: HashSet<PathBuf> = [cloud.join("Drive/new.txt"), c.roots[0].join("sub/c.txt"), c.roots[0].clone()].into_iter().collect();
+    apply(&lock, paths);
+    let idx = lock.read().unwrap();
+    assert_eq!(names(&idx, "new.txt"), vec!["new.txt"]);
+    assert_eq!(names(&idx, "c.txt")[0], "c.txt");
+    assert_eq!(idx.len(), 10);
+}

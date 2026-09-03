@@ -49,23 +49,13 @@ pub struct Config {
 }
 
 impl Config {
-    /// Canonicalises roots (FSEvents reports real paths, e.g. /private/tmp)
-    /// and drops a root nested inside another so nothing is indexed twice.
+    /// Canonicalises roots (FSEvents reports real paths, e.g. /private/tmp).
+    /// Roots may nest: a walk prunes any directory that is itself a root, and
+    /// the nested root's own walk covers it with rules relative to itself.
     pub fn normalized(mut self) -> Self {
-        let mut roots: Vec<PathBuf> = self
-            .roots
-            .iter()
-            .map(|r| std::fs::canonicalize(r).unwrap_or_else(|_| r.clone()))
-            .collect();
-        roots.sort();
-        roots.dedup();
-        let mut kept: Vec<PathBuf> = Vec::new();
-        for r in roots {
-            if !kept.iter().any(|k| r.starts_with(k)) {
-                kept.push(r);
-            }
-        }
-        self.roots = kept;
+        self.roots = self.roots.iter().map(|r| std::fs::canonicalize(r).unwrap_or_else(|_| r.clone())).collect();
+        self.roots.sort();
+        self.roots.dedup();
         self
     }
 
@@ -375,7 +365,8 @@ impl Index {
 
     /// Entry id and path hash for an absolute path, if indexed and alive.
     pub fn lookup(&self, path: &Path) -> Option<(u32, u64)> {
-        let (root, rid) = self.roots.iter().find(|(r, _)| path.starts_with(r))?;
+        // Deepest root wins so a nested root's entries resolve under it.
+        let (root, rid) = self.roots.iter().filter(|(r, _)| path.starts_with(r)).max_by_key(|(r, _)| r.as_os_str().len())?;
         let mut id = *rid;
         let mut h = mix(0, root.as_os_str().as_bytes());
         for c in path.strip_prefix(root).ok()?.components() {
@@ -656,6 +647,8 @@ fn walker(cfg: &Config, root: &Path, from: &Path) -> Result<WalkBuilder, ignore:
 struct Visitor {
     buf: Vec<Raw>,
     tx: mpsc::Sender<Vec<Raw>>,
+    /// Other configured roots: pruned here, walked on their own.
+    skip: Vec<PathBuf>,
 }
 
 impl Visitor {
@@ -676,8 +669,11 @@ impl ignore::ParallelVisitor for Visitor {
             }
         };
         let is_dir = e.file_type().is_some_and(|t| t.is_dir());
-        let bundle = is_dir && is_bundle(e.file_name().as_bytes());
         let depth = e.depth();
+        if is_dir && depth > 0 && self.skip.iter().any(|r| r == e.path()) {
+            return WalkState::Skip;
+        }
+        let bundle = is_dir && is_bundle(e.file_name().as_bytes());
         self.buf.push(Raw { path: e.into_path(), is_dir, depth });
         if is_dir || self.buf.len() >= 1024 {
             self.flush();
@@ -692,11 +688,11 @@ impl Drop for Visitor {
     }
 }
 
-struct Builder(mpsc::Sender<Vec<Raw>>);
+struct Builder(mpsc::Sender<Vec<Raw>>, Vec<PathBuf>);
 
 impl<'s> ignore::ParallelVisitorBuilder<'s> for Builder {
     fn build(&mut self) -> Box<dyn ignore::ParallelVisitor + 's> {
-        Box::new(Visitor { buf: Vec::new(), tx: self.0.clone() })
+        Box::new(Visitor { buf: Vec::new(), tx: self.0.clone(), skip: self.1.clone() })
     }
 }
 
@@ -709,7 +705,8 @@ fn walk(cfg: &Config, root: &Path, from: &Path, max_depth: Option<usize>, tx: mp
         }
     };
     b.max_depth(max_depth);
-    b.build_parallel().visit(&mut Builder(tx));
+    let skip = cfg.roots.iter().filter(|r| r.as_path() != from).cloned().collect();
+    b.build_parallel().visit(&mut Builder(tx, skip));
 }
 
 fn collect(cfg: &Config, root: &Path, from: &Path, max_depth: Option<usize>) -> Vec<Raw> {

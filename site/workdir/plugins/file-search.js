@@ -1,4 +1,4 @@
-// APIs: files, launcher.query, spotlight.search, shell.run, fs.exists, localStorage, command, checks, every, notify.toast
+// APIs: files, launcher.query, spotlight.search, shell.run, localStorage, command, checks, every, notify.toast
 
 const opts = macotron.plugin({
     title: "File Search",
@@ -7,32 +7,26 @@ const opts = macotron.plugin({
         + "below the apps and commands, from an index Macotron keeps of the folders "
         + "in Search scopes. Two letters are enough; a query with a slash completes "
         + "as a path: each segment matches one level, ~ is home, and a trailing "
-        + "slash lists a folder. Type \"f\" alone for the files you opened most "
-        + "recently, or \"f \" before a query to search only files. Return opens "
-        + "the file, ⌘Return reveals it in Finder, ⌥Return shows a Quick Look "
+        + "slash lists a folder. Return opens the file, ⌘Return reveals it in "
+        + "Finder, ⌥Return shows a Quick Look "
         + "preview, and ⌘C copies the path. Files you open climb the list; "
         + "\"Reset File Ranking\" puts them back, for one path or for all of them.",
     options: {
         searchScopes: {
             type: "text",
             label: "Search scopes",
-            help: "One folder per line. ~ is home.",
-            default: "~\n/Applications",
+            help: "One folder per line. ~ is home. iCloud Drive and cloud storage live under "
+                + "~/Library, so they are listed here to escape the Library ignore.",
+            default: "~\n/Applications\n~/Library/Mobile Documents/com~apple~CloudDocs\n~/Library/CloudStorage",
         },
         ignorePatterns: {
             type: "text",
             label: "Ignore patterns",
             help: "One glob per line, matched against each name and each path inside a scope.",
-            default: [
-                "node_modules", "*.tmp", "go/pkg", "Library/Caches", "Library/Containers",
-                "Library/Group Containers", "Library/pnpm", "Library/Developer/Xcode/DerivedData",
-                // Spotlight hides these; secrets and app state must not surface here either.
-                "Library/Keychains", "Library/Cookies", "Library/Mail", "Library/Messages",
-                "Library/Safari", "Library/Application Support", "Library/Preferences",
-                "Library/Saved Application State", "Library/HTTPStorages", "Library/WebKit",
-                "Library/Logs", "Library/Biome", "Library/Metadata", "Library/Accounts",
-                "Library/IdentityServices", "Library/Suggestions",
-            ].join("\n"),
+            // Spotlight hides ~/Library, and it holds keychains, cookies and app
+            // state, so the whole folder is out; the cloud folders under it come
+            // back in as scopes of their own.
+            default: "node_modules\n*.tmp\ngo/pkg\nLibrary",
         },
         includeHidden: {
             type: "boolean",
@@ -51,12 +45,6 @@ const opts = macotron.plugin({
             label: "Search file contents",
             help: "Add files whose text Spotlight has indexed with the query, below the name matches.",
             default: false,
-        },
-        includeInRootSearch: {
-            type: "boolean",
-            label: "Search from any query",
-            help: "Off means files only answer a query that starts with \"f \".",
-            default: true,
         },
         maxResults: {
             type: "number",
@@ -96,7 +84,7 @@ let opens = (() => {
 const byRecency = (a, b) => (opens[b].last - opens[a].last) || (opens[b].count - opens[a].count);
 
 // Only the newest 200 are kept, so years of opens cannot grow into a map that
-// is parsed on every load and sorted on every "f".
+// is parsed on every load.
 const remember = () => {
     const keep = Object.keys(opens).sort(byRecency).slice(0, 200);
     if (keep.length < Object.keys(opens).length) {
@@ -167,16 +155,6 @@ if (macotron.files) {
     refreshStatus();
 }
 
-// The most recent opens that still exist. Opens from before the file was
-// deleted or moved would otherwise haunt the list forever.
-const recent = () => Object.keys(opens)
-    .sort(byRecency)
-    // exists() is a stat each; a few spares cover deleted files without checking all 200.
-    .slice(0, limit * 3)
-    .filter((p) => macotron.fs.exists(p))
-    .slice(0, limit)
-    .map((p) => row(p, false));
-
 // Spotlight is the only content index on the Mac, so this reaches exactly
 // what Spotlight has indexed: text it can read, in folders it is allowed to see.
 async function contentHits(term) {
@@ -229,13 +207,7 @@ async function search(term) {
 }
 
 macotron.launcher.query("file-search", async (query) => {
-    let term = String(query || "").trim();
-    // "f" alone is the recent list; "f " is the file keyword in either mode,
-    // and the only way in when files are kept out of the root search.
-    if (term === "f") return recent();
-    const keyed = /^f\s+/.test(term);
-    if (keyed) term = term.replace(/^f\s+/, "");
-    else if (opts.includeInRootSearch === false) return [];
+    const term = String(query || "").trim();
     // One letter matches most of the disk even with a local index — but a
     // slash means a path is being typed, and "~/" already says everything.
     if (term.length < 2 && !term.includes("/") && term !== "~") return [];
