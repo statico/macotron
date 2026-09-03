@@ -61,6 +61,15 @@ struct AppLaunchTests {
         ))?.bundleIdentifier == "com.apple.iphonesimulator")
     }
 
+    @Test("only regular apps take the activate fast path")
+    func menuBarAppsSkipActivate() {
+        #expect(AppLaunch.canActivateDirectly(policy: .regular))
+        // Menu-bar-only (LSUIElement) and background apps have no windows to
+        // activate; they must go through LaunchServices to get a reopen event.
+        #expect(!AppLaunch.canActivateDirectly(policy: .accessory))
+        #expect(!AppLaunch.canActivateDirectly(policy: .prohibited))
+    }
+
     @Test("shortcut hides when the app is already frontmost")
     func hideIfFrontmost() {
         #expect(AppLaunch.shouldHide(bundleID: "com.apple.Safari", frontmost: "com.apple.Safari"))
