@@ -39,7 +39,6 @@ struct FileSearchTests {
             checks: (rows) => { __checks = rows; },
             every: () => () => {},
             notify: { toast: (...a) => { __toasts.push(a.join(" ")); } },
-            fs: { exists: (p) => !p.includes("gone") },
             launcher: { query: (_id, fn, opts) => { __query = fn; __resolver = opts && opts.run; } },
             files: {
                 configure: async (o) => { if (__configureError) throw new Error(__configureError); __configured = o; },
@@ -125,24 +124,6 @@ struct FileSearchTests {
             """#)
         #expect(PluginHarness.run(engine, "JSON.stringify(__configured)")
             == #"{"roots":["~","/Applications"],"ignore":["node_modules","*.tmp"],"hidden":true,"ignoreFiles":false}"#)
-    }
-
-    @Test("kept out of the root search, files only answer the f keyword")
-    func keywordMode() throws {
-        let opts = "{ includeInRootSearch: false }"
-        #expect(try rows("budget", opts: opts) == "[]")
-        #expect(try rows("f budget", opts: opts).contains("budget.pdf"))
-    }
-
-    @Test("f alone lists recent opens that still exist, newest first")
-    func recent() throws {
-        let engine = try load(extra: #"""
-            __resolver("/tmp/old.pdf");
-            __resolver("/tmp/gone.pdf");
-            __resolver("/tmp/new.pdf");
-            __query("f").then((r) => { __rows = r; });
-            """#)
-        #expect(PluginHarness.run(engine, "__rows.map((r) => r.path).join(',')") == "/tmp/new.pdf,/tmp/old.pdf")
     }
 
     @Test("a row carries the path as its id, path, and action")

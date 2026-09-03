@@ -31,17 +31,11 @@ if apps {
     // Cold start: the first search answers from a partial index while the
     // walk runs, so the timing line reports which case it measured.
     let index = FileIndex.shared
-    try index.configure(roots: ["~", "/Applications"],
-                        // The same list the plugin ships as its default.
-                        ignore: ["node_modules", "*.tmp", "go/pkg", "Library/Caches",
-                                 "Library/Containers", "Library/Group Containers", "Library/pnpm",
-                                 "Library/Developer/Xcode/DerivedData", "Library/Keychains",
-                                 "Library/Cookies", "Library/Mail", "Library/Messages",
-                                 "Library/Safari", "Library/Application Support",
-                                 "Library/Preferences", "Library/Saved Application State",
-                                 "Library/HTTPStorages", "Library/WebKit", "Library/Logs",
-                                 "Library/Biome", "Library/Metadata", "Library/Accounts",
-                                 "Library/IdentityServices", "Library/Suggestions"],
+    // The same scopes and ignore list the plugin ships as its defaults.
+    try index.configure(roots: ["~", "/Applications",
+                                "~/Library/Mobile Documents/com~apple~CloudDocs",
+                                "~/Library/CloudStorage"],
+                        ignore: ["node_modules", "*.tmp", "go/pkg", "Library"],
                         hidden: false, ignoreFiles: true)
     // The probe starts its own indexer, so the walk runs first; the timing
     // line measures the search alone, the way the running app sees it.

@@ -14,7 +14,7 @@ launcher can rank them. An in-memory name index answers in milliseconds.
   process from the app bundle, restarts it if it dies, and serialises requests.
 - `Sources/Modules/FilesModule.swift` — `macotron.files.*`, the JS surface.
 - `Examples/plugins/file-search.js` — the built-in plugin: launcher rows,
-  settings, recent files, actions.
+  settings, actions.
 - `macotron.spotlight.search` stays as-is for content search and as a fallback
   when the indexer is missing.
 
@@ -54,6 +54,9 @@ and report `"indexing":true`; `status.roots` likewise reflects the live index
 until the build lands.
 
 - `roots`: absolute paths. `~` is expanded by the host, not the indexer.
+  Roots may nest: a nested root is pruned from its parent's walk and walked
+  with its own rules, so `~/Library/CloudStorage` can be a scope while
+  `Library` is ignored.
 - `ignore`: gitignore-style globs, matched against the path relative to the
   root that contains it and against the bare name. `node_modules` skips every
   folder of that name; `Library/Caches` skips that one relative path.
@@ -156,22 +159,20 @@ Mirrors Raycast's File Search settings, using Macotron plugin options:
 
 | option | type | default |
 |---|---|---|
-| `searchScopes` | text, one folder per line | `~` and `/Applications` |
-| `ignorePatterns` | text, one glob per line | `node_modules, *.tmp, go/pkg, Library/Caches, Library/Containers, Library/Group Containers, Library/pnpm, Library/Developer/Xcode/DerivedData, Library/Keychains, Library/Cookies, Library/Mail, Library/Messages, Library/Safari, Library/Application Support, Library/Preferences, Library/Saved Application State, Library/HTTPStorages, Library/WebKit, Library/Logs, Library/Biome, Library/Metadata, Library/Accounts, Library/IdentityServices, Library/Suggestions` |
+| `searchScopes` | text, one folder per line | `~`, `/Applications`, `~/Library/Mobile Documents/com~apple~CloudDocs`, `~/Library/CloudStorage` |
+| `ignorePatterns` | text, one glob per line | `node_modules`, `*.tmp`, `go/pkg`, `Library` |
 | `includeHidden` | boolean | false |
 | `useIgnoreFiles` | boolean | true |
 | `contentSearch` | boolean | false; adds Spotlight `kMDItemTextContent` hits below name hits |
-| `includeInRootSearch` | boolean | true; when off, files only answer a query starting with the keyword `f ` |
 | `maxResults` | number | 8 |
 
-The `Library/*` entries beyond caches mirror what Spotlight hides: keychains,
-cookies, mail, messages, app support and state. iCloud Drive
-(`Library/Mobile Documents`, `Library/CloudStorage`) stays searchable.
+`~/Library` is ignored whole, as Spotlight hides it: it holds keychains,
+cookies, mail, messages, app support and state. iCloud Drive and the cloud
+storage providers live under it, so those two folders are scopes of their
+own; a scope nested inside an ignored folder is still walked.
 
 Actions on a row: Return opens, ⌘Return reveals in Finder, ⌥Return shows a
-Quick Look preview, ⌘C copies the path. The launcher is the Search Files view:
-`f` alone lists recent opens, `f ` before a query searches files only.
-Commands: "Reindex Files", "Reset File Ranking". The plugin's Checks row
+Quick Look preview, ⌘C copies the path. Commands: "Reindex Files", "Reset File Ranking". The plugin's Checks row
 reports the index state and entry count; it is `ok` whenever the indexer is
 available, and carries the error when `configure` rejects a glob. When
 `files.search` rejects, the plugin answers from Spotlight until a later
