@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.5.2</title>
+            <sparkle:version>0.5.2</sparkle:version>
+            <sparkle:shortVersionString>0.5.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Thu, 03 Sep 2026 22:09:50 +0000</pubDate>
+            <description><![CDATA[<ul><li>Warn when a menu bar item is hidden behind the notch</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.5.2/Macotron-0.5.2.dmg" type="application/octet-stream" sparkle:edSignature="DjlfGqYIX50pq3L7uTHOePcE1bZwYNOLC6bQI1oDgmVZb0D0mIvHZ1H9GEgJDYFZurMWnvJ+rtiwGFA9U5eBAA==" length="10234630" />
+        </item>
+        <item>
             <title>0.5.1</title>
             <sparkle:version>0.5.1</sparkle:version>
             <sparkle:shortVersionString>0.5.1</sparkle:shortVersionString>
