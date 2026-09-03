@@ -37,6 +37,19 @@ struct JSBridgeTests {
         _ = engine
     }
 
+    @Test("JSON booleans stay booleans, not numbers")
+    func jsonBool() throws {
+        let (engine, ctx) = makeContext()
+        let parsed = try JSONSerialization.jsonObject(with: Data(#"{"a":true,"b":1}"#.utf8))
+        let js = JSBridge.anyToJS(ctx, parsed)
+        let global = JS_GetGlobalObject(ctx)
+        JS_SetPropertyStr(ctx, global, "__v", js)
+        JS_FreeValue(ctx, global)
+        let (result, error) = engine.evaluate("typeof __v.a + ',' + typeof __v.b")
+        #expect(error == nil)
+        #expect(result == "boolean,number")
+    }
+
     @Test("Int32 round-trips", arguments: [42, -100, 0, 99, 7] as [Int32])
     func int32RoundTrip(_ value: Int32) {
         let (engine, ctx) = makeContext()

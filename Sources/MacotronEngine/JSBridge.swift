@@ -77,6 +77,10 @@ public enum JSBridge {
         switch value {
         case let s as String:
             return newString(ctx, s)
+        // JSONSerialization hands back booleans as NSNumber, which also
+        // bridges to Int: without this, `true` reaches JS as 1.
+        case let n as NSNumber where CFGetTypeID(n) == CFBooleanGetTypeID():
+            return newBool(ctx, n.boolValue)
         case let i as Int:
             // JS numbers are doubles anyway, so anything too wide for Int32
             // goes through as a double rather than trapping. Timestamps from a

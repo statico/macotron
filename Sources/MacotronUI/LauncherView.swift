@@ -243,6 +243,8 @@ public struct LauncherView: View {
                 onArrowUp: { moveSelection(-1) },
                 onArrowDown: { moveSelection(1) },
                 onCmdReturn: { executeSelectedWithModifier() },
+                onOptReturn: { quickLookSelected() },
+                onCmdC: { copySelectedPath() },
                 onCmdK: { beginShortcutRecording() },
                 onCmdS: { toggleSelectedFavorite() },
                 onCmdSemicolon: { onOpenSettings?() },
@@ -331,6 +333,30 @@ public struct LauncherView: View {
         onRevealInFinder?(result.path.isEmpty ? result.id : result.path)
     }
 
+    /// Only rows that live on disk have these; for anything else the keys
+    /// keep their usual meaning. Cmd-C also stays a text copy while the
+    /// query field has a selection.
+    private var selectedPath: String? {
+        guard selectedIndex < results.count, !results[selectedIndex].path.isEmpty else { return nil }
+        return results[selectedIndex].path
+    }
+
+    private func quickLookSelected() -> Bool {
+        guard let path = selectedPath else { return false }
+        QuickLook.shared.show(path)
+        return true
+    }
+
+    private func copySelectedPath() -> Bool {
+        guard let path = selectedPath else { return false }
+        if let tv = NSApp.keyWindow?.firstResponder as? NSTextView, tv.selectedRange().length > 0 {
+            return false
+        }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(path, forType: .string)
+        return true
+    }
+
     private func executeResult(_ result: SearchResult) {
         if result.type == .command, !result.commandArguments.isEmpty {
             session.pendingArgs = .init(
@@ -347,6 +373,7 @@ public struct LauncherView: View {
     }
 
     private func handleEscape() -> Bool {
+        QuickLook.shared.stop()
         if isRecordingShortcut {
             isRecordingShortcut = false
             return true
@@ -600,10 +627,44 @@ private struct LauncherQueryField: NSViewRepresentable {
     }
 }
 
+/// One `qlmanage -p` at a time. It cannot be killed when the launcher hides:
+/// the preview taking focus is what hides the launcher. Escape and quit end
+/// it, and a second Option-Return replaces it.
+@MainActor
+final class QuickLook {
+    static let shared = QuickLook()
+    private var process: Process?
+
+    private init() {
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: .main
+        ) { _ in MainActor.assumeIsolated { QuickLook.shared.stop() } }
+    }
+
+    func show(_ path: String) {
+        stop()
+        let ql = Process()
+        ql.executableURL = URL(fileURLWithPath: "/usr/bin/qlmanage")
+        ql.arguments = ["-p", path]
+        ql.standardOutput = FileHandle.nullDevice
+        ql.standardError = FileHandle.nullDevice
+        try? ql.run()
+        process = ql
+    }
+
+    func stop() {
+        if let process, process.isRunning { process.terminate() }
+        process = nil
+    }
+}
+
 struct KeyEventHandler: NSViewRepresentable {
     var onArrowUp: () -> Void
     var onArrowDown: () -> Void
     var onCmdReturn: () -> Void
+    /// Return true when handled; false lets the key keep its usual meaning.
+    var onOptReturn: (() -> Bool)?
+    var onCmdC: (() -> Bool)?
     var onCmdK: () -> Void
     var onCmdS: (() -> Void)?
     var onCmdSemicolon: (() -> Void)?
@@ -644,6 +705,12 @@ struct KeyEventHandler: NSViewRepresentable {
         if interceptListKeys {
             if flags.contains(.command), event.keyCode == 36 {
                 onCmdReturn()
+                return true
+            }
+            if flags == .option, event.keyCode == 36, onOptReturn?() == true {
+                return true
+            }
+            if flags == .command, chars == "c", onCmdC?() == true {
                 return true
             }
             if flags.contains(.command), flags.isDisjoint(with: [.shift, .option, .control]),

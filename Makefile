@@ -83,7 +83,14 @@ TRACE_LOG ?= tmp/log
 # SwiftPM cannot nest its own sandbox-exec inside one.
 # --disable-keychain: with more than one github.com entry in the login keychain
 # SwiftPM hangs forever downloading Sparkle instead of fetching it anonymously.
-build: ## Compile the debug binary
+# The file indexer is a Rust crate (docs/12-file-index.md). Rust is a build-time
+# dependency only: the app ships the binary it produces.
+INDEXER = Indexer/target/release/macotron-index
+
+build: ## Compile the debug binary and the file indexer
+	@command -v cargo >/dev/null || \
+		{ echo "cargo not found. The file indexer needs a Rust toolchain: https://rustup.rs"; exit 1; }
+	cargo build --release --manifest-path Indexer/Cargo.toml
 	swift build -c $(CONFIG) --build-path $(BUILD_DIR) --disable-keychain $(SWIFT_FLAGS)
 
 bundle: build ## Create ~/Applications/Macotron.app
@@ -92,6 +99,7 @@ bundle: build ## Create ~/Applications/Macotron.app
 	@mkdir -p "$(BUNDLE)/Contents/Library/LaunchDaemons"
 	@cp $(BINARY) "$(BUNDLE)/Contents/MacOS/$(APP_NAME)"
 	@cp $(HELPER_BINARY) "$(BUNDLE)/Contents/MacOS/$(HELPER_NAME)"
+	@cp $(INDEXER) "$(BUNDLE)/Contents/MacOS/macotron-index"
 	@cp Resources/$(HELPER_LABEL).plist "$(BUNDLE)/Contents/Library/LaunchDaemons/"
 	@cp Resources/Info.plist "$(BUNDLE)/Contents/"
 	@if [ -n "$(VERSION)" ]; then \
@@ -129,10 +137,13 @@ bundle: build ## Create ~/Applications/Macotron.app
 		codesign --force --sign "$(SIGN_IDENTITY)" $(SIGN_FLAGS) \
 			"$(BUNDLE)/Contents/MacOS/$(HELPER_NAME)"; \
 		codesign --force --sign "$(SIGN_IDENTITY)" $(SIGN_FLAGS) \
+			"$(BUNDLE)/Contents/MacOS/macotron-index"; \
+		codesign --force --sign "$(SIGN_IDENTITY)" $(SIGN_FLAGS) \
 			--entitlements Resources/Macotron.entitlements "$(BUNDLE)"; \
 		echo "Signed with $(SIGN_IDENTITY)"; \
 	else \
 		codesign --force --sign - "$(BUNDLE)/Contents/MacOS/$(HELPER_NAME)"; \
+		codesign --force --sign - "$(BUNDLE)/Contents/MacOS/macotron-index"; \
 		codesign --force --sign - --entitlements Resources/Macotron.entitlements "$(BUNDLE)"; \
 		printf '\033[33mWarning: ad-hoc signed. macOS permissions reset on every build.\033[0m\n'; \
 		printf '\033[33mCreate a Code Signing certificate in Keychain Access to keep them.\033[0m\n'; \
@@ -265,6 +276,7 @@ publish: ## Appcast, tag, GitHub release, and cask for a built DMG (VERSION=x.y.
 
 clean: ## Remove build artifacts and the app bundle
 	swift package clean --build-path $(BUILD_DIR)
+	@command -v cargo >/dev/null && cargo clean --manifest-path Indexer/Cargo.toml || true
 	rm -rf "$(BUNDLE)"
 
 cleanprefs: ## Wipe UserDefaults + Application Support (fresh wizard)

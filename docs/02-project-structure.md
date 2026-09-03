@@ -8,6 +8,7 @@ This layout matches the host-shell redesign.
 macotron/
 ├── Makefile                         # build, run, bundle
 ├── Package.swift                    # Swift Package Manager manifest
+├── Indexer/                         # Rust file indexer (macotron-index), see 12-file-index.md
 ├── Vendor/
 │   └── quickjs-ng/                  # QuickJS source
 ├── Resources/
@@ -67,6 +68,8 @@ Sources/
 │   ├── AIModule.swift           # Exposes macotron.ai to plugins
 │   ├── PanelModule.swift        # WKWebView panels (macotron.panel)
 │   ├── SpotlightModule.swift
+│   ├── FileIndex.swift              # Client for the macotron-index process
+│   ├── FilesModule.swift            # macotron.files
 │   ├── AppModule.swift
 │   ├── SystemModule.swift
 │   ├── HTTPModule.swift
