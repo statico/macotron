@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.5.0</title>
+            <sparkle:version>0.5.0</sparkle:version>
+            <sparkle:shortVersionString>0.5.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Thu, 03 Sep 2026 06:12:12 +0000</pubDate>
+            <description><![CDATA[<ul><li>Centre status item icons on their text: ink frames were upside down</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.5.0/Macotron-0.5.0.dmg" type="application/octet-stream" sparkle:edSignature="lqDvb2ogcpr0gp0l6mQkaTawS3Reg6WLOyXk3IteaV/523rB1dGAUDvPJNY+eAcdR9/ijIpDzaFaPBHyL65FAA==" length="10228201" />
+        </item>
+        <item>
             <title>0.4.7</title>
             <sparkle:version>0.4.7</sparkle:version>
             <sparkle:shortVersionString>0.4.7</sparkle:shortVersionString>
