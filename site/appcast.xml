@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.4.7</title>
+            <sparkle:version>0.4.7</sparkle:version>
+            <sparkle:shortVersionString>0.4.7</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Thu, 03 Sep 2026 06:07:06 +0000</pubDate>
+            <description><![CDATA[<ul><li>Update All plugins from settings, with out-of-date community plugins</li><li>Merge the meeting plugins; pick calendars and hide patterns in settings</li><li>Launch menu-bar-only apps instead of invisibly activating them</li><li>Index files in Rust instead of asking Spotlight</li><li>Drop the "f" keyword and ignore ~/Library whole</li><li>Drop the file-search plugin's guards for a files module the host always has</li><li>Show a moon in the weather icon after sunset</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.4.7/Macotron-0.4.7.dmg" type="application/octet-stream" sparkle:edSignature="Z6/Ax8jwsUkTN5NVIdikyolcIHwefaUk0Bb2NHOY6RGrtQo+wVTdUfAdBvwiFx74HSKEMgdi0JS/N1u9dL0lDw==" length="10229561" />
+        </item>
+        <item>
             <title>0.4.6</title>
             <sparkle:version>0.4.6</sparkle:version>
             <sparkle:shortVersionString>0.4.6</sparkle:shortVersionString>
