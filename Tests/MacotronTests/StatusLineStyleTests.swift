@@ -125,6 +125,20 @@ struct StatusLineStyleTests {
         #expect(abs(image.size.width - (ink.width + StatusLineStyle.iconTextSpacing + textWidth)) < 1)
     }
 
+    @Test("ink frame is bottom-up, like the drawing that uses it")
+    @MainActor
+    func inkFrameOrigin() {
+        // Ink only in the top 2pt of a 10pt canvas.
+        let image = NSImage(size: NSSize(width: 4, height: 10), flipped: false) { _ in
+            NSColor.black.set()
+            NSRect(x: 0, y: 8, width: 4, height: 2).fill()
+            return true
+        }
+        let ink = StatusLineStyle.inkFrame(image)
+        #expect(abs(ink.minY - 8) < 0.6)
+        #expect(abs(ink.height - 2) < 0.6)
+    }
+
     @Test("composed image spans the bar height")
     @MainActor
     func composedImage() {
