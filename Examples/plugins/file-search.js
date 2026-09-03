@@ -55,8 +55,8 @@ const opts = macotron.plugin({
     },
 });
 
-const lines = (s, sep) => String(s || "").split(sep).map((x) => x.trim()).filter(Boolean);
-const roots = lines(opts.searchScopes, "\n");
+const lines = (s) => String(s || "").split("\n").map((x) => x.trim()).filter(Boolean);
+const roots = lines(opts.searchScopes);
 const limit = Math.max(1, Number(opts.maxResults) || 8);
 
 // What you open is the best evidence of what you meant, and the one signal
@@ -125,9 +125,7 @@ const UNAVAILABLE = "Indexer unavailable, using Spotlight";
 const withCommas = (n) => String(n).replace(/\B(?=(\d{3})+$)/g, ",");
 
 async function refreshStatus() {
-    const s = macotron.files
-        ? await macotron.files.status().catch(() => ({ available: false }))
-        : { available: false };
+    const s = await macotron.files.status().catch(() => ({ available: false }));
     available = s.available !== false;
     if (available && s.roots && s.roots.length) resolvedRoots = s.roots;
     let message = UNAVAILABLE;
@@ -141,19 +139,15 @@ async function refreshStatus() {
     }
 }
 
-if (macotron.files) {
-    macotron.files.configure({
-        roots,
-        ignore: lines(opts.ignorePatterns, "\n"),
-        hidden: !!opts.includeHidden,
-        ignoreFiles: !!opts.useIgnoreFiles,
-    }).then(refreshStatus, (e) => {
-        // A bad glob is the user's to fix, so it goes on the plugin page, not in the log.
-        macotron.checks([{ title: "File index", ok: false, message: String((e && e.message) || e) }]);
-    });
-} else {
-    refreshStatus();
-}
+macotron.files.configure({
+    roots,
+    ignore: lines(opts.ignorePatterns),
+    hidden: !!opts.includeHidden,
+    ignoreFiles: !!opts.useIgnoreFiles,
+}).then(refreshStatus, (e) => {
+    // A bad glob is the user's to fix, so it goes on the plugin page, not in the log.
+    macotron.checks([{ title: "File index", ok: false, message: String((e && e.message) || e) }]);
+});
 
 // Spotlight is the only content index on the Mac, so this reaches exactly
 // what Spotlight has indexed: text it can read, in folders it is allowed to see.
@@ -175,7 +169,8 @@ async function search(term) {
     let dirs = {};
     // Path completion lives in the Spotlight module, and so does everything
     // when the indexer is missing.
-    if (available && !term.includes("/") && term !== "~") {
+    const pathQuery = term.includes("/") || term === "~";
+    if (available && !pathQuery) {
         // A rejection means the indexer is gone; Spotlight takes over until
         // status() sees it back.
         const hits = await macotron.files.search(term, { limit: 50 }).catch(() => null);
@@ -189,11 +184,11 @@ async function search(term) {
             macotron.checks([{ title: "File index", ok: false, message: UNAVAILABLE }]);
         }
     }
-    if (!available || term.includes("/") || term === "~") {
+    if (!available || pathQuery) {
         paths = ((await macotron.spotlight.search(term).catch(() => [])) || []).map((h) => h.path);
     }
     // Content matches cost an mdfind run, so they wait for a term worth one.
-    if (opts.contentSearch && !term.includes("/") && term.length >= 3) {
+    if (opts.contentSearch && !pathQuery && term.length >= 3) {
         const seen = new Set(paths);
         for (const p of await contentHits(term)) if (!seen.has(p)) paths.push(p);
     }
@@ -220,7 +215,7 @@ macotron.launcher.query("file-search", async (query) => {
 });
 
 macotron.command("Reindex Files", "Drop the file index and walk the search scopes again.", async () => {
-    if (!macotron.files || !available) return macotron.notify.toast("Files", UNAVAILABLE);
+    if (!available) return macotron.notify.toast("Files", UNAVAILABLE);
     await macotron.files.reindex();
     macotron.notify.toast("Files", "Reindexing…");
     refreshStatus();

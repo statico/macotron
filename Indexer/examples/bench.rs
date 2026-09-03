@@ -1,16 +1,18 @@
-//! `cargo run --release --example bench` — indexes $HOME and /Applications
-//! with the default ignore list and reports the budget numbers.
+//! `cargo run --release --example bench` — indexes the plugin's default
+//! scopes with its default ignore list and reports the budget numbers.
 use macotron_index::{resident_bytes, Config, Index, Query};
 use std::time::Instant;
 
 fn main() {
     let home = std::env::var("HOME").unwrap();
     let cfg = Config {
-        roots: vec![home.into(), "/Applications".into()],
-        ignore: ["node_modules", "*.tmp", "Library/Caches", "Library/Containers", "Library/Group Containers", "Library/pnpm", "Library/Developer/Xcode/DerivedData", "go/pkg"]
-            .iter()
-            .map(|s| s.to_string())
-            .collect(),
+        roots: vec![
+            home.clone().into(),
+            "/Applications".into(),
+            format!("{home}/Library/Mobile Documents/com~apple~CloudDocs").into(),
+            format!("{home}/Library/CloudStorage").into(),
+        ],
+        ignore: ["node_modules", "*.tmp", "go/pkg", "Library"].iter().map(|s| s.to_string()).collect(),
         hidden: false,
         ignore_files: true,
     }
