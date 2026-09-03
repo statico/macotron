@@ -462,9 +462,13 @@ enum StatusLineStyle {
             }
         }
         guard found else { return NSRect(origin: .zero, size: size) }
+        // bitmapData rows run top-down; the frame is bottom-up like the
+        // drawing that consumes it. Mixing the two pushed any glyph with more
+        // canvas below its ink than above (moon discs, most circles) down by
+        // the difference.
         return NSRect(
             x: CGFloat(minX) / scale,
-            y: CGFloat(minY) / scale,
+            y: CGFloat(Int(pixels.height) - 1 - maxY) / scale,
             width: CGFloat(maxX - minX + 1) / scale,
             height: CGFloat(maxY - minY + 1) / scale
         )
