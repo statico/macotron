@@ -126,12 +126,12 @@ Closing stdin also exits.
 
 ## Budgets
 
-Measured on a home with 986k indexable entries (after skipping caches):
+Measured on a home with 1.03M indexable entries (with `Library` ignored):
 
 - build: under 3 s, on a background thread, never blocking search requests
 - search: under 30 ms for a three-letter query at 1M entries
-- memory: under 150 MB resident at 1M entries; store names once with a parent
-  reference rather than a full path per entry
+- memory: under 200 MB resident at 1M entries; names are stored once with a
+  parent reference rather than a full path per entry
 - FSEvents changes reflected within 2 s
 
 ## JS API
