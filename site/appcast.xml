@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.5.1</title>
+            <sparkle:version>0.5.1</sparkle:version>
+            <sparkle:shortVersionString>0.5.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Thu, 03 Sep 2026 16:58:22 +0000</pubDate>
+            <description><![CDATA[<ul><li>Group the status menu with separators per the HIG</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.5.1/Macotron-0.5.1.dmg" type="application/octet-stream" sparkle:edSignature="wVB9xneZayR1dtYlN+n05uQXrsNvroET32/9+LRKp1NS2ysBtcyMFQvgl0QM+maR/zWlMIchKj5EtjD0llmgAw==" length="10227698" />
+        </item>
+        <item>
             <title>0.5.0</title>
             <sparkle:version>0.5.0</sparkle:version>
             <sparkle:shortVersionString>0.5.0</sparkle:shortVersionString>
