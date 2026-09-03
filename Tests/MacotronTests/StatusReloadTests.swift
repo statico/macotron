@@ -48,6 +48,7 @@ final class StatusReloadRecorder: MenuBarModuleDelegate {
         ))
     }
     func removeStatus(id: String) {}
+    func isStatusShowing(id: String) -> Bool { true }
     func removeAllStatus() { removedAll += 1 }
     func beginStatusReload() { began += 1 }
     func finishStatusReload() { finished += 1 }

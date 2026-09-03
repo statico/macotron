@@ -118,6 +118,11 @@ public final class ToastHost {
         show(title: text, body: nil, position: .bottom, duration: 2)
     }
 
+    /// Host-side warning: orange triangle, long enough to read twice.
+    public func warn(_ title: String, _ body: String? = nil) {
+        show(title: title, body: body, position: .bottom, duration: 5, color: "warning")
+    }
+
     private var panel: NSPanel?
     private var titleField: NSTextField?
     private var iconView: NSImageView?

@@ -129,6 +129,8 @@ public struct ModuleSummary: Identifiable {
     public let permissions: [Permission]
     /// Menu bar items this plugin asked for that the user has dragged out.
     public let hiddenStatusItems: [String]
+    /// Menu bar items in the bar that macOS has no room to draw (the notch).
+    public let occludedStatusItems: [String]
     /// Hash of the file on disk, to compare against the catalog copy.
     public let sourceHash: String
 
@@ -141,7 +143,7 @@ public struct ModuleSummary: Identifiable {
                 hotkeys: [PluginCommandSummary] = [], hasErrors: Bool = false, errorMessage: String? = nil,
                 isEnabled: Bool = true, commands: [PluginCommandSummary] = [],
                 permissions: [Permission] = [], hiddenStatusItems: [String] = [],
-                sourceHash: String = "") {
+                occludedStatusItems: [String] = [], sourceHash: String = "") {
         self.id = filename
         self.filename = filename
         self.title = title.isEmpty ? String(filename.dropLast(3)) : title
@@ -155,6 +157,7 @@ public struct ModuleSummary: Identifiable {
         self.errorMessage = errorMessage
         self.isEnabled = isEnabled
         self.hiddenStatusItems = hiddenStatusItems
+        self.occludedStatusItems = occludedStatusItems
         self.sourceHash = sourceHash
         self.commands = commands
         self.permissions = permissions
@@ -1369,7 +1372,7 @@ struct PluginDetailView: View {
                 if !summary.help.isEmpty { helpBox }
                 if !summary.permissions.isEmpty { permissionsSection }
                 if !summary.checks.isEmpty { checksSection }
-                if !summary.hiddenStatusItems.isEmpty { hiddenStatusSection }
+                if !summary.hiddenStatusItems.isEmpty || !summary.occludedStatusItems.isEmpty { hiddenStatusSection }
 
                 if !summary.isEnabled { disabledHint }
                 if summary.isEnabled {
@@ -1581,6 +1584,24 @@ struct PluginDetailView: View {
                     Spacer(minLength: 8)
                     Button("Restore") { state.restoreStatusItem?(id) }
                         .controlSize(.small)
+                }
+            }
+            // No button: only the user can make room. macOS drops items that
+            // do not fit right of the notch without any overflow.
+            ForEach(summary.occludedStatusItems, id: \.self) { id in
+                HStack(alignment: .center, spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.orange)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\u{201C}\(id)\u{201D} isn\u{2019}t visible in the menu bar")
+                            .font(.system(size: 12, weight: .medium))
+                        Text("There is no room for it, usually because of the notch. Command-drag other items out of the menu bar, or move some into Control Center in System Settings.")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 8)
                 }
             }
         }

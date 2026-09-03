@@ -267,6 +267,9 @@ public final class MenuBarManager: NSObject {
         extra.onVisibilityChange = { [weak self] id, visible in
             self?.statusVisibilityChanged(id: id, visible: visible)
         }
+        extra.onOcclusionChange = { [weak self] id, occluded in
+            self?.statusOcclusionChanged(id: id, occluded: occluded)
+        }
         statusRegistered?.insert(id)
         // An item dragged out stays out across launches, so it can come up
         // hidden; the observer above only fires on a change and would never
@@ -291,6 +294,26 @@ public final class MenuBarManager: NSObject {
     public func removeStatus(id: String) {
         extraStatusItems.removeValue(forKey: id)?.remove()
         if hiddenStatusIDs.remove(id) != nil { onHiddenStatusChange?(hiddenStatusIDs) }
+        if occludedStatusIDs.remove(id) != nil { onOccludedStatusChange?(occludedStatusIDs) }
+    }
+
+    /// Ids of items in the bar that macOS is not drawing -- out of room right
+    /// of the notch. Nothing here can fix that; the user has to make space.
+    public private(set) var occludedStatusIDs: Set<String> = []
+    public var onOccludedStatusChange: ((Set<String>) -> Void)?
+
+    /// What a plugin means by "is my item showing": in the bar and drawn.
+    public func isStatusShowing(id: String) -> Bool {
+        guard let item = extraStatusItems[id] else { return false }
+        return item.isVisible && !item.isOccluded
+    }
+
+    private func statusOcclusionChanged(id: String, occluded: Bool) {
+        guard extraStatusItems[id] != nil else { return }
+        let changed = occluded ? occludedStatusIDs.insert(id).inserted : occludedStatusIDs.remove(id) != nil
+        guard changed else { return }
+        logger.info("status \(id, privacy: .public) occluded=\(occluded, privacy: .public)")
+        onOccludedStatusChange?(occludedStatusIDs)
     }
 
     /// Ids of items the user dragged out of the menu bar that their plugin
@@ -323,6 +346,10 @@ public final class MenuBarManager: NSObject {
     public func removeAllStatus() {
         extraStatusItems.values.forEach { $0.remove() }
         extraStatusItems.removeAll()
+        if !occludedStatusIDs.isEmpty {
+            occludedStatusIDs.removeAll()
+            onOccludedStatusChange?(occludedStatusIDs)
+        }
         guard !hiddenStatusIDs.isEmpty else { return }
         hiddenStatusIDs.removeAll()
         onHiddenStatusChange?(hiddenStatusIDs)

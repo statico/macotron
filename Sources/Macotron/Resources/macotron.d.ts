@@ -812,6 +812,13 @@ declare const macotron: {
                 menu?: MenuBarMenuItem[];
             }
         ): void;
+        /**
+         * Whether a `status` item is actually on screen. False when the user
+         * dragged it out, or when the menu bar has no room to draw it
+         * (usually the notch). Settings warns about both; few plugins need
+         * to ask.
+         */
+        isVisible(id: string): boolean;
     };
 
     display: {

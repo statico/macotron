@@ -183,6 +183,20 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.settingsState.refreshModules()
             self?.refreshPermissions()
         }
+        menuBarManager.onOccludedStatusChange = { [weak self] ids in
+            guard let self else { return }
+            self.settingsState.refreshModules()
+            // Once per launch: the state flaps on every lid open and display
+            // change, and the fix is the user's to make. Neutral wording --
+            // the notch is the usual cause, not the only one.
+            if !ids.isEmpty, !self.announcedOccludedStatus {
+                self.announcedOccludedStatus = true
+                ToastHost.shared.warn(
+                    "A Macotron menu bar item isn\u{2019}t visible",
+                    "Free up space in the menu bar or check System Settings \u{203A} Menu Bar"
+                )
+            }
+        }
         // Menu bar visibility reads like a permission: something outside
         // Macotron decides it, and the fix is a switch in System Settings.
         Permissions.menuBarItems = { [weak menuBarManager] in
@@ -627,6 +641,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                 // header still says what it needs, so read that instead.
                 permissions: declaredPermissions(meta: meta, header: header),
                 hiddenStatusItems: hiddenStatusItems(of: file.filename),
+                occludedStatusItems: occludedStatusItems(of: file.filename),
                 sourceHash: PluginHash.sha256(
                     file: workspace.pluginsDir.appending(path: file.filename)) ?? ""
             ))
@@ -893,13 +908,20 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func hiddenStatusItems(of filename: String) -> [String] {
+        owned(menuBarManager?.hiddenStatusIDs ?? [], by: filename)
+    }
+
+    private func occludedStatusItems(of filename: String) -> [String] {
+        owned(menuBarManager?.occludedStatusIDs ?? [], by: filename)
+    }
+
+    private func owned(_ ids: Set<String>, by filename: String) -> [String] {
         let owners = menuBarPluginModule?.statusOwners ?? [:]
-        return (menuBarManager?.hiddenStatusIDs ?? [])
-            .filter { owners[$0] == filename }
-            .sorted()
+        return ids.filter { owners[$0] == filename }.sorted()
     }
 
     private var announcedPendingReview = false
+    private var announcedOccludedStatus = false
     private var announcedNewPlugins: Set<String> = []
 
     private func refreshIntegrity() {

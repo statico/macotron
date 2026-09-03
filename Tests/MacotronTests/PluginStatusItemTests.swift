@@ -15,6 +15,20 @@ struct PluginStatusItemTests {
         #expect(power.autosaveName == "macotron-power")
     }
 
+    @Test("an item left of the notch's safe area, or one AppKit is not drawing, counts as hidden")
+    func occludedByTheNotch() {
+        let safeRight = NSRect(x: 1000, y: 0, width: 500, height: 30)
+        let shown = NSRect(x: 1200, y: 0, width: 40, height: 30)
+        let underNotch = NSRect(x: 900, y: 0, width: 40, height: 30)
+        #expect(!PluginStatusItem.occluded(frame: shown, drawn: true, safeRight: safeRight))
+        #expect(PluginStatusItem.occluded(frame: underNotch, drawn: true, safeRight: safeRight))
+        #expect(PluginStatusItem.occluded(frame: shown, drawn: false, safeRight: safeRight))
+        // No notch: geometry says nothing, only the occlusion state counts.
+        #expect(!PluginStatusItem.occluded(frame: underNotch, drawn: true, safeRight: nil))
+        // Not laid out yet: unknown, not hidden.
+        #expect(!PluginStatusItem.occluded(frame: .zero, drawn: true, safeRight: safeRight))
+    }
+
     /// One apply() with every argument set, reported through what the item
     /// actually painted. Each argument is checked by changing only it and
     /// demanding the item change too -- a value wired to the wrong slot
