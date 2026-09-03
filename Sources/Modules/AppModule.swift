@@ -260,6 +260,14 @@ public enum AppLaunch {
         return frontmost == bundleID
     }
 
+    /// A menu-bar-only app (LSUIElement, like Tailscale) has no windows to
+    /// activate: the fast path "succeeds" invisibly and swallows the launch.
+    /// Those go the long way through LaunchServices, whose reopen event is the
+    /// signal such apps answer by showing their panel or settings.
+    public static func canActivateDirectly(policy: NSApplication.ActivationPolicy) -> Bool {
+        policy == .regular
+    }
+
     @discardableResult
     public static func open(bundleID: String, hideIfFrontmost: Bool = false) -> Bool {
         if hideIfFrontmost,
@@ -271,7 +279,8 @@ public enum AppLaunch {
         // LaunchServices to open it again is a round trip through
         // launchservicesd that can take hundreds of ms. Activating the process
         // we already have is a direct call.
-        if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
+        if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first,
+           canActivateDirectly(policy: running.activationPolicy) {
             running.unhide()
             if running.activate(from: .current, options: [.activateAllWindows]) { return true }
         }
