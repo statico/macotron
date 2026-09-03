@@ -414,6 +414,44 @@ declare const macotron: {
         search(query: string, opts?: { folder?: string; kind?: string }): Promise<Array<{ path: string; name: string; kind: string }>>;
     };
 
+    files: {
+        /**
+         * Point the file index at a set of folders. Replaces the previous
+         * configuration; identical settings are a no-op, anything else starts
+         * a background rebuild. "~" is expanded. `ignore` takes gitignore-style
+         * globs, matched against the path relative to its root and against the
+         * bare name. Defaults: roots `["~", "/Applications"]`, no ignores,
+         * hidden files skipped, `.gitignore`/`.ignore`/`.macotronignore`
+         * honoured. Resolves without effect when the indexer is unavailable.
+         */
+        configure(opts: {
+            roots?: string[]; ignore?: string[]; hidden?: boolean; ignoreFiles?: boolean;
+        }): Promise<void>;
+        /**
+         * Find files and folders by name in the index, best match first: exact
+         * name, then name prefix, word prefix, substring, subsequence, and
+         * finally a subsequence of the path. Spaces separate tokens that must
+         * all match. Answers in milliseconds where `spotlight.search` takes
+         * most of a second, but knows only the configured roots. `kind` is an
+         * extension without the dot; `limit` defaults to 50, max 500. Rejects
+         * with "file indexer unavailable" when the indexer is missing: fall
+         * back to `macotron.spotlight.search` then.
+         */
+        search(query: string, opts?: {
+            folder?: string; kind?: string; dirsOnly?: boolean; limit?: number;
+        }): Promise<Array<{ path: string; name: string; isDir: boolean; score: number; modified: number }>>;
+        /**
+         * How the index is doing. `available` is false when the indexer binary
+         * cannot be found or started; every other field is zero or empty then.
+         */
+        status(): Promise<{
+            entries: number; indexing: boolean; watching: boolean; roots: string[];
+            lastIndexed: number; memoryBytes: number; available: boolean;
+        }>;
+        /** Drop the index and walk the roots again. */
+        reindex(): Promise<void>;
+    };
+
     launcher: {
         set(id: string, items: LauncherItem[]): void;
         /**

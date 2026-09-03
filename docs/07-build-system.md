@@ -26,12 +26,24 @@ instead of fetching Sparkle anonymously.
 
 Update signing and the feed are in `docs/releasing.md`.
 
-## Key Make Targets
+## Rust
 
-- `make build` — `swift build`
+The file indexer (`docs/12-file-index.md`) is a Rust crate in `Indexer/`.
+`make build` runs `cargo build --release --manifest-path Indexer/Cargo.toml`
+before `swift build`, and fails with a pointer to https://rustup.rs when
+`cargo` is missing. `make bundle` copies `Indexer/target/release/macotron-index`
+into `Macotron.app/Contents/MacOS` and signs it like `MacotronHelper`, before
+the outer bundle is sealed. `make clean` runs `cargo clean` too.
+
+Rust is a build-time dependency only. The GitHub `macos-26` runner image
+ships rustup and a stable toolchain, so `.github/workflows/release.yml`
+needs no extra step.
+
+
+- `make build` — `cargo build` (indexer) + `swift build`
 - `make run` — Build, bundle into `.app`, open
 - `make bundle` — Build + codesign + copy resources and Sparkle.framework into `~/Applications/Macotron.app`
-- `make clean` — `swift package clean` + remove `.app` bundle
+- `make clean` — `swift package clean` + `cargo clean` + remove `.app` bundle
 - `make cleanprefs` — Reset UserDefaults (triggers first-run wizard)
 
 ## Workdir Path

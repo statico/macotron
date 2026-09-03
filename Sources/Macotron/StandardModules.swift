@@ -28,6 +28,7 @@ func registerStandardModules(in engine: Engine) {
     engine.addModule(KeychainModule())
     engine.addModule(URLSchemeModule())
     engine.addModule(SpotlightModule())
+    engine.addModule(FilesModule())
     engine.addModule(AIModule())
     engine.addModule(PanelModule())
     engine.addModule(CalendarModule())

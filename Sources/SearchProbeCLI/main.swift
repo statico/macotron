@@ -1,6 +1,7 @@
 // SearchProbe — run the launcher's file and app search from the command line.
 //
-//   swift run SearchProbe <query>          file search, exactly what the host runs
+//   swift run SearchProbe <query>          file search: the index when
+//                                          macotron-index is built, else Spotlight
 //   swift run SearchProbe --apps <query>   app-name matching with the same scorer
 //
 // A development probe: it prints what the launcher would show, with timing,
@@ -26,7 +27,37 @@ if apps {
         }
     let ranked = FuzzyMatch.rank(names, query: query) { [$0] }
     for name in ranked.prefix(10) { print(name) }
+} else if FileIndex.shared.available {
+    // Cold start: the first search answers from a partial index while the
+    // walk runs, so the timing line reports which case it measured.
+    let index = FileIndex.shared
+    try index.configure(roots: ["~", "/Applications"],
+                        // The same list the plugin ships as its default.
+                        ignore: ["node_modules", "*.tmp", "go/pkg", "Library/Caches",
+                                 "Library/Containers", "Library/Group Containers", "Library/pnpm",
+                                 "Library/Developer/Xcode/DerivedData", "Library/Keychains",
+                                 "Library/Cookies", "Library/Mail", "Library/Messages",
+                                 "Library/Safari", "Library/Application Support",
+                                 "Library/Preferences", "Library/Saved Application State",
+                                 "Library/HTTPStorages", "Library/WebKit", "Library/Logs",
+                                 "Library/Biome", "Library/Metadata", "Library/Accounts",
+                                 "Library/IdentityServices", "Library/Suggestions"],
+                        hidden: false, ignoreFiles: true)
+    // The probe starts its own indexer, so the walk runs first; the timing
+    // line measures the search alone, the way the running app sees it.
+    var status = try index.status()
+    while status["indexing"] as? Bool == true {
+        Thread.sleep(forTimeInterval: 0.1)
+        status = try index.status()
+    }
+    print(String(format: "-- index: %@ entries, built in %.1f s",
+                 "\(status["entries"] ?? 0)", Date().timeIntervalSince(start)))
+    let searchStart = Date()
+    let rows = try index.search(query: query, limit: 10)
+    print(String(format: "-- search %.1f ms", Date().timeIntervalSince(searchStart) * 1000))
+    for row in rows { print(row["path"] as? String ?? "?") }
 } else {
+    print("-- spotlight (no macotron-index; run make build)")
     for row in SpotlightSearch.run(query, folder: nil, kind: nil).prefix(10) {
         print(row["path"] as? String ?? "?")
     }
