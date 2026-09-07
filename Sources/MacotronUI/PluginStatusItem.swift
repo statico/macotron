@@ -332,11 +332,9 @@ final class PluginStatusItem: NSObject {
         onClick?()
     }
 
-    // Match the menu bar's standard 18pt icon slot (see MenuBarIcon).
-    // A file image keeps its own height up to the status button's 22pt;
-    // taller ones would clip against its vertical insets.
+    // Match the menu bar's standard 18pt icon slot (see MenuBarIcon);
+    // larger images clip against the status button's vertical insets.
     fileprivate static let iconSize: CGFloat = 18
-    private static let maxImageHeight: CGFloat = 22
     private static let symbolConfig = NSImage.SymbolConfiguration(pointSize: 15, weight: .medium)
 
     private static func loadImage(sfSymbol: String?, path: String?, color: NSColor?) -> NSImage? {
@@ -346,7 +344,7 @@ final class PluginStatusItem: NSObject {
                 // Same rule AppKit applies to bundled images: a file named
                 // ...Template is a mask, and the bar tints it to suit itself.
                 img.isTemplate = (expanded as NSString).deletingPathExtension.hasSuffix("Template")
-                return img.size.height <= maxImageHeight ? img : Self.thumbnail(img, length: maxImageHeight)
+                return Self.thumbnail(img, length: iconSize)
             }
         }
         guard let sfSymbol, !sfSymbol.isEmpty,
