@@ -97,7 +97,7 @@ public final class HTTPModule: NativeModule {
             let headersVal = JSBridge.getProperty(ctx, opts, "headers")
             for header in [
                 "Content-Type", "Authorization", "Accept",
-                "User-Agent", "X-API-Key", "X-Request-ID",
+                "User-Agent", "X-API-Key", "X-Request-ID", "Cookie",
             ] {
                 if let str = JSBridge.string(ctx, headersVal, header) {
                     request.setValue(str, forHTTPHeaderField: header)
