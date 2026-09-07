@@ -17,6 +17,7 @@ struct StatusCall {
     var sfSymbol: String?
     var imagePath: String?
     var hasClick: Bool
+    var hasHover: Bool
     var menu: [MenuBarEntry]
     var required: Bool
 }
@@ -38,12 +39,12 @@ final class StatusReloadRecorder: MenuBarModuleDelegate {
     func setStatus(
         id: String, title: String, subtitle: String?, color: String?, subtitleColor: String?,
         bold: Bool, italic: Bool, secondary: Bool, minWidth: Double?, sfSymbol: String?,
-        imagePath: String?, onClick: (() -> Void)?, menu: [MenuBarEntry], required: Bool
+        imagePath: String?, onClick: (() -> Void)?, onHover: ((Bool) -> Void)?, menu: [MenuBarEntry], required: Bool
     ) {
         statuses.append(StatusCall(
             id: id, title: title, subtitle: subtitle, color: color, subtitleColor: subtitleColor,
             bold: bold, italic: italic, secondary: secondary, minWidth: minWidth,
-            sfSymbol: sfSymbol, imagePath: imagePath, hasClick: onClick != nil,
+            sfSymbol: sfSymbol, imagePath: imagePath, hasClick: onClick != nil, hasHover: onHover != nil,
             menu: menu, required: required
         ))
     }
@@ -106,6 +107,7 @@ struct StatusReloadTests {
                 bold: true, italic: true, secondary: true, minWidth: 42,
                 sfSymbol: 'bolt', image: '/tmp/x.png', required: false,
                 onClick: () => {},
+                onHover: (h) => {},
                 menu: [
                     'plain',
                     { title: 'nested', icon: 'gear', onClick: () => {}, menu: ['child'] },
@@ -129,6 +131,7 @@ struct StatusReloadTests {
         #expect(call.sfSymbol == "bolt")
         #expect(call.imagePath == "/tmp/x.png")
         #expect(call.hasClick)
+        #expect(call.hasHover)
         #expect(call.required == false)
         #expect(call.menu.count == 4)
         #expect(call.menu[0].title == "plain")
@@ -169,6 +172,7 @@ struct StatusReloadTests {
         #expect(call.sfSymbol == nil)
         #expect(call.imagePath == nil)
         #expect(call.hasClick == false)
+        #expect(call.hasHover == false)
         #expect(call.menu.isEmpty)
         // Absent `required` means required: a plugin that asks for a status
         // item gets one unless it opts out.

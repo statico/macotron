@@ -258,6 +258,7 @@ public final class MenuBarManager: NSObject {
         sfSymbol: String?,
         imagePath: String?,
         onClick: (() -> Void)?,
+        onHover: ((Bool) -> Void)? = nil,
         menu: [MenuBarEntry] = [],
         required: Bool = true
     ) {
@@ -287,6 +288,7 @@ public final class MenuBarManager: NSObject {
             sfSymbol: sfSymbol,
             imagePath: imagePath,
             onClick: onClick,
+            onHover: onHover,
             menu: menu
         )
     }
