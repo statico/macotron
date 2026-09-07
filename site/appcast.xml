@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.5.3</title>
+            <sparkle:version>0.5.3</sparkle:version>
+            <sparkle:shortVersionString>0.5.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Mon, 07 Sep 2026 22:33:40 +0000</pubDate>
+            <description><![CDATA[<ul><li>Let plugins send a Cookie header</li><li>Keep the plugin's identity across an await, and honor a hand-set Cookie</li><li>Let a status image keep its height up to 22 points</li><li>Revert "Let a status image keep its height up to 22 points"</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.5.3/Macotron-0.5.3.dmg" type="application/octet-stream" sparkle:edSignature="FfcBW1JDuR0ALhot6RapK/qAFYA79XEroFbOJB4Ss8Ax9ZXiaJ96rrEiU7E2uo64iZ4syyszfVPCUqEKBtEXDQ==" length="10236887" />
+        </item>
+        <item>
             <title>0.5.2</title>
             <sparkle:version>0.5.2</sparkle:version>
             <sparkle:shortVersionString>0.5.2</sparkle:shortVersionString>
