@@ -101,6 +101,9 @@ public final class HTTPModule: NativeModule {
             ] {
                 if let str = JSBridge.string(ctx, headersVal, header) {
                     request.setValue(str, forHTTPHeaderField: header)
+                    // A hand-set Cookie loses to the shared jar once the site
+                    // has set anything, so keep the jar out of this request.
+                    if header == "Cookie" { request.httpShouldHandleCookies = false }
                 }
             }
             JS_FreeValue(ctx, headersVal)
