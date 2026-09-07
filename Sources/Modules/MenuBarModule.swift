@@ -27,6 +27,7 @@ public protocol MenuBarModuleDelegate: AnyObject {
         sfSymbol: String?,
         imagePath: String?,
         onClick: (() -> Void)?,
+        onHover: ((Bool) -> Void)?,
         menu: [MenuBarEntry],
         required: Bool
     )
@@ -201,11 +202,13 @@ public final class MenuBarModule: NativeModule {
             }
 
             let onClickVal = JSBridge.getProperty(ctx, opts, "onClick")
+            let onHoverVal = JSBridge.getProperty(ctx, opts, "onHover")
 
             if let mod: MenuBarModule = Engine.module(ctx, "__menuBarModule") {
                 if let file = Engine.of(ctx)?.currentEvaluatingFile { mod.statusOwners[id] = file }
                 mod.dropCallbacks(for: id, ctx: ctx)
                 let onClick: (() -> Void)? = mod.bindClick(ctx: ctx, from: onClickVal, key: id)
+                let onHover = mod.bindHover(ctx: ctx, from: onHoverVal, key: id + "#hover")
                 let menu = mod.readMenu(ctx: ctx, from: opts, prefix: id)
                 mod.delegate?.setStatus(
                     id: id,
@@ -220,11 +223,13 @@ public final class MenuBarModule: NativeModule {
                     sfSymbol: sfSymbol,
                     imagePath: imagePath,
                     onClick: onClick,
+                    onHover: onHover,
                     menu: menu,
                     required: required
                 )
             }
             JS_FreeValue(ctx, onClickVal)
+            JS_FreeValue(ctx, onHoverVal)
             return QJS_Undefined()
         }, "status", 2))
 
@@ -261,6 +266,24 @@ public final class MenuBarModule: NativeModule {
             engine.withEvaluatingFile(pluginFile) {
                 let fn = JS_DupValue(ctx, cb)
                 if let result = engine.callJS(fn, label: "menubar click \(key)") {
+                    JS_FreeValue(ctx, result)
+                }
+                JS_FreeValue(ctx, fn)
+            }
+        }
+    }
+
+    /// Like bindClick, but the callback gets `true` on enter and `false` on exit.
+    fileprivate func bindHover(ctx: OpaquePointer, from val: JSValue, key: String) -> ((Bool) -> Void)? {
+        guard JS_IsFunction(ctx, val) else { return nil }
+        callbacks[key] = JS_DupValue(ctx, val)
+        let pluginFile = engine?.currentEvaluatingFile
+        return { [weak self, weak engine] hovering in
+            guard let self, let engine, let ctx = engine.context else { return }
+            guard let cb = self.callbacks[key] else { return }
+            engine.withEvaluatingFile(pluginFile) {
+                let fn = JS_DupValue(ctx, cb)
+                if let result = engine.callJS(fn, [JS_NewBool(ctx, hovering)], label: "menubar hover \(key)") {
                     JS_FreeValue(ctx, result)
                 }
                 JS_FreeValue(ctx, fn)

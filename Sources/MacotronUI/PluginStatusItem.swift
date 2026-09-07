@@ -55,6 +55,7 @@ final class PluginStatusItem: NSObject {
     let id: String
     private let item: NSStatusItem
     private var onClick: (() -> Void)?
+    private var onHover: ((Bool) -> Void)?
     private var menuKeep: [PluginMenu.Action] = []
     private var dropdown: NSMenu?
     private var visibility: NSKeyValueObservation?
@@ -132,6 +133,10 @@ final class PluginStatusItem: NSObject {
         // Menu bar buttons act on the press, not the release: waiting for
         // mouse-up is the "slight delay" every other item does not have.
         button.sendAction(on: [.leftMouseDown, .rightMouseDown])
+        button.addTrackingArea(NSTrackingArea(
+            rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self, userInfo: nil
+        ))
         // The button has no window yet, so match on identity at fire time.
         // Lid and display changes fire a burst of spurious states, hence the
         // settle delay before reporting.
@@ -177,6 +182,7 @@ final class PluginStatusItem: NSObject {
         var sfSymbol: String?
         var imagePath: String?
         var onClick: (() -> Void)?
+        var onHover: ((Bool) -> Void)?
         var menu: [MenuBarEntry] = []
     }
 
@@ -192,18 +198,20 @@ final class PluginStatusItem: NSObject {
         sfSymbol: String?,
         imagePath: String?,
         onClick: (() -> Void)?,
+        onHover: ((Bool) -> Void)? = nil,
         menu: [MenuBarEntry] = []
     ) {
         apply(Spec(
             title: title, subtitle: subtitle, color: color, subtitleColor: subtitleColor,
             bold: bold, italic: italic, secondary: secondary, minWidth: minWidth,
-            sfSymbol: sfSymbol, imagePath: imagePath, onClick: onClick, menu: menu
+            sfSymbol: sfSymbol, imagePath: imagePath, onClick: onClick, onHover: onHover, menu: menu
         ))
     }
 
     func apply(_ spec: Spec) {
         reapplyWork?.cancel()
         self.onClick = spec.onClick
+        self.onHover = spec.onHover
         if spec.menu.isEmpty {
             menuKeep.removeAll()
             dropdown = nil
@@ -315,6 +323,9 @@ final class PluginStatusItem: NSObject {
         removed = true
         NSStatusBar.system.removeStatusItem(item)
     }
+
+    @objc func mouseEntered(with event: NSEvent) { onHover?(true) }
+    @objc func mouseExited(with event: NSEvent) { onHover?(false) }
 
     @objc private func clicked() {
         let event = item.button?.window?.currentEvent ?? NSApp.currentEvent
