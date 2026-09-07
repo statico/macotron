@@ -55,6 +55,7 @@ extension JSBridge {
         }
 
         let token = engine.registerPending(resolve: resolve, reject: reject)
+        let file = engine.currentEvaluatingFile
         nonisolated(unsafe) let capturedCtx = ctx
         DispatchQueue.global(qos: qos).async {
             let outcome = work()
@@ -63,7 +64,7 @@ extension JSBridge {
                     // nil means reset() already rejected and freed this promise
                     // while the work was in flight: drop the stale result.
                     guard let pending = engine.claimPending(token) else { return }
-                    settle(capturedCtx, engine: engine,
+                    settle(capturedCtx, engine: engine, file: file,
                            resolve: pending.resolve, reject: pending.reject, with: outcome)
                 }
             }
@@ -72,31 +73,39 @@ extension JSBridge {
     }
 
     /// Settle and free one promise's capability pair. Takes ownership of both.
+    ///
+    /// `file` is the plugin that made the promise. The code after an `await`
+    /// runs from here, not from the plugin's own evaluation, so without it
+    /// `macotron.checks`, `settings.open`, and every other call that asks
+    /// "which plugin is this?" would see nobody.
     @MainActor
     private static func settle(
         _ ctx: OpaquePointer,
         engine: Engine,
+        file: String? = nil,
         resolve: JSValue,
         reject: JSValue,
         with outcome: BridgeResult
     ) {
-        switch outcome {
-        case .value(let any):
-            let value = anyToJS(ctx, any)
-            if let result = engine.callJS(resolve, [value], label: "promise resolve", drain: false) {
-                JS_FreeValue(ctx, result)
+        engine.withEvaluatingFile(file) {
+            switch outcome {
+            case .value(let any):
+                let value = anyToJS(ctx, any)
+                if let result = engine.callJS(resolve, [value], label: "promise resolve", drain: false) {
+                    JS_FreeValue(ctx, result)
+                }
+                JS_FreeValue(ctx, value)
+            case .failure(let message):
+                let value = newString(ctx, message)
+                if let result = engine.callJS(reject, [value], label: "promise reject", drain: false) {
+                    JS_FreeValue(ctx, result)
+                }
+                JS_FreeValue(ctx, value)
             }
-            JS_FreeValue(ctx, value)
-        case .failure(let message):
-            let value = newString(ctx, message)
-            if let result = engine.callJS(reject, [value], label: "promise reject", drain: false) {
-                JS_FreeValue(ctx, result)
-            }
-            JS_FreeValue(ctx, value)
+            JS_FreeValue(ctx, resolve)
+            JS_FreeValue(ctx, reject)
+            engine.drainJobQueue()
         }
-        JS_FreeValue(ctx, resolve)
-        JS_FreeValue(ctx, reject)
-        engine.drainJobQueue()
     }
 }
 
@@ -132,9 +141,10 @@ extension JSBridge {
         }
 
         let token = engine.registerPending(resolve: resolve, reject: reject)
+        let file = engine.currentEvaluatingFile
         return (promise, { outcome in
             guard let pending = engine.claimPending(token) else { return }
-            settle(ctx, engine: engine,
+            settle(ctx, engine: engine, file: file,
                    resolve: pending.resolve, reject: pending.reject, with: outcome)
         })
     }
