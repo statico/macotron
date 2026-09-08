@@ -1688,6 +1688,11 @@ struct PluginDetailView: View {
         pluginSection("Settings") {
             ForEach(summary.options) { option in
                 ModuleOptionRow(option: option, filename: summary.filename, state: state)
+                // Required options come first; a rule separates them from the rest.
+                if option.required, option.id == summary.options.last(where: { $0.required })?.id,
+                   summary.options.contains(where: { !$0.required }) {
+                    Divider()
+                }
             }
         }
     }
