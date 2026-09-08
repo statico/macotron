@@ -79,6 +79,7 @@ public final class CarbonHotKeys: @unchecked Sendable {
             return nil
         }
         slots[id] = Slot(ref: ref, keyCode: keyCode, mods: carbonModifiers, handler: handler)
+        logger.info("registered hotkey \(id) key=\(keyCode) mods=\(carbonModifiers)")
         return id
     }
 
@@ -99,6 +100,7 @@ public final class CarbonHotKeys: @unchecked Sendable {
         lock.lock()
         let handler = slots[id]?.handler
         lock.unlock()
+        logger.info("hotkey \(id) fired, handler=\(handler != nil)")
         handler?()
     }
 
@@ -156,6 +158,7 @@ private func carbonHotKeyCallback(
     _: UnsafeMutableRawPointer?
 ) -> OSStatus {
     guard let event else { return OSStatus(eventNotHandledErr) }
+    logger.info("carbon hotkey event")
     var hotKeyID = EventHotKeyID()
     let err = GetEventParameter(
         event,
