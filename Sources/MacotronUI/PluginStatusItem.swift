@@ -1,5 +1,8 @@
 import AppKit
 import MacotronEngine
+import os
+
+private let logger = Logger(subsystem: "io.statico.macotron", category: "menubar")
 
 // HARD-WON RENDERING NOTES — read before changing how status items draw.
 //
@@ -319,6 +322,7 @@ final class PluginStatusItem: NSObject {
         let event = item.button?.window?.currentEvent ?? NSApp.currentEvent
         let menuClick = event?.type == .rightMouseDown
             || event?.modifierFlags.contains(.control) == true
+        logger.info("status click \(self.id, privacy: .public): event=\(event?.type.rawValue ?? 0) menuClick=\(menuClick) onClick=\(self.onClick != nil) dropdown=\(self.dropdown != nil)")
         if (menuClick || onClick == nil), let dropdown, let button = item.button {
             // Lend the menu to the status item for the length of the click so
             // AppKit places it, then take it back so the next left-click still

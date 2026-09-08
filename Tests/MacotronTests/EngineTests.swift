@@ -58,6 +58,15 @@ struct EngineTests {
         #expect(error != nil)
     }
 
+    @Test("replacing configStore keeps module self-references")
+    func testConfigStoreKeepsModules() {
+        let engine = Engine()
+        engine.configStore["__fakeModule"] = "kept"
+        engine.configStore = ["modules": ["power": [:]]]
+        #expect(engine.configStore["__fakeModule"] as? String == "kept")
+        #expect(engine.configStore["modules"] != nil)
+    }
+
     @Test("EventBus registers and emits")
     func testEventBus() {
         let engine = Engine()

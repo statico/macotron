@@ -3,6 +3,9 @@ import CQuickJS
 import Foundation
 import IOKit.pwr_mgt
 import MacotronEngine
+import os
+
+private let logger = Logger(subsystem: "io.statico.macotron", category: "power")
 
 @MainActor
 public final class PowerModule: NativeModule {
@@ -100,7 +103,11 @@ public final class PowerModule: NativeModule {
             reason as CFString,
             &id
         )
-        guard status == kIOReturnSuccess else { return false }
+        guard status == kIOReturnSuccess else {
+            logger.error("preventSleep(display: \(display)) failed: IOReturn \(status)")
+            return false
+        }
+        logger.info("preventSleep(display: \(display)) assertion \(id)")
         assertionID = id
         active = true
         return true
@@ -108,6 +115,7 @@ public final class PowerModule: NativeModule {
 
     private func allowSleep() {
         guard active else { return }
+        logger.info("allowSleep: releasing assertion \(self.assertionID)")
         if assertionID != 0 {
             IOPMAssertionRelease(assertionID)
             assertionID = 0
