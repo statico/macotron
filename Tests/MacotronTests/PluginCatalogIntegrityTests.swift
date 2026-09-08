@@ -862,4 +862,20 @@ struct WizardStepTests {
         #expect(folder < catalog)
         #expect(catalog < permissions)
     }
+
+    @Test("An unreadable settings file is never replaced with defaults")
+    @MainActor func updateSettingsRefusesCorruptFile() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "macotron-corrupt-\(UUID().uuidString)")
+        let workspace = PluginWorkspace(root: root)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try "{not json".write(to: workspace.settingsFile, atomically: true, encoding: .utf8)
+
+        let file = workspace.settingsFile
+        #expect(throws: (any Error).self) {
+            try workspace.updateSettings { $0["disabledPlugins"] = ["x.js"] }
+        }
+        #expect(try String(contentsOf: file, encoding: .utf8) == "{not json")
+    }
 }
