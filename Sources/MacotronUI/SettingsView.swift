@@ -1032,7 +1032,8 @@ public struct SettingsView: View {
                             summary: summary,
                             hasShortcutConflict: state.pluginHasShortcutConflict(summary.filename),
                             hasUpdate: state.catalogUpdate(for: summary) != nil
-                                || state.communityUpdate(for: summary) != nil
+                                || state.communityUpdate(for: summary) != nil,
+                            onToggle: { state.setModuleEnabled?(summary.filename, $0) }
                         )
                     }
                     .listStyle(.sidebar)
@@ -1285,6 +1286,8 @@ struct PluginListRow: View {
     let summary: ModuleSummary
     var hasShortcutConflict = false
     var hasUpdate = false
+    /// Double-click flips the switch without a trip to the detail pane.
+    var onToggle: ((Bool) -> Void)?
 
     var body: some View {
         HStack(spacing: 8) {
@@ -1310,6 +1313,8 @@ struct PluginListRow: View {
         }
         .padding(.vertical, 2)
         .opacity(summary.isEnabled ? 1 : 0.45)
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) { onToggle?(!summary.isEnabled) }
     }
 }
 
