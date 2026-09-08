@@ -153,6 +153,7 @@ function render() {
             }] : []),
             "-",
             { title: "Open Calendar…", onClick: () => macotron.app.launch("com.apple.iCal") },
+            { title: "Settings…", onClick: () => macotron.settings.open() },
         ],
     });
 }

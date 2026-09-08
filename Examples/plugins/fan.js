@@ -56,6 +56,7 @@ function menu(s) {
     rows.push(floorItem(s, "100%", 100));
     rows.push("-");
     rows.push(floorItem(s, "System default", null));
+    rows.push("-", { title: "Settings…", onClick: () => macotron.settings.open() });
     return rows;
 }
 

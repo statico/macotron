@@ -294,7 +294,7 @@ function weatherMenu(data, units, error, observation) {
         });
     }
     if (error) rows.push({ title: "Update failed: " + error });
-    rows.push("-", { title: "Refresh", onClick: () => refreshWeather() });
+    rows.push("-", { title: "Refresh", onClick: () => refreshWeather() }, { title: "Settings…", onClick: () => macotron.settings.open() });
     return rows;
 }
 
@@ -355,6 +355,7 @@ async function refreshWeather() {
                     { title: "Weather failed: " + (err.message || String(err)) },
                     "-",
                     { title: "Refresh", onClick: () => refreshWeather() },
+                    { title: "Settings…", onClick: () => macotron.settings.open() },
                 ],
             });
         }
