@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.5.6</title>
+            <sparkle:version>0.5.6</sparkle:version>
+            <sparkle:shortVersionString>0.5.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Tue, 08 Sep 2026 21:47:53 +0000</pubDate>
+            <description><![CDATA[<ul><li>Add a Settings… item to the built-in menu bar plugin menus</li><li>Keep module self-references when settings replace configStore</li><li>Add a Show notifications option to Stay Awake, log notification delivery</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.5.6/Macotron-0.5.6.dmg" type="application/octet-stream" sparkle:edSignature="uMZw6VNclwlrKHWAPfr6lk1ASy/jbqB1nh5lnCudf13HKljo7HeOdcThytQxJrjQbB+CLHlAujEP+l8KIn4qBg==" length="10255694" />
+        </item>
+        <item>
             <title>0.5.5</title>
             <sparkle:version>0.5.5</sparkle:version>
             <sparkle:shortVersionString>0.5.5</sparkle:shortVersionString>
