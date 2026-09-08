@@ -3,6 +3,9 @@
 import CQuickJS
 import Foundation
 import MacotronEngine
+import os
+
+private let logger = Logger(subsystem: "io.statico.macotron", category: "menubar")
 
 /// Delegate protocol so the Modules target doesn't depend on MacotronUI.
 /// MenuBarManager (in MacotronUI) conforms to this and is assigned at app startup.
@@ -261,8 +264,15 @@ public final class MenuBarModule: NativeModule {
         callbacks[key] = JS_DupValue(ctx, val)
         let pluginFile = engine?.currentEvaluatingFile
         return { [weak self, weak engine] in
-            guard let self, let engine, let ctx = engine.context else { return }
-            guard let cb = self.callbacks[key] else { return }
+            guard let self, let engine, let ctx = engine.context else {
+                logger.info("click \(key, privacy: .public): module or engine gone")
+                return
+            }
+            guard let cb = self.callbacks[key] else {
+                logger.info("click \(key, privacy: .public): no callback bound")
+                return
+            }
+            logger.info("click \(key, privacy: .public): calling JS")
             engine.withEvaluatingFile(pluginFile) {
                 let fn = JS_DupValue(ctx, cb)
                 if let result = engine.callJS(fn, label: "menubar click \(key)") {

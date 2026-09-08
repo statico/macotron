@@ -81,7 +81,16 @@ public final class Engine {
     public var hotkeyRegistry: [String: RegisteredHotkey] = [:]
 
     /// Config store (populated by macotron.config() calls)
-    public var configStore: [String: Any] = [:]
+    public var configStore: [String: Any] = [:] {
+        didSet {
+            // Modules stash themselves here under "__name" at register time.
+            // Settings re-reads replace the whole dictionary, which used to
+            // evict them and leave every macotron.* binding a silent no-op.
+            for (key, value) in oldValue where key.hasPrefix("__") && configStore[key] == nil {
+                configStore[key] = value
+            }
+        }
+    }
 
     /// Permission names declared by plugins via `macotron.plugin({ permissions })`.
     /// Cleared on every reload.
