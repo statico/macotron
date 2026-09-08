@@ -870,11 +870,13 @@ public final class Engine {
     public func reset() {
         // Settle in-flight native promises while their context still exists;
         // late completions find their token claimed and drop silently.
-        rejectAllPending("Engine reset: operation cancelled")
+        StepTimer.measure("reset rejectAllPending") {
+            rejectAllPending("Engine reset: operation cancelled")
+        }
 
         // Cleanup modules
         for module in modules {
-            module.cleanup()
+            StepTimer.measure("reset \(module.name).cleanup") { module.cleanup() }
         }
 
         // Clear state
@@ -893,7 +895,7 @@ public final class Engine {
         hotkeyRegistry.removeAll()
 
         // Reset JS context
-        JS_FreeContext(context)
+        StepTimer.measure("reset JS_FreeContext") { JS_FreeContext(context) }
         context = JS_NewContext(runtime)
         setupInterruptHandler()
         setupModuleLoader()
