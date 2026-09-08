@@ -38,9 +38,6 @@ macotron.command("Translate Selection", "Translate the selected text", async () 
   }
   macotron.panel.open({
     title: "Translate",
-    html:
-      '<p class="muted">Translation to ' + esc(target) + ":</p>" +
-      "<p>" + esc(body) + "</p>" +
-      '<p class="muted">' + esc(text) + "</p>",
+    html: `<p class="muted">Translation to ${esc(target)}:</p><p>${esc(body)}</p><p class="muted">${esc(text)}</p>`,
   });
 });

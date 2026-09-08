@@ -18,10 +18,7 @@ const GPU = E_CORE;
 function bar(x, segments) {
     // segments: [{ frac, color }] stacked from the bottom, fracs sum to <= 1
     const clip = "clip" + x;
-    let out =
-        `<clipPath id="${clip}"><rect x="${x}" y="0" width="${BAR_W}" height="${H}" rx="${BAR_W / 2}"/></clipPath>` +
-        `<rect x="${x}" y="0" width="${BAR_W}" height="${H}" rx="${BAR_W / 2}" fill="${TRACK}" fill-opacity="0.35"/>` +
-        `<g clip-path="url(#${clip})">`;
+    let out = `<clipPath id="${clip}"><rect x="${x}" y="0" width="${BAR_W}" height="${H}" rx="${BAR_W / 2}"/></clipPath><rect x="${x}" y="0" width="${BAR_W}" height="${H}" rx="${BAR_W / 2}" fill="${TRACK}" fill-opacity="0.35"/><g clip-path="url(#${clip})">`;
     let y = H;
     for (const seg of segments) {
         const h = Math.max(0, Math.min(1, seg.frac)) * H;
@@ -33,16 +30,12 @@ function bar(x, segments) {
 
 function donut(cx, cy, segments) {
     const c = 2 * Math.PI * R;
-    let out =
-        `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${TRACK}" stroke-opacity="0.35" stroke-width="${RING}"/>`;
+    let out = `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${TRACK}" stroke-opacity="0.35" stroke-width="${RING}"/>`;
     let offset = 0;
     for (const seg of segments) {
         const len = Math.max(0, Math.min(1, seg.frac)) * c;
         if (len <= 0) continue;
-        out +=
-            `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${seg.color}" stroke-width="${RING}"` +
-            ` stroke-dasharray="${len} ${c - len}" stroke-dashoffset="${-offset}"` +
-            ` transform="rotate(-90 ${cx} ${cy})"/>`;
+        out += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${seg.color}" stroke-width="${RING}" stroke-dasharray="${len} ${c - len}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"/>`;
         offset += len;
     }
     return out;

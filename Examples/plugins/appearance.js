@@ -10,8 +10,7 @@ macotron.command("Cycle Appearance", "Switch system appearance between light, da
             macotron.notify.toast("Appearance", result.error || "Failed", { color: "failure" });
             return;
         }
-        const label = result.appearance[0].toUpperCase() + result.appearance.slice(1);
-        macotron.notify.toast("Appearance", label, { color: "success" });
+        macotron.notify.toast("Appearance", result.appearance, { color: "success" });
     });
 });
 
@@ -21,6 +20,6 @@ macotron.command("Toggle Dark Mode", "Switch system appearance between light and
             macotron.notify.toast("Appearance", result.error || "Failed", { color: "failure" });
             return;
         }
-        macotron.notify.toast("Appearance", result.darkMode ? "Dark" : "Light", { color: "success" });
+        macotron.notify.toast("Appearance", result.darkMode ? "dark" : "light", { color: "success" });
     });
 });

@@ -97,7 +97,7 @@ async function setFloor(percent) {
         return;
     }
     if (percent == null) macotron.notify.toast("Fan", "Set to automatic speed");
-    else macotron.notify.toast("Fan", "minimum speed: " + percent + "%", { color: "success" });
+    else macotron.notify.toast("Fan", "Minimum speed: " + percent + "%", { color: "success" });
 }
 
 function toggle() {

@@ -1,10 +1,7 @@
 macotron.plugin({
     title: "Apple TV Controls",
     description: "Find Apple TVs on your network and open a remote.",
-    help: "Macotron finds Apple TVs over Bonjour, but sending a key needs Companion "
-        + "pairing, which is not implemented yet, so the remote reports \"not paired\". "
-        + "Discovery takes about a second, so it runs once per open and the result is "
-        + "reused for 30 seconds.",
+    help: "Macotron finds Apple TVs over Bonjour, but sending a key needs Companion pairing, which is not implemented yet, so the remote reports \"not paired\". Discovery takes about a second, so it runs once per open and the result is reused for 30 seconds.",
 });
 
 function esc(s) {

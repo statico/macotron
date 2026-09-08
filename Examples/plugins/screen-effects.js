@@ -34,9 +34,9 @@ function toggleGammaMode(mode) {
     localStorage.setItem(KEY, gammaMode);
     applyGamma();
     if (mode === "night-vision") {
-        macotron.notify.toast("Night vision", active ? "Off" : "On", { color: active ? undefined : "success" });
+        macotron.notify.toast("Night vision", active ? "off" : "on", { color: active ? undefined : "success" });
     } else {
-        const body = active ? "Off" : mode === "dim" ? "Extra dark" : "Inverted";
+        const body = active ? "off" : mode === "dim" ? "extra dark" : "inverted";
         macotron.notify.toast("Gamma", body, { color: active ? undefined : "success" });
     }
 }
@@ -46,7 +46,7 @@ function report(name, result) {
         macotron.notify.toast(name, (result && result.error) || "Unavailable", { color: "failure" });
         return;
     }
-    macotron.notify.toast(name, result.on ? "On" : "Off", { color: "success" });
+    macotron.notify.toast(name, result.on ? "on" : "off", { color: "success" });
 }
 
 macotron.command("Toggle Night Vision", "Tint the display red", () => toggleGammaMode("night-vision"));
@@ -59,7 +59,7 @@ macotron.command("Toggle CRT Effect", "Overlay scanlines and a phosphor grille",
         macotron.notify.toast("CRT effect", "Unavailable", { color: "failure" });
         return;
     }
-    macotron.notify.toast("CRT effect", on ? "Off" : "On", { color: on ? undefined : "success" });
+    macotron.notify.toast("CRT effect", on ? "off" : "on", { color: on ? undefined : "success" });
 });
 
 macotron.command("Toggle Night Shift", "Enable or disable Night Shift", () => {

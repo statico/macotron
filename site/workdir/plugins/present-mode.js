@@ -27,7 +27,7 @@ macotron.command("Toggle Present Mode", "Hide desktop icons for screensharing", 
     try {
         const presenting = !(await iconsHidden());
         await hideDesktopIcons(presenting);
-        macotron.notify.toast("Present Mode", presenting ? "On — desktop icons hidden" : "Off", { color: "success" });
+        macotron.notify.toast("Present Mode", presenting ? "on — desktop icons hidden" : "off", { color: "success" });
     } catch (err) {
         macotron.notify.toast("Present Mode", String(err), { color: "failure" });
     }

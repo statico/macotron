@@ -175,7 +175,7 @@ macotron.command("Tile Full Screen", "Maximize focused window", () => cycle("ful
 macotron.command("Toggle Window Snap", "Enable or disable drag-to-edge snapping", () => {
     const next = !macotron.window.isSnapEnabled();
     const changed = macotron.window.setSnapEnabled(next);
-    macotron.notify.toast("Window Snap", changed ? (next ? "On" : "Off") : "Could not change snapping", {
+    macotron.notify.toast("Window Snap", changed ? (next ? "on" : "off") : "Could not change snapping", {
         color: changed ? "success" : "failure",
     });
 });

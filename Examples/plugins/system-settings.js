@@ -1,9 +1,7 @@
 macotron.plugin({
   title: "System Settings Search",
   description: "Open System Settings panes from the launcher.",
-  help: "Type a pane name in the launcher, such as Wi-Fi or Full Disk Access.\n\n"
-      + "Panes open through the x-apple.systempreferences: URL scheme. A pane that macOS "
-      + "does not recognise on this version reports an error instead of failing quietly.",
+  help: "Type a pane name in the launcher, such as Wi-Fi or Full Disk Access.\n\nPanes open through the x-apple.systempreferences: URL scheme. A pane that macOS does not recognise on this version reports an error instead of failing quietly.",
 });
 
 const SETTINGS_APP = "/System/Applications/System Settings.app";

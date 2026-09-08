@@ -1,9 +1,7 @@
 macotron.plugin({
   title: "Mic Mute",
   description: "Mute or unmute the microphone from the menu bar.",
-  help: "Click the mic in the menu bar to mute or unmute the current input device.\n\n"
-      + "Not every input device exposes a mute switch to macOS. This page reports whether "
-      + "yours does.",
+  help: "Click the mic in the menu bar to mute or unmute the current input device.\n\nNot every input device exposes a mute switch to macOS. This page reports whether yours does.",
 });
 
 // Plenty of built-in and USB mics expose no settable mute property, and Core
