@@ -76,6 +76,24 @@ public final class MenuBarManager: NSObject {
     /// Called before the menu opens, so permission state is never stale.
     public var onMenuWillOpen: (() -> Void)?
 
+    /// The bar switched between light and dark text (theme or wallpaper change).
+    public var onAppearanceChange: (() -> Void)?
+    private var appearanceObservation: NSKeyValueObservation?
+
+    /// Whether the bar draws light text. Reads the status button, which follows
+    /// the wallpaper-derived menu bar appearance rather than the app's theme.
+    public var isDark: Bool {
+        let appearance = statusItem.button?.effectiveAppearance ?? NSApp.effectiveAppearance
+        return appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+    }
+
+    /// systemOrange washes out against a light bar; keep it, but deeper there.
+    static let badgeOrange = NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            ? .systemOrange
+            : NSColor(srgbRed: 0.80, green: 0.42, blue: 0.0, alpha: 1)
+    }
+
     public override init() {
         super.init()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -84,6 +102,9 @@ public final class MenuBarManager: NSObject {
         statusItem.menu = menu
         refreshStatusImage()
         rebuildMenu()
+        appearanceObservation = statusItem.button?.observe(\.effectiveAppearance) { [weak self] _, _ in
+            Task { @MainActor in self?.onAppearanceChange?() }
+        }
     }
 
     // MARK: - Permission warning
@@ -211,7 +232,7 @@ public final class MenuBarManager: NSObject {
             accessibilityDescription: "Hot Reload is on"
         )?.withSymbolConfiguration(
             NSImage.SymbolConfiguration(pointSize: 8, weight: .bold)
-                .applying(.init(paletteColors: [.systemOrange]))
+                .applying(.init(paletteColors: [Self.badgeOrange]))
         ) {
             let view = NSImageView(image: glyph)
             view.imageScaling = .scaleProportionallyUpOrDown
@@ -219,7 +240,7 @@ public final class MenuBarManager: NSObject {
             side = 9
         } else {
             let dot = BadgeDotView()
-            dot.fill = showRed ? .systemRed : .systemOrange
+            dot.fill = showRed ? .systemRed : Self.badgeOrange
             badge = dot
             side = 6
         }

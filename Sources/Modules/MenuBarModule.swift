@@ -36,6 +36,9 @@ public protocol MenuBarModuleDelegate: AnyObject {
     )
     func removeStatus(id: String)
     func isStatusShowing(id: String) -> Bool
+    /// Whether the menu bar draws light text right now. The bar follows the
+    /// wallpaper, not just the system theme, so `system.darkMode()` is wrong for icons.
+    func menuBarIsDark() -> Bool
     func removeAllStatus()
     func beginStatusReload()
     func finishStatusReload()
@@ -242,6 +245,11 @@ public final class MenuBarModule: NativeModule {
             else { return JS_NewBool(ctx, false) }
             return JS_NewBool(ctx, mod.delegate?.isStatusShowing(id: id) == true)
         }, "isVisible", 1))
+
+        JS_SetPropertyStr(ctx, menubarObj, "isDark", JS_NewCFunction(ctx, { ctx, _, _, _ -> JSValue in
+            guard let ctx, let mod: MenuBarModule = Engine.module(ctx, "__menuBarModule") else { return JS_NewBool(ctx, false) }
+            return JS_NewBool(ctx, mod.delegate?.menuBarIsDark() == true)
+        }, "isDark", 0))
 
         JS_SetPropertyStr(ctx, macotron, "menubar", menubarObj)
         JS_FreeValue(ctx, macotron)

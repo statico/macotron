@@ -250,6 +250,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.settingsWindow.show()
         }
         menuBarManager.onCheckForUpdates = { Updater.checkForUpdates() }
+        menuBarManager.onAppearanceChange = { [weak self] in
+            guard let self, let engine else { return }
+            engine.eventBus.emit("menubar:appearance", engine: engine)
+        }
         menuBarManager.onOpenPermissions = { [weak self] in
             guard let self else { return }
             self.launcherPanel.orderOut(nil)
@@ -1632,6 +1636,8 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 /// `addItem` is the exception: the protocol lives in Modules, which cannot see
 /// MacotronUI's `MenuItemConfig`, so it passes the fields loose.
 extension MenuBarManager: MenuBarModuleDelegate {
+    public func menuBarIsDark() -> Bool { isDark }
+
     public func menuBarAddItem(id: String, title: String, icon: String?, section: String?, onClick: (() -> Void)?, menu: [MenuBarEntry]) {
         addItem(id: id, config: MenuItemConfig(title: title, icon: icon, section: section, callback: onClick, menu: menu))
     }
