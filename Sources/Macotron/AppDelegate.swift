@@ -48,6 +48,14 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let wizardCompletedKey = "wizardCompleted"
 
     public func applicationWillFinishLaunching(_ notification: Notification) {
+        // launchd hands a GUI app a soft limit of 256 descriptors. A plugin
+        // host running dozens of timers and subprocesses for days needs
+        // headroom, and hitting the limit once cost a user their settings.
+        var limit = rlimit()
+        if getrlimit(RLIMIT_NOFILE, &limit) == 0, limit.rlim_cur < 4096 {
+            limit.rlim_cur = min(4096, limit.rlim_max)
+            setrlimit(RLIMIT_NOFILE, &limit)
+        }
         NSAppleEventManager.shared().setEventHandler(
             self,
             andSelector: #selector(handleGetURL(_:withReply:)),
