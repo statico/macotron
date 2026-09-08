@@ -83,6 +83,7 @@ public final class NotifyModule: NativeModule {
     nonisolated private static func deliver(_ request: UNNotificationRequest) {
         let center = UNUserNotificationCenter.current()
         center.getNotificationSettings { settings in
+            logger.info("deliver \(request.identifier, privacy: .public): authorization=\(settings.authorizationStatus.rawValue) alerts=\(settings.alertSetting.rawValue) style=\(settings.alertStyle.rawValue) list=\(settings.notificationCenterSetting.rawValue)")
             switch deliveryDecision(for: settings.authorizationStatus) {
             case .deliver:
                 add(request, to: center)
@@ -94,7 +95,7 @@ public final class NotifyModule: NativeModule {
                     if granted { add(request, to: center) }
                 }
             case .drop:
-                break
+                logger.error("notification dropped: not authorized (System Settings > Notifications > Macotron)")
             }
         }
     }
