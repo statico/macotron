@@ -3,20 +3,12 @@
 const opts = macotron.plugin({
     title: "File Search",
     description: "Find files and folders as you type in the launcher, from Macotron's own index.",
-    help: "Open the launcher and type part of a file name — matching files appear "
-        + "below the apps and commands, from an index Macotron keeps of the folders "
-        + "in Search scopes. Two letters are enough; a query with a slash completes "
-        + "as a path: each segment matches one level, ~ is home, and a trailing "
-        + "slash lists a folder. Return opens the file, ⌘Return reveals it in "
-        + "Finder, ⌥Return shows a Quick Look "
-        + "preview, and ⌘C copies the path. Files you open climb the list; "
-        + "\"Reset File Ranking\" puts them back, for one path or for all of them.",
+    help: "Open the launcher and type part of a file name — matching files appear below the apps and commands, from an index Macotron keeps of the folders in Search scopes. Two letters are enough; a query with a slash completes as a path: each segment matches one level, ~ is home, and a trailing slash lists a folder. Return opens the file, ⌘Return reveals it in Finder, ⌥Return shows a Quick Look preview, and ⌘C copies the path. Files you open climb the list; \"Reset File Ranking\" puts them back, for one path or for all of them.",
     options: {
         searchScopes: {
             type: "text",
             label: "Search scopes",
-            help: "One folder per line. ~ is home. iCloud Drive and cloud storage live under "
-                + "~/Library, so they are listed here to escape the Library ignore.",
+            help: "One folder per line. ~ is home. iCloud Drive and cloud storage live under ~/Library, so they are listed here to escape the Library ignore.",
             default: "~\n/Applications\n~/Library/Mobile Documents/com~apple~CloudDocs\n~/Library/CloudStorage",
         },
         ignorePatterns: {

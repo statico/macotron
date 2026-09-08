@@ -50,7 +50,7 @@ function cycle() {
 function mute() {
   const on = !macotron.audio.isMuted();
   macotron.audio.setMuted(on);
-  macotron.notify.toast("Volume", on ? "Muted" : "Unmuted");
+  macotron.notify.toast("Volume", on ? "muted" : "unmuted");
 }
 
 macotron.on("audio:changed", paint);

@@ -151,9 +151,7 @@ window.__macotronReceive = (data) => {
     const denom = Number(row.total) || total;
     const pct = denom > 0 ? Math.min(100, (100 * row.kb) / denom) : 0;
     const hot = pct >= 85 ? " hot" : "";
-    return '<button class="row' + hot + '" data-path="' + esc(row.path) + '" type="button"><div class="top"><span class="name">' +
-      esc(row.name) + '</span><span class="size">' + esc(row.size) + '</span></div><div class="meter"><b style="width:' +
-      pct.toFixed(1) + '%"></b></div></button>';
+    return '<button class="row' + hot + '" data-path="' + esc(row.path) + '" type="button"><div class="top"><span class="name">' + esc(row.name) + '</span><span class="size">' + esc(row.size) + '</span></div><div class="meter"><b style="width:' + pct.toFixed(1) + '%"></b></div></button>';
   }).join("") || '<p class="muted">Nothing to show</p>';
 };
 send({ type: "start" });

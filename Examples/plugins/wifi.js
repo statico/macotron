@@ -24,11 +24,11 @@ async function paint() {
     menu: [
       {
         title: wifi.on ? "Turn Wi-Fi Off" : "Turn Wi-Fi On",
-        onClick: () => toast(macotron.network.setWifi(!wifi.on), "Wi-Fi", (r) => r.on ? (r.ssid || "On") : "Off"),
+        onClick: () => toast(macotron.network.setWifi(!wifi.on), "Wi-Fi", (r) => r.on ? (r.ssid || "on") : "off"),
       },
       {
         title: bluetooth.on ? "Turn Bluetooth Off" : "Turn Bluetooth On",
-        onClick: () => toast(macotron.network.setBluetooth(!bluetooth.on), "Bluetooth", (r) => r.on ? "On" : "Off"),
+        onClick: () => toast(macotron.network.setBluetooth(!bluetooth.on), "Bluetooth", (r) => r.on ? "on" : "off"),
       },
       {
         title: "AirDrop: " + airDropLabel(macotron.network.airDrop().mode),
@@ -62,5 +62,5 @@ macotron.on("wifi:changed", paint);
 paint();
 macotron.command("Toggle Wi-Fi", "Turn Wi-Fi on or off", async () => {
   const wifi = await macotron.network.wifi();
-  toast(macotron.network.setWifi(!wifi.on), "Wi-Fi", (r) => r.on ? (r.ssid || "On") : "Off");
+  toast(macotron.network.setWifi(!wifi.on), "Wi-Fi", (r) => r.on ? (r.ssid || "on") : "off");
 });

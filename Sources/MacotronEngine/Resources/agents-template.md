@@ -10,6 +10,7 @@ Macotron loads the plugins and runs them. The app does not write plugin code.
 - `plugins/*.js` — plugin scripts. Macotron loads every `.js` file in alphabetical order.
 - `settings.json` — launcher hotkey, UI prefs, plugin options. Do not put secrets here.
 - `.cache/` — bytecode cache and typecheck config. Gitignored. Do not edit.
+  `.cache/macotron.d.ts` is the full typed API; read it before guessing at a call.
 - `AGENTS.md` / `CLAUDE.md` — owned by Macotron. Overwritten on every launch.
 
 ## Example plugins
@@ -89,13 +90,13 @@ plugin output under category `plugin`.
 Follow it live while you reproduce the problem:
 
 ```sh
-log stream --level info --style compact   --predicate 'subsystem == "io.statico.macotron" AND category == "plugin"'
+log stream --level info --style compact --predicate 'subsystem == "io.statico.macotron" AND category == "plugin"'
 ```
 
 Look at what already happened (drop the category to see the host too):
 
 ```sh
-log show --info --last 10m --style compact   --predicate 'subsystem == "io.statico.macotron"'
+log show --info --last 10m --style compact --predicate 'subsystem == "io.statico.macotron"'
 ```
 
 `--level info` and `--info` are required, or the plain `console.log` lines
@@ -127,26 +128,32 @@ The id is the Settings label. Ids are unique per plugin. Users override the comb
 one-line HUD on the screen under the cursor (3s default). `color` is `info`,
 `success` (green check), `error` (red x), or `warning` (orange triangle).
 `macotron.notify.show(title, body, { url? })` is a system banner; a `url` opens on click.
-`macotron.screen.pickColor()` opens the system magnifier and returns
-`{ hex, r, g, b, x, y }` or `null`.
-`macotron.hid.list/open/sendFeature/sendOutput/readFeature/readInput/listen`
-talks to HID devices (report id is the first send byte). Both an
-`hid:input` event and `readInput` give `{ id, reportId, data }`.
-- `await readInput(id, { timeout: 500 })` for request/response: reports
-  queue from the moment `open` returns, so a fast reply is not lost.
-  Resolves `null` on timeout.
-- `listen(id)` plus the `hid:input` event for a device that reports on its
-  own (a button, a dial). While listening, reports arrive as events
-  instead of queueing.
-- `readFeature` / `readInputReport` are control GetReports; most devices
-  never answer the input one.
-`macotron.qr.detect({ image|path })`, `qr.scan({ camera|screenshot })`,
-`qr.image(text)`, and `qr.show(text)` read and display QR codes.
+Both render title and body on one line, so the title is the feature name and
+the body is sentence case; a bare state continues the title in lowercase:
+`toast("Night vision", "off")`, `toast("Layouts", "Saved 3 windows")`.
 
-Control Center-style toggles live on the host: `macotron.audio.volume` /
-`setVolume` / `setMuted`, `network.wifi` / `setWifi`, `network.bluetooth` /
-`setBluetooth`, `network.airDrop` / `setAirDrop("off"|"contacts"|"everyone")`,
-`system.darkMode` / `setDarkMode`, `system.appearance()` (`"light"|"dark"|"auto"`) / `setAppearance(mode)`, `system.focus()` (`{ focused }`, read-only).
+Timers: `macotron.every(ms, fn)` repeats; `macotron.at("07:30", fn)` runs daily at a clock time.
+Events: `macotron.on(name, fn)` for `app:activated`, `audio:changed`,
+`clipboard:changed`, `display:changed`, `hid:input`, `media:changed`,
+`menubar:appearance`, `panel:closed`, `space:changed`, `usb:changed`,
+`wifi:changed`.
+
+Everything else -- windows, clipboard, http, audio, network, system toggles,
+screen, HID, QR, AI -- is typed in `.cache/macotron.d.ts`.
+
+## Menu bar items
+
+`macotron.menubar.status(id, { title, subtitle, sfSymbol, svg, template, menu, onClick })`
+adds an item next to the Macotron icon; call it again to repaint. An `svg`
+is drawn as-is unless `template: true`, which makes it a mask the bar tints.
+The bar's text color follows the wallpaper, not only the system theme, so a
+colored `svg` picks black or white from `menubar.isDark()`, never
+`system.darkMode()`, and repaints on the `menubar:appearance` event.
+
+## Style
+
+There is no line-length limit. Do not split a string across lines with `+`;
+write it on one line, or use a template literal for multi-line HTML.
 
 ## Launcher commands
 
@@ -173,7 +180,7 @@ set it if the user will assign a shortcut, in Settings → Plugins or in the lau
 with ⌘K on the selected result (apps too). Do not call `keyboard.on` for launcher
 commands — that is for global hotkeys, overridable in the same place.
 
-## Panel API (stub)
+## Panel API
 
 ```js
 const id = macotron.panel.open({ title: "Chat", width: 420, height: 520, html: "<p>Hi</p>", glass: true });

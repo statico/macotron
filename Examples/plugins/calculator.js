@@ -3,9 +3,7 @@
 macotron.plugin({
     title: "Calculator",
     description: "Do math and convert units straight from the launcher.",
-    help: "Open the launcher and type a sum (`12 * (3 + 4)`, `20% of 85`, `sqrt(2)`) or a "
-        + "conversion (`12 km in miles`, `100f to c`, `2 GB in MB`). The answer appears as the "
-        + "first result. Return copies it to the clipboard.",
+    help: "Open the launcher and type a sum (`12 * (3 + 4)`, `20% of 85`, `sqrt(2)`) or a conversion (`12 km in miles`, `100f to c`, `2 GB in MB`). The answer appears as the first result. Return copies it to the clipboard.",
 });
 
 const FUNCS = {

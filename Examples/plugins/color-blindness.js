@@ -2,9 +2,7 @@
 macotron.plugin({
   title: "Color Blindness Simulator",
   description: "Freeze the screen and repaint it the way a color blind viewer sees it.",
-  help:
-    "Runs the same way Color Oracle does: it takes one screenshot and shows the simulated copy full screen, so you can check a design without changing the display.\n\n" +
-    "In the overlay, press 1 for deuteranopia, 2 for protanopia, 3 for tritanopia, or 4 for full color blindness. Escape or a click closes it. Only the main display is captured.",
+  help: "Runs the same way Color Oracle does: it takes one screenshot and shows the simulated copy full screen, so you can check a design without changing the display.\n\nIn the overlay, press 1 for deuteranopia, 2 for protanopia, 3 for tritanopia, or 4 for full color blindness. Escape or a click closes it. Only the main display is captured.",
   permissions: ["screenRecording"],
 });
 

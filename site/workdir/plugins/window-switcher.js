@@ -17,17 +17,7 @@ function rowsHtml() {
     return windows
         .map((win, i) => {
             const on = i === index ? " primary" : "";
-            return (
-                '<button class="block' +
-                on +
-                '" onclick="pick(' +
-                i +
-                ')"><b>' +
-                esc(win.app) +
-                "</b> — " +
-                esc(win.title || "Untitled") +
-                "</button>"
-            );
+            return `<button class="block${on}" onclick="pick(${i})"><b>${esc(win.app)}</b> — ${esc(win.title || "Untitled")}</button>`;
         })
         .join("");
 }
@@ -46,14 +36,11 @@ function openPanel() {
         height: 400,
         glass: "translucent",
         frameless: true,
-        html:
-            '<div id="list" class="grow scroll">' +
-            (rowsHtml() || '<p class="muted">No windows</p>') +
-            "</div>" +
-            "<script>" +
-            "function pick(i){window.webkit.messageHandlers.macotron.postMessage({index:i})}" +
-            "window.__macotronReceive=function(d){if(d&&d.html)document.getElementById('list').innerHTML=d.html};" +
-            "</script>",
+        html: `<div id="list" class="grow scroll">${rowsHtml() || '<p class="muted">No windows</p>'}</div>
+<script>
+function pick(i){window.webkit.messageHandlers.macotron.postMessage({index:i})}
+window.__macotronReceive=function(d){if(d&&d.html)document.getElementById('list').innerHTML=d.html};
+</script>`,
     });
 
     // Clicking a row skips the rest of the cycle. Option is still held at that

@@ -103,7 +103,7 @@ async function enableLowPowerMode() {
         macotron.notify.toast("Low Power Mode", r.error, { color: "error" });
         return;
     }
-    macotron.notify.toast("Low Power Mode", "On", { color: "success" });
+    macotron.notify.toast("Low Power Mode", "on", { color: "success" });
     paint();
 }
 
