@@ -223,14 +223,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             self.settingsState.refreshModules()
             // Once per launch: the state flaps on every lid open and display
-            // change, and the fix is the user's to make. Neutral wording --
-            // the notch is the usual cause, not the only one.
+            // change, and the fix is the user's to make.
             if !ids.isEmpty, !self.announcedOccludedStatus {
                 self.announcedOccludedStatus = true
-                ToastHost.shared.warn(
-                    "A Macotron menu bar item isn\u{2019}t visible",
-                    "Free up space in the menu bar or check System Settings \u{203A} Menu Bar"
-                )
+                ToastHost.shared.warn("A Macotron menu bar item is hidden by the notch.", "Make room in the menu bar.")
             }
         }
         // Menu bar visibility reads like a permission: something outside

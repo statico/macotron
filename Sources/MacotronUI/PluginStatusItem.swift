@@ -70,21 +70,17 @@ final class PluginStatusItem: NSObject {
     var isVisible: Bool { item.isVisible }
 
     /// True when the item is in the bar but macOS is not drawing it: no room
-    /// right of the notch, or (rarely) another window over the bar. AppKit
-    /// keeps `isVisible` true in both cases, so this is inferred the way
-    /// Tailscale and Ice do it -- the item's own window says it is not
-    /// visible, or sits left of the notch's safe area.
+    /// right of the notch. AppKit keeps `isVisible` true, so this is inferred
+    /// from geometry the way Ice does it -- the item's window sits left of the
+    /// notch's safe area. `window.occlusionState` is deliberately not consulted:
+    /// status bar windows report not-visible for tens of seconds after launch
+    /// on every display, so it warned about the notch on an ultrawide.
     var isOccluded: Bool {
         guard item.isVisible, let window = item.button?.window else { return false }
-        return Self.occluded(
-            frame: window.frame,
-            drawn: window.occlusionState.contains(.visible),
-            safeRight: window.screen?.auxiliaryTopRightArea
-        )
+        return Self.occluded(frame: window.frame, safeRight: window.screen?.auxiliaryTopRightArea)
     }
 
-    static func occluded(frame: NSRect, drawn: Bool, safeRight: NSRect?) -> Bool {
-        if !drawn { return true }
+    static func occluded(frame: NSRect, safeRight: NSRect?) -> Bool {
         guard let safeRight, frame.width > 0 else { return false }
         return frame.minX < safeRight.minX
     }
@@ -137,21 +133,13 @@ final class PluginStatusItem: NSObject {
             rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
             owner: self, userInfo: nil
         ))
-        // The button has no window yet, so match on identity at fire time.
         // Lid and display changes fire a burst of spurious states, hence the
         // settle delay before reporting.
         let center = NotificationCenter.default
-        let react: @Sendable (Notification) -> Void = { [weak self] note in
-            let sender = (note.object as? NSWindow).map(ObjectIdentifier.init)
-            MainActor.assumeIsolated {
-                guard let self, let window = self.item.button?.window else { return }
-                if let sender, sender != ObjectIdentifier(window) { return }
-                self.scheduleOcclusionCheck()
-            }
-        }
         occlusionObservers = [
-            center.addObserver(forName: NSWindow.didChangeOcclusionStateNotification, object: nil, queue: .main, using: react),
-            center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main, using: react),
+            center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.scheduleOcclusionCheck() }
+            },
         ]
     }
 
