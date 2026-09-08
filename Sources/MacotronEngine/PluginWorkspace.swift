@@ -392,10 +392,18 @@ public final class PluginWorkspace {
     }
 
     private func readSettingsUncached() -> [String: Any] {
-        guard let data = try? Data(contentsOf: settingsFile),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else {
-            return Self.defaultSettings
+        (try? readSettingsStrict()) ?? Self.defaultSettings
+    }
+
+    /// Defaults only when there is no file. A file that exists but cannot be
+    /// read (out of descriptors, half-written) throws, so a caller never
+    /// writes defaults over the user's settings.
+    public func readSettingsStrict() throws -> [String: Any] {
+        let path = settingsFile.path(percentEncoded: false)
+        guard FileManager.default.fileExists(atPath: path) else { return Self.defaultSettings }
+        let data = try Data(contentsOf: settingsFile)
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw CocoaError(.fileReadCorruptFile)
         }
         return json
     }
@@ -410,7 +418,7 @@ public final class PluginWorkspace {
     }
 
     public func updateSettings(_ mutate: (inout [String: Any]) -> Void) throws {
-        var settings = readSettings()
+        var settings = try readSettingsStrict()
         mutate(&settings)
         try writeSettings(settings)
     }
