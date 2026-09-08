@@ -1,9 +1,16 @@
 // APIs: macotron.power, macotron.menubar, macotron.notify.show, macotron.command
 
-macotron.plugin({
+const opts = macotron.plugin({
     title: "Stay Awake Toggle",
     description: "Keep this Mac awake and unlocked from the menu bar.",
+    options: {
+        notify: { type: "boolean", label: "Show notifications", default: true },
+    },
 });
+
+function notify(body) {
+    if (opts.notify) macotron.notify.show("Stay Awake", body, { sound: true });
+}
 
 const DURATIONS = [
     { ms: 30 * 60 * 1000, label: "30 minutes" },
@@ -77,7 +84,7 @@ function start(ms) {
     until = Date.now() + ms;
     macotron.power.preventSleep(ASSERTION);
     save();
-    macotron.notify.show("Stay Awake", "Awake for " + labelFor(ms), { sound: true });
+    notify("Awake for " + labelFor(ms));
     paint();
 }
 
@@ -86,7 +93,7 @@ function stop() {
     save();
     if (macotron.power.isPreventing()) {
         macotron.power.allowSleep();
-        macotron.notify.show("Stay Awake", "Sleep allowed", { sound: true });
+        notify("Sleep allowed");
     }
     paint();
 }

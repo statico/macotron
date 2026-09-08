@@ -316,8 +316,9 @@ public final class WindowModule: NativeModule {
         return QJS_NewBool(ctx, (posOk || sizeOk) ? 1 : 0)
     }
 
-    /// moveToFraction(id, {x?, y?, w?, h?, display?}) -> bool
+    /// moveToFraction(id, {x?, y?, w?, h?, display?, gap?}) -> bool
     /// Fractions are relative to the window's current display, or `display` from macotron.display.list().
+    /// `gap` is points of padding kept between the window and the screen edges (and neighbors).
     private static func jsMoveToFraction(_ ctx: OpaquePointer, windowID: Int32, opts: JSValue) -> JSValue {
         guard let win = WindowAX.resolve(id: windowID) else {
             return QJS_NewBool(ctx, 0)
@@ -339,7 +340,7 @@ public final class WindowModule: NativeModule {
             w: JSBridge.double(ctx, opts, "w").map { CGFloat($0) },
             h: JSBridge.double(ctx, opts, "h").map { CGFloat($0) },
             screen: screen,
-            gap: 0
+            gap: JSBridge.double(ctx, opts, "gap").map { max(0, CGFloat($0)) } ?? 0
         )
         return QJS_NewBool(ctx, ok ? 1 : 0)
     }
@@ -592,7 +593,8 @@ public final class WindowModule: NativeModule {
             JSBridge.double(ctx, opts, key).map { CGFloat($0) } ?? fallback
         }
         let zone = SnapZone(x: num("x", 0), y: num("y", 0), w: num("w", 1), h: num("h", 1))
-        let gap = JSBridge.double(ctx, opts, "gap").map { max(0, CGFloat($0)) } ?? snapGap
+        // Same default as moveToFraction, so a preview lands where the move will.
+        let gap = JSBridge.double(ctx, opts, "gap").map { max(0, CGFloat($0)) } ?? 0
         SnapPreview.shared.show(SnapGeometry.cocoaRect(zone: zone, visible: screen.visibleFrame, gap: gap))
         return true
     }
