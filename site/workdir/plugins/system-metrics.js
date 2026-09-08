@@ -47,6 +47,7 @@ function menu(s) {
         if (!s.bat.charging && s.bat.timeRemaining > 0) extra = " · " + s.bat.timeRemaining + " min";
         rows.push({ title: "Battery " + Math.round(s.bat.level) + "%" + extra });
     }
+    rows.push("-", { title: "Settings…", onClick: () => macotron.settings.open() });
     return rows;
 }
 

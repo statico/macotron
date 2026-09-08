@@ -123,6 +123,7 @@ function menu(events, next) {
             "-",
             { title: "Refresh", onClick: paint },
             { title: "Open Calendar", onClick: openCalendar },
+            { title: "Settings…", onClick: () => macotron.settings.open() },
         ];
     }
     const rows = [];
@@ -145,7 +146,7 @@ function menu(events, next) {
             });
         }
     }
-    rows.push("-", { title: "Refresh", onClick: paint }, { title: "Open Calendar", onClick: openCalendar });
+    rows.push("-", { title: "Refresh", onClick: paint }, { title: "Open Calendar", onClick: openCalendar }, { title: "Settings…", onClick: () => macotron.settings.open() });
     return rows;
 }
 

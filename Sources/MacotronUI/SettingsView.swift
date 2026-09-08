@@ -79,10 +79,14 @@ public struct ModuleOption: Identifiable {
     /// A sentence under the field. Keeps the label short enough to read as a
     /// label instead of turning the form into prose.
     public let help: String
+    /// A number option with both bounds draws as a slider.
+    public let range: ClosedRange<Double>?
+    public let step: Double?
 
     public init(key: String, label: String, type: String, currentValue: Any,
                 required: Bool = false, isSet: Bool = true, choices: [ModuleOptionChoice] = [],
-                placeholder: String = "", help: String = "") {
+                placeholder: String = "", help: String = "",
+                range: ClosedRange<Double>? = nil, step: Double? = nil) {
         self.id = key
         self.key = key
         self.label = label
@@ -93,6 +97,8 @@ public struct ModuleOption: Identifiable {
         self.choices = choices
         self.placeholder = placeholder
         self.help = help
+        self.range = range
+        self.step = step
     }
 
     /// Required but without a value — Settings surfaces a needs-setup hint.
@@ -1725,6 +1731,7 @@ struct ModuleOptionRow: View {
     @State private var stringValue: String = ""
     @State private var boolValue: Bool = false
     @State private var numberValue: String = ""
+    @State private var sliderValue: Double = 0
     @State private var hotkeyValue: String = ""
     @State private var passwordValue: String = ""
     @FocusState private var editing: Bool
@@ -1786,6 +1793,17 @@ struct ModuleOptionRow: View {
                     state.saveModuleOption?(filename, option.key, boolValue)
                     state.refreshModules()
                 }
+        case "number" where option.range != nil:
+            let range = option.range ?? 0...1
+            HStack(spacing: 8) {
+                Slider(value: $sliderValue, in: range, step: option.step ?? 1)
+                    .frame(width: 140)
+                    .onAppear { sliderValue = (option.currentValue as? NSNumber)?.doubleValue ?? range.lowerBound }
+                    .onChange(of: sliderValue) { commit(sliderValue, after: 0.4) }
+                Text(sliderValue == sliderValue.rounded() ? String(Int(sliderValue)) : String(format: "%.2f", sliderValue))
+                    .font(.system(size: 12, design: .monospaced))
+                    .frame(width: 36, alignment: .trailing)
+            }
         case "number":
             TextField("", text: $numberValue, prompt: promptText)
                 .font(.system(size: 12, design: .monospaced))

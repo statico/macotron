@@ -5,7 +5,14 @@ const opts = macotron.plugin({
     options: {
         threshold: { type: "number", label: "Snap edge (px)", default: 20 },
         corner: { type: "number", label: "Snap corner (px)", default: 80 },
-        gap: { type: "number", label: "Snap gap (px)", default: 0 },
+        gap: {
+            type: "number",
+            label: "Gap (px)",
+            default: 0,
+            min: 0,
+            max: 40,
+            help: "Padding between a tiled window and the screen edge or its neighbor.",
+        },
         snapLayout: {
             type: "dropdown",
             label: "Snap zones",
@@ -115,7 +122,7 @@ function cycle(name, frames, start) {
     }
     lastCycle = { name, windowId: win.id, frameIndex };
     const display = displays[displayIndex] && displays[displayIndex].id;
-    macotron.window.moveToFraction(win.id, Object.assign({ display }, frames[frameIndex]));
+    macotron.window.moveToFraction(win.id, Object.assign({ display, gap: opts.gap }, frames[frameIndex]));
 }
 
 function neighborDisplay(current, delta) {
@@ -127,7 +134,9 @@ function neighborDisplay(current, delta) {
 
 function moveToDisplay(delta) {
     const win = macotron.window.focused();
-    if (win) macotron.window.moveToFraction(win.id, { x: 0, y: 0, w: 1, h: 1, display: neighborDisplay(win.display, delta) });
+    if (win) {
+        macotron.window.moveToFraction(win.id, { x: 0, y: 0, w: 1, h: 1, display: neighborDisplay(win.display, delta), gap: opts.gap });
+    }
 }
 
 macotron.keyboard.on("Left Half", "ctrl+opt+left", () => cycle("left", [LEFT_HALF, RIGHT_HALF], 0));

@@ -142,8 +142,8 @@ declare const macotron: {
         close(id: number): boolean;
         setFullscreen(id: number, on: boolean): boolean;
         move(id: number, frame: { x?: number; y?: number; width?: number; height?: number }): boolean;
-        /** Fractions of the window's current display. Pass `display` from `macotron.display.list()` to send it to another screen. */
-        moveToFraction(id: number, frac: { x?: number; y?: number; w?: number; h?: number; display?: number }): boolean;
+        /** Fractions of the window's current display. Pass `display` from `macotron.display.list()` to send it to another screen. `gap` keeps that many points between the window and the screen edges (and tiled neighbors); default 0. */
+        moveToFraction(id: number, frac: { x?: number; y?: number; w?: number; h?: number; display?: number; gap?: number }): boolean;
         /** Show or hide the snap destination overlay. Pass `null` to hide. */
         previewFraction(frac: { x?: number; y?: number; w?: number; h?: number; display?: number; gap?: number } | null): boolean;
         setSnapEnabled(enabled: boolean): boolean;
@@ -988,7 +988,8 @@ type MacotronPluginOption =
     | { type: "string"; label: string; default?: string; required?: boolean; placeholder?: string; help?: string }
     | { type: "text"; label: string; default?: string; required?: boolean; placeholder?: string; help?: string }
     | { type: "boolean"; label: string; default?: boolean; required?: boolean; help?: string }
-    | { type: "number"; label: string; default?: number; required?: boolean; placeholder?: string; help?: string }
+    /** Give both `min` and `max` and Settings shows a slider instead of a field. */
+    | { type: "number"; label: string; default?: number; required?: boolean; placeholder?: string; help?: string; min?: number; max?: number; step?: number }
     | { type: "keybinding"; label: string; default?: string; required?: boolean; help?: string }
     | { type: "dropdown"; label: string; default?: string; required?: boolean; choices: Array<{ value: string; label: string }>; help?: string }
     | { type: "password"; label: string; required?: boolean; placeholder?: string; help?: string }

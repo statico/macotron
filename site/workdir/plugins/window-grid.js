@@ -5,6 +5,14 @@ const opts = macotron.plugin({
   options: {
     columns: { type: "number", label: "Columns", default: 6 },
     rows: { type: "number", label: "Rows", default: 6 },
+    gap: {
+      type: "number",
+      label: "Gap (px)",
+      default: 0,
+      min: 0,
+      max: 40,
+      help: "Padding between the placed window and the screen edge or its neighbor.",
+    },
   },
 });
 
@@ -202,7 +210,7 @@ rebuild();
   function apply(sel) {
     const cols = clampGrid(sel.cols, startCols);
     const rows = clampGrid(sel.rows, startRows);
-    return Object.assign({ display: win.display }, cellsToFraction(sel, cols, rows));
+    return Object.assign({ display: win.display, gap: opts.gap }, cellsToFraction(sel, cols, rows));
   }
 
   macotron.panel.onMessage(id, (data) => {

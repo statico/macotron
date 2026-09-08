@@ -629,10 +629,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                         isSet = !(((fileSettings[key] ?? def["default"]) as? String) ?? "").isEmpty
                     }
 
+                    var range: ClosedRange<Double>?
+                    if type == "number",
+                       let lo = (def["min"] as? NSNumber)?.doubleValue,
+                       let hi = (def["max"] as? NSNumber)?.doubleValue, lo < hi {
+                        range = lo...hi
+                    }
                     options.append(ModuleOption(
                         key: key, label: label, type: type, currentValue: currentValue,
                         required: required, isSet: isSet, choices: choices,
-                        placeholder: placeholder, help: help
+                        placeholder: placeholder, help: help,
+                        range: range, step: (def["step"] as? NSNumber)?.doubleValue
                     ))
                 }
             }

@@ -252,7 +252,8 @@ the field. Keep `label` to a few words; put the explanation in `help`.
 Text, number, password, file, and directory options accept `placeholder`,
 the grey hint shown while the field is empty. It is read at load, so it
 can show live state such as the current locale — use it instead of
-writing the fallback into the label.
+writing the fallback into the label. A `number` option with both `min` and
+`max` (and optional `step`) draws as a slider instead of a field.
 
 `password` options: the secret lives in the macOS Keychain. `settings.json`
 stores only a Keychain ref like `macotron.plugin.chat.js.apiKey`. Refs may
