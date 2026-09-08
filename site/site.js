@@ -510,6 +510,35 @@ function renderSidebar(current) {
   }
 }
 
+function highlight(src, name) {
+  const raw = esc(src);
+  if (!name.endsWith(".js")) {
+    return raw
+      .replace(/^#.+$/gm, '<span class="tok-fn">$&</span>')
+      .replace(/`[^`]+`/g, '<span class="tok-str">$&</span>');
+  }
+  const parts = [];
+  const re = /(\/\/.*$|\/\*[\s\S]*?\*\/|`(?:\\.|[^`\\])*`|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/gm;
+  let last = 0;
+  let m;
+  while ((m = re.exec(raw))) {
+    parts.push(colorJS(raw.slice(last, m.index)));
+    const t = m[0];
+    const cls = t.startsWith("/") ? "tok-cmt" : "tok-str";
+    parts.push(`<span class="${cls}">${t}</span>`);
+    last = m.index + t.length;
+  }
+  parts.push(colorJS(raw.slice(last)));
+  return parts.join("");
+}
+
+function colorJS(chunk) {
+  return chunk
+    .replace(/\b(const|let|var|function|return|if|else|async|await|new|typeof|true|false|null|undefined)\b/g, '<span class="tok-kw">$1</span>')
+    .replace(/\b(macotron)\b/g, '<span class="tok-fn">$1</span>')
+    .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="tok-num">$1</span>');
+}
+
 async function openFile(id) {
   const file = FILES.find((f) => f.id === id);
   if (!file) return;
@@ -522,7 +551,7 @@ async function openFile(id) {
     const res = await fetch(file.path);
     cache.set(id, res.ok ? await res.text() : `Could not load ${file.path}`);
   }
-  code.textContent = cache.get(id);
+  code.innerHTML = highlight(cache.get(id), file.label);
 }
 
 function currentTheme() {
