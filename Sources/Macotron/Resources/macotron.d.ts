@@ -819,6 +819,13 @@ declare const macotron: {
          * to ask.
          */
         isVisible(id: string): boolean;
+        /**
+         * Whether the menu bar draws light text right now. The bar follows the
+         * wallpaper, not only the system theme, so use this (not
+         * `system.darkMode()`) to pick colors for a non-template `svg`.
+         * `macotron.on("menubar:appearance", ...)` fires when it flips.
+         */
+        isDark(): boolean;
     };
 
     display: {

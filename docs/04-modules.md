@@ -68,7 +68,7 @@ are checked against.
 
 **Dock:** `badges()` is `{ app, bundleID?, badge }[]` for Dock tiles that show a badge. Needs Accessibility. Empty when untrusted.
 
-**MenuBar:** `macotron.menubar.add(id, config)` (rows in the Macotron menu; `menu` is a nested dropdown), `.status(id, config)` (extra item next to the Macotron icon: `title`, `subtitle`, `color`, `subtitleColor`, `bold`, `italic`, `secondary`, `minWidth` in points, `sfSymbol`, `image` file path, `onClick`, `onHover(hovering)` fired with `true` when the pointer enters the item and `false` when it leaves, `menu`), `.update`, `.remove`, `.setIcon`, `.setIconColor(color)` (named or `#RRGGBB`; `null` restores the system tint), `.setTitle`. `.isVisible(id)` is false for a status item the user dragged out or that macOS has no room to draw (the notch hides items with no overflow); the host toasts once and warns on the plugin's Settings page in both cases. Two-line extras use the same size and color for both lines unless `secondary` is set (smaller, dimmer subtitle).
+**MenuBar:** `macotron.menubar.add(id, config)` (rows in the Macotron menu; `menu` is a nested dropdown), `.status(id, config)` (extra item next to the Macotron icon: `title`, `subtitle`, `color`, `subtitleColor`, `bold`, `italic`, `secondary`, `minWidth` in points, `sfSymbol`, `image` file path, `onClick`, `onHover(hovering)` fired with `true` when the pointer enters the item and `false` when it leaves, `menu`), `.update`, `.remove`, `.setIcon`, `.setIconColor(color)` (named or `#RRGGBB`; `null` restores the system tint), `.setTitle`. `.isVisible(id)` is false for a status item the user dragged out or that macOS has no room to draw (the notch hides items with no overflow); the host toasts once and warns on the plugin's Settings page in both cases. `.isDark()` is whether the bar draws light text right now -- it follows the wallpaper, not only the system theme, so a plugin picking colors for a non-template `svg` reads this instead of `system.darkMode()`; `macotron.on("menubar:appearance", fn)` fires when it flips. Two-line extras use the same size and color for both lines unless `secondary` is set (smaller, dimmer subtitle).
 
 **Notify:** `macotron.notify.show(title, body, { sound, subtitle, id, url })` is a system banner. Clicking a banner with a `url` opens it; the URL rides in the notification itself, so the click works even after Macotron restarts. `macotron.notify.toast(title, body?, { position: "top"|"bottom", duration, sfSymbol, color })` is a one-line HUD centered at the bottom (or top) of the screen under the cursor, inset 48pt from the edges. Default duration is 3000ms. `color` is `info` (label color, no icon), `success` (green check), `error` / `failure` (red x), `warning` (orange triangle), a name (`green`), or `#RRGGBB`. Pass `sfSymbol` to override the default icon.
 
@@ -104,7 +104,7 @@ Host CSS defines system colors as variables: `--macotron-accent`, `--macotron-ac
 
 **Plain paste:** `clipboard.setPastePlain(true)` makes Command-V paste text only.
 
-**Menu bar graphs:** `menubar.status` accepts `sparkline: { values }` or `svg`.
+**Menu bar graphs:** `menubar.status` accepts `sparkline: { values }` or `svg`. A colored (non-template) `svg` picks its text color from `menubar.isDark()`, not `system.darkMode()`, and repaints on `menubar:appearance`.
 
 **Display modes:** `display.nightShift`, `trueTone`, and `grayscale` plus the matching `set*` calls.
 
