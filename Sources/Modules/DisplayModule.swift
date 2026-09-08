@@ -257,7 +257,12 @@ public final class DisplayModule: NativeModule {
         xdrWindow = nil
         crt.teardown()
         DisplayChange.stop()
-        CGDisplayRestoreColorSyncSettings()
+        // Restoring ColorSync costs over a second the first time the process
+        // calls it, and does nothing unless a plugin changed the gamma.
+        if DisplayGamma.touched {
+            CGDisplayRestoreColorSyncSettings()
+            DisplayGamma.touched = false
+        }
     }
 
     private static let brightnessFunctions: (GetBrightness?, SetBrightness?) = {
@@ -361,6 +366,8 @@ public final class DisplayModule: NativeModule {
 }
 
 enum DisplayGamma {
+    /// A table was set since the last restore, so cleanup has something to undo.
+    nonisolated(unsafe) static var touched = false
     struct RGB: Equatable {
         var red: Float
         var green: Float
@@ -420,6 +427,7 @@ enum DisplayGamma {
             targets = Array(ids.prefix(Int(count)))
         }
         var ok = true
+        touched = true
         for display in targets {
             let err = t.r.withUnsafeBufferPointer { r in
                 t.g.withUnsafeBufferPointer { g in
