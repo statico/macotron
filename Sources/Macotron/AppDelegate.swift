@@ -591,7 +591,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             var options: [ModuleOption] = []
 
             if let optionsDefs = meta["options"] as? [String: [String: Any]] {
-                for (key, def) in optionsDefs.sorted(by: { $0.key < $1.key }) {
+                // Required options lead, since the plugin does nothing until
+                // they are set; the rest sort by key.
+                let isRequired = { (def: [String: Any]) in def["required"] as? Bool ?? false }
+                for (key, def) in optionsDefs.sorted(by: {
+                    isRequired($0.value) != isRequired($1.value) ? isRequired($0.value) : $0.key < $1.key
+                }) {
                     let type = def["type"] as? String ?? "string"
                     let label = def["label"] as? String ?? key
                     let defaultValue = def["default"] ?? ""
