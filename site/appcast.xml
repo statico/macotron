@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.5.5</title>
+            <sparkle:version>0.5.5</sparkle:version>
+            <sparkle:shortVersionString>0.5.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Tue, 08 Sep 2026 17:28:46 +0000</pubDate>
+            <description><![CDATA[<ul><li>Stop warning about hidden menu bar items on notchless displays</li><li>List required plugin options first, with a divider</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.5.5/Macotron-0.5.5.dmg" type="application/octet-stream" sparkle:edSignature="xUzKoMn4Yel2B4FNGxRLuf5tNNWHXJ00CNZJW0LuCQhCXX9+9JoK+zdkehPapAu61Ct23fNtxQwcVQ4ceQcVDQ==" length="10245556" />
+        </item>
+        <item>
             <title>0.5.4</title>
             <sparkle:version>0.5.4</sparkle:version>
             <sparkle:shortVersionString>0.5.4</sparkle:shortVersionString>
