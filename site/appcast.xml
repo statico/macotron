@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.5.4</title>
+            <sparkle:version>0.5.4</sparkle:version>
+            <sparkle:shortVersionString>0.5.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Tue, 08 Sep 2026 04:59:13 +0000</pubDate>
+            <description><![CDATA[<ul><li>Let a status item report hover with onHover(hovering)</li><li>Double-click a plugin row to toggle it, and time each step of the engine reset</li><li>Skip the ColorSync restore on engine reset unless a plugin set a gamma table</li><li>Log Carbon hotkey registration and delivery</li><li>Never write defaults over a settings file that could not be read</li><li>Raise the descriptor soft limit at launch</li><li>Log a descriptor census every ten minutes</li><li>Bring back syntax highlighting in the site's plugin browser</li><li>Drop the redundant hotkey log lines</li><li>Remove double-click toggling from the plugin list</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.5.4/Macotron-0.5.4.dmg" type="application/octet-stream" sparkle:edSignature="4Vrp8hHQs67TArZ4bfKOK18zM5N1t1yvAlf1a4zhPzkveb0hmbUKLtpLvNkz4sq3CosFyjpRsBB0mCjAznDQBg==" length="10242778" />
+        </item>
+        <item>
             <title>0.5.3</title>
             <sparkle:version>0.5.3</sparkle:version>
             <sparkle:shortVersionString>0.5.3</sparkle:shortVersionString>
