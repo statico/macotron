@@ -56,12 +56,40 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             limit.rlim_cur = min(4096, limit.rlim_max)
             setrlimit(RLIMIT_NOFILE, &limit)
         }
+        // The last exhaustion took five hours to build; a periodic census in
+        // the log says which kind of descriptor is growing before it bites.
+        Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { _ in
+            Self.logDescriptorCensus()
+        }
+        Self.logDescriptorCensus()
         NSAppleEventManager.shared().setEventHandler(
             self,
             andSelector: #selector(handleGetURL(_:withReply:)),
             forEventClass: AEEventClass(kInternetEventClass),
             andEventID: AEEventID(kAEGetURL)
         )
+    }
+
+    private static func logDescriptorCensus() {
+        var limit = rlimit()
+        guard getrlimit(RLIMIT_NOFILE, &limit) == 0 else { return }
+        var counts: [String: Int] = [:]
+        var st = stat()
+        for fd in 0..<Int32(min(limit.rlim_cur, 65536)) where fstat(fd, &st) == 0 {
+            let kind: String
+            switch st.st_mode & S_IFMT {
+            case S_IFREG: kind = "reg"
+            case S_IFIFO: kind = "pipe"
+            case S_IFSOCK: kind = "sock"
+            case S_IFCHR: kind = "chr"
+            case S_IFDIR: kind = "dir"
+            default: kind = "other"
+            }
+            counts[kind, default: 0] += 1
+        }
+        let total = counts.values.reduce(0, +)
+        let detail = counts.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }.joined(separator: " ")
+        appLogger.info("fds \(total)/\(limit.rlim_cur) \(detail, privacy: .public)")
     }
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
