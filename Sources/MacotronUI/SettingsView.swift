@@ -1907,7 +1907,8 @@ struct ModuleOptionRow: View {
             }
         case "text":
             // A TextEditor takes Return as a newline, so there is no onSubmit to
-            // save on. Commit when the field loses focus instead.
+            // save on, and losing focus never fires when the window closes or
+            // the sidebar moves on. Save once typing settles, like a TextField.
             TextEditor(text: $stringValue)
                 .font(.system(size: 12, design: .monospaced))
                 .scrollContentBackground(.hidden)
@@ -1916,6 +1917,7 @@ struct ModuleOptionRow: View {
                 .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.secondary.opacity(0.3)))
                 .onAppear { stringValue = (option.currentValue as? String) ?? "" }
                 .focused($editing)
+                .onChange(of: stringValue) { commit(stringValue, after: 1.2) }
                 .onChange(of: editing) {
                     guard !editing else { return }
                     commit(stringValue)
