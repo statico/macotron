@@ -219,6 +219,25 @@ dmg: ## Build, sign, and notarize the DMG only (VERSION=x.y.z)
 	@$(MAKE) CONFIG=release VERSION=$(VERSION) bundle
 	@codesign -dvv "$(BUNDLE)" 2>&1 | grep -q "Authority=Developer ID" || \
 		{ echo "Refusing to package: not signed with a Developer ID."; exit 1; }
+	@if [ -n "$(ALLOW_UNNOTARIZED)" ]; then \
+		printf '\033[33mUnnotarized: this DMG is only good for local testing.\033[0m\n'; \
+	elif ! err=$$(xcrun notarytool history $(NOTARY_ARGS) 2>&1); then \
+		echo "$$err" | sed 's/^/  /'; \
+		echo "Notarization credentials do not work. Gatekeeper would tell everyone"; \
+		echo "who downloads this that Macotron is malware, so refusing to package it."; \
+		echo "See docs/releasing.md, or ALLOW_UNNOTARIZED=1 to test locally."; \
+		exit 1; \
+	fi
+	@# Staple the app itself, not just the DMG. Homebrew and drag-install copy
+	@# the app out and the DMG's ticket stays behind, so an unstapled app makes
+	@# Gatekeeper fetch the ticket from Apple, and "could not verify" when it can't.
+	@if [ -z "$(ALLOW_UNNOTARIZED)" ]; then \
+		rm -f $(BUILD_DIR)/app.zip; \
+		ditto -c -k --keepParent "$(BUNDLE)" $(BUILD_DIR)/app.zip && \
+		xcrun notarytool submit $(BUILD_DIR)/app.zip $(NOTARY_ARGS) --wait && \
+		xcrun stapler staple "$(BUNDLE)" && \
+		xcrun stapler validate "$(BUNDLE)"; \
+	fi
 	@rm -rf $(BUILD_DIR)/dmg && mkdir -p $(BUILD_DIR)/dmg/.background
 	@cp -R "$(BUNDLE)" $(BUILD_DIR)/dmg/
 	@ln -s /Applications $(BUILD_DIR)/dmg/Applications
@@ -238,20 +257,11 @@ dmg: ## Build, sign, and notarize the DMG only (VERSION=x.y.z)
 	@hdiutil convert -quiet $(BUILD_DIR)/rw.dmg -format UDZO -o "$(DMG)"
 	@rm -f $(BUILD_DIR)/rw.dmg
 	@codesign --force --sign "$(SIGN_IDENTITY)" "$(DMG)"
-	@if err=$$(xcrun notarytool history $(NOTARY_ARGS) 2>&1); then \
+	@if [ -z "$(ALLOW_UNNOTARIZED)" ]; then \
 		xcrun notarytool submit "$(DMG)" $(NOTARY_ARGS) --wait && \
-		xcrun stapler staple "$(DMG)"; \
-	elif [ -n "$(ALLOW_UNNOTARIZED)" ]; then \
-		printf '\033[33mUnnotarized: this DMG is only good for local testing.\033[0m\n'; \
-	else \
-		echo "$$err" | sed 's/^/  /'; \
-		echo "Notarization credentials do not work. Gatekeeper would tell everyone"; \
-		echo "who downloads this that Macotron is malware, so refusing to package it."; \
-		echo "See docs/releasing.md, or ALLOW_UNNOTARIZED=1 to test locally."; \
-		rm -f "$(DMG)"; \
-		exit 1; \
+		xcrun stapler staple "$(DMG)" && \
+		xcrun stapler validate "$(DMG)"; \
 	fi
-	@if [ -z "$(ALLOW_UNNOTARIZED)" ]; then xcrun stapler validate "$(DMG)"; fi
 	@echo "Built $(DMG)"
 
 publish: ## Appcast, tag, GitHub release, and cask for a built DMG (VERSION=x.y.z)
