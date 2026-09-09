@@ -3,6 +3,9 @@ import Foundation
 import IOKit
 import IOKit.hid
 import MacotronEngine
+import os.log
+
+private let logger = Logger(subsystem: "io.statico.macotron", category: "hid")
 
 struct HIDFilter: Equatable {
     var vendorID: Int?
@@ -396,7 +399,10 @@ final class HIDHub {
     func open(_ filter: HIDFilter) -> [String: Any]? {
         guard let device = HIDDevices.first(filter) else { return nil }
         let kr = IOHIDDeviceOpen(device, IOOptionBits(kIOHIDOptionsTypeNone))
-        guard kr == kIOReturnSuccess else { return nil }
+        guard kr == kIOReturnSuccess else {
+            logger.warning("hid: open failed for \(HIDDevices.info(device)["name"] as? String ?? "device", privacy: .public): \(HIDDevices.hidError(kr), privacy: .public)")
+            return nil
+        }
         let id = String(nextID)
         nextID += 1
         open[id] = HIDOpenDevice(id: id, device: device, engine: engine)
