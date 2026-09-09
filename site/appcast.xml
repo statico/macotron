@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.5.7</title>
+            <sparkle:version>0.5.7</sparkle:version>
+            <sparkle:shortVersionString>0.5.7</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Wed, 09 Sep 2026 00:20:39 +0000</pubDate>
+            <description><![CDATA[<ul><li>Honor a gap in moveToFraction, with a slider for it in Window Controls and Quick Grid</li><li>Color plugin icons for the bar's appearance, darken the badge on light bars, front the update window</li><li>Tighten AGENTS.md, lowercase state words in toasts, unwrap concatenated strings</li><li>Log HID open failures and a lost hid module lookup</li><li>Restyle the AI chat composer and render markdown in replies</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.5.7/Macotron-0.5.7.dmg" type="application/octet-stream" sparkle:edSignature="W5EYUV5t+ofhNQ/2pN+tTgjbYAceSWohCrigLuxiRrbu9SGQZ0roNPwlZAVnsxW3G9QZexjIz/OrFn/O5fuFCw==" length="10266657" />
+        </item>
+        <item>
             <title>0.5.6</title>
             <sparkle:version>0.5.6</sparkle:version>
             <sparkle:shortVersionString>0.5.6</sparkle:shortVersionString>
