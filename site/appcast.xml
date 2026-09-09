@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.5.9</title>
+            <sparkle:version>0.5.9</sparkle:version>
+            <sparkle:shortVersionString>0.5.9</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Wed, 09 Sep 2026 18:05:14 +0000</pubDate>
+            <description><![CDATA[<ul><li>Staple the notarization ticket to the app, not only the DMG</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.5.9/Macotron-0.5.9.dmg" type="application/octet-stream" sparkle:edSignature="CrK5fOfRPGKRcbdae8319gW28+IPeUz8vB7vZ+x2DIl2aPf5swZDA8uJkWkS77SOi5v8/gdBWJb+Qst66HFECA==" length="10268700" />
+        </item>
+        <item>
             <title>0.5.8</title>
             <sparkle:version>0.5.8</sparkle:version>
             <sparkle:shortVersionString>0.5.8</sparkle:shortVersionString>
