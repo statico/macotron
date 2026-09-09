@@ -2,6 +2,9 @@ import CQuickJS
 import Foundation
 import IOKit.hid
 import MacotronEngine
+import os.log
+
+private let logger = Logger(subsystem: "io.statico.macotron", category: "hid")
 
 @MainActor
 public final class HIDModule: NativeModule {
@@ -118,6 +121,7 @@ public final class HIDModule: NativeModule {
 
     fileprivate static func hub(_ ctx: OpaquePointer) -> HIDHub? {
         let module: HIDModule? = Engine.module(ctx, "__hidModule")
+        if module == nil { logger.error("hid: module lookup failed; configStore lost __hidModule") }
         return module?.hub
     }
 
