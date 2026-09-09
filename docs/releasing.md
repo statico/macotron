@@ -29,6 +29,12 @@ checks, and stops without shipping anything if it did. Run it again.
 still runs the same Makefile targets, minus the attestation. That is the
 fallback for when Actions is down, and it needs the local setup below.
 
+The app is notarized and stapled on its own before it goes into the DMG,
+because Homebrew and drag-install copy the app out and leave the DMG's ticket
+behind. An unstapled app makes Gatekeeper fetch the ticket from Apple, and shows
+"could not verify" on any Mac that cannot. The DMG is then notarized and
+stapled too, which is quick since its contents already have a ticket.
+
 The appcast is signed after notarization, not before: stapling rewrites the
 DMG, and the EdDSA signature covers every byte of the file people download. The
 commit lands before the tag so the tag contains the feed that describes it.
