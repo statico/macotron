@@ -280,6 +280,38 @@ struct LauncherResultRankingTests {
             query: "q", applied: "q", selected: 1, old: rows, new: [row("z", "z", .app)]) == 0)
     }
 
+    @Test("a file row for an app bundle drops when the app row is there")
+    func appBundleFileRowDropped() {
+        let file = SearchResult(
+            id: "/Applications/Google Chrome.app", title: "Google Chrome.app", subtitle: "",
+            type: .plugin, path: "/Applications/Google Chrome.app")
+        let app = row("com.google.Chrome", "Google Chrome", .app)
+        let deduped = SearchResult.withoutAppDuplicates(
+            [app, file], appPaths: ["/Applications/Google Chrome.app"])
+        #expect(deduped.map(\.id) == ["com.google.Chrome"])
+    }
+
+    @Test("an app bundle the app list does not hold keeps its file row")
+    func unlistedBundleKeepsFileRow() {
+        let file = SearchResult(
+            id: "~/Downloads/Foo.app", title: "Foo.app", subtitle: "",
+            type: .plugin, path: "/Users/x/Downloads/Foo.app")
+        let deduped = SearchResult.withoutAppDuplicates(
+            [file], appPaths: ["/Applications/Google Chrome.app"])
+        #expect(deduped.map(\.id) == ["~/Downloads/Foo.app"])
+    }
+
+    @Test("a folder row and a pathless row are left alone")
+    func trailingSlashAndPathlessRows() {
+        let folder = SearchResult(
+            id: "f", title: "Google Chrome.app", subtitle: "", type: .plugin,
+            path: "/Applications/Google Chrome.app/")
+        let calc = row("calc", "4", .plugin)
+        let deduped = SearchResult.withoutAppDuplicates(
+            [folder, calc], appPaths: ["/Applications/Google Chrome.app"])
+        #expect(deduped.map(\.id) == ["calc"])
+    }
+
     @Test("the list is capped at one screenful")
     func capped() {
         let rows = (0..<40).map { row("app\($0)", "Note \($0)", .app) }
