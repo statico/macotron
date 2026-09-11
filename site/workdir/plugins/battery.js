@@ -24,10 +24,16 @@ function symbol(level, charging) {
 function snapshot() {
     const bat = macotron.system.battery();
     const level = bat && bat.level != null ? Math.round(bat.level) : -1;
+    const charging = !!(bat && bat.charging);
+    const toFull = bat && bat.timeToFull;
     return {
         level,
-        charging: !!(bat && bat.charging),
-        charged: !!(bat && bat.charged),
+        charging,
+        // A full battery on the adapter still reports as charging, with nothing
+        // left to do. kIOPSIsCharged says so when it can, but not always, so no
+        // minutes left to full counts as charged too -- otherwise the menu bar
+        // sits at "0m to full". Unknown is -1, and stays charging.
+        charged: !!(bat && bat.charged) || (charging && toFull === 0),
         remaining: bat && bat.timeRemaining,
         toFull: bat && bat.timeToFull,
         source: bat && bat.source,
@@ -40,7 +46,7 @@ function snapshot() {
 
 function subtitle(s) {
     if (s.level < 0) return "Power adapter";
-    if (s.charged) return "Full";
+    if (s.charged) return "Charged";
     if (s.charging) {
         const t = minutesLabel(s.toFull);
         return t ? t + " to full" : "Charging";

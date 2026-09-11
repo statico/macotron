@@ -44,6 +44,69 @@ struct BatteryTests {
         #expect(result.contains("Battery Settings"))
     }
 
+    @Test("a full battery on the adapter reads Charged, not 0m to full")
+    func fullOnAdapterReadsCharged() throws {
+        // kIOPSIsCharged stays false on this Mac while the adapter is in and
+        // there is nothing left to charge, so only timeToFull says it is done.
+        let result = try PluginHarness.eval(plugin: "battery.js", mock: #"""
+            var statusConfig = null;
+            var macotron = {
+                plugin: () => ({}),
+                system: {
+                    battery: () => ({
+                        level: 100,
+                        charging: true,
+                        charged: false,
+                        timeRemaining: -1,
+                        timeToFull: 0,
+                        source: "ac",
+                        lowPowerMode: false
+                    })
+                },
+                menubar: { status: (id, cfg) => { statusConfig = cfg; } },
+                url: { open: () => {} },
+                every: () => {},
+                command: () => {},
+                notify: { toast: () => {} }
+            };
+            """#, extra: #"""
+            JSON.stringify({
+                subtitle: statusConfig.subtitle,
+                menu: statusConfig.menu.map((row) => row === "-" ? "-" : row.title)
+            })
+            """#)
+        #expect(result.contains("\"subtitle\":\"Charged\""))
+        #expect(!result.contains("0m"))
+        #expect(result.contains("Power adapter \u{00B7} Charged"))
+    }
+
+    @Test("time to full still shows while it is charging")
+    func chargingShowsTimeToFull() throws {
+        let result = try PluginHarness.eval(plugin: "battery.js", mock: #"""
+            var statusConfig = null;
+            var macotron = {
+                plugin: () => ({}),
+                system: {
+                    battery: () => ({
+                        level: 80,
+                        charging: true,
+                        charged: false,
+                        timeRemaining: -1,
+                        timeToFull: 45,
+                        source: "ac",
+                        lowPowerMode: false
+                    })
+                },
+                menubar: { status: (id, cfg) => { statusConfig = cfg; } },
+                url: { open: () => {} },
+                every: () => {},
+                command: () => {},
+                notify: { toast: () => {} }
+            };
+            """#, extra: "statusConfig.subtitle")
+        #expect(result == "45m to full")
+    }
+
     @Test("low power mode menu item turns it on and toasts")
     func lowPowerModeTurnsOn() throws {
         let engine = try PluginHarness.load(plugin: "battery.js", mock: #"""
