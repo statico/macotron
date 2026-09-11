@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.5.10</title>
+            <sparkle:version>0.5.10</sparkle:version>
+            <sparkle:shortVersionString>0.5.10</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Fri, 11 Sep 2026 21:53:26 +0000</pubDate>
+            <description><![CDATA[<ul><li>Give the status reload recorder the delegate's menuBarIsDark()</li><li>Show an app once in the launcher, not beside its bundle on disk</li><li>Say Charged once the battery is full on the adapter</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.5.10/Macotron-0.5.10.dmg" type="application/octet-stream" sparkle:edSignature="NhlkFmtVg6whSNeJMQQnisvuAPrfJ5BdGRsKxEDQqLfCEf8dEuN/TRIzLBxOtI9XJQWq7/19om4nKCRggqpuDw==" length="10269012" />
+        </item>
+        <item>
             <title>0.5.9</title>
             <sparkle:version>0.5.9</sparkle:version>
             <sparkle:shortVersionString>0.5.9</sparkle:shortVersionString>
