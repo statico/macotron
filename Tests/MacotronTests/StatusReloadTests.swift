@@ -36,6 +36,7 @@ final class StatusReloadRecorder: MenuBarModuleDelegate {
     func setIcon(_ sfSymbolName: String) {}
     func setIconColor(_ color: String?) { iconColors.append(color) }
     func setTitle(_ text: String) {}
+    func menuBarIsDark() -> Bool { false }
     func setStatus(
         id: String, title: String, subtitle: String?, color: String?, subtitleColor: String?,
         bold: Bool, italic: Bool, secondary: Bool, minWidth: Double?, sfSymbol: String?,
