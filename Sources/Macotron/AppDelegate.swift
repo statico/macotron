@@ -1513,12 +1513,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let answered = Set(answers.map(\.id))
         let rest = live.filter { !answered.contains($0.id) }
 
-        return answers.map(row) + SearchResult.ranked(
+        // An app the query already matched needs no second row for its bundle
+        // on disk, whichever plugin happened to index /Applications.
+        let appPaths = Set(apps.map { $0.url.resolvingSymlinksInPath().path })
+        let answerRows = SearchResult.withoutAppDuplicates(answers.map(row), appPaths: appPaths)
+
+        return answerRows + SearchResult.ranked(
             query: q,
-            rows: results + rest.map(row),
+            rows: SearchResult.withoutAppDuplicates(results + rest.map(row), appPaths: appPaths),
             late: Set(rest.filter(\.secondary).map(\.id)),
             uses: uses,
-            limit: max(0, 20 - answers.count)
+            limit: max(0, 20 - answerRows.count)
         )
     }
 

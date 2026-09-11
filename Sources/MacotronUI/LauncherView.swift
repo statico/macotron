@@ -98,6 +98,26 @@ extension SearchResult {
         return Array(scored.prefix(limit).map(\.0))
     }
 
+    /// The same app, listed twice: the built-in app row, and a file row for
+    /// its bundle from a plugin that indexes /Applications. The two carry
+    /// different ids — bundle id and path — so the path on disk is the only
+    /// thing that can tell they are one app. Symlinks resolve first, because
+    /// /Applications/Safari.app is one.
+    public static func withoutAppDuplicates(
+        _ rows: [SearchResult], appPaths: Set<String>
+    ) -> [SearchResult] {
+        guard !appPaths.isEmpty else { return rows }
+        return rows.filter { row in
+            row.type == .app || row.path.isEmpty || !appPaths.contains(resolvedPath(row.path))
+        }
+    }
+
+    /// Trailing slashes and symlinks both go, so a folder row and an app
+    /// bundle compare as the same path the app list holds.
+    public static func resolvedPath(_ path: String) -> String {
+        URL(fileURLWithPath: path).resolvingSymlinksInPath().path
+    }
+
     /// How far off the beaten track a file is. Names alone put the folder
     /// "Application" five levels inside a photo library above /Applications,
     /// because it is one letter shorter; the path is the only thing that knows
