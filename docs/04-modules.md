@@ -44,7 +44,7 @@ are checked against.
 
 **Shortcuts:** `shortcuts.list()` and `shortcuts.run(name)` call `/usr/bin/shortcuts` and both resolve.
 
-**Power:** `preventSleep` / `allowSleep` / `isPreventing`, plus `lock()`, `sleep()`, `displaySleep()`, `screensaver()`, `logOut()`, `restart()`, and `shutdown()`. Events: `system:sleep`, `system:wake`, `system:lock`, `system:unlock`.
+**Power:** `preventSleep` / `allowSleep` / `isPreventing`, plus `lock()`, `sleep()`, `displaySleep()`, `screensaver()`, `logOut()`, `restart()`, and `shutdown()`. Events: `system:sleep`, `system:wake`, `system:lock`, `system:unlock`, `system:idle`, and `system:active` (idle ends). A `system:sleep` handler runs while the Mac is on its way down, so it has to be quick.
 
 **Dialog:** `alert(message)`, `confirm(message)`, and `prompt(message, default?)` are blocking NSAlert sheets, same as the browser. They also live on `macotron`. Cancel on `confirm` is `false`; cancel on `prompt` is `null`.
 
