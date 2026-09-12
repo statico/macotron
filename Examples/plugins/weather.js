@@ -31,23 +31,14 @@ const SYMBOLS = {
     "cloud.sleet.fill": [182, 185, 281, 284, 311, 314, 317, 320, 350, 362, 365, 374, 377],
 };
 
-// After sunset the sun in a symbol becomes a moon; a clear sky shows the
-// phase wttr reports. Overcast, fog, snow and sleet look the same either way.
+// After sunset the sun in a symbol becomes a moon. Overcast, fog, snow and
+// sleet look the same either way. The moonphase.* set is two-tone, and the
+// menu bar flattens a template to one colour, so a crescent phase reads as a
+// circle with a bite out of it; a clear night uses one plain moon instead.
 const NIGHT = {
     "cloud.sun.fill": "cloud.moon.fill",
     "cloud.rain.fill": "cloud.moon.rain.fill",
     "cloud.bolt.rain.fill": "cloud.moon.bolt.fill",
-};
-const MOON = {
-    "New Moon": "moonphase.new.moon",
-    "Waxing Crescent": "moonphase.waxing.crescent",
-    "First Quarter": "moonphase.first.quarter",
-    "Waxing Gibbous": "moonphase.waxing.gibbous",
-    "Full Moon": "moonphase.full.moon",
-    "Waning Gibbous": "moonphase.waning.gibbous",
-    "Last Quarter": "moonphase.last.quarter",
-    "Third Quarter": "moonphase.last.quarter",
-    "Waning Crescent": "moonphase.waning.crescent",
 };
 
 let lastWeather = null;
@@ -76,7 +67,7 @@ function nightSymbol(code, day, minutes) {
     const rise = clockMinutes(astro.sunrise);
     const set = clockMinutes(astro.sunset);
     if (rise === null || set === null || (minutes >= rise && minutes < set)) return symbol;
-    if (symbol === "sun.max.fill") return MOON[astro.moon_phase] || "moon.stars.fill";
+    if (symbol === "sun.max.fill") return "moon.stars.fill";
     return NIGHT[symbol] || symbol;
 }
 
@@ -92,6 +83,13 @@ function description(value) {
     return value && value.weatherDesc && value.weatherDesc[0]
         ? value.weatherDesc[0].value
         : "Unknown";
+}
+
+// wttr reports "Sunny" around the clock, so a clear night reads wrong next to
+// a moon. Every other description survives sunset unchanged.
+function describeAt(value, symbol) {
+    const text = description(value);
+    return text === "Sunny" && symbol.startsWith("moon") ? "Clear" : text;
 }
 
 function validDate(value) {
@@ -256,10 +254,11 @@ function weatherMenu(data, units, error, observation) {
     const feelsLike = us ? current.FeelsLikeF : current.FeelsLikeC;
     const wind = us ? current.windspeedMiles + " mph" : current.windspeedKmph + " km/h";
     const visibility = us ? current.visibilityMiles + " miles" : current.visibility + " km";
+    const currentIcon = currentSymbol(data, observation);
     const rows = [
         {
-            title: locationName(data) + " · " + description(current),
-            icon: currentSymbol(data, observation),
+            title: locationName(data) + " · " + describeAt(current, currentIcon),
+            icon: currentIcon,
         },
         "-",
         { title: "Feels like " + feelsLike + "°", icon: "thermometer.medium" },
@@ -275,10 +274,11 @@ function weatherMenu(data, units, error, observation) {
                 observation == null ? current.localObsDateTime : observation
             ).map((entry) => {
                 const hour = entry.value;
+                const icon = nightSymbol(hour.weatherCode, entry.day, hourMinutes(entry.time));
                 return {
                     title: timeLabel(entry.time) + " · "
-                        + (us ? hour.tempF : hour.tempC) + "° · " + description(hour),
-                    icon: nightSymbol(hour.weatherCode, entry.day, hourMinutes(entry.time)),
+                        + (us ? hour.tempF : hour.tempC) + "° · " + describeAt(hour, icon),
+                    icon: icon,
                 };
             }),
         },
