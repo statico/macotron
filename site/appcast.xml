@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.5.12</title>
+            <sparkle:version>0.5.12</sparkle:version>
+            <sparkle:shortVersionString>0.5.12</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Sat, 12 Sep 2026 05:37:41 +0000</pubDate>
+            <description><![CDATA[<ul><li>Show one moon at night, and say Clear instead of Sunny</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.5.12/Macotron-0.5.12.dmg" type="application/octet-stream" sparkle:edSignature="K2fO/LNjUXPL4KgU4hCTGIPpsBeqgJimyDcFoi7+L09ifeHPUZ7z0cZzHpcBmG0pKblyCOw2V5aNIRD2DvNBAQ==" length="10272683" />
+        </item>
+        <item>
             <title>0.5.11</title>
             <sparkle:version>0.5.11</sparkle:version>
             <sparkle:shortVersionString>0.5.11</sparkle:shortVersionString>
