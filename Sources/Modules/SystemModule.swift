@@ -122,6 +122,30 @@ private final class CoreTicks: @unchecked Sendable {
     }
 }
 
+/// `kern.memorystatus_vm_pressure_level` is the signal Activity Monitor's
+/// memory pressure graph draws: 1 normal, 2 warning, 4 critical. Used bytes
+/// cannot say this on their own -- macOS fills free memory with cache on
+/// purpose, so a Mac reading as nearly full under no pressure is the normal
+/// case, not a warning.
+enum MemoryPressure {
+    static func name(_ level: Int32) -> String {
+        switch level {
+        case 4: return "critical"
+        case 2: return "warning"
+        default: return "normal"
+        }
+    }
+
+    static func current() -> String {
+        var level: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        guard sysctlbyname("kern.memorystatus_vm_pressure_level", &level, &size, nil, 0) == 0 else {
+            return "normal"
+        }
+        return name(level)
+    }
+}
+
 enum BatteryStatus {
     static func snapshot(_ sources: [[String: Any]]) -> [String: Any] {
         var level: Double = -1
@@ -368,7 +392,8 @@ public final class SystemModule: NativeModule {
                 return JSBridge.newObject(ctx, [
                     "total": Double(totalMemory),
                     "used": 0.0,
-                    "free": Double(totalMemory)
+                    "free": Double(totalMemory),
+                    "pressure": MemoryPressure.current()
                 ])
             }
 
@@ -387,7 +412,8 @@ public final class SystemModule: NativeModule {
                 "active": Double(activeBytes),
                 "inactive": Double(inactiveBytes),
                 "wired": Double(wiredBytes),
-                "compressed": Double(compressedBytes)
+                "compressed": Double(compressedBytes),
+                "pressure": MemoryPressure.current()
             ])
         }, "memory", 0))
 
