@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.6.0</title>
+            <sparkle:version>0.6.0</sparkle:version>
+            <sparkle:shortVersionString>0.6.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Sat, 12 Sep 2026 23:51:43 +0000</pubDate>
+            <description><![CDATA[<ul><li>Report memory pressure alongside the byte counts</li><li>Show the charge of input devices that are not on Bluetooth</li><li>Optionally switch Bluetooth off while the Mac sleeps</li><li>Place a window by flicking a radial menu open</li><li>Name the processes using the network, and total the day</li><li>Report drive health and throughput, and find leftover files</li><li>Notify when CPU, disk, battery or memory crosses a threshold</li><li>Read and adjust pointer and scroll speed</li><li>Check running apps against their own update feeds</li><li>Re-sync the site plugin mirror</li><li>Name the events a plugin can listen for</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.6.0/Macotron-0.6.0.dmg" type="application/octet-stream" sparkle:edSignature="2wK5Xzc3Ly9ZNtz/Ws2kXWahy8wf2zseHZLLSETaR0+iJxQy0AM45972PII0cSygcx9CR8jHXYwc7kuZDEHnBg==" length="10280575" />
+        </item>
+        <item>
             <title>0.5.12</title>
             <sparkle:version>0.5.12</sparkle:version>
             <sparkle:shortVersionString>0.5.12</sparkle:shortVersionString>
