@@ -208,7 +208,7 @@ struct WeatherTests {
             """) == #"["sun.max.fill","cloud.sun.fill","cloud.fill","cloud.fog.fill","cloud.rain.fill","cloud.bolt.rain.fill","cloud.snow.fill","cloud.sleet.fill","cloud.fill"]"#)
     }
 
-    @Test("shows a moon between sunset and sunrise, the phase when clear")
+    @Test("shows a moon between sunset and sunrise")
     func nightSymbols() throws {
         let harness = try Harness(measurement: "metric")
         // 8:30 PM is after the 7:45 PM sunset, and so is the 6 AM hour before sunrise.
@@ -217,13 +217,22 @@ struct WeatherTests {
                 statusConfig.menu.find(x => x.title === 'Next 12 Hours').menu.map(x => x.icon)
             )
             """) == #"["cloud.moon.fill","cloud.fill","cloud.fog.fill","cloud.moon.rain.fill"]"#)
-        #expect(harness.value("nightSymbol(113, responseData.weather[0], 22 * 60)") == "moonphase.waxing.gibbous")
+        #expect(harness.value("nightSymbol(113, responseData.weather[0], 22 * 60)") == "moon.stars.fill")
         #expect(harness.value("nightSymbol(113, responseData.weather[0], 12 * 60)") == "sun.max.fill")
         #expect(harness.value("nightSymbol(113, responseData.weather[2], 22 * 60)") == "sun.max.fill")
         #expect(harness.value("nightSymbol(389, { astronomy: [{ sunrise: '06:05 AM', sunset: '07:45 PM' }] }, 5 * 60)")
             == "cloud.moon.bolt.fill")
         #expect(harness.value("nightSymbol(113, { astronomy: [{ sunrise: '06:05 AM', sunset: '07:45 PM', moon_phase: 'Blue' }] }, 0)")
             == "moon.stars.fill")
+    }
+
+    @Test("a clear night reads Clear, not wttr's round-the-clock Sunny")
+    func clearAtNight() throws {
+        let harness = try Harness(measurement: "metric")
+        #expect(harness.value("describeAt({ weatherDesc: [{ value: 'Sunny' }] }, 'moon.stars.fill')") == "Clear")
+        #expect(harness.value("describeAt({ weatherDesc: [{ value: 'Sunny' }] }, 'sun.max.fill')") == "Sunny")
+        #expect(harness.value("describeAt({ weatherDesc: [{ value: 'Partly cloudy' }] }, 'cloud.moon.fill')")
+            == "Partly cloudy")
     }
 
     @Test("retains weather after a refresh error")
