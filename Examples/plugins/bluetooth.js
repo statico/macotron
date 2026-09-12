@@ -1,6 +1,14 @@
-macotron.plugin({
+const opts = macotron.plugin({
   title: "Bluetooth Device Levels",
   description: "Show battery levels for paired Bluetooth and USB input devices in the menu bar.",
+  options: {
+    offOnSleep: {
+      type: "boolean",
+      label: "Turn Bluetooth off when the Mac sleeps",
+      help: "Saves a little power overnight. A Bluetooth keyboard or mouse will not wake the Mac while it is off.",
+      default: false,
+    },
+  },
 });
 
 function clip(name) {
@@ -43,3 +51,25 @@ async function paint() {
 
 paint();
 macotron.every(60_000, paint);
+
+// Only ever restore what this plugin switched off. If Bluetooth was already
+// off at sleep, or the user turned it off by hand, waking must leave it alone
+// -- silently turning someone's radio back on is worse than saving no power.
+// localStorage because plugin variables do not survive a reload, and the Mac
+// may well be reloaded or updated between the sleep and the wake.
+const SLEPT_KEY = "turned-off-at-sleep";
+
+macotron.on("system:sleep", async () => {
+  if (!opts.offOnSleep) return;
+  const bt = await macotron.network.bluetooth();
+  if (!bt.on) return;
+  if (macotron.network.setBluetooth(false).ok) localStorage.setItem(SLEPT_KEY, "1");
+});
+
+// Deliberately not gated on the option: having turned the radio off, we owe
+// the user the restore even if they switched the setting off in the meantime.
+macotron.on("system:wake", () => {
+  if (localStorage.getItem(SLEPT_KEY) !== "1") return;
+  localStorage.removeItem(SLEPT_KEY);
+  macotron.network.setBluetooth(true);
+});
