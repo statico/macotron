@@ -78,6 +78,23 @@ declare const macotron: {
         modules: Record<string, number>;
     };
 
+    /**
+     * Subscribe to a host event. The events the host emits are
+     * `app:activated`, `app:launched`, `app:terminated`, `audio:changed`,
+     * `clipboard:changed`, `display:changed`, `hid:input`, `media:changed`,
+     * `menubar:appearance`, `panel:closed`, `space:changed`, `system:active`,
+     * `system:idle`, `system:lock`, `system:sleep`, `system:unlock`,
+     * `system:wake`, `udp:message`, `usb:changed`, `wifi:changed`,
+     * `window:created` and `window:focused`, plus the dynamic
+     * `keyboard:<binding>` and `url:<scheme>:<host>`.
+     *
+     * A `system:sleep` handler runs while the Mac is already on its way down,
+     * so it has to be quick and cannot count on a promise settling first.
+     * `system:active` means idle ended, not that the Mac woke.
+     *
+     * Not a closed set: the name is a string so a plugin can listen for
+     * events this host does not yet emit.
+     */
     on(event: string, callback: (...args: any[]) => void): void;
     off(event: string, callback: (...args: any[]) => void): void;
     command(
