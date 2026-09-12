@@ -687,6 +687,13 @@ declare const macotron: {
             inactive: number;
             wired: number;
             compressed: number;
+            /**
+             * What Activity Monitor's memory pressure graph shows. Read this
+             * rather than comparing `used` to `total`: macOS fills free memory
+             * with cache on purpose, so a nearly-full Mac under no pressure is
+             * the normal case.
+             */
+            pressure: "normal" | "warning" | "critical";
         };
         battery(): {
             level: number;
