@@ -133,10 +133,29 @@ enum HIDDevices {
         return devices.first { filter.matches(info($0)) }
     }
 
+    /// A charge level a HID device published about itself. Apple ships no
+    /// public key for this, and most devices publish nothing at all, so this
+    /// is best effort and absent far more often than not -- Bluetooth
+    /// peripherals report through `network.bluetooth()` instead, which is
+    /// where a Magic Mouse or a pair of AirPods shows up. Anything outside
+    /// 0...100 is a device reporting nonsense, and is dropped rather than
+    /// handed to a plugin that would draw a -1% battery.
+    static func batteryPercent(_ raw: Any?) -> Int? {
+        let value: Int?
+        switch raw {
+        case let n as Int: value = n
+        case let n as NSNumber: value = n.intValue
+        case let text as String: value = Int(text)
+        default: value = nil
+        }
+        guard let value, (0...100).contains(value) else { return nil }
+        return value
+    }
+
     static func info(_ device: IOHIDDevice) -> [String: Any] {
         let vendorID = int(device, kIOHIDVendorIDKey) ?? 0
         let productID = int(device, kIOHIDProductIDKey) ?? 0
-        return [
+        var row: [String: Any] = [
             "name": string(device, kIOHIDProductKey) ?? "HID device",
             "vendor": string(device, kIOHIDManufacturerKey) ?? "",
             "vendorID": vendorID,
@@ -149,6 +168,10 @@ enum HIDDevices {
             "maxOutput": int(device, kIOHIDMaxOutputReportSizeKey) ?? 64,
             "maxFeature": int(device, kIOHIDMaxFeatureReportSizeKey) ?? 64,
         ]
+        if let battery = batteryPercent(int(device, "BatteryPercent")) {
+            row["battery"] = battery
+        }
+        return row
     }
 
     static func maxReport(_ device: IOHIDDevice, _ type: IOHIDReportType) -> Int {
