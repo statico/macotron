@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.5.11</title>
+            <sparkle:version>0.5.11</sparkle:version>
+            <sparkle:shortVersionString>0.5.11</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Sat, 12 Sep 2026 02:11:43 +0000</pubDate>
+            <description><![CDATA[<ul><li>Expect the battery toast body the plugin actually sends</li><li>Badge the menu bar blue when plugins have updates</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.5.11/Macotron-0.5.11.dmg" type="application/octet-stream" sparkle:edSignature="ztnrEzOr34N9q7lDfGnzXzODv6NVb2lP7zBhpF+N/c3VaK3DE3Y29f6rqNfmyA8h5SeCvzoIXf4R/KV3j6iKDg==" length="10275498" />
+        </item>
+        <item>
             <title>0.5.10</title>
             <sparkle:version>0.5.10</sparkle:version>
             <sparkle:shortVersionString>0.5.10</sparkle:shortVersionString>
