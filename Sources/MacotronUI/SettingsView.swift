@@ -318,6 +318,7 @@ public final class SettingsState: ObservableObject {
         // the old bundle.
         catalogPlugins = PluginCatalog.load()
         moduleSummaries = loadModuleSummaries?() ?? []
+        onUpdateCountChange?(updateCount)
     }
 
     public func refreshAppShortcuts() {
@@ -457,6 +458,10 @@ public final class SettingsState: ObservableObject {
         catalogUpdates.count + communityUpdatableEntries.count
     }
 
+    /// The menu bar badges the same count the Plugins tab does, so it is
+    /// pushed from the two places the count can actually change.
+    public var onUpdateCountChange: ((Int) -> Void)?
+
     /// Built-in updates write straight through: those bytes ship inside the
     /// signed app bundle. Community updates queue up one review sheet each,
     /// because downloaded code is read before it runs — see
@@ -582,6 +587,7 @@ public final class SettingsState: ObservableObject {
             if PluginHash.sha256(source: fetched.source) != local { stale.insert(entry.repo) }
         }
         communityUpdates = stale
+        onUpdateCountChange?(updateCount)
     }
 
     /// Downloads the source and hands it to the same sheet a changed plugin on

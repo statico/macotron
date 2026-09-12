@@ -261,6 +261,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self.settingsState.refreshPermissions()
             self.settingsWindow.show()
         }
+        menuBarManager.onOpenPluginUpdates = { [weak self] in
+            guard let self else { return }
+            self.launcherPanel.orderOut(nil)
+            self.settingsState.requestedTab = SettingsTab.plugins.rawValue
+            self.settingsWindow.show()
+        }
         menuBarManager.onMenuWillOpen = { [weak self] in
             self?.refreshPermissions()
         }
@@ -432,6 +438,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.reviewPendingPlugins(only: only)
         }
 
+        settingsState.onUpdateCountChange = { [weak self] count in
+            self?.menuBarManager.setPluginUpdateCount(count)
+        }
         settingsState.loadModuleSummaries = { [weak self] in
             self?.buildPluginSummaries() ?? []
         }

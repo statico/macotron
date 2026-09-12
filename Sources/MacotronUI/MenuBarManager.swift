@@ -15,6 +15,30 @@ private final class BadgeDotView: NSView {
     }
 }
 
+/// What the status item badges, when more than one thing wants to be seen.
+/// Warnings outrank the hot reload mode, which outranks plugin updates: a
+/// missing permission is the one that stops the app working.
+public enum MenuBarBadge: Equatable {
+    case none
+    case permissions
+    case review
+    case hotReload
+    case updates
+
+    public static func state(
+        missingPermissions: Bool,
+        pendingReviewCount: Int,
+        hotReload: Bool,
+        pluginUpdateCount: Int
+    ) -> MenuBarBadge {
+        if missingPermissions { return .permissions }
+        if pendingReviewCount > 0 { return .review }
+        if hotReload { return .hotReload }
+        if pluginUpdateCount > 0 { return .updates }
+        return .none
+    }
+}
+
 @MainActor
 public final class MenuBarManager: NSObject {
     private var statusItem: NSStatusItem!
@@ -57,6 +81,13 @@ public final class MenuBarManager: NSObject {
     private var missingPermissions: [Permission] = []
     private var hotReload = false
     private var pendingReviewCount = 0
+
+    /// Installed plugins with a newer version waiting, built-in and community
+    /// together -- the same count the Plugins tab badges its rows with.
+    private var pluginUpdateCount = 0
+
+    /// Opens the Plugins tab, where Update All lives.
+    public var onOpenPluginUpdates: (() -> Void)?
 
     /// Update version the menu was last built with, so it is rebuilt once.
     private var shownUpdateVersion: String?
@@ -121,6 +152,13 @@ public final class MenuBarManager: NSObject {
         guard hotReload != self.hotReload || pendingCount != pendingReviewCount else { return }
         self.hotReload = hotReload
         pendingReviewCount = pendingCount
+        refreshStatusImage()
+        rebuildMenu()
+    }
+
+    public func setPluginUpdateCount(_ count: Int) {
+        guard count != pluginUpdateCount else { return }
+        pluginUpdateCount = count
         refreshStatusImage()
         rebuildMenu()
     }
@@ -215,32 +253,30 @@ public final class MenuBarManager: NSObject {
         badgeView?.removeFromSuperview()
         badgeView = nil
 
-        let showRed = !missingPermissions.isEmpty
-        let showOrange = hotReload || pendingReviewCount > 0
-        guard showRed || showOrange else {
+        let state = MenuBarBadge.state(
+            missingPermissions: !missingPermissions.isEmpty,
+            pendingReviewCount: pendingReviewCount,
+            hotReload: hotReload,
+            pluginUpdateCount: pluginUpdateCount
+        )
+        guard state != .none else {
             button.toolTip = nil
             return
         }
 
         // Hot reload is a mode, not a warning: give it a reload glyph so it
-        // does not read as the same "something is wrong" dot.
-        let hotReloadOnly = !showRed && pendingReviewCount == 0
+        // does not read as the same "something is wrong" dot. Updates get the
+        // blue arrow the Plugins tab already draws, for the same reason.
         let badge: NSView
         let side: CGFloat
-        if hotReloadOnly, let glyph = NSImage(
-            systemSymbolName: "arrow.triangle.2.circlepath",
-            accessibilityDescription: "Hot Reload is on"
-        )?.withSymbolConfiguration(
-            NSImage.SymbolConfiguration(pointSize: 8, weight: .bold)
-                .applying(.init(paletteColors: [Self.badgeOrange]))
-        ) {
+        if let glyph = Self.badgeGlyph(state) {
             let view = NSImageView(image: glyph)
             view.imageScaling = .scaleProportionallyUpOrDown
             badge = view
             side = 9
         } else {
             let dot = BadgeDotView()
-            dot.fill = showRed ? .systemRed : Self.badgeOrange
+            dot.fill = state == .permissions ? .systemRed : Self.badgeOrange
             badge = dot
             side = 6
         }
@@ -253,13 +289,38 @@ public final class MenuBarManager: NSObject {
             badge.topAnchor.constraint(equalTo: button.topAnchor, constant: 4),
         ])
         badgeView = badge
-        if showRed {
-            button.toolTip = "Macotron needs permissions"
-        } else if pendingReviewCount > 0 {
-            button.toolTip = "Plugin files changed and need review"
-        } else {
-            button.toolTip = "Hot Reload is on"
+        switch state {
+        case .permissions: button.toolTip = "Macotron needs permissions"
+        case .review: button.toolTip = "Plugin files changed and need review"
+        case .hotReload: button.toolTip = "Hot Reload is on"
+        case .updates: button.toolTip = Self.updateLabel(pluginUpdateCount) + " available"
+        case .none: button.toolTip = nil
         }
+    }
+
+    /// Orange for the mode, blue for updates; everything else is a plain dot.
+    private static func badgeGlyph(_ state: MenuBarBadge) -> NSImage? {
+        let name: String
+        let color: NSColor
+        switch state {
+        case .hotReload:
+            name = "arrow.triangle.2.circlepath"
+            color = badgeOrange
+        case .updates:
+            name = "arrow.down.circle.fill"
+            color = .systemBlue
+        default:
+            return nil
+        }
+        return NSImage(systemSymbolName: name, accessibilityDescription: nil)?
+            .withSymbolConfiguration(
+                NSImage.SymbolConfiguration(pointSize: 8, weight: .bold)
+                    .applying(.init(paletteColors: [color]))
+            )
+    }
+
+    static func updateLabel(_ count: Int) -> String {
+        count == 1 ? "1 plugin update" : "\(count) plugin updates"
     }
 
     public func setTitle(_ text: String) {
@@ -425,6 +486,7 @@ public final class MenuBarManager: NSObject {
 
         addPermissionWarningIfNeeded()
         addIntegrityWarningIfNeeded()
+        addPluginUpdatesRowIfNeeded()
 
         // Group dynamic items by section
         let sections = Dictionary(grouping: dynamicItems, by: { $0.config.section ?? "" })
@@ -511,10 +573,17 @@ public final class MenuBarManager: NSObject {
         return item
     }
 
-    private static func menuSymbol(_ name: String) -> NSImage? {
+    /// Template by default, so a row follows the menu's own color; a color
+    /// bakes in instead, which a template image would throw away.
+    private static func menuSymbol(_ name: String, color: NSColor? = nil) -> NSImage? {
         let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
-        image?.isTemplate = true
-        return image
+        guard let color else {
+            image?.isTemplate = true
+            return image
+        }
+        let tinted = image?.withSymbolConfiguration(.init(paletteColors: [color]))
+        tinted?.isTemplate = false
+        return tinted
     }
 
     /// Red row at the top of the menu naming every missing permission.
@@ -569,6 +638,23 @@ public final class MenuBarManager: NSObject {
             )
             addSeparator()
         }
+    }
+
+    /// Blue row matching the blue arrow the Plugins tab badges a row with.
+    /// Permissions outrank it: that menu is already telling a louder story.
+    private func addPluginUpdatesRowIfNeeded() {
+        guard missingPermissions.isEmpty, pluginUpdateCount > 0 else { return }
+        let text = Self.updateLabel(pluginUpdateCount) + " available"
+        let item = addRow(text) { [weak self] in self?.onOpenPluginUpdates?() }
+        item.image = Self.menuSymbol("arrow.down.circle.fill", color: .systemBlue)
+        item.attributedTitle = NSAttributedString(
+            string: text,
+            attributes: [
+                .foregroundColor: NSColor.systemBlue,
+                .font: NSFont.menuFont(ofSize: 0),
+            ]
+        )
+        addSeparator()
     }
 
     @objc private func menuItemClicked(_ sender: NSMenuItem) {
