@@ -146,6 +146,6 @@ struct BatteryTests {
         #expect(result.contains("\"hasClick\":true"))
         #expect(result.contains("\"setArg\":true"))
         #expect(result.contains("\"title\":\"Low Power Mode\""))
-        #expect(result.contains("\"body\":\"On\""))
+        #expect(result.contains("\"body\":\"on\""))
     }
 }
