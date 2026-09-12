@@ -106,52 +106,144 @@ macotron.command("AI Chat", "Open a streaming chat panel", () => {
         height: 520,
         html: `<style>
 #log { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 8px; }
-.msg { max-width: 82%; white-space: pre-wrap; word-wrap: break-word; }
+.msg { max-width: 82%; word-wrap: break-word; }
 .msg[data-role="user"] {
   align-self: flex-end;
   padding: 8px 14px;
   border-radius: 18px;
   background: var(--macotron-accent);
-  color: var(--macotron-accent-text);
+  color: #fff;
+  white-space: pre-wrap;
 }
-.msg[data-role="assistant"] {
-  align-self: flex-start;
-  padding: 2px 4px;
-  color: var(--macotron-label);
-}
+.msg[data-role="assistant"] { align-self: flex-start; padding: 2px 4px; max-width: 100%; }
 .msg[data-role="error"] {
   align-self: flex-start;
   padding: 8px 12px;
   border-radius: 12px;
   background: color-mix(in srgb, var(--macotron-control-border) 35%, transparent);
-  color: inherit;
+  white-space: pre-wrap;
 }
+.msg p, .msg ul, .msg ol, .msg pre { margin: 0 0 8px; }
+.msg > :last-child { margin-bottom: 0; }
+.msg ul, .msg ol { padding-left: 20px; }
+.msg code {
+  font-size: 12px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: light-dark(rgba(0,0,0,0.06), rgba(255,255,255,0.10));
+}
+.msg pre {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: light-dark(rgba(0,0,0,0.05), rgba(255,255,255,0.07));
+  overflow-x: auto;
+}
+.msg pre code { padding: 0; background: none; }
+#composer {
+  border: 1px solid light-dark(rgba(0,0,0,0.12), rgba(255,255,255,0.14));
+  border-radius: 20px;
+  background: light-dark(#ffffff, #2c2c2e);
+  padding: 10px 10px 8px 14px;
+}
+#composer:focus-within { border-color: light-dark(rgba(0,0,0,0.25), rgba(255,255,255,0.3)); }
+#input {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0 0 8px;
+  background: none;
+  resize: none;
+  max-height: 160px;
+  box-shadow: none;
+}
+#bar { display: flex; align-items: center; gap: 8px; }
+#bar button, #bar select {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  background: light-dark(rgba(0,0,0,0.06), rgba(255,255,255,0.10));
+  border: 0;
+}
+#model {
+  width: auto;
+  padding-right: 24px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2398989d' d='M1 1l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+#neu, #send { width: 28px; padding: 0; font-size: 18px; line-height: 28px; text-align: center; flex: none; }
+#send { margin-left: auto; background: var(--macotron-accent); color: #fff; }
+#send:disabled { opacity: 0.35; cursor: default; }
 </style>
 <div id="log" class="grow scroll"></div>
-<div class="toolbar">
-  <select id="model">${modelOptions(opts.model || "small")}</select>
-  <textarea id="input" autofocus rows="2" placeholder="Message…"></textarea>
-  <button id="send" class="primary">Send</button>
-  <button id="neu" class="secondary">New</button>
+<div id="composer">
+  <textarea id="input" autofocus rows="1" placeholder="Message…"></textarea>
+  <div id="bar">
+    <button id="neu" class="secondary" title="New chat">+</button>
+    <select id="model" title="Model">${modelOptions(opts.model || "small")}</select>
+    <button id="send" title="Send" disabled>↑</button>
+  </div>
 </div>
 <script>
 const log = document.getElementById("log");
 const input = document.getElementById("input");
+const send = document.getElementById("send");
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function inline(s) {
+  return esc(s)
+    .replace(/\`([^\`\\n]+)\`/g, "<code>$1</code>")
+    .replace(/\\*\\*([^*]+)\\*\\*/g, "<strong>$1</strong>")
+    .replace(/(^|\\s)\\*([^*\\n]+)\\*/g, "$1<em>$2</em>");
+}
+// Minimal markdown: fenced code, inline code, bold, italics, lists, paragraphs.
+function markdown(text) {
+  const parts = text.split(/\`\`\`[^\\n]*\\n?/);
+  let html = "";
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2) { html += "<pre><code>" + esc(parts[i].replace(/\\n$/, "")) + "</code></pre>"; continue; }
+    let mode = "";
+    const close = () => { if (mode) html += "</" + mode + ">"; mode = ""; };
+    for (const line of parts[i].split("\\n")) {
+      const li = /^\\s*(?:[-*]|(\\d+)\\.) (.*)/.exec(line);
+      if (li) {
+        const kind = li[1] ? "ol" : "ul";
+        if (mode !== kind) { close(); mode = kind; html += "<" + kind + ">"; }
+        html += "<li>" + inline(li[2]) + "</li>";
+      } else if (line.trim()) {
+        if (mode !== "p") { close(); mode = "p"; html += "<p>"; } else html += "<br>";
+        html += inline(line);
+      } else close();
+    }
+    close();
+  }
+  return html;
+}
 function add(role, text) {
   const el = document.createElement("div");
   el.className = "msg";
   el.dataset.role = role;
   if (role === "error") el.classList.add("bad");
-  el.textContent = text || "";
+  if (role === "assistant") el.innerHTML = markdown(text || "");
+  else el.textContent = text || "";
   log.appendChild(el);
   log.scrollTop = log.scrollHeight;
   return el;
 }
 let streamEl = null;
-document.getElementById("send").onclick = () => {
+let streamText = "";
+function grow() {
+  input.style.height = "auto";
+  input.style.height = input.scrollHeight + "px";
+  send.disabled = !input.value.trim();
+}
+input.oninput = grow;
+send.onclick = () => {
   const text = input.value.trim();
   if (!text) return;
   input.value = "";
+  grow();
   window.webkit.messageHandlers.macotron.postMessage({
     type: "send",
     text: text,
@@ -161,7 +253,7 @@ document.getElementById("send").onclick = () => {
 input.onkeydown = (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
-    document.getElementById("send").click();
+    send.click();
   }
 };
 document.getElementById("neu").onclick = () => window.webkit.messageHandlers.macotron.postMessage({ type: "new" });
@@ -173,16 +265,18 @@ window.__macotronReceive = (data) => {
   }
   if (data.type === "user") add("user", data.text);
   if (data.type === "chunk") {
-    if (!streamEl) streamEl = add("assistant", "");
-    streamEl.textContent += data.chunk;
+    if (!streamEl) { streamEl = add("assistant", ""); streamText = ""; }
+    streamText += data.chunk;
+    streamEl.innerHTML = markdown(streamText);
     log.scrollTop = log.scrollHeight;
   }
   if (data.type === "done") {
-    if (streamEl) streamEl.textContent = data.text || streamEl.textContent;
+    if (streamEl) streamEl.innerHTML = markdown(data.text || streamText);
     streamEl = null;
   }
   if (data.type === "error") { add("error", data.text); streamEl = null; }
 };
+grow();
 input.focus();
 </script>`,
     });

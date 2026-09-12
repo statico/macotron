@@ -215,3 +215,99 @@ document.getElementById("list").onclick = (e) => {
         macotron.panel.close(id);
     });
 });
+
+// The wheel places the eight compass zones plus two middles. LAYOUTS.quarters
+// is exactly the halves-and-corners set drawn honestly -- LAYOUTS.halves.top is
+// deliberately the whole screen so a drag to the top edge maximizes, which is
+// wrong for a menu segment labelled "top half".
+const RADIAL_FRAMES = Object.assign({}, LAYOUTS.quarters, {
+    center: { x: 0.125, y: 0.125, w: 0.75, h: 0.75 },
+    full: { x: 0, y: 0, w: 1, h: 1 },
+});
+
+// Pointer offset from the wheel centre to a zone name. Self-contained on
+// purpose: the panel injects this function verbatim with toString(), so the
+// highlight the user sees and the window that moves can never disagree. The
+// dead zone is the inner disc, split so its top half maximizes and its bottom
+// half centres; RADIAL_INNER below has to stay in step with the 40 here.
+function radialZone(dx, dy) {
+    const ZONES = ["right", "br", "bottom", "bl", "left", "tl", "top", "tr"];
+    if (dx * dx + dy * dy < 40 * 40) return dy < 0 ? "full" : "center";
+    // Rounding to the nearest 45 degrees puts each direction in the middle of
+    // its wedge, and the modulo folds the 337.5-360 sliver back onto east.
+    const deg = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+    return ZONES[Math.round(deg / 45) % 8];
+}
+
+function openRadial() {
+    // macotron.window.focused() skips Macotron's own windows, so the panel
+    // taking key focus does not cost us the target window.
+    if (!macotron.window.focused()) {
+        macotron.notify.toast("Radial Menu", "No focused window", { color: "warning" });
+        return;
+    }
+
+    const id = macotron.panel.open({
+        title: "Radial Menu",
+        width: 240,
+        height: 240,
+        glass: "translucent",
+        frameless: true,
+        closeOnBlur: true,
+        fullscreen: false,
+        html: `<style>
+body { padding: 0; margin: 0; display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; }
+svg { display: block; }
+.seg { fill: light-dark(rgba(0,0,0,0.06), rgba(255,255,255,0.10)); stroke: light-dark(rgba(0,0,0,0.10), rgba(255,255,255,0.14)); stroke-width: 1; }
+.seg.on { fill: color-mix(in srgb, var(--macotron-accent) 60%, transparent); }
+text { fill: var(--macotron-label); font-size: 10px; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+</style>
+<svg id="wheel" width="240" height="240" viewBox="0 0 240 240"></svg>
+<script>
+${radialZone.toString()}
+const RADIAL_INNER = 40;
+const CX = 120, CY = 120, OUTER = 112;
+const wheel = document.getElementById("wheel");
+const point = (r, deg) => [CX + r * Math.cos(deg * Math.PI / 180), CY + r * Math.sin(deg * Math.PI / 180)];
+let parts = "";
+// One donut wedge per compass direction, each centred on its own angle so the
+// drawing matches what radialZone() decides.
+for (let i = 0; i < 8; i++) {
+  const a0 = i * 45 - 22.5, a1 = i * 45 + 22.5;
+  const [ix0, iy0] = point(RADIAL_INNER, a0), [ox0, oy0] = point(OUTER, a0);
+  const [ox1, oy1] = point(OUTER, a1), [ix1, iy1] = point(RADIAL_INNER, a1);
+  const d = "M" + ix0 + " " + iy0 + "L" + ox0 + " " + oy0 +
+    "A" + OUTER + " " + OUTER + " 0 0 1 " + ox1 + " " + oy1 +
+    "L" + ix1 + " " + iy1 + "A" + RADIAL_INNER + " " + RADIAL_INNER + " 0 0 0 " + ix0 + " " + iy0 + "Z";
+  const [lx, ly] = point((RADIAL_INNER + OUTER) / 2, i * 45);
+  parts += '<path class="seg" data-zone="' + radialZone(lx - CX, ly - CY) + '" d="' + d + '"></path>' +
+    '<text x="' + lx + '" y="' + ly + '">' + ["Right","↘","Bottom","↙","Left","↖","Top","↗"][i] + "</text>";
+}
+// The inner disc is the dead zone: top half maximizes, bottom half centres.
+parts += '<path class="seg" data-zone="full" d="M' + (CX - RADIAL_INNER) + ' ' + CY + 'A' + RADIAL_INNER + ' ' + RADIAL_INNER + ' 0 0 1 ' + (CX + RADIAL_INNER) + ' ' + CY + 'Z"></path>' +
+  '<path class="seg" data-zone="center" d="M' + (CX - RADIAL_INNER) + ' ' + CY + 'A' + RADIAL_INNER + ' ' + RADIAL_INNER + ' 0 0 0 ' + (CX + RADIAL_INNER) + ' ' + CY + 'Z"></path>' +
+  '<text x="' + CX + '" y="' + (CY - 18) + '">Max</text><text x="' + CX + '" y="' + (CY + 18) + '">Center</text>';
+wheel.innerHTML = parts;
+let zone = null;
+function highlight(next) {
+  if (next === zone) return;
+  zone = next;
+  wheel.querySelectorAll(".seg").forEach((p) => p.classList.toggle("on", p.dataset.zone === zone));
+}
+window.addEventListener("mousemove", (e) => highlight(radialZone(e.clientX - CX, e.clientY - CY)));
+window.addEventListener("click", (e) => {
+  window.webkit.messageHandlers.macotron.postMessage({ type: "pick", zone: radialZone(e.clientX - CX, e.clientY - CY) });
+});
+</script>`,
+    });
+
+    macotron.panel.onMessage(id, (data) => {
+        if (!data || data.type !== "pick") return;
+        macotron.panel.close(id);
+        const frame = RADIAL_FRAMES[data.zone];
+        if (frame) cycle("radial:" + data.zone, [frame], 0);
+    });
+}
+
+macotron.keyboard.on("Radial Menu", "ctrl+opt+space", openRadial);
+macotron.command("Radial Menu", "Pick a tiling zone from a wheel at the pointer", openRadial);
