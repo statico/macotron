@@ -58,6 +58,12 @@ interface HIDDeviceInfo {
     maxInput: number;
     maxOutput: number;
     maxFeature: number;
+    /**
+     * Charge 0-100, when the device publishes one. Most do not, so
+     * treat it as absent by default. Bluetooth peripherals report
+     * through `network.bluetooth()` instead.
+     */
+    battery?: number;
 }
 
 declare function alert(message?: any): void;
