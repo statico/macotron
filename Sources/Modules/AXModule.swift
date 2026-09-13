@@ -19,14 +19,14 @@ public final class AXModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let ax = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, ax, "focused", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, ax, "focused", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             if AXModule.dryRun(ctx) { return QJS_Null() }
             guard let el = AXTree.focused() else { return QJS_Null() }
             return AXModule.wrap(ctx, el)
-        }, "focused", 0))
+        }
 
-        JS_SetPropertyStr(ctx, ax, "selectedText", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, ax, "selectedText", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             // NSWorkspace only answers on the main thread; the polling read that
             // needs the pid does not run there.
@@ -34,18 +34,18 @@ public final class AXModule: NativeModule {
             return JSBridge.promise(ctx, dryRun: NSNull()) {
                 .of(AXTree.selectedText(frontmostPID: pid))
             }
-        }, "selectedText", 0))
+        }
 
-        JS_SetPropertyStr(ctx, ax, "children", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, ax, "children", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             if AXModule.dryRun(ctx) { return JSBridge.newArray(ctx, []) }
             guard let argv, argc >= 1, let el = AXModule.element(ctx, argv[0]) else {
                 return JSBridge.newArray(ctx, [])
             }
             return JSBridge.newArray(ctx, AXTree.children(el).map { AXModule.dict($0, ctx) })
-        }, "children", 1))
+        }
 
-        JS_SetPropertyStr(ctx, ax, "parent", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, ax, "parent", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             if AXModule.dryRun(ctx) { return QJS_Null() }
             guard let argv, argc >= 1, let el = AXModule.element(ctx, argv[0]),
@@ -53,18 +53,18 @@ public final class AXModule: NativeModule {
                 return QJS_Null()
             }
             return AXModule.wrap(ctx, parent)
-        }, "parent", 1))
+        }
 
-        JS_SetPropertyStr(ctx, ax, "press", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, ax, "press", 1) { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
             if AXModule.dryRun(ctx) { return JSBridge.newBool(ctx, false) }
             guard let argv, argc >= 1, let el = AXModule.element(ctx, argv[0]) else {
                 return JSBridge.newBool(ctx, false)
             }
             return JSBridge.newBool(ctx, AXTree.press(el))
-        }, "press", 1))
+        }
 
-        JS_SetPropertyStr(ctx, ax, "setValue", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, ax, "setValue", 2) { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
             if AXModule.dryRun(ctx) { return JSBridge.newBool(ctx, false) }
             guard let argv, argc >= 2, let el = AXModule.element(ctx, argv[0]),
@@ -72,9 +72,9 @@ public final class AXModule: NativeModule {
                 return JSBridge.newBool(ctx, false)
             }
             return JSBridge.newBool(ctx, AXTree.setValue(el, value))
-        }, "setValue", 2))
+        }
 
-        JS_SetPropertyStr(ctx, ax, "find", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, ax, "find", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             if AXModule.dryRun(ctx) { return QJS_Null() }
             guard let argv, argc >= 1 else { return QJS_Null() }
@@ -87,7 +87,7 @@ public final class AXModule: NativeModule {
             JS_FreeValue(ctx, titleVal)
             guard let el = AXTree.find(role: role, title: title) else { return QJS_Null() }
             return AXModule.wrap(ctx, el)
-        }, "find", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "ax", ax)
         JS_FreeValue(ctx, macotron)

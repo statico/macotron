@@ -20,7 +20,7 @@ public final class RemindersModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let reminders = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, reminders, "list", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, reminders, "list", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             var days: Double?
             var completed = false
@@ -38,9 +38,9 @@ public final class RemindersModule: NativeModule {
             return JSBridge.promise(ctx, dryRun: [Any]()) {
                 .value(RemindersModule.list(days: window, completed: wantCompleted))
             }
-        }, "list", 1))
+        }
 
-        JS_SetPropertyStr(ctx, reminders, "add", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, reminders, "add", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             guard let argv, argc >= 1 else {
                 return JSBridge.newObject(ctx, ["ok": false, "error": "title required"])
@@ -53,9 +53,9 @@ public final class RemindersModule: NativeModule {
             let list = JSBridge.string(ctx, argv[0], "list")
             return JSBridge.newObject(ctx, RemindersModule.add(
                 title: title, due: due, list: list, dryRun: Engine.isDryRun(ctx)))
-        }, "add", 1))
+        }
 
-        JS_SetPropertyStr(ctx, reminders, "complete", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, reminders, "complete", 2) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             guard let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]), !id.isEmpty else {
                 return JSBridge.newObject(ctx, ["ok": false, "error": "id required"])
@@ -66,7 +66,7 @@ public final class RemindersModule: NativeModule {
             }
             return JSBridge.newObject(ctx, RemindersModule.complete(
                 id: id, on: on, dryRun: Engine.isDryRun(ctx)))
-        }, "complete", 2))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "reminders", reminders)
         JS_FreeValue(ctx, macotron)

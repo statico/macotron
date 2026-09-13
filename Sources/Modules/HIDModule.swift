@@ -22,12 +22,12 @@ public final class HIDModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let hid = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, hid, "list", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, hid, "list", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newArray(ctx, HIDDevices.list(HIDModule.filter(ctx, argc: argc, argv: argv, at: 0)))
-        }, "list", 1))
+        }
 
-        JS_SetPropertyStr(ctx, hid, "open", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, hid, "open", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             if Engine.isDryRun(ctx) { return QJS_Null() }
             guard let hub = HIDModule.hub(ctx),
@@ -35,28 +35,28 @@ public final class HIDModule: NativeModule {
                 return QJS_Null()
             }
             return JSBridge.newObject(ctx, row)
-        }, "open", 1))
+        }
 
-        JS_SetPropertyStr(ctx, hid, "close", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, hid, "close", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]) else {
                 return QJS_Undefined()
             }
             HIDModule.hub(ctx)?.close(id)
             return QJS_Undefined()
-        }, "close", 1))
+        }
 
-        JS_SetPropertyStr(ctx, hid, "sendOutput", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, hid, "sendOutput", 3) { ctx, _, argc, argv in
             HIDModule.send(ctx, argc: argc, argv: argv, type: kIOHIDReportTypeOutput)
-        }, "sendOutput", 3))
+        }
 
-        JS_SetPropertyStr(ctx, hid, "sendFeature", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, hid, "sendFeature", 3) { ctx, _, argc, argv in
             HIDModule.send(ctx, argc: argc, argv: argv, type: kIOHIDReportTypeFeature)
-        }, "sendFeature", 3))
+        }
 
         // Waits on the interrupt pipe like `hid_read`. `readInputReport` is the
         // control GetReport that this used to be — a different transfer, which
         // most devices never answer.
-        JS_SetPropertyStr(ctx, hid, "readInput", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, hid, "readInput", 2) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             let handle = JSBridge.deferred(ctx, dryRun: NSNull())
             guard let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]),
@@ -72,17 +72,17 @@ public final class HIDModule: NativeModule {
             }
             hub.read(id, timeout: timeout, settle: handle.settle)
             return handle.promise
-        }, "readInput", 2))
+        }
 
-        JS_SetPropertyStr(ctx, hid, "readInputReport", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, hid, "readInputReport", 2) { ctx, _, argc, argv in
             HIDModule.read(ctx, argc: argc, argv: argv, type: kIOHIDReportTypeInput)
-        }, "readInputReport", 2))
+        }
 
-        JS_SetPropertyStr(ctx, hid, "readFeature", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, hid, "readFeature", 3) { ctx, _, argc, argv in
             HIDModule.read(ctx, argc: argc, argv: argv, type: kIOHIDReportTypeFeature)
-        }, "readFeature", 3))
+        }
 
-        JS_SetPropertyStr(ctx, hid, "listen", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, hid, "listen", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]) else {
                 return JSBridge.newObject(ctx!, ["ok": false, "error": "missing id"])
             }
@@ -90,24 +90,24 @@ public final class HIDModule: NativeModule {
                 return JSBridge.newObject(ctx, ["ok": false, "error": "unavailable"])
             }
             return JSBridge.newObject(ctx, hub.listen(id))
-        }, "listen", 1))
+        }
 
-        JS_SetPropertyStr(ctx, hid, "unlisten", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, hid, "unlisten", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]) else {
                 return QJS_Undefined()
             }
             HIDModule.hub(ctx)?.unlisten(id)
             return QJS_Undefined()
-        }, "unlisten", 1))
+        }
 
-        JS_SetPropertyStr(ctx, hid, "reportDescriptor", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, hid, "reportDescriptor", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]),
                   let device = HIDModule.hub(ctx)?.device(id),
                   let bytes = HIDDevices.reportDescriptor(device) else {
                 return QJS_Null()
             }
             return JSBridge.newArray(ctx, bytes)
-        }, "reportDescriptor", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "hid", hid)
         JS_FreeValue(ctx, macotron)

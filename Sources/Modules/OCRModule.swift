@@ -20,8 +20,7 @@ public final class OCRModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let ocr = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, ocr, "recognize",
-                          JS_NewCFunction(ctx, { ctx, _, argc, argv -> JSValue in
+        JSBridge.fn(ctx, ocr, "recognize", 1) { ctx, _, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else {
                 return QJS_ThrowTypeError(ctx, "ocr.recognize requires { path } or { image }")
             }
@@ -58,7 +57,7 @@ public final class OCRModule: NativeModule {
                     return .failure(error.localizedDescription)
                 }
             }
-        }, "recognize", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "ocr", ocr)
         JS_FreeValue(ctx, macotron)

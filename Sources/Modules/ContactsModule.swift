@@ -51,19 +51,19 @@ public final class ContactsModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let contacts = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, contacts, "list", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, contacts, "list", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return ContactsModule.fetchPromise(ctx, query: "")
-        }, "list", 0))
+        }
 
-        JS_SetPropertyStr(ctx, contacts, "search", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, contacts, "search", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             var query = ""
             if let argv, argc >= 1 {
                 query = JSBridge.toString(ctx, argv[0]) ?? ""
             }
             return ContactsModule.fetchPromise(ctx, query: query)
-        }, "search", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "contacts", contacts)
         JS_FreeValue(ctx, macotron)

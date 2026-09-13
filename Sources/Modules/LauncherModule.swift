@@ -212,7 +212,7 @@ public final class LauncherModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let launcher = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, launcher, "set", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, launcher, "set", 2) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
             guard let mod: LauncherModule = Engine.module(ctx, "__launcherModule"),
                   let provider = JSBridge.toString(ctx, argv[0]) else {
@@ -220,9 +220,9 @@ public final class LauncherModule: NativeModule {
             }
             mod.replace(provider: provider, items: argv[1], ctx: ctx)
             return QJS_Undefined()
-        }, "set", 2))
+        }
 
-        JS_SetPropertyStr(ctx, launcher, "query", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, launcher, "query", 3) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
             guard let mod: LauncherModule = Engine.module(ctx, "__launcherModule"),
                   let provider = JSBridge.toString(ctx, argv[0]),
@@ -248,9 +248,9 @@ public final class LauncherModule: NativeModule {
                 }
             }
             return QJS_Undefined()
-        }, "query", 3))
+        }
 
-        JS_SetPropertyStr(ctx, launcher, "remove", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, launcher, "remove", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             guard let mod: LauncherModule = Engine.module(ctx, "__launcherModule"),
                   let provider = JSBridge.toString(ctx, argv[0]) else {
@@ -259,7 +259,7 @@ public final class LauncherModule: NativeModule {
             mod.drop(provider: provider, ctx: ctx)
             mod.dropQuery(provider: provider, ctx: ctx)
             return QJS_Undefined()
-        }, "remove", 1))
+        }
 
         push = JS_NewCFunction(ctx, { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 3 else { return QJS_Undefined() }

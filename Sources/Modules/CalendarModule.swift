@@ -20,8 +20,7 @@ public final class CalendarModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let calendar = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, calendar, "upcoming",
-                          JS_NewCFunction(ctx, { ctx, _, argc, argv -> JSValue in
+        JSBridge.fn(ctx, calendar, "upcoming", 1) { ctx, _, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
 
             var hours = 24.0
@@ -48,7 +47,7 @@ public final class CalendarModule: NativeModule {
             return JSBridge.promise(ctx, dryRun: [Any]()) {
                 .value(CalendarModule.upcoming(store: store, hours: window, titles: wanted))
             }
-        }, "upcoming", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "calendar", calendar)
         JS_FreeValue(ctx, macotron)

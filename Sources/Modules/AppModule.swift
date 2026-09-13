@@ -28,8 +28,7 @@ public final class AppModule: NativeModule {
         let appObj = JS_NewObject(ctx)
 
         // macotron.app.list() -> [{name, bundleID, pid}]
-        JS_SetPropertyStr(ctx, appObj, "list",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, appObj, "list", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
 
             let runningApps = NSWorkspace.shared.runningApplications
@@ -51,11 +50,10 @@ public final class AppModule: NativeModule {
             }
 
             return jsArr
-        }, "list", 0))
+        }
 
         // macotron.app.launch(bundleID) -> void
-        JS_SetPropertyStr(ctx, appObj, "launch",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, appObj, "launch", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
 
             guard let bundleID = JSBridge.toString(ctx, argv[0]) else {
@@ -64,12 +62,11 @@ public final class AppModule: NativeModule {
             }
             if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             return JSBridge.newBool(ctx, AppLaunch.open(bundleID: bundleID))
-        }, "launch", 1))
+        }
 
         // macotron.app.switch(bundleID) -> void (activate the app)
         // Note: "switch" is a reserved word in Swift; the JS property name is fine
-        JS_SetPropertyStr(ctx, appObj, "switch",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, appObj, "switch", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
 
             guard let bundleID = JSBridge.toString(ctx, argv[0]) else {
@@ -78,34 +75,33 @@ public final class AppModule: NativeModule {
             }
             if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             return JSBridge.newBool(ctx, AppLaunch.open(bundleID: bundleID))
-        }, "switch", 1))
+        }
 
         // macotron.app.frontmost() -> {name, bundleID, pid} or null
-        JS_SetPropertyStr(ctx, appObj, "frontmost",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, appObj, "frontmost", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Null() }
             guard let module: AppModule = Engine.module(ctx, "__appModule"),
                   let info = module.frontmostInfo() else {
                 return QJS_Null()
             }
             return JSBridge.newObject(ctx, info)
-        }, "frontmost", 0))
+        }
 
-        JS_SetPropertyStr(ctx, appObj, "hide", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, appObj, "hide", 1) { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
             if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             let id = argc > 0 ? JSBridge.toString(ctx, argv![0]) : nil
             return JSBridge.newBool(ctx, AppControl.hide(id))
-        }, "hide", 1))
+        }
 
-        JS_SetPropertyStr(ctx, appObj, "quit", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, appObj, "quit", 1) { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
             if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             let id = argc > 0 ? JSBridge.toString(ctx, argv![0]) : nil
             return JSBridge.newBool(ctx, AppControl.quit(id))
-        }, "quit", 1))
+        }
 
-        JS_SetPropertyStr(ctx, appObj, "menu", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, appObj, "menu", 2) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
             guard let path = (JSBridge.jsToSwift(ctx, argv[0]) as? [Any])?.compactMap({ $0 as? String }),
                   !path.isEmpty else {
@@ -115,7 +111,7 @@ public final class AppModule: NativeModule {
             if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             guard let app = AppControl.running(bundleID) else { return JSBridge.newBool(ctx, false) }
             return JSBridge.newBool(ctx, AppMenu.select(pid: app.processIdentifier, path: path))
-        }, "menu", 2))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "app", appObj)
         JS_FreeValue(ctx, macotron)

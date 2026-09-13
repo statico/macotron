@@ -66,13 +66,13 @@ public final class ShareModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let share = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, share, "open", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, share, "open", 1) { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
             if ShareModule.dryRun(ctx) { return JSBridge.newBool(ctx, false) }
             return JSBridge.newBool(ctx, ShareModule.module(ctx)?.open(ctx, argc: argc, argv: argv) ?? false)
-        }, "open", 1))
+        }
 
-        JS_SetPropertyStr(ctx, share, "airDrop", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, share, "airDrop", 1) { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
             if ShareModule.dryRun(ctx) { return JSBridge.newBool(ctx, false) }
             guard let argv, argc >= 1, let raw = JSBridge.jsToSwift(ctx, argv[0]) as? [Any] else {
@@ -84,7 +84,7 @@ public final class ShareModule: NativeModule {
             }
             service.perform(withItems: SharePath.urls(paths))
             return JSBridge.newBool(ctx, true)
-        }, "airDrop", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "share", share)
         JS_FreeValue(ctx, macotron)

@@ -14,7 +14,7 @@ public final class BonjourModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let obj = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, obj, "browse", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, obj, "browse", 2) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             guard let argv, argc >= 1, let type = JSBridge.toString(ctx, argv[0]) else {
                 return JSBridge.promise(ctx, dryRun: [Any]()) { .value([Any]()) }
@@ -28,7 +28,7 @@ public final class BonjourModule: NativeModule {
             return JSBridge.promise(ctx, dryRun: [Any]()) {
                 .value(BonjourBrowse.browse(type: type, timeout: seconds, dryRun: false).map { $0 as Any })
             }
-        }, "browse", 2))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "bonjour", obj)
         JS_FreeValue(ctx, macotron)

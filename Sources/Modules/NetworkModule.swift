@@ -25,29 +25,29 @@ public final class NetworkModule: NativeModule {
 
         // networksetup is three subprocesses deep for a full Wi-Fi snapshot, so
         // every reader of it hands back a promise rather than stalling the menu.
-        JS_SetPropertyStr(ctx, network, "wifiSSID", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, network, "wifiSSID", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.promise(ctx, dryRun: NSNull()) {
                 .of(NetworkControl.currentSSID())
             }
-        }, "wifiSSID", 0))
+        }
 
-        JS_SetPropertyStr(ctx, network, "wifi", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, network, "wifi", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.promise(ctx, dryRun: NetworkModule.noWifi) {
                 .value(NetworkControl.wifi())
             }
-        }, "wifi", 0))
+        }
 
-        JS_SetPropertyStr(ctx, network, "setWifi", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, network, "setWifi", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let on = JSBridge.toBool(ctx, argv[0])
             return JSBridge.promise(ctx, dryRun: NetworkControl.setWifi(on, dryRun: true)) {
                 .value(NetworkControl.setWifi(on, dryRun: false))
             }
-        }, "setWifi", 1))
+        }
 
-        JS_SetPropertyStr(ctx, network, "bluetooth", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, network, "bluetooth", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.promise(ctx, dryRun: NetworkModule.noBluetooth) {
                 let batteries = BluetoothBattery.cached()
@@ -57,42 +57,42 @@ public final class NetworkModule: NativeModule {
                     BluetoothRadio.snapshot(batteries: batteries)
                 })
             }
-        }, "bluetooth", 0))
+        }
 
         // Flipping the radio is a dlsym'd IOBluetooth call, not a subprocess:
         // it stays synchronous.
-        JS_SetPropertyStr(ctx, network, "setBluetooth", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, network, "setBluetooth", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let on = JSBridge.toBool(ctx, argv[0])
             return JSBridge.newObject(ctx, BluetoothRadio.set(on, dryRun: NetworkModule.dryRun(ctx)))
-        }, "setBluetooth", 1))
+        }
 
         // Reading the mode is a defaults lookup; only writing it has to kill
         // sharingd, so only the setter is a promise.
-        JS_SetPropertyStr(ctx, network, "airDrop", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, network, "airDrop", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newObject(ctx, NetworkControl.airDrop())
-        }, "airDrop", 0))
+        }
 
-        JS_SetPropertyStr(ctx, network, "setAirDrop", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, network, "setAirDrop", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let mode = JSBridge.toString(ctx, argv[0]) ?? ""
             return JSBridge.promise(ctx, dryRun: NetworkControl.setAirDrop(mode, dryRun: true)) {
                 .value(NetworkControl.setAirDrop(mode, dryRun: false))
             }
-        }, "setAirDrop", 1))
+        }
 
-        JS_SetPropertyStr(ctx, network, "interfaces", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, network, "interfaces", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newArray(ctx, NetworkModule.ipv4Interfaces())
-        }, "interfaces", 0))
+        }
 
-        JS_SetPropertyStr(ctx, network, "counters", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, network, "counters", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newArray(ctx, NetworkModule.counters())
-        }, "counters", 0))
+        }
 
-        JS_SetPropertyStr(ctx, network, "ping", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, network, "ping", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             var host = "1.1.1.1"
             if argc >= 1, let argv, let given = JSBridge.toString(ctx, argv[0]), !given.isEmpty {
@@ -102,7 +102,7 @@ public final class NetworkModule: NativeModule {
             return JSBridge.promise(ctx, dryRun: ["ms": NSNull(), "host": target] as [String: Any]) {
                 .value(NetworkControl.ping(target))
             }
-        }, "ping", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "network", network)
         JS_FreeValue(ctx, macotron)

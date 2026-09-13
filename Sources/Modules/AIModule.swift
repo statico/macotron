@@ -18,31 +18,31 @@ public final class AIModule: NativeModule {
         let aiObj = JS_NewObject(ctx)
 
         // macotron.ai.claude(opts?) → AI client object
-        JS_SetPropertyStr(ctx, aiObj, "claude", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, aiObj, "claude", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             return AIModule.client(ctx, "claude", argc, argv)
-        }, "claude", 1))
+        }
         let claudeFn = JS_GetPropertyStr(ctx, aiObj, "claude")
         JS_SetPropertyStr(ctx, aiObj, "anthropic", JS_DupValue(ctx, claudeFn))
         JS_FreeValue(ctx, claudeFn)
 
-        JS_SetPropertyStr(ctx, aiObj, "openai", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, aiObj, "openai", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             return AIModule.client(ctx, "openai", argc, argv)
-        }, "openai", 1))
+        }
 
-        JS_SetPropertyStr(ctx, aiObj, "gemini", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, aiObj, "gemini", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             return AIModule.client(ctx, "gemini", argc, argv)
-        }, "gemini", 1))
+        }
 
         // local takes no key or model: it is whatever is running on this Mac.
-        JS_SetPropertyStr(ctx, aiObj, "local", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, aiObj, "local", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return AIModule.createClientObject(
                 ctx: ctx, providerName: "local", apiKey: nil, model: nil
             )
-        }, "local", 0))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "ai", aiObj)
         JS_FreeValue(ctx, macotron)
@@ -69,8 +69,7 @@ public final class AIModule: NativeModule {
             JS_SetPropertyStr(ctx, clientObj, "_model", JSBridge.newString(ctx, model))
         }
 
-        JS_SetPropertyStr(ctx, clientObj, "chat",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, clientObj, "chat", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let messages: [AIChatMessage]
             do {
@@ -94,10 +93,9 @@ public final class AIModule: NativeModule {
                 }
             }
             return promise
-        }, "chat", 2))
+        }
 
-        JS_SetPropertyStr(ctx, clientObj, "stream",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, clientObj, "stream", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let messages: [AIChatMessage]
             do {
@@ -174,7 +172,7 @@ public final class AIModule: NativeModule {
                 }
             }
             return promise
-        }, "stream", 2))
+        }
 
         return clientObj
     }

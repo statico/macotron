@@ -24,8 +24,7 @@ public final class ScreenModule: NativeModule {
 
         let screenObj = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, screenObj, "capture",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, screenObj, "capture", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
 
             var selection = false
@@ -67,10 +66,9 @@ public final class ScreenModule: NativeModule {
                 if let error = box.error { return .failure("screen.capture failed: \(error)") }
                 return .value(box.base64 ?? "")
             }
-        }, "capture", 1))
+        }
 
-        JS_SetPropertyStr(ctx, screenObj, "pickColor",
-                          JS_NewCFunction(ctx, { ctx, _, _, _ -> JSValue in
+        JSBridge.fn(ctx, screenObj, "pickColor", 0) { ctx, _, _, _ -> JSValue in
             guard let ctx else { return QJS_Undefined() }
 
             if Engine.isDryRun(ctx) { return QJS_Null() }
@@ -97,7 +95,7 @@ public final class ScreenModule: NativeModule {
                 ] as [String: Any]))
             }
             return promise
-        }, "pickColor", 0))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "screen", screenObj)
         JS_FreeValue(ctx, macotron)

@@ -14,7 +14,7 @@ public final class NotesModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let notes = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, notes, "list", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, notes, "list", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.promise(ctx, dryRun: [Any]()) {
                 .value(NotesList.visible(NotesStore.list()).map { note in
@@ -25,9 +25,9 @@ public final class NotesModule: NativeModule {
                     ] as [String: Any]
                 })
             }
-        }, "list", 0))
+        }
 
-        JS_SetPropertyStr(ctx, notes, "open", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, notes, "open", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]) else {
                 return QJS_Undefined()
             }
@@ -35,7 +35,7 @@ public final class NotesModule: NativeModule {
                 NotesStore.open(id)
                 return .value(NSNull())
             }
-        }, "open", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "notes", notes)
         JS_FreeValue(ctx, macotron)

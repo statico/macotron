@@ -308,8 +308,7 @@ public final class SpotlightModule: NativeModule {
 
         let spotlightObj = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, spotlightObj, "search",
-                          JS_NewCFunction(ctx, { ctx, _, argc, argv -> JSValue in
+        JSBridge.fn(ctx, spotlightObj, "search", 2) { ctx, _, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let queryString = JSBridge.toString(ctx, argv[0]) ?? ""
             var folder: String?
@@ -329,7 +328,7 @@ public final class SpotlightModule: NativeModule {
                 .value(SpotlightSearch.run(queryString, folder: searchFolder, kind: searchKind)
                     .map { $0 as Any })
             }
-        }, "search", 2))
+        }
 
         JS_SetPropertyStr(ctx, macotronObj, "spotlight", spotlightObj)
         JS_FreeValue(ctx, macotronObj)

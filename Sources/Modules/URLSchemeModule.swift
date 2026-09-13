@@ -50,8 +50,7 @@ public final class URLSchemeModule: NativeModule {
 
         let urlObj = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, urlObj, "on",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, urlObj, "on", 3) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 3 else { return QJS_Undefined() }
             let scheme = JSBridge.toString(ctx, argv[0]) ?? ""
             let host = JSBridge.toString(ctx, argv[1]) ?? ""
@@ -76,10 +75,9 @@ public final class URLSchemeModule: NativeModule {
             }
 
             return QJS_Undefined()
-        }, "on", 3))
+        }
 
-        JS_SetPropertyStr(ctx, urlObj, "open",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, urlObj, "open", 3) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let urlString = JSBridge.toString(ctx, argv[0]) ?? ""
             var bundleID: String?
@@ -96,10 +94,9 @@ public final class URLSchemeModule: NativeModule {
             }
             if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             return JSBridge.newBool(ctx, URLOpen.open(url, bundleID: bundleID, profile: profile))
-        }, "open", 3))
+        }
 
-        JS_SetPropertyStr(ctx, urlObj, "setDefaultHandler",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, urlObj, "setDefaultHandler", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             guard let argv, argc >= 1 else { return JSBridge.newBool(ctx, false) }
             let scheme = JSBridge.toString(ctx, argv[0]) ?? ""
@@ -112,14 +109,13 @@ public final class URLSchemeModule: NativeModule {
                 macotronBundleID as CFString
             )
             return JSBridge.newBool(ctx, status == noErr)
-        }, "setDefaultHandler", 1))
+        }
 
-        JS_SetPropertyStr(ctx, urlObj, "onFallback",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, urlObj, "onFallback", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             URLSchemeEventReceiver.shared.setFallback(argv[0], ctx: ctx)
             return QJS_Undefined()
-        }, "onFallback", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotronObj, "url", urlObj)
         JS_FreeValue(ctx, macotronObj)

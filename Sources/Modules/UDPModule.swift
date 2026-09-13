@@ -25,7 +25,7 @@ public final class UDPModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let obj = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, obj, "send", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, obj, "send", 3) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 3 else {
                 return JSBridge.newObject(ctx!, ["ok": false, "error": "host, port, data"])
             }
@@ -37,9 +37,9 @@ public final class UDPModule: NativeModule {
             let port = Int(JSBridge.toInt32(ctx, argv[1]))
             let hub = (Engine.module(ctx, "__udpModule") as UDPModule?)?.hub
             return JSBridge.newObject(ctx, hub?.send(host: host, port: port, data: data) ?? ["ok": false])
-        }, "send", 3))
+        }
 
-        JS_SetPropertyStr(ctx, obj, "listen", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, obj, "listen", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else {
                 return JSBridge.newObject(ctx!, ["ok": false, "error": "port"])
             }
@@ -47,14 +47,14 @@ public final class UDPModule: NativeModule {
             let port = Int(JSBridge.toInt32(ctx, argv[0]))
             let hub = (Engine.module(ctx, "__udpModule") as UDPModule?)?.hub
             return JSBridge.newObject(ctx, hub?.listen(port: port) ?? ["ok": false])
-        }, "listen", 1))
+        }
 
-        JS_SetPropertyStr(ctx, obj, "unlisten", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, obj, "unlisten", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let port = Int(JSBridge.toInt32(ctx, argv[0]))
             (Engine.module(ctx, "__udpModule") as UDPModule?)?.hub.unlisten(port: port)
             return QJS_Undefined()
-        }, "unlisten", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "udp", obj)
         JS_FreeValue(ctx, macotron)

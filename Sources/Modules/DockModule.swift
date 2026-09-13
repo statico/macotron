@@ -16,11 +16,11 @@ public final class DockModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let dock = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, dock, "badges", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, dock, "badges", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             if dockDryRun(ctx) { return JSBridge.newArray(ctx, []) }
             return JSBridge.newArray(ctx, DockBadges.list())
-        }, "badges", 0))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "dock", dock)
         JS_FreeValue(ctx, macotron)

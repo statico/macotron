@@ -106,15 +106,15 @@ public final class EventModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
 
         let eventObj = JS_NewObject(ctx)
-        JS_SetPropertyStr(ctx, eventObj, "post", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, eventObj, "post", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
             if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             let raw = JSBridge.jsToSwift(ctx, argv[0])
             guard let dict = raw as? [String: Any] else { return JSBridge.newBool(ctx, false) }
             return JSBridge.newBool(ctx, EventModule.post(dict))
-        }, "post", 1))
+        }
 
-        JS_SetPropertyStr(ctx, eventObj, "tap", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, eventObj, "tap", 2) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 2, JS_IsFunction(ctx, argv[1]) else {
                 return QJS_ThrowTypeError(ctx, "event.tap(types, callback)")
             }
@@ -150,18 +150,18 @@ public final class EventModule: NativeModule {
                 GestureMonitor.shared.add(mask: gestureMask, callback: JS_DupValue(ctx, argv[1]), ctx: ctx)
             }
             return QJS_Undefined()
-        }, "tap", 2))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "event", eventObj)
 
         let mouseObj = JS_NewObject(ctx)
-        JS_SetPropertyStr(ctx, mouseObj, "location", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, mouseObj, "location", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             let p = NSEvent.mouseLocation
             return JSBridge.newObject(ctx, ["x": Double(p.x), "y": Double(p.y)])
-        }, "location", 0))
+        }
 
-        JS_SetPropertyStr(ctx, mouseObj, "warp", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, mouseObj, "warp", 2) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
             if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
             let x: Double
@@ -176,16 +176,16 @@ public final class EventModule: NativeModule {
             }
             EventModule.warp(CGPoint(x: x, y: y))
             return JSBridge.newBool(ctx, true)
-        }, "warp", 2))
+        }
 
-        JS_SetPropertyStr(ctx, mouseObj, "buttons", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, mouseObj, "buttons", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newObject(ctx, [
                 "left": CGEventSource.buttonState(.hidSystemState, button: .left),
                 "right": CGEventSource.buttonState(.hidSystemState, button: .right),
                 "center": CGEventSource.buttonState(.hidSystemState, button: .center),
             ])
-        }, "buttons", 0))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "mouse", mouseObj)
         JS_FreeValue(ctx, macotron)

@@ -28,7 +28,7 @@ public final class ScheduleModule: NativeModule {
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
 
-        JS_SetPropertyStr(ctx, macotron, "every", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, macotron, "every", 2) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 2 else {
                 return QJS_ThrowTypeError(ctx, "every(msOrDuration, callback)")
             }
@@ -37,15 +37,15 @@ public final class ScheduleModule: NativeModule {
             }
             guard let module = scheduleModule(ctx) else { return QJS_Undefined() }
             return module.registerEvery(ctx: ctx, spec: argv[0], callback: argv[1])
-        }, "every", 2))
+        }
 
-        JS_SetPropertyStr(ctx, macotron, "at", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, macotron, "at", 3) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 2 else {
                 return QJS_ThrowTypeError(ctx, "at(time, callback | opts, callback?)")
             }
             guard let module = scheduleModule(ctx) else { return QJS_Undefined() }
             return module.registerAt(ctx: ctx, argc: argc, argv: argv)
-        }, "at", 3))
+        }
 
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)

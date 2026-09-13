@@ -296,8 +296,7 @@ public final class SystemModule: NativeModule {
         _ = CPUTicks.shared.usage()
         _ = CoreTicks.shared.usage()
 
-        JS_SetPropertyStr(ctx, systemObj, "cpu",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "cpu", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             let cores = CoreTicks.shared.usage()
             return JSBridge.newObject(ctx, [
@@ -307,10 +306,9 @@ public final class SystemModule: NativeModule {
                 "efficiencyCores": Double(CoreTopology.split.efficiency),
                 "performanceCores": Double(CoreTopology.split.performance),
             ])
-        }, "cpu", 0))
+        }
 
-        JS_SetPropertyStr(ctx, systemObj, "locale",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "locale", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             let loc = Locale.current
             let metric = loc.measurementSystem == .metric
@@ -322,13 +320,12 @@ public final class SystemModule: NativeModule {
                 // other way to know which half of the world it is printing for.
                 "hour12": DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: loc)?.contains("a") ?? false,
             ])
-        }, "locale", 0))
+        }
 
         // macotron.system.timeIn(zone, format?) -> "18:42" ("" if the zone is
         // unknown). QuickJS ships without Intl, so a plugin that wants another
         // zone has no way to do this itself short of spawning /bin/date.
-        JS_SetPropertyStr(ctx, systemObj, "timeIn",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "timeIn", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             guard let argv, argc >= 1, let name = JSBridge.toString(ctx, argv[0]),
                   let zone = TimeZone(identifier: name) ?? TimeZone(abbreviation: name) else {
@@ -344,11 +341,10 @@ public final class SystemModule: NativeModule {
             formatter.timeZone = zone
             formatter.dateFormat = format
             return JSBridge.newString(ctx, formatter.string(from: Date()))
-        }, "timeIn", 2))
+        }
 
         // macotron.system.memory() -> {total, used, free}
-        JS_SetPropertyStr(ctx, systemObj, "memory",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "memory", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
 
             let pageSize = UInt64(getpagesize())
@@ -398,17 +394,15 @@ public final class SystemModule: NativeModule {
                 "compressed": Double(compressedBytes),
                 "pressure": MemoryPressure.current()
             ])
-        }, "memory", 0))
+        }
 
-        JS_SetPropertyStr(ctx, systemObj, "battery",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "battery", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newObject(ctx, BatteryStatus.current())
-        }, "battery", 0))
+        }
 
         // macotron.system.disk() -> {total, free, used}
-        JS_SetPropertyStr(ctx, systemObj, "disk",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "disk", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
 
             let values = try? URL(fileURLWithPath: "/").resourceValues(forKeys: [
@@ -423,11 +417,10 @@ public final class SystemModule: NativeModule {
                 "free": free,
                 "used": max(0, total - free)
             ])
-        }, "disk", 0))
+        }
 
         // macotron.system.network() -> {bytesIn, bytesOut}
-        JS_SetPropertyStr(ctx, systemObj, "network",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "network", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
 
             var bytesIn: UInt64 = 0
@@ -453,11 +446,10 @@ public final class SystemModule: NativeModule {
                 "bytesIn": Double(bytesIn),
                 "bytesOut": Double(bytesOut)
             ])
-        }, "network", 0))
+        }
 
         // macotron.system.processes(limit?) -> [{name, pid, cpu}]
-        JS_SetPropertyStr(ctx, systemObj, "processes",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "processes", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
 
             var limit = 10
@@ -482,26 +474,23 @@ public final class SystemModule: NativeModule {
                 }
                 return .value(results)
             }
-        }, "processes", 1))
+        }
 
-        JS_SetPropertyStr(ctx, systemObj, "gpu",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "gpu", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             guard let name = MTLCreateSystemDefaultDevice()?.name else { return QJS_Null() }
             return JSBridge.newObject(ctx, [
                 "name": name,
                 "usage": GPUStats.utilization() ?? 0,
             ])
-        }, "gpu", 0))
+        }
 
-        JS_SetPropertyStr(ctx, systemObj, "fans",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "fans", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newObject(ctx, FanController.shared.snapshot().js)
-        }, "fans", 0))
+        }
 
-        JS_SetPropertyStr(ctx, systemObj, "setLowPowerMode",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "setLowPowerMode", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             guard let argv, argc >= 1 else {
                 return QJS_ThrowTypeError(ctx, "setLowPowerMode requires a boolean")
@@ -511,16 +500,14 @@ public final class SystemModule: NativeModule {
             return JSBridge.promise(ctx, dryRun: LowPowerMode.set(enabled, dryRun: true)) {
                 .value(LowPowerMode.set(enabled, dryRun: false))
             }
-        }, "setLowPowerMode", 1))
+        }
 
-        JS_SetPropertyStr(ctx, systemObj, "darkMode",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "darkMode", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newBool(ctx, DarkMode.isOn())
-        }, "darkMode", 0))
+        }
 
-        JS_SetPropertyStr(ctx, systemObj, "setDarkMode",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "setDarkMode", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             guard let argv, argc >= 1 else {
                 return QJS_ThrowTypeError(ctx, "setDarkMode requires a boolean")
@@ -530,16 +517,14 @@ public final class SystemModule: NativeModule {
             return JSBridge.promise(ctx, dryRun: DarkMode.set(on, dryRun: true)) {
                 .value(DarkMode.set(on, dryRun: false))
             }
-        }, "setDarkMode", 1))
+        }
 
-        JS_SetPropertyStr(ctx, systemObj, "appearance",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "appearance", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newString(ctx, DarkMode.appearance())
-        }, "appearance", 0))
+        }
 
-        JS_SetPropertyStr(ctx, systemObj, "setAppearance",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "setAppearance", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             guard let argv, argc >= 1,
                   let raw = JSBridge.toString(ctx, argv[0]),
@@ -549,19 +534,17 @@ public final class SystemModule: NativeModule {
             return JSBridge.promise(ctx, dryRun: DarkMode.setAppearance(mode, dryRun: true)) {
                 .value(DarkMode.setAppearance(mode, dryRun: false))
             }
-        }, "setAppearance", 1))
+        }
 
-        JS_SetPropertyStr(ctx, systemObj, "focus",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "focus", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newObject(ctx, FocusStatus.snapshot())
-        }, "focus", 0))
+        }
 
         // Setting a floor is an XPC round trip to a daemon launchd may have to
         // cold start, and the SMC writes inside it take a few hundred ms. On
         // the JS thread that is a beachball, so this one hands back a promise.
-        JS_SetPropertyStr(ctx, systemObj, "setFanFloor",
-                          JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, systemObj, "setFanFloor", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             var percent: Int?
             if let argv, argc >= 1, !JSBridge.isUndefined(argv[0]), !JS_IsNull(argv[0]) {
@@ -571,7 +554,7 @@ public final class SystemModule: NativeModule {
             return JSBridge.promise(ctx, dryRun: FanController.shared.setFloor(percent, dryRun: true).js) {
                 .value(FanController.shared.setFloor(requested, dryRun: false).js)
             }
-        }, "setFanFloor", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "system", systemObj)
         JS_FreeValue(ctx, macotron)

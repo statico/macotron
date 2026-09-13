@@ -77,7 +77,7 @@ public final class KeyboardModule: NativeModule {
         let keyboardObj = JS_NewObject(ctx)
 
         // ---------- on(id, defaultCombo, callback) ----------
-        JS_SetPropertyStr(ctx, keyboardObj, "on", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, keyboardObj, "on", 3) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 3 else {
                 return QJS_ThrowTypeError(ctx, "keyboard.on(id, default, callback)")
             }
@@ -107,9 +107,9 @@ public final class KeyboardModule: NativeModule {
             }
 
             return QJS_Undefined()
-        }, "on", 3))
+        }
 
-        JS_SetPropertyStr(ctx, keyboardObj, "flags", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, keyboardObj, "flags", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             let flags = CGEventSource.flagsState(.hidSystemState)
             return JSBridge.newObject(ctx, [
@@ -120,9 +120,9 @@ public final class KeyboardModule: NativeModule {
                 "caps": flags.contains(.maskAlphaShift),
                 "fn": flags.contains(.maskSecondaryFn),
             ])
-        }, "flags", 0))
+        }
 
-        JS_SetPropertyStr(ctx, keyboardObj, "setHyperKey", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, keyboardObj, "setHyperKey", 1) { ctx, _, argc, argv in
             guard let ctx, let module = keyboardModule(ctx) else { return JSBridge.newBool(ctx!, false) }
             let raw: String?
             if let argv, argc >= 1, !JS_IsNull(argv[0]), !JS_IsUndefined(argv[0]) {
@@ -131,14 +131,14 @@ public final class KeyboardModule: NativeModule {
                 raw = nil
             }
             return JSBridge.newBool(ctx, module.hyper.set(raw, dryRun: engineDryRun(ctx)))
-        }, "setHyperKey", 1))
+        }
 
-        JS_SetPropertyStr(ctx, keyboardObj, "hyperKey", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, keyboardObj, "hyperKey", 0) { ctx, _, _, _ in
             guard let ctx, let module = keyboardModule(ctx), let key = module.hyper.current else {
                 return QJS_Null()
             }
             return JSBridge.newString(ctx, key)
-        }, "hyperKey", 0))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "keyboard", keyboardObj)
         JS_FreeValue(ctx, macotron)

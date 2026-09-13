@@ -123,31 +123,31 @@ public final class CameraModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let camera = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, camera, "list", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, camera, "list", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             if Engine.isDryRun(ctx) { return JSBridge.newArray(ctx, []) }
             return JSBridge.newArray(ctx, CameraModule.devices().map {
                 ["id": $0.uniqueID, "name": $0.localizedName] as [String: Any]
             })
-        }, "list", 0))
+        }
 
-        JS_SetPropertyStr(ctx, camera, "preview", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, camera, "preview", 1) { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
             if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, false) }
             return JSBridge.newBool(ctx, CameraModule.module(ctx)?.startPreview(ctx, argc: argc, argv: argv) ?? false)
-        }, "preview", 1))
+        }
 
-        JS_SetPropertyStr(ctx, camera, "stopPreview", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, camera, "stopPreview", 0) { ctx, _, _, _ in
             CameraModule.module(ctx)?.preview.stop()
             return QJS_Undefined()
-        }, "stopPreview", 0))
+        }
 
-        JS_SetPropertyStr(ctx, camera, "snapshot", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, camera, "snapshot", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             if Engine.isDryRun(ctx) { return QJS_Null() }
             guard let png = CameraModule.module(ctx)?.preview.snapshot() else { return QJS_Null() }
             return JSBridge.newString(ctx, png)
-        }, "snapshot", 0))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "camera", camera)
         JS_FreeValue(ctx, macotron)

@@ -21,25 +21,25 @@ public final class MediaModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let media = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, media, "nowPlaying", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, media, "nowPlaying", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newObject(ctx, NowPlaying.shared.snapshot().js)
-        }, "nowPlaying", 0))
+        }
 
-        JS_SetPropertyStr(ctx, media, "playPause", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, media, "playPause", 0) { ctx, _, _, _ in
             NowPlaying.shared.send(.togglePlayPause)
             return QJS_Undefined()
-        }, "playPause", 0))
+        }
 
-        JS_SetPropertyStr(ctx, media, "next", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, media, "next", 0) { ctx, _, _, _ in
             NowPlaying.shared.send(.nextTrack)
             return QJS_Undefined()
-        }, "next", 0))
+        }
 
-        JS_SetPropertyStr(ctx, media, "previous", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, media, "previous", 0) { ctx, _, _, _ in
             NowPlaying.shared.send(.previousTrack)
             return QJS_Undefined()
-        }, "previous", 0))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "media", media)
         JS_FreeValue(ctx, macotron)

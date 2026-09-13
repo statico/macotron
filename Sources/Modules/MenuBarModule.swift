@@ -74,7 +74,7 @@ public final class MenuBarModule: NativeModule {
         let menubarObj = JS_NewObject(ctx)
 
         // --- add(id, opts) ---
-        JS_SetPropertyStr(ctx, menubarObj, "add", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, menubarObj, "add", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
 
             guard let id = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
@@ -97,10 +97,10 @@ public final class MenuBarModule: NativeModule {
 
             JS_FreeValue(ctx, onClickVal)
             return QJS_Undefined()
-        }, "add", 2))
+        }
 
         // --- update(id, opts) ---
-        JS_SetPropertyStr(ctx, menubarObj, "update", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, menubarObj, "update", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
 
             guard let id = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
@@ -114,10 +114,10 @@ public final class MenuBarModule: NativeModule {
             }
 
             return QJS_Undefined()
-        }, "update", 2))
+        }
 
         // --- remove(id) ---
-        JS_SetPropertyStr(ctx, menubarObj, "remove", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, menubarObj, "remove", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
 
             guard let id = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
@@ -130,10 +130,10 @@ public final class MenuBarModule: NativeModule {
             }
 
             return QJS_Undefined()
-        }, "remove", 1))
+        }
 
         // --- setIcon(sfSymbolName) ---
-        JS_SetPropertyStr(ctx, menubarObj, "setIcon", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, menubarObj, "setIcon", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
 
             guard let symbolName = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
@@ -143,9 +143,9 @@ public final class MenuBarModule: NativeModule {
             }
 
             return QJS_Undefined()
-        }, "setIcon", 1))
+        }
 
-        JS_SetPropertyStr(ctx, menubarObj, "setIconColor", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, menubarObj, "setIconColor", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv else { return QJS_Undefined() }
             var color: String?
             if argc >= 1 {
@@ -158,10 +158,10 @@ public final class MenuBarModule: NativeModule {
                 mod.delegate?.setIconColor(color)
             }
             return QJS_Undefined()
-        }, "setIconColor", 1))
+        }
 
         // --- setTitle(text) ---
-        JS_SetPropertyStr(ctx, menubarObj, "setTitle", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, menubarObj, "setTitle", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
 
             guard let text = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
@@ -171,9 +171,9 @@ public final class MenuBarModule: NativeModule {
             }
 
             return QJS_Undefined()
-        }, "setTitle", 1))
+        }
 
-        JS_SetPropertyStr(ctx, menubarObj, "status", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, menubarObj, "status", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
             guard let id = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
             let opts = argv[1]
@@ -237,19 +237,19 @@ public final class MenuBarModule: NativeModule {
             JS_FreeValue(ctx, onClickVal)
             JS_FreeValue(ctx, onHoverVal)
             return QJS_Undefined()
-        }, "status", 2))
+        }
 
-        JS_SetPropertyStr(ctx, menubarObj, "isVisible", JS_NewCFunction(ctx, { ctx, _, argc, argv -> JSValue in
+        JSBridge.fn(ctx, menubarObj, "isVisible", 1) { ctx, _, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]),
                   let mod: MenuBarModule = Engine.module(ctx, "__menuBarModule")
             else { return JS_NewBool(ctx, false) }
             return JS_NewBool(ctx, mod.delegate?.isStatusShowing(id: id) == true)
-        }, "isVisible", 1))
+        }
 
-        JS_SetPropertyStr(ctx, menubarObj, "isDark", JS_NewCFunction(ctx, { ctx, _, _, _ -> JSValue in
+        JSBridge.fn(ctx, menubarObj, "isDark", 0) { ctx, _, _, _ -> JSValue in
             guard let ctx, let mod: MenuBarModule = Engine.module(ctx, "__menuBarModule") else { return JS_NewBool(ctx, false) }
             return JS_NewBool(ctx, mod.delegate?.menuBarIsDark() == true)
-        }, "isDark", 0))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "menubar", menubarObj)
         JS_FreeValue(ctx, macotron)
