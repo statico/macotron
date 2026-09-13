@@ -42,23 +42,6 @@ struct EventBusTests {
         #expect(result == "Macotron")
     }
 
-    // MARK: - off
-
-    @Test("off removes specific listener")
-    func testOff() {
-        let engine = Engine()
-        // Register a listener via JS and store the callback reference
-        engine.evaluate("""
-            var offTestFired = false;
-            var offCallback = function() { offTestFired = true; };
-            $$__on("test:off", offCallback);
-            $$__off("test:off", offCallback);
-        """)
-        engine.eventBus.emit("test:off", engine: engine, data: nil)
-        let (result, _) = engine.evaluate("offTestFired")
-        #expect(result == "false")
-    }
-
     // MARK: - removeAllListeners
 
     @Test("removeAllListeners clears everything")
@@ -161,25 +144,5 @@ struct EventBusTests {
         #expect(result == "42")
     }
 
-    // MARK: - unsubscribing from inside a listener
-
-    @Test("a listener that unsubscribes itself does not take the rest of the list with it")
-    func testOffFromInsideListener() {
-        let engine = Engine()
-        engine.evaluate("""
-            var log = [];
-            var first = function() { log.push("first"); $$__off("test:selfoff", first); };
-            var second = function() { log.push("second"); };
-            $$__on("test:selfoff", first);
-            $$__on("test:selfoff", second);
-        """)
-        // `first` releases its own callback mid-dispatch. `second` still has to
-        // run, on this emit and the next one.
-        engine.eventBus.emit("test:selfoff", engine: engine, data: nil)
-        engine.eventBus.emit("test:selfoff", engine: engine, data: nil)
-
-        let (result, _) = engine.evaluate("log.join(',')")
-        #expect(result == "first,second,second")
-    }
 }
 

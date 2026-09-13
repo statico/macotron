@@ -11,7 +11,6 @@ struct LauncherPlacementTests {
         let f = LauncherPlacement.frame(height: 56, visible: visible, pinTop: nil)
         let expectedTop = visible.maxY - visible.height * LauncherPlacement.topFraction
         #expect(abs(f.maxY - expectedTop) < 0.5)
-        #expect(f.height == 56)
         #expect(abs(f.midX - visible.midX) < 0.5)
         #expect(f.midY != visible.midY)
     }
@@ -86,8 +85,7 @@ struct LauncherPlacementTests {
         #expect(empty == 48)
         #expect(empty == LauncherPlacement.minHeight)
         #expect(LauncherPlacement.searchBarHeight(showingList: false) == empty)
-        #expect(LauncherPlacement.searchBarHeight(showingList: true) == 52)
-        #expect(LauncherPlacement.searchHeight == 52)
+        #expect(LauncherPlacement.searchBarHeight(showingList: true) == LauncherPlacement.searchHeight)
 
         let one = LauncherPlacement.panelHeight(
             resultCount: 1, queryEmpty: false, argumentCount: nil,

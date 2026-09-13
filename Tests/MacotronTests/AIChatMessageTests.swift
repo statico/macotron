@@ -13,7 +13,7 @@ struct AIChatMessageTests {
         ])
         #expect(result == [
             .user("hi"),
-            .assistant("hello"),
+            AIChatMessage(role: "assistant", content: "hello"),
         ])
     }
 
