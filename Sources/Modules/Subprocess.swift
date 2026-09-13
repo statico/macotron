@@ -60,4 +60,10 @@ enum Subprocess {
             exitCode: process.terminationStatus
         )
     }
+
+    /// `osascript -e` with one inline script: the shape every AppleScript
+    /// caller in the modules shares.
+    static func osascript(_ source: String) -> Result {
+        run("/usr/bin/osascript", ["-e", source])
+    }
 }

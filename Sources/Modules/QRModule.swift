@@ -6,7 +6,6 @@ import MacotronEngine
 @MainActor
 public final class QRModule: NativeModule {
     public let name = "qr"
-    public let moduleVersion = 1
 
     public init() {}
 

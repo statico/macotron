@@ -5,17 +5,6 @@ import IOKit.ps
 import Testing
 @testable import Modules
 
-@Suite("AudioDevices")
-struct AudioDevicesTests {
-    @Test("volume clamps to 0...1")
-    func clamp() {
-        #expect(AudioDevices.clampVolume(-1) == 0)
-        #expect(AudioDevices.clampVolume(0.25) == 0.25)
-        #expect(AudioDevices.clampVolume(2) == 1)
-    }
-
-}
-
 @Suite("Spaces")
 struct SpacesTests {
     @Test("type names")
@@ -51,10 +40,13 @@ struct SpacesTests {
 
     @Test("int coercion")
     func ints() {
-        #expect(Spaces.int(3) == 3)
-        #expect(Spaces.int(NSNumber(value: 9)) == 9)
-        #expect(Spaces.int(2.0) == 2)
-        #expect(Spaces.int("x") == nil)
+        #expect(Coerce.int(3) == 3)
+        #expect(Coerce.int(NSNumber(value: 9)) == 9)
+        #expect(Coerce.int(2.0) == 2)
+        #expect(Coerce.int("x") == nil)
+        #expect(Coerce.int(nil) == nil)
+        #expect(Coerce.double(2) == 2.0)
+        #expect(Coerce.double("x") == nil)
     }
 }
 

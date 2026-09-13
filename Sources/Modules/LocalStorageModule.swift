@@ -15,10 +15,6 @@ public final class LocalStorageModule: NativeModule {
     /// by accident until the host started passing this in.
     private let configDir: String?
 
-    public var defaultOptions: [String: Any] {
-        configDir.map { ["configDir": $0] } ?? [:]
-    }
-
     /// In-memory mirror of the JSON store
     private var store: [String: String] = [:]
 
@@ -32,8 +28,8 @@ public final class LocalStorageModule: NativeModule {
     // MARK: - NativeModule
 
     public func register(in engine: Engine, options: [String: Any]) {
-        // Resolve configDir from options
-        if let configDir = options["configDir"] as? String {
+        // Resolve configDir from options, else the one the host passed in.
+        if let configDir = options["configDir"] as? String ?? self.configDir {
             let dataDir = URL(fileURLWithPath: configDir).appendingPathComponent("data")
             let fm = FileManager.default
             if !fm.fileExists(atPath: dataDir.path) {

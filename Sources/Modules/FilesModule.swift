@@ -6,7 +6,6 @@ import MacotronEngine
 @MainActor
 public final class FilesModule: NativeModule {
     public let name = "files"
-    public let moduleVersion = 1
 
     public init() {}
 

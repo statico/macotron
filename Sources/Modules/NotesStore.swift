@@ -60,7 +60,7 @@ enum NotesStore {
     /// NSAppleScript is only safe on the main thread, and these scripts take
     /// seconds against a real Notes library, so run them out of process instead.
     private static func run(_ source: String) -> String? {
-        let result = Subprocess.run("/usr/bin/osascript", ["-e", source])
+        let result = Subprocess.osascript(source)
         guard result.ok else { return nil }
         return result.stdout.trimmingCharacters(in: .newlines)
     }

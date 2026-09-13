@@ -54,7 +54,6 @@ private final class SharePickerHost: NSObject, @preconcurrency NSSharingServiceP
 @MainActor
 public final class ShareModule: NativeModule {
     public let name = "share"
-    public let moduleVersion = 1
 
     private let host = SharePickerHost()
 

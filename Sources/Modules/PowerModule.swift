@@ -10,7 +10,6 @@ private let logger = Logger(subsystem: "io.statico.macotron", category: "power")
 @MainActor
 public final class PowerModule: NativeModule {
     public let name = "power"
-    public let moduleVersion = 3
 
     private var assertionID: IOPMAssertionID = 0
     private var active = false

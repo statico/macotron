@@ -13,7 +13,7 @@ enum DisplayAppearance {
             return NightShiftRequest(on: on, strength: nil)
         }
         guard let obj = value as? [String: Any] else { return nil }
-        let strength = number(obj["strength"]).map { min(1, max(0, $0)) }
+        let strength = Coerce.double(obj["strength"]).map { min(1, max(0, $0)) }
         let on = obj["on"] as? Bool ?? true
         return NightShiftRequest(on: on, strength: strength)
     }
@@ -74,15 +74,6 @@ enum DisplayAppearance {
 
     static func setFail(_ error: String) -> [String: Any] {
         ["ok": false, "on": false, "available": false, "error": error]
-    }
-
-    private static func number(_ value: Any?) -> Double? {
-        switch value {
-        case let d as Double: return d
-        case let i as Int: return Double(i)
-        case let i as Int32: return Double(i)
-        default: return nil
-        }
     }
 
     private typealias ForceGray = @convention(c) (UInt8) -> Void

@@ -54,7 +54,6 @@ enum Dialog {
 @MainActor
 public final class DialogModule: NativeModule {
     public let name = "dialog"
-    public let moduleVersion = 1
 
     public init() {}
 

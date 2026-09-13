@@ -334,7 +334,7 @@ enum DarkMode {
             return ["ok": true, "darkMode": on]
         }
         let script = "tell application \"System Events\" to tell appearance preferences to set dark mode to \(on)"
-        let result = Subprocess.run("/usr/bin/osascript", ["-e", script])
+        let result = Subprocess.osascript(script)
         guard result.ok else {
             // A tool that could not launch reports its reason on stderr too,
             // so "did not run" and "ran and failed" read the same here.
