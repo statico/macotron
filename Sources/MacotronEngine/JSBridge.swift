@@ -195,11 +195,6 @@ public enum JSBridge {
         JS_IsNull(val)
     }
 
-    /// Check if a JSValue is an exception
-    public static func isException(_ val: JSValue) -> Bool {
-        JS_IsException(val)
-    }
-
     /// Get exception string from context
     public static func getExceptionString(_ ctx: OpaquePointer) -> String {
         let exception = JS_GetException(ctx)

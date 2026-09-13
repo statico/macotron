@@ -174,9 +174,8 @@ private enum FoundationPluginScan {
         let charsPerToken = max(1, sample.isEmpty ? 4 : sample.count / max(sampleTokens, 1))
         return PluginScan.chunks(
             source,
-            maxTokens: maxTokens,
-            overlapTokens: 200,
-            tokenCount: { text in max(1, text.count / charsPerToken) }
+            maxChars: maxTokens * charsPerToken,
+            overlap: 200 * charsPerToken
         )
     }
 

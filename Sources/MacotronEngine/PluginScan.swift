@@ -54,64 +54,20 @@ public struct PluginScanReport: Equatable, Sendable {
 }
 
 public enum PluginScan {
-    /// On-device context is ~4096 tokens. Leave room for instructions.
-    public static let defaultMaxChars = 6000
-    public static let overlapChars = 400
-
-    public static func chunks(_ source: String, maxChars: Int = defaultMaxChars, overlap: Int = overlapChars) -> [PluginScanChunk] {
-        chunks(source, maxTokens: maxChars, overlapTokens: overlap, tokenCount: { $0.count })
-    }
-
-    /// Split untrusted source so each slice fits `maxTokens`, with `overlapTokens` shared.
-    public static func chunks(
-        _ source: String,
-        maxTokens: Int,
-        overlapTokens: Int,
-        tokenCount: (String) -> Int
-    ) -> [PluginScanChunk] {
-        guard !source.isEmpty else { return [PluginScanChunk(index: 0, text: source)] }
-        let budget = max(maxTokens, 1)
-        let overlap = min(max(overlapTokens, 0), budget - 1)
-        if tokenCount(source) <= budget {
-            return [PluginScanChunk(index: 0, text: source)]
-        }
+    /// Split untrusted source so each slice fits `maxChars`, with `overlap` chars
+    /// shared between neighbours. Callers working in tokens scale their budget first.
+    public static func chunks(_ source: String, maxChars: Int, overlap: Int) -> [PluginScanChunk] {
+        let budget = max(maxChars, 1)
+        let overlap = min(max(overlap, 0), budget - 1)
         let chars = Array(source)
+        guard chars.count > budget else { return [PluginScanChunk(index: 0, text: source)] }
         var result: [PluginScanChunk] = []
         var start = 0
-        var index = 0
         while start < chars.count {
-            var lo = start + 1
-            var hi = chars.count
-            var best = lo
-            while lo <= hi {
-                let mid = (lo + hi) / 2
-                let slice = String(chars[start..<mid])
-                if tokenCount(slice) <= budget {
-                    best = mid
-                    lo = mid + 1
-                } else {
-                    hi = mid - 1
-                }
-            }
-            result.append(PluginScanChunk(index: index, text: String(chars[start..<best])))
-            if best >= chars.count { break }
-            var next = best
-            if overlap > 0 {
-                var back = best
-                var low = start
-                while low + 1 < back {
-                    let mid = (low + back) / 2
-                    let tail = String(chars[mid..<best])
-                    if tokenCount(tail) <= overlap {
-                        back = mid
-                    } else {
-                        low = mid
-                    }
-                }
-                next = back
-            }
-            start = min(max(next, start + 1), chars.count)
-            index += 1
+            let end = min(start + budget, chars.count)
+            result.append(PluginScanChunk(index: result.count, text: String(chars[start..<end])))
+            if end == chars.count { break }
+            start = end - overlap
         }
         return result
     }

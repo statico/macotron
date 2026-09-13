@@ -118,27 +118,22 @@ public final class PluginWorkspace {
         migratePluginNames(PluginCatalog.legacyRenames)
     }
 
+    /// Closed migration: built-in plugins dropped their `demo-` prefix. Moves the
+    /// file, then rewrites every settings key that stores a plugin filename.
     public func migratePluginNames(
         _ renames: [String: String],
         hashStore: PluginHashStore = PluginTrust.store
     ) {
         let fm = FileManager.default
         var settings = readSettings()
+        var moved = false
 
         for (oldName, newName) in renames.sorted(by: { $0.key < $1.key }) {
             let src = pluginsDir.appending(path: oldName)
             let dest = pluginsDir.appending(path: newName)
             guard fm.fileExists(atPath: src.path(percentEncoded: false)) else { continue }
-            guard !fm.fileExists(atPath: dest.path(percentEncoded: false)) else { continue }
-            if let conflict = stateConflict(
-                in: settings,
-                oldName: oldName,
-                newName: newName,
-                hashStore: hashStore
-            ) {
-                logger.error(
-                    "Kept \(oldName) because \(newName) already has \(conflict) state"
-                )
+            if fm.fileExists(atPath: dest.path(percentEncoded: false)) {
+                logger.error("Kept \(oldName) because \(newName) already exists")
                 continue
             }
             do {
@@ -147,157 +142,49 @@ public final class PluginWorkspace {
                 logger.error("Failed to migrate \(oldName) to \(newName): \(error.localizedDescription)")
                 continue
             }
-
-            let settingsBefore = settings
-            let changedSettings = applySettingsMigration(&settings, oldName: oldName, newName: newName)
-
-            if changedSettings {
-                do {
-                    try writeSettings(settings)
-                } catch {
-                    logger.error(
-                        "Failed to save settings after migrating \(oldName): \(error.localizedDescription)"
-                    )
-                    settings = settingsBefore
-                    do {
-                        try fm.moveItem(at: dest, to: src)
-                    } catch {
-                        logger.error(
-                            "Failed to roll back \(newName) to \(oldName): \(error.localizedDescription)"
-                        )
-                    }
-                    continue
-                }
-            }
-
+            rewriteStoredNames(&settings, oldName: oldName, newName: newName)
             PluginTrust.migrateHash(from: oldName, to: newName, store: hashStore)
+            moved = true
+        }
+
+        guard moved else { return }
+        do {
+            try writeSettings(settings)
+        } catch {
+            logger.error("Failed to save settings after migrating names: \(error.localizedDescription)")
         }
     }
 
-    /// The stored id a plugin-scoped id becomes after the rename, or nil when the id
-    /// belongs to another plugin.
-    private static func migratedID(_ id: String, oldName: String, newName: String) -> String? {
-        if id == oldName { return newName }
-        if id.hasPrefix(oldName + "/") { return newName + String(id.dropFirst(oldName.count)) }
-        return nil
-    }
-
-    /// Name of the first state category that already holds the destination identity.
-    /// Migrating would then have to pick a winner, so the caller keeps the old file.
-    private func stateConflict(
-        in settings: [String: Any],
+    /// Rewrite the five settings keys that hold a plugin filename, either bare or
+    /// as the `{plugin}/{id}` prefix of a command or shortcut id.
+    private func rewriteStoredNames(
+        _ settings: inout [String: Any],
         oldName: String,
-        newName: String,
-        hashStore: PluginHashStore
-    ) -> String? {
-        if let table = settings["pluginSettings"] as? [String: [String: Any]],
-           table[oldName] != nil, table[newName] != nil {
-            return "plugin settings"
+        newName: String
+    ) {
+        func migrated(_ id: String) -> String {
+            if id == oldName { return newName }
+            if id.hasPrefix(oldName + "/") { return newName + String(id.dropFirst(oldName.count)) }
+            return id
         }
-        if let disabled = settings["disabledPlugins"] as? [String],
-           disabled.contains(oldName), disabled.contains(newName) {
-            return "disabled plugin"
+        if var table = settings["pluginSettings"] as? [String: [String: Any]],
+           let value = table.removeValue(forKey: oldName) {
+            table[newName] = value
+            settings["pluginSettings"] = table
+        }
+        for key in ["disabledPlugins", "launcherFavorites"] {
+            if let list = settings[key] as? [String] {
+                settings[key] = list.map(migrated)
+            }
         }
         for key in ["commandShortcuts", "keyboardShortcuts"] {
-            guard let table = settings[key] as? [String: String] else { continue }
-            let collides = table.keys.contains { id in
-                guard let migrated = Self.migratedID(id, oldName: oldName, newName: newName) else {
-                    return false
-                }
-                return table[migrated] != nil
+            if let table = settings[key] as? [String: String] {
+                settings[key] = Dictionary(
+                    table.map { (migrated($0.key), $0.value) },
+                    uniquingKeysWith: { _, newer in newer }
+                )
             }
-            if collides { return key }
         }
-        if let favorites = settings["launcherFavorites"] as? [String] {
-            let ids = Set(favorites)
-            let collides = favorites.contains { id in
-                guard let migrated = Self.migratedID(id, oldName: oldName, newName: newName) else {
-                    return false
-                }
-                return ids.contains(migrated)
-            }
-            if collides { return "launcher favorite" }
-        }
-        if hashStore.read(filename: oldName) != nil, hashStore.read(filename: newName) != nil {
-            return "approved hash"
-        }
-        return nil
-    }
-
-    private func applySettingsMigration(
-        _ settings: inout [String: Any],
-        oldName: String,
-        newName: String
-    ) -> Bool {
-        var changed = false
-        changed = migratePluginSettings(&settings, oldName: oldName, newName: newName) || changed
-        changed = migrateDisabledPlugins(&settings, oldName: oldName, newName: newName) || changed
-        changed = migrateShortcutTable(&settings, key: "commandShortcuts", oldName: oldName, newName: newName)
-            || changed
-        changed = migrateShortcutTable(&settings, key: "keyboardShortcuts", oldName: oldName, newName: newName)
-            || changed
-        changed = migrateFavoriteIDs(&settings, oldName: oldName, newName: newName) || changed
-        return changed
-    }
-
-    private func migratePluginSettings(
-        _ settings: inout [String: Any],
-        oldName: String,
-        newName: String
-    ) -> Bool {
-        guard var table = settings["pluginSettings"] as? [String: [String: Any]],
-              let value = table.removeValue(forKey: oldName) else {
-            return false
-        }
-        table[newName] = value
-        settings["pluginSettings"] = table
-        return true
-    }
-
-    private func migrateDisabledPlugins(
-        _ settings: inout [String: Any],
-        oldName: String,
-        newName: String
-    ) -> Bool {
-        guard var disabled = settings["disabledPlugins"] as? [String] else { return false }
-        guard disabled.contains(oldName) else { return false }
-        disabled = disabled.map { $0 == oldName ? newName : $0 }
-        settings["disabledPlugins"] = disabled
-        return true
-    }
-
-    private func migrateShortcutTable(
-        _ settings: inout [String: Any],
-        key: String,
-        oldName: String,
-        newName: String
-    ) -> Bool {
-        guard var table = settings[key] as? [String: String] else { return false }
-        let affected = table.keys
-            .filter { Self.migratedID($0, oldName: oldName, newName: newName) != nil }
-            .sorted()
-        guard !affected.isEmpty else { return false }
-        for id in affected {
-            guard let migrated = Self.migratedID(id, oldName: oldName, newName: newName),
-                  let combo = table.removeValue(forKey: id) else { continue }
-            table[migrated] = combo
-        }
-        settings[key] = table
-        return true
-    }
-
-    private func migrateFavoriteIDs(
-        _ settings: inout [String: Any],
-        oldName: String,
-        newName: String
-    ) -> Bool {
-        guard let favorites = settings["launcherFavorites"] as? [String] else { return false }
-        let migrated = favorites.map {
-            Self.migratedID($0, oldName: oldName, newName: newName) ?? $0
-        }
-        guard migrated != favorites else { return false }
-        settings["launcherFavorites"] = migrated
-        return true
     }
 
     /// Real git, not the Xcode CLT stub. Workdir still works without it.

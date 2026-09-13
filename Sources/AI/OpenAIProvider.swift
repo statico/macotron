@@ -58,48 +58,10 @@ public final class OpenAIProvider: AIProvider, @unchecked Sendable {
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 120
 
-        let (bytes, response): (URLSession.AsyncBytes, URLResponse)
-        do {
-            (bytes, response) = try await URLSession.shared.bytes(for: request)
-        } catch {
-            throw AIProviderError.networkError(underlying: error)
+        return try await streamSSE(request, onChunk: onChunk) { event in
+            guard let choices = event["choices"] as? [[String: Any]],
+                  let delta = choices.first?["delta"] as? [String: Any] else { return nil }
+            return delta["content"] as? String
         }
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw AIProviderError.invalidResponse
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            var errorData = Data()
-            for try await byte in bytes {
-                errorData.append(byte)
-            }
-            let errorBody = String(data: errorData, encoding: .utf8) ?? "Unknown error"
-            throw AIProviderError.httpError(
-                statusCode: httpResponse.statusCode,
-                message: errorBody
-            )
-        }
-
-        var fullResponse = ""
-        for try await line in bytes.lines {
-            guard line.hasPrefix("data: ") else { continue }
-            let jsonStr = String(line.dropFirst(6))
-            if jsonStr == "[DONE]" { break }
-
-            guard let lineData = jsonStr.data(using: .utf8),
-                  let event = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
-                  let choices = event["choices"] as? [[String: Any]],
-                  let first = choices.first,
-                  let delta = first["delta"] as? [String: Any],
-                  let content = delta["content"] as? String else {
-                continue
-            }
-
-            fullResponse += content
-            onChunk(content)
-        }
-
-        return fullResponse
     }
 }

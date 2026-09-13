@@ -62,56 +62,11 @@ public final class ClaudeProvider: AIProvider, @unchecked Sendable {
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         request.timeoutInterval = 120
 
-        let (bytes, response): (URLSession.AsyncBytes, URLResponse)
-        do {
-            (bytes, response) = try await URLSession.shared.bytes(for: request)
-        } catch {
-            throw AIProviderError.networkError(underlying: error)
+        return try await streamSSE(request, onChunk: onChunk) { event in
+            // content_block_delta carries the text chunks.
+            guard event["type"] as? String == "content_block_delta",
+                  let delta = event["delta"] as? [String: Any] else { return nil }
+            return delta["text"] as? String
         }
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw AIProviderError.invalidResponse
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            // Collect the error body
-            var errorData = Data()
-            for try await byte in bytes {
-                errorData.append(byte)
-            }
-            let errorBody = String(data: errorData, encoding: .utf8) ?? "Unknown error"
-            throw AIProviderError.httpError(
-                statusCode: httpResponse.statusCode,
-                message: errorBody
-            )
-        }
-
-        // Parse SSE stream
-        var fullResponse = ""
-        for try await line in bytes.lines {
-            // SSE format: "data: {...}"
-            guard line.hasPrefix("data: ") else { continue }
-            let jsonStr = String(line.dropFirst(6))
-
-            // [DONE] signals end of stream (Anthropic uses message_stop event)
-            if jsonStr == "[DONE]" { break }
-
-            guard let lineData = jsonStr.data(using: .utf8),
-                  let event = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any] else {
-                continue
-            }
-
-            let eventType = event["type"] as? String
-
-            // content_block_delta contains the text chunks
-            if eventType == "content_block_delta",
-               let delta = event["delta"] as? [String: Any],
-               let text = delta["text"] as? String {
-                fullResponse += text
-                onChunk(text)
-            }
-        }
-
-        return fullResponse
     }
 }
