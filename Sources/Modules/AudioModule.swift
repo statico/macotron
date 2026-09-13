@@ -8,7 +8,6 @@ import MacotronEngine
 @MainActor
 public final class AudioModule: NativeModule {
     public let name = "audio"
-    public let moduleVersion = 1
 
     private var recorder: AVAudioRecorder?
     private var recordURL: URL?

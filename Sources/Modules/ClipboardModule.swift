@@ -20,7 +20,6 @@ private final class ClipboardPlainTapState: @unchecked Sendable {
 @MainActor
 public final class ClipboardModule: NativeModule {
     public let name = "clipboard"
-    public let moduleVersion = 4
 
     var history: [[String: Any]] = []
     var historyOptIn = false

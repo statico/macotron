@@ -39,7 +39,6 @@ private final class NotifyPresenter: NSObject, UNUserNotificationCenterDelegate 
 @MainActor
 public final class NotifyModule: NativeModule {
     public let name = "notify"
-    public let moduleVersion = 1
 
     private var notificationCenter: UNUserNotificationCenter?
     private let presenter = NotifyPresenter()

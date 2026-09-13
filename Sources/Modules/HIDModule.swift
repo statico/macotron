@@ -9,7 +9,6 @@ private let logger = Logger(subsystem: "io.statico.macotron", category: "hid")
 @MainActor
 public final class HIDModule: NativeModule {
     public let name = "hid"
-    public let moduleVersion = 1
 
     private let hub = HIDHub()
 
@@ -68,7 +67,7 @@ public final class HIDModule: NativeModule {
             var timeout = 1.0
             if argc >= 2, JS_IsObject(argv[1]),
                let opts = JSBridge.jsToSwift(ctx, argv[1]) as? [String: Any],
-               let ms = HIDFilter.int(opts["timeout"]) {
+               let ms = Coerce.int(opts["timeout"]) {
                 timeout = max(Double(ms), 0) / 1000
             }
             hub.read(id, timeout: timeout, settle: handle.settle)
@@ -151,7 +150,7 @@ public final class HIDModule: NativeModule {
             return JSBridge.newObject(ctx, ["ok": false, "error": "bad data"])
         }
         let opts = argc >= 3 ? (JSBridge.jsToSwift(ctx, argv[2]) as? [String: Any] ?? [:]) : [:]
-        let padded = HIDBytes.pad(bytes, length: HIDFilter.int(opts["length"]))
+        let padded = HIDBytes.pad(bytes, length: Coerce.int(opts["length"]))
         guard let device = hub(ctx)?.device(id) else {
             return JSBridge.newObject(ctx, ["ok": false, "error": "not open"])
         }
@@ -180,10 +179,10 @@ public final class HIDModule: NativeModule {
                 if argc >= 3 { opts = JSBridge.jsToSwift(ctx, argv[2]) as? [String: Any] ?? [:] }
             } else if JS_IsObject(second) {
                 opts = JSBridge.jsToSwift(ctx, second) as? [String: Any] ?? [:]
-                reportID = HIDFilter.int(opts["reportId"]) ?? 0
+                reportID = Coerce.int(opts["reportId"]) ?? 0
             }
         }
-        let length = HIDFilter.int(opts["length"]) ?? (HIDDevices.maxReport(device, type) + 1)
+        let length = Coerce.int(opts["length"]) ?? (HIDDevices.maxReport(device, type) + 1)
         guard let bytes = HIDDevices.getReport(device, type: type, reportID: reportID, length: length) else {
             return QJS_Null()
         }

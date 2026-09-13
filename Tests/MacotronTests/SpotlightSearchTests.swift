@@ -199,6 +199,25 @@ struct SpotlightSearchTests {
         #expect(SpotlightSearch.shallow("hid", roots: [dir.path]).isEmpty)
     }
 
+    @Test("the folder walk stops three levels down and skips the noisy trees")
+    func walkDepthAndPrune() throws {
+        let home = try makeHome([
+            "a/b/c/d", "node_modules/pkg", "Library/Caches", ".hidden/x", "Thing.app/Contents",
+        ])
+        defer { try? FileManager.default.removeItem(at: home) }
+        let found = Set(SpotlightSearch.folderWalk(home: home.path)
+            .map { String($0.dropFirst(home.path.count + 1)) })
+        #expect(found.contains("a/b/c"))
+        #expect(!found.contains("a/b/c/d"))
+        #expect(found.contains("node_modules"))
+        #expect(!found.contains("node_modules/pkg"))
+        #expect(found.contains("Library"))
+        #expect(!found.contains("Library/Caches"))
+        #expect(!found.contains(".hidden"))
+        #expect(!found.contains("Thing.app"))
+        #expect(!found.contains("Thing.app/Contents"))
+    }
+
     @Test("a scanned folder is not repeated when Spotlight also returns it")
     func extraIsDeduped() {
         let rows = SpotlightSearch.parse(

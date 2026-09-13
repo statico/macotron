@@ -18,10 +18,6 @@ public struct AudioDeviceInfo: Equatable, Sendable {
 }
 
 enum AudioDevices {
-    static func clampVolume(_ value: Double) -> Float {
-        Float(min(1, max(0, value)))
-    }
-
     static func list() -> [AudioDeviceInfo] {
         allIDs().compactMap(info)
     }
@@ -70,7 +66,7 @@ enum AudioDevices {
     }
 
     static func setVolume(id: AudioDeviceID, _ value: Double) -> Bool {
-        var v = clampVolume(value)
+        var v = Float(min(1, max(0, value)))
         if setScalar(id, kAudioHardwareServiceDeviceProperty_VirtualMainVolume, kAudioObjectPropertyScopeOutput, &v) {
             return true
         }

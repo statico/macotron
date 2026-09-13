@@ -9,16 +9,9 @@ enum USBDevices {
     static func list() -> [[String: Any]] {
         var out: [[String: Any]] = []
         for name in ["IOUSBHostDevice", "IOUSBDevice"] {
-            var iterator = io_iterator_t()
-            guard let matching = IOServiceMatching(name) else { continue }
-            let kr = IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator)
-            guard kr == KERN_SUCCESS else { continue }
-            defer { IOObjectRelease(iterator) }
-            var service = IOIteratorNext(iterator)
-            while service != 0 {
+            IORegistry.services(matching: name) { service in
                 if let info = info(service) { out.append(info) }
-                IOObjectRelease(service)
-                service = IOIteratorNext(iterator)
+                return true
             }
         }
         var seen = Set<String>()
@@ -29,15 +22,11 @@ enum USBDevices {
     }
 
     static func info(_ service: io_service_t) -> [String: Any]? {
-        var props: Unmanaged<CFMutableDictionary>?
-        guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-              let dict = props?.takeRetainedValue() as? [String: Any] else {
-            return nil
-        }
+        guard let dict = IORegistry.properties(service) else { return nil }
         let name = string(dict, ["USB Product Name", "kUSBProductString", "Product Name", "USB Vendor Name"])
             ?? className(service)
-        let vendorID = int(dict["idVendor"]) ?? 0
-        let productID = int(dict["idProduct"]) ?? 0
+        let vendorID = Coerce.int(dict["idVendor"]) ?? 0
+        let productID = Coerce.int(dict["idProduct"]) ?? 0
         guard vendorID != 0 || productID != 0 || name != nil else { return nil }
         return [
             "name": name ?? "USB device",
@@ -60,14 +49,6 @@ enum USBDevices {
             if let s = dict[key] as? String, !s.isEmpty { return s }
         }
         return nil
-    }
-
-    private static func int(_ value: Any?) -> Int? {
-        switch value {
-        case let i as Int: return i
-        case let n as NSNumber: return n.intValue
-        default: return nil
-        }
     }
 }
 

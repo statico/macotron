@@ -6,9 +6,6 @@ enum UDPCodec {
         if let data = value as? Data { return data }
         if let s = value as? String { return Data(s.utf8) }
         if let arr = value as? [UInt8] { return Data(arr) }
-        if let arr = value as? [Int] {
-            return arr.allSatisfy { (0...255).contains($0) } ? Data(arr.map(UInt8.init)) : nil
-        }
         if let arr = value as? [Any] {
             var bytes: [UInt8] = []
             bytes.reserveCapacity(arr.count)

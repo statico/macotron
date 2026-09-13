@@ -6,7 +6,6 @@ import MacotronEngine
 @MainActor
 public final class ShortcutsModule: NativeModule {
     public let name = "shortcuts"
-    public let moduleVersion = 1
 
     public init() {}
 

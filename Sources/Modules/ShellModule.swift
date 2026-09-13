@@ -6,7 +6,6 @@ import MacotronEngine
 @MainActor
 public final class ShellModule: NativeModule {
     public let name = "shell"
-    public let moduleVersion = 1
 
     public init() {}
 

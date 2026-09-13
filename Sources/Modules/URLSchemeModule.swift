@@ -32,7 +32,6 @@ enum URLOpen {
 @MainActor
 public final class URLSchemeModule: NativeModule {
     public let name = "url"
-    public let moduleVersion = 1
 
     public init() {}
 

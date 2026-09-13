@@ -6,7 +6,6 @@ import MacotronEngine
 @MainActor
 public final class USBModule: NativeModule {
     public let name = "usb"
-    public let moduleVersion = 1
 
     public init() {}
 

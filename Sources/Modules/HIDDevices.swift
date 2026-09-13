@@ -16,10 +16,10 @@ struct HIDFilter: Equatable {
     var path: String?
 
     func matches(_ row: [String: Any]) -> Bool {
-        if let vendorID, HIDFilter.int(row["vendorID"]) != vendorID { return false }
-        if let productID, HIDFilter.int(row["productID"]) != productID { return false }
-        if let usagePage, HIDFilter.int(row["usagePage"]) != usagePage { return false }
-        if let usage, HIDFilter.int(row["usage"]) != usage { return false }
+        if let vendorID, Coerce.int(row["vendorID"]) != vendorID { return false }
+        if let productID, Coerce.int(row["productID"]) != productID { return false }
+        if let usagePage, Coerce.int(row["usagePage"]) != usagePage { return false }
+        if let usage, Coerce.int(row["usage"]) != usage { return false }
         if let serial, (row["serial"] as? String) != serial { return false }
         if let path, (row["path"] as? String) != path { return false }
         return true
@@ -38,10 +38,6 @@ struct HIDFilter: Equatable {
         guard !t.isEmpty, let n = Int(t, radix: 16), n != 0 else { return nil }
         return n
     }
-
-    static func int(_ value: Any?) -> Int? {
-        (value as? NSNumber)?.intValue
-    }
 }
 
 extension HIDFilter {
@@ -54,10 +50,10 @@ extension HIDFilter {
             vendorID = pair.vendorID
             productID = pair.productID
         }
-        if let n = HIDFilter.int(dict["vendorID"]) { vendorID = n }
-        if let n = HIDFilter.int(dict["productID"]) { productID = n }
-        if let n = HIDFilter.int(dict["usagePage"]) { usagePage = n }
-        if let n = HIDFilter.int(dict["usage"]) { usage = n }
+        if let n = Coerce.int(dict["vendorID"]) { vendorID = n }
+        if let n = Coerce.int(dict["productID"]) { productID = n }
+        if let n = Coerce.int(dict["usagePage"]) { usagePage = n }
+        if let n = Coerce.int(dict["usage"]) { usage = n }
         if let s = dict["serial"] as? String, !s.isEmpty { serial = s }
         if let s = dict["path"] as? String, !s.isEmpty { path = s }
     }
@@ -263,7 +259,7 @@ enum HIDDevices {
 
     private static func int(_ device: IOHIDDevice, _ key: String) -> Int? {
         guard let value = IOHIDDeviceGetProperty(device, key as CFString) else { return nil }
-        return HIDFilter.int(value)
+        return Coerce.int(value)
     }
 
     private static func string(_ device: IOHIDDevice, _ key: String) -> String? {

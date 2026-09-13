@@ -111,7 +111,6 @@ extension CameraPreview: AVCaptureVideoDataOutputSampleBufferDelegate {
 @MainActor
 public final class CameraModule: NativeModule {
     public let name = "camera"
-    public let moduleVersion = 1
 
     private let preview = CameraPreview()
 

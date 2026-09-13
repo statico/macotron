@@ -11,9 +11,9 @@ enum PowerActions {
             fn()
             return true
         }
-        return run("/usr/bin/osascript", [
-            "-e", "tell application \"System Events\" to keystroke \"q\" using {control down, command down}",
-        ])
+        return Subprocess.osascript(
+            "tell application \"System Events\" to keystroke \"q\" using {control down, command down}"
+        ).ok
     }
 
     static func sleep(dryRun: Bool = false) -> Bool {
@@ -22,12 +22,12 @@ enum PowerActions {
 
     static func displaySleep(dryRun: Bool = false) -> Bool {
         if dryRun { return true }
-        return run("/usr/bin/pmset", ["displaysleepnow"])
+        return Subprocess.run("/usr/bin/pmset", ["displaysleepnow"]).ok
     }
 
     static func screensaver(dryRun: Bool = false) -> Bool {
         if dryRun { return true }
-        return run("/usr/bin/open", ["-a", "ScreenSaverEngine"])
+        return Subprocess.run("/usr/bin/open", ["-a", "ScreenSaverEngine"]).ok
     }
 
     static func logOut(dryRun: Bool = false) -> Bool {
@@ -44,11 +44,7 @@ enum PowerActions {
 
     private static func appleEvent(_ verb: String, dryRun: Bool) -> Bool {
         if dryRun { return true }
-        return run("/usr/bin/osascript", ["-e", "tell application \"System Events\" to \(verb)"])
-    }
-
-    private static func run(_ path: String, _ args: [String]) -> Bool {
-        Subprocess.run(path, args).ok
+        return Subprocess.osascript("tell application \"System Events\" to \(verb)").ok
     }
 }
 

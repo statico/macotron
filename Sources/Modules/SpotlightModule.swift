@@ -96,24 +96,40 @@ public enum SpotlightSearch {
         if let c = walkCache, c.home == home, Date().timeIntervalSince(c.stamp) < 60 {
             return c.paths
         }
-        let fm = FileManager.default
+        let root = URL(fileURLWithPath: home, isDirectory: true)
+        // The enumerator yields symlink-resolved paths (/private/var/...), but
+        // callers pass and compare against `home`, so keep the caller's space.
+        // Only realpath resolves /var -> /private/var; the URL and NSString
+        // resolvingSymlinksInPath APIs both leave the path untouched here.
+        let resolvedRoot = realpath(home, nil).map { buf -> String in
+            defer { free(buf) }
+            return String(cString: buf)
+        } ?? home
+        let library = home + "/Library"
         var out: [String] = []
-        var level = [home]
-        for _ in 0..<3 {
-            var next: [String] = []
-            for dir in level {
-                for name in children(dir) where !name.hasPrefix(".") && !name.hasSuffix(".app") {
-                    let path = dir + "/" + name
-                    var isDir: ObjCBool = false
-                    guard fm.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue
-                    else { continue }
-                    out.append(path)
-                    if name != "node_modules" && path != home + "/Library" {
-                        next.append(path)
-                    }
-                }
+        guard let walk = FileManager.default.enumerator(
+            at: root,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        ) else { return [] }
+        while let url = walk.nextObject() as? URL {
+            let name = url.lastPathComponent
+            guard (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+            else { continue }
+            // An app is not a folder anyone navigates to, and nothing inside
+            // one is either: skipsPackageDescendants should already say so,
+            // but the name is the check the old walk made and it is free.
+            if name.hasSuffix(".app") {
+                walk.skipDescendants()
+                continue
             }
-            level = next
+            let path = url.path.hasPrefix(resolvedRoot)
+                ? home + String(url.path.dropFirst(resolvedRoot.count))
+                : url.path
+            out.append(path)
+            if walk.level >= 3 || name == "node_modules" || path == library {
+                walk.skipDescendants()
+            }
             // ponytail: hard cap instead of smarter pruning; revisit if a huge
             // home tree makes fuzzy results miss folders people actually want.
             if out.count > 20_000 { break }
@@ -282,7 +298,6 @@ public enum SpotlightSearch {
 @MainActor
 public final class SpotlightModule: NativeModule {
     public let name = "spotlight"
-    public let moduleVersion = 2
 
     public init() {}
 

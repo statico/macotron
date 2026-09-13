@@ -91,7 +91,6 @@ private final class EventTapState: @unchecked Sendable {
 @MainActor
 public final class EventModule: NativeModule {
     public let name = "event"
-    public let moduleVersion = 1
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -223,17 +222,10 @@ public final class EventModule: NativeModule {
     }
 
     private static func cocoaPoint(_ dict: [String: Any]) -> CGPoint {
-        if let x = double(dict, "x"), let y = double(dict, "y") {
+        if let x = Coerce.double(dict["x"]), let y = Coerce.double(dict["y"]) {
             return CGPoint(x: x, y: y)
         }
         return NSEvent.mouseLocation
-    }
-
-    private static func double(_ dict: [String: Any], _ key: String) -> Double? {
-        if let d = dict[key] as? Double { return d }
-        if let i = dict[key] as? Int { return Double(i) }
-        if let i = dict[key] as? Int32 { return Double(i) }
-        return nil
     }
 
     private static func stringArray(_ dict: [String: Any], _ key: String) -> [String] {
@@ -311,8 +303,8 @@ public final class EventModule: NativeModule {
     }
 
     private static func postScroll(_ dict: [String: Any]) -> Bool {
-        let dy = Int32(double(dict, "dy") ?? double(dict, "y") ?? 0)
-        let dx = Int32(double(dict, "dx") ?? double(dict, "x") ?? 0)
+        let dy = Int32(Coerce.double(dict["dy"]) ?? Coerce.double(dict["y"]) ?? 0)
+        let dx = Int32(Coerce.double(dict["dx"]) ?? Coerce.double(dict["x"]) ?? 0)
         let pixel = dict["pixel"] as? Bool ?? false
         let source = CGEventSource(stateID: .hidSystemState)
         guard let event = CGEvent(

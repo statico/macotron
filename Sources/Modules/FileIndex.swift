@@ -32,7 +32,7 @@ public final class FileIndex: @unchecked Sendable {
 
     /// Where the binary lives: the env var, then next to the app executable
     /// (`make bundle` puts it there), then a local cargo build for
-    /// `swift run`, tests and SearchProbe.
+    /// `swift run` and tests.
     public static func locate(
         environment: [String: String] = ProcessInfo.processInfo.environment,
         executableDir: URL? = Bundle.main.executableURL?.deletingLastPathComponent(),

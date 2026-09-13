@@ -49,7 +49,7 @@ enum Spaces {
                     desktop: desktop,
                     display: uuid,
                     current: id == currentID,
-                    type: typeName(int(row["type"]) ?? 0)
+                    type: typeName(Coerce.int(row["type"]) ?? 0)
                 ))
                 desktop += 1
             }
@@ -67,16 +67,16 @@ enum Spaces {
 
     static func resolve(_ spec: Any) -> SpaceInfo? {
         let spaces = list()
-        if let n = int(spec) {
+        if let n = Coerce.int(spec) {
             if let byID = spaces.first(where: { $0.id == UInt64(n) }) { return byID }
             if let byDesktop = spaces.first(where: { $0.desktop == n }) { return byDesktop }
             return nil
         }
         if let dict = spec as? [String: Any] {
-            if let id = int(dict["id"]), let match = spaces.first(where: { $0.id == UInt64(id) }) {
+            if let id = Coerce.int(dict["id"]), let match = spaces.first(where: { $0.id == UInt64(id) }) {
                 return match
             }
-            let index = int(dict["index"])
+            let index = Coerce.int(dict["index"])
             let display = dict["display"] as? String
             return spaces.first {
                 (index == nil || $0.index == index) && (display == nil || $0.display == display)
@@ -97,20 +97,9 @@ enum Spaces {
 
     private static func spaceID(_ row: [String: Any]?) -> UInt64? {
         guard let row else { return nil }
-        if let n = int(row["id64"]) { return UInt64(n) }
-        if let n = int(row["ManagedSpaceID"]) { return UInt64(n) }
+        if let n = Coerce.int(row["id64"]) { return UInt64(n) }
+        if let n = Coerce.int(row["ManagedSpaceID"]) { return UInt64(n) }
         return nil
-    }
-
-    static func int(_ value: Any?) -> Int? {
-        switch value {
-        case let i as Int: return i
-        case let i as Int64: return Int(i)
-        case let i as UInt64: return Int(i)
-        case let n as NSNumber: return n.intValue
-        case let d as Double: return Int(d)
-        default: return nil
-        }
     }
 }
 

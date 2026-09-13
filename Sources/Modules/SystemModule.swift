@@ -155,8 +155,8 @@ enum BatteryStatus {
         var timeToFull = -1
         var source = "battery"
         for desc in sources {
-            let capacity = int(desc[kIOPSCurrentCapacityKey])
-            let maxCapacity = int(desc[kIOPSMaxCapacityKey])
+            let capacity = Coerce.int(desc[kIOPSCurrentCapacityKey])
+            let maxCapacity = Coerce.int(desc[kIOPSMaxCapacityKey])
             if let capacity, let maxCapacity, maxCapacity > 0 {
                 level = Double(capacity) / Double(maxCapacity) * 100.0
             }
@@ -169,10 +169,10 @@ enum BatteryStatus {
             } else if let n = desc[kIOPSIsChargedKey] as? NSNumber {
                 charged = n.boolValue
             }
-            if let minutes = int(desc[kIOPSTimeToEmptyKey]), minutes >= 0 {
+            if let minutes = Coerce.int(desc[kIOPSTimeToEmptyKey]), minutes >= 0 {
                 timeRemaining = minutes
             }
-            if let minutes = int(desc[kIOPSTimeToFullChargeKey]), minutes >= 0 {
+            if let minutes = Coerce.int(desc[kIOPSTimeToFullChargeKey]), minutes >= 0 {
                 timeToFull = minutes
             }
         }
@@ -188,15 +188,15 @@ enum BatteryStatus {
 
     static func smartExtras(_ props: [String: Any]) -> [String: Any] {
         var extras: [String: Any] = [:]
-        if let cycles = int(props["CycleCount"]), cycles >= 0 {
+        if let cycles = Coerce.int(props["CycleCount"]), cycles >= 0 {
             extras["cycles"] = cycles
         }
-        if let max = int(props["AppleRawMaxCapacity"]),
-           let design = int(props["DesignCapacity"]), design > 0 {
+        if let max = Coerce.int(props["AppleRawMaxCapacity"]),
+           let design = Coerce.int(props["DesignCapacity"]), design > 0 {
             extras["health"] = Int((Double(max) / Double(design) * 100).rounded())
         }
         if let adapter = props["AdapterDetails"] as? [String: Any],
-           let watts = int(adapter["Watts"]), watts > 0 {
+           let watts = Coerce.int(adapter["Watts"]), watts > 0 {
             extras["watts"] = watts
         }
         return extras
@@ -222,24 +222,12 @@ enum BatteryStatus {
     }
 
     static func smartBatteryProps() -> [String: Any] {
-        var iterator: io_iterator_t = 0
-        guard IOServiceGetMatchingServices(
-            kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"), &iterator
-        ) == KERN_SUCCESS else { return [:] }
-        defer { IOObjectRelease(iterator) }
-        let service = IOIteratorNext(iterator)
-        guard service != 0 else { return [:] }
-        defer { IOObjectRelease(service) }
-        var props: Unmanaged<CFMutableDictionary>?
-        guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-              let dict = props?.takeRetainedValue() as? [String: Any] else { return [:] }
-        return dict
-    }
-
-    static func int(_ value: Any?) -> Int? {
-        if let n = value as? Int { return n }
-        if let n = value as? NSNumber { return n.intValue }
-        return nil
+        var out: [String: Any] = [:]
+        IORegistry.services(matching: "AppleSmartBattery") { service in
+            out = IORegistry.properties(service) ?? [:]
+            return false
+        }
+        return out
     }
 }
 
@@ -252,7 +240,7 @@ enum LowPowerMode {
         if dryRun {
             return ["ok": true, "lowPowerMode": enabled]
         }
-        let result = Subprocess.run("/usr/bin/osascript", ["-e", script(enabled)])
+        let result = Subprocess.osascript(script(enabled))
         guard result.ok else {
             let msg = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
             return [
@@ -267,24 +255,19 @@ enum LowPowerMode {
 
 enum GPUStats {
     static func utilization() -> Double? {
-        var iterator: io_iterator_t = 0
-        guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &iterator) == KERN_SUCCESS else {
-            return nil
-        }
-        defer { IOObjectRelease(iterator) }
-        while true {
-            let service = IOIteratorNext(iterator)
-            if service == 0 { break }
-            defer { IOObjectRelease(service) }
-            var props: Unmanaged<CFMutableDictionary>?
-            guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-                  let dict = props?.takeRetainedValue() as? [String: Any],
-                  let stats = dict["PerformanceStatistics"] as? [String: Any] else { continue }
+        var result: Double?
+        IORegistry.services(matching: "IOAccelerator") { service in
+            guard let dict = IORegistry.properties(service),
+                  let stats = dict["PerformanceStatistics"] as? [String: Any] else { return true }
             for key in ["Device Utilization %", "GPU Activity(%)", "Renderer Utilization %"] {
-                if let n = stats[key] as? NSNumber { return n.doubleValue }
+                if let n = stats[key] as? NSNumber {
+                    result = n.doubleValue
+                    return false
+                }
             }
+            return true
         }
-        return nil
+        return result
     }
 }
 
