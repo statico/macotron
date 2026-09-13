@@ -9,6 +9,7 @@ private let logger = Logger(subsystem: "io.statico.macotron", category: "hid")
 @MainActor
 public final class HIDModule: NativeModule {
     public let name = "hid"
+    public let moduleVersion = 1
 
     private let hub = HIDHub()
 

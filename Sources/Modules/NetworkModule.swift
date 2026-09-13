@@ -7,6 +7,7 @@ import MacotronEngine
 @MainActor
 public final class NetworkModule: NativeModule {
     public let name = "network"
+    public let moduleVersion = 2
 
     private weak var engine: Engine?
     private var timer: Timer?

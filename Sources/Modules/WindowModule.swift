@@ -86,6 +86,7 @@ private final class WindowSnapState: @unchecked Sendable {
 @MainActor
 public final class WindowModule: NativeModule {
     public let name = "window"
+    public let moduleVersion = 5
 
     private weak var engine: Engine?
     private var eventTap: CFMachPort?

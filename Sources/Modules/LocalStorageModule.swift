@@ -15,6 +15,10 @@ public final class LocalStorageModule: NativeModule {
     /// by accident until the host started passing this in.
     private let configDir: String?
 
+    public var defaultOptions: [String: Any] {
+        configDir.map { ["configDir": $0] } ?? [:]
+    }
+
     /// In-memory mirror of the JSON store
     private var store: [String: String] = [:]
 

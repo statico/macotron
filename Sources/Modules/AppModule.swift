@@ -10,6 +10,7 @@ private let logger = Logger(subsystem: "io.statico.macotron", category: "app")
 @MainActor
 public final class AppModule: NativeModule {
     public let name = "app"
+    public let moduleVersion = 2
 
     private weak var engine: Engine?
     private var activationObserver: NSObjectProtocol?

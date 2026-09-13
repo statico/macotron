@@ -74,6 +74,8 @@ declare const macotron: {
     version: {
         app: string;
         api: string;
+        /** Host API versions keyed by native namespace (`window`, `panel`, …), not user plugins. */
+        modules: Record<string, number>;
     };
 
     /**
@@ -94,6 +96,7 @@ declare const macotron: {
      * events this host does not yet emit.
      */
     on(event: string, callback: (...args: any[]) => void): void;
+    off(event: string, callback: (...args: any[]) => void): void;
     command(
         name: string,
         description: string,
@@ -941,6 +944,8 @@ declare const macotron: {
         onMessage(id: string, callback: (data: any) => void): void;
     };
 
+    config(options: Record<string, any>): void;
+
     /**
      * Declare plugin metadata, permissions, and configurable options.
      * Returns resolved options (user overrides from Settings, else defaults).
@@ -997,6 +1002,16 @@ declare const macotron: {
         permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "camera" | "microphone" | "helper">;
         options?: Record<string, MacotronPluginOption>;
     }): Record<string, any>;
+    /** @deprecated Use plugin() */
+    module(metadata: {
+        title?: string;
+        description?: string;
+        help?: string;
+        permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "camera" | "microphone">;
+        options?: Record<string, MacotronPluginOption>;
+    }): Record<string, any>;
+    /** @deprecated Pass `permissions` to plugin() */
+    requirePermissions(list: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "camera" | "microphone">): void;
 };
 
 /**
