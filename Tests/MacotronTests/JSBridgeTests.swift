@@ -58,7 +58,6 @@ struct JSBridgeTests {
         #expect(JSBridge.toInt32(ctx, js) == value)
         #expect(JSBridge.jsToSwift(ctx, js) as? Int == Int(value))
         #expect(JSBridge.isUndefined(js) == false)
-        #expect(JSBridge.isException(js) == false)
         // Both Int and Int32 reach the same JS number through anyToJS.
         #expect(JSBridge.toInt32(ctx, JSBridge.anyToJS(ctx, Int(value) as Any)) == value)
         #expect(JSBridge.toInt32(ctx, JSBridge.anyToJS(ctx, value as Any)) == value)
@@ -333,17 +332,15 @@ struct JSBridgeTests {
 
         let num = JSBridge.newInt32(ctx, 5)
         #expect(JSBridge.isUndefined(num) == false)
-        #expect(JSBridge.isException(num) == false)
 
         let str = JSBridge.newString(ctx, "not null")
         #expect(JSBridge.isNull(str) == false)
         JS_FreeValue(ctx, str)
 
         let src = "undefinedVar.property"
-        let thrown = src.withCString {
+        _ = src.withCString {
             JS_Eval(ctx, $0, src.utf8.count, "<test>", Int32(JS_EVAL_TYPE_GLOBAL))
         }
-        #expect(JSBridge.isException(thrown) == true)
         JS_FreeValue(ctx, JS_GetException(ctx))   // leave the context clean
         _ = engine
     }

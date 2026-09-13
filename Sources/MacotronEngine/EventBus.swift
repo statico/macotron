@@ -19,20 +19,6 @@ public final class EventBus {
         listeners[event, default: []].append(Listener(callback: protected, ctx: ctx))
     }
 
-    /// Remove a specific callback for an event (by reference equality)
-    public func off(_ event: String, callback: JSValue, ctx: OpaquePointer) {
-        guard var list = listeners[event] else { return }
-        list.removeAll { listener in
-            // Compare by JS value tag+payload
-            let same = (listener.callback.tag == callback.tag && listener.callback.u.ptr == callback.u.ptr)
-            if same {
-                JS_FreeValue(listener.ctx, listener.callback)
-            }
-            return same
-        }
-        listeners[event] = list.isEmpty ? nil : list
-    }
-
     /// Emit an event, calling all registered callbacks
     /// Emit an event, calling all registered callbacks.
     ///
@@ -45,9 +31,9 @@ public final class EventBus {
         budget: TimeInterval? = nil
     ) {
         guard let callbacks = listeners[event] else { return }
-        // A listener is allowed to unsubscribe itself -- listen once, then off()
-        // -- and off() releases the callback. Hold a reference to each one for
-        // the length of the loop so that frees nothing still to be called.
+        // A listener can drop the whole list mid-dispatch (a reload releases every
+        // callback). Hold a reference to each one for the length of the loop so
+        // that frees nothing still to be called.
         let held = callbacks.map { (ctx: $0.ctx, callback: JS_DupValue($0.ctx, $0.callback)) }
         defer { for h in held { JS_FreeValue(h.ctx, h.callback) } }
 

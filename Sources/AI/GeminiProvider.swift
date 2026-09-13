@@ -45,33 +45,7 @@ public final class GeminiProvider: AIProvider, @unchecked Sendable {
         request.setValue(key, forHTTPHeaderField: "x-goog-api-key")
         request.timeoutInterval = 120
 
-        let (bytes, response): (URLSession.AsyncBytes, URLResponse)
-        do {
-            (bytes, response) = try await URLSession.shared.bytes(for: request)
-        } catch {
-            throw AIProviderError.networkError(underlying: error)
-        }
-        guard let http = response as? HTTPURLResponse else { throw AIProviderError.invalidResponse }
-        guard http.statusCode == 200 else {
-            var errorData = Data()
-            for try await byte in bytes { errorData.append(byte) }
-            throw AIProviderError.httpError(
-                statusCode: http.statusCode,
-                message: String(data: errorData, encoding: .utf8) ?? "Unknown error"
-            )
-        }
-
-        var full = ""
-        for try await line in bytes.lines {
-            guard line.hasPrefix("data: ") else { continue }
-            let jsonStr = String(line.dropFirst(6))
-            if jsonStr == "[DONE]" { break }
-            guard let data = jsonStr.data(using: .utf8),
-                  let text = GeminiAPI.text(from: data), !text.isEmpty else { continue }
-            full += text
-            onChunk(text)
-        }
-        return full
+        return try await streamSSE(request, onChunk: onChunk) { GeminiAPI.text(from: $0) }
     }
 
     private func post(messages: [AIChatMessage], options: AIRequestOptions) async throws -> (Data, Int) {
@@ -120,8 +94,14 @@ enum GeminiAPI {
     }
 
     static func text(from data: Data) -> String? {
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let candidates = json["candidates"] as? [[String: Any]],
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        return text(from: json)
+    }
+
+    static func text(from json: [String: Any]) -> String? {
+        guard let candidates = json["candidates"] as? [[String: Any]],
               let content = candidates.first?["content"] as? [String: Any],
               let parts = content["parts"] as? [[String: Any]] else { return nil }
         let texts = parts.compactMap { $0["text"] as? String }

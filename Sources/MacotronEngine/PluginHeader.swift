@@ -23,9 +23,9 @@ public enum PluginHeader {
         }
         let window = source[start.lowerBound...].prefix(prefixBytes)
         return Info(
-            title: stringValue("title", in: window),
-            description: stringValue("description", in: window),
-            permissions: stringArray("permissions", in: window)
+            title: stringValue(/title\s*:\s*["']([^"']*)["']/, in: window),
+            description: stringValue(/description\s*:\s*["']([^"']*)["']/, in: window),
+            permissions: stringArray(in: window)
         )
     }
 
@@ -41,30 +41,14 @@ public enum PluginHeader {
         return parse(text)
     }
 
-    private static func stringValue(_ key: String, in text: Substring) -> String? {
-        let pattern = "\(key)\\s*:\\s*[\"']([^\"']*)[\"']"
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-        let ns = NSString(string: String(text))
-        guard let match = regex.firstMatch(in: String(text), range: NSRange(location: 0, length: ns.length)),
-              match.numberOfRanges > 1 else { return nil }
-        let value = ns.substring(with: match.range(at: 1))
+    private static func stringValue(_ pattern: Regex<(Substring, Substring)>, in text: Substring) -> String? {
+        guard let match = text.firstMatch(of: pattern) else { return nil }
+        let value = String(match.output.1)
         return value.isEmpty ? nil : value
     }
 
-    private static func stringArray(_ key: String, in text: Substring) -> [String] {
-        let pattern = "\(key)\\s*:\\s*\\[([^\\]]*)\\]"
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
-        let raw = String(text)
-        let ns = NSString(string: raw)
-        guard let match = regex.firstMatch(in: raw, range: NSRange(location: 0, length: ns.length)),
-              match.numberOfRanges > 1 else { return [] }
-        let inner = ns.substring(with: match.range(at: 1))
-        let item = try? NSRegularExpression(pattern: "[\"']([^\"']+)[\"']")
-        let nsInner = NSString(string: inner)
-        let matches = item?.matches(in: inner, range: NSRange(location: 0, length: nsInner.length)) ?? []
-        return matches.compactMap { m in
-            guard m.numberOfRanges > 1 else { return nil }
-            return nsInner.substring(with: m.range(at: 1))
-        }
+    private static func stringArray(in text: Substring) -> [String] {
+        guard let match = text.firstMatch(of: /permissions\s*:\s*\[([^\]]*)\]/) else { return [] }
+        return match.output.1.matches(of: /["']([^"']+)["']/).map { String($0.output.1) }
     }
 }

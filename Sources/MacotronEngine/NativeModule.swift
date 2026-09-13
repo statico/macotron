@@ -7,12 +7,6 @@ public protocol NativeModule: AnyObject {
     /// The module name (used as namespace under `macotron.{name}`)
     var name: String { get }
 
-    /// Module version number. Bump when API changes.
-    var moduleVersion: Int { get }
-
-    /// Default options for this module. User options in config.js override these.
-    var defaultOptions: [String: Any] { get }
-
     /// Register this module's functions in the given engine context
     func register(in engine: Engine, options: [String: Any])
 
@@ -22,8 +16,6 @@ public protocol NativeModule: AnyObject {
 }
 
 extension NativeModule {
-    public var moduleVersion: Int { 1 }
-    public var defaultOptions: [String: Any] { [:] }
     public func cleanup() {}
     public func didReload() {}
 }

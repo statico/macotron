@@ -80,7 +80,7 @@ public final class Engine {
     /// Plugin hotkeys from `keyboard.on(id, default, callback)`, keyed by `{plugin}/{id}`.
     public var hotkeyRegistry: [String: RegisteredHotkey] = [:]
 
-    /// Config store (populated by macotron.config() calls)
+    /// Module options and settings.json, keyed by top-level name.
     public var configStore: [String: Any] = [:] {
         didSet {
             // Modules stash themselves here under "__name" at register time.
@@ -445,19 +445,6 @@ public final class Engine {
                 return QJS_Undefined()
             }, "$$__on", 2))
 
-        // $$__off — event bus unsubscribe
-        JS_SetPropertyStr(context, global, "$$__off",
-            JS_NewCFunction(context, { ctx, thisVal, argc, argv -> JSValue in
-                guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
-                let event = JSBridge.toString(ctx, argv[0]) ?? ""
-                let opaque = JS_GetContextOpaque(ctx)
-                if let opaque {
-                    let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-                    engine.eventBus.off(event, callback: argv[1], ctx: ctx)
-                }
-                return QJS_Undefined()
-            }, "$$__off", 2))
-
         // $$__registerCommand — command registration
         JS_SetPropertyStr(context, global, "$$__registerCommand",
             JS_NewCFunction(context, { ctx, thisVal, argc, argv -> JSValue in
@@ -495,32 +482,6 @@ public final class Engine {
                 )
                 return QJS_Undefined()
             }, "$$__registerCommand", 4))
-
-        // $$__requirePermissions — called by macotron.requirePermissions()
-        JS_SetPropertyStr(context, global, "$$__requirePermissions",
-            JS_NewCFunction(context, { ctx, thisVal, argc, argv -> JSValue in
-                guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-                let opaque = JS_GetContextOpaque(ctx)
-                guard let opaque else { return QJS_Undefined() }
-                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-
-                engine.addDeclaredPermissions(JSBridge.jsToSwift(ctx, argv[0]))
-                return QJS_Undefined()
-            }, "$$__requirePermissions", 1))
-
-        // $$__config — called by macotron.config() to store user options
-        JS_SetPropertyStr(context, global, "$$__config",
-            JS_NewCFunction(context, { ctx, thisVal, argc, argv -> JSValue in
-                guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
-                let opaque = JS_GetContextOpaque(ctx)
-                guard let opaque else { return QJS_Undefined() }
-                let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-
-                // Parse the JS object into configStore
-                let opts = argv[0]
-                engine.configStore = JSBridge.jsToSwift(ctx, opts) as? [String: Any] ?? [:]
-                return QJS_Undefined()
-            }, "$$__config", 1))
 
         // $$__module — called by macotron.plugin() to declare metadata & options.
         // Stores metadata, returns resolved options (defaults merged with user overrides).
@@ -845,12 +806,6 @@ public final class Engine {
         JS_SetPropertyStr(context, versionObj, "app", JSBridge.newString(context, "1.0.0"))
         JS_SetPropertyStr(context, versionObj, "api", JSBridge.newString(context, Self.apiVersion))
 
-        let modulesVersion = JS_NewObject(context)
-        for module in modules {
-            JS_SetPropertyStr(context, modulesVersion, module.name,
-                              JSBridge.newInt32(context, Int32(module.moduleVersion)))
-        }
-        JS_SetPropertyStr(context, versionObj, "modules", modulesVersion)
         JS_SetPropertyStr(context, macotronObj, "version", versionObj)
 
         JS_SetPropertyStr(context, global, "macotron", macotronObj)
@@ -858,11 +813,7 @@ public final class Engine {
 
         // Register each module
         for module in modules {
-            let opts = module.defaultOptions.merging(
-                userOptions[module.name] ?? [:],
-                uniquingKeysWith: { _, user in user }
-            )
-            module.register(in: self, options: opts)
+            module.register(in: self, options: userOptions[module.name] ?? [:])
         }
     }
 

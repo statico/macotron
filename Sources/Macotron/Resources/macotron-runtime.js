@@ -3,33 +3,16 @@
 // The native macotron object already exists with host APIs.
 // This file adds convenience helpers on top.
 
-// --- Config ---
-
-macotron.config = function(options) {
-    $$__config(options);
-};
-
 // --- Plugin metadata ---
 
 macotron.plugin = function(metadata) {
     return $$__module(metadata);
-};
-macotron.module = macotron.plugin;
-
-// --- Permissions (also accepted as plugin({ permissions })) ---
-
-macotron.requirePermissions = function(list) {
-    $$__requirePermissions(list);
 };
 
 // --- Convenience helpers ---
 
 macotron.on = function(event, callback) {
     $$__on(event, callback);
-};
-
-macotron.off = function(event, callback) {
-    $$__off(event, callback);
 };
 
 macotron.command = function(name, description, handler, opts) {

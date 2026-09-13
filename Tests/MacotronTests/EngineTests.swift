@@ -174,34 +174,6 @@ struct EngineTests {
         engine.cancelAllTimers()
     }
 
-    // MARK: - Config Store Tests
-
-    @Test("$$__config stores values in configStore")
-    func testConfigStore() {
-        let engine = Engine()
-        engine.evaluate("""
-            $$__config({ launcher: { hotkey: "cmd+space" }, debug: true })
-        """)
-        let launcher = engine.configStore["launcher"] as? [String: Any]
-        #expect(launcher != nil)
-        #expect(launcher?["hotkey"] as? String == "cmd+space")
-
-        let debug = engine.configStore["debug"] as? Bool
-        #expect(debug == true)
-    }
-
-    @Test("$$__config overwrites previous configStore")
-    func testConfigStoreOverwrite() {
-        let engine = Engine()
-        engine.evaluate("$$__config({ a: 1 })")
-        #expect(engine.configStore["a"] as? Int == 1)
-
-        engine.evaluate("$$__config({ b: 2 })")
-        #expect(engine.configStore["b"] as? Int == 2)
-        // Old key should be gone since configStore is fully replaced
-        #expect(engine.configStore["a"] == nil)
-    }
-
     // MARK: - Module Registration Tests
 
     @Test("registerAllModules creates macotron global object")
@@ -225,14 +197,9 @@ struct EngineTests {
     @Test("registerAllModules registers custom module")
     func testRegisterAllModulesWithCustomModule() {
         let engine = Engine()
-        let testModule = StubModule(name: "testmod", version: 3)
+        let testModule = StubModule(name: "testmod")
         engine.addModule(testModule)
         engine.registerAllModules()
-
-        // Check the module version is set on macotron.version.modules
-        let (result, error) = engine.evaluate("macotron.version.modules.testmod")
-        #expect(error == nil)
-        #expect(result == "3")
         #expect(testModule.wasRegistered)
     }
 
@@ -351,14 +318,11 @@ struct EngineTests {
 @MainActor
 final class StubModule: NativeModule {
     let name: String
-    let moduleVersion: Int
-    var defaultOptions: [String: Any] { [:] }
     var wasRegistered = false
     var registeredOptions: [String: Any] = [:]
 
-    init(name: String, version: Int) {
+    init(name: String) {
         self.name = name
-        self.moduleVersion = version
     }
 
     func register(in engine: Engine, options: [String: Any]) {

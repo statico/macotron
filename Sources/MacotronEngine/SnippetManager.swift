@@ -155,7 +155,7 @@ public final class ModuleManager {
         timer.step("engine.reset")
         engine.moduleSettings = loadModuleSettings()
 
-        // Map settings.json into configStore (replaces config.js + macotron.config())
+        // Map settings.json into configStore.
         engine.configStore = workspace.readSettings()
 
         engine.registerAllModules()
@@ -289,8 +289,13 @@ public final class ModuleManager {
 
     @discardableResult
     public func deleteModule(filename: String, directory: String = "plugins") -> Bool {
-        backup.createBackup()
         let file = configDir.appending(path: directory).appending(path: filename)
+        // A copy has to exist before the bytes go, so a failed backup cancels the delete.
+        guard FileManager.default.fileExists(atPath: file.path(percentEncoded: false)),
+              backup.backup(file: file) != nil else {
+            logger.error("Skipped deleting \(filename): could not back it up")
+            return false
+        }
         do {
             try FileManager.default.removeItem(at: file)
             if directory == "plugins" {

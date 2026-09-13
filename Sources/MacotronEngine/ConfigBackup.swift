@@ -1,4 +1,4 @@
-// ConfigBackup.swift — Compress & backup ~/Library/Application Support/Macotron/ before changes
+// ConfigBackup.swift — Keep a copy of a plugin file before the host removes it
 import Foundation
 import os
 
@@ -9,87 +9,29 @@ public final class ConfigBackup {
     public let configDir: URL
     public let backupsDir: URL
 
-    private let maxBackups = 100
-    private let maxAgeDays = 30
-
     public init(configDir: URL) {
         self.configDir = configDir
         self.backupsDir = configDir.appending(path: "backups")
     }
 
-    /// Create a compressed backup of the entire config directory (excluding backups/ itself)
-    /// Returns the path to the backup file, or nil on failure.
+    /// Copy one file into `backups/` under a timestamped name, so a delete is
+    /// recoverable. Returns the copy, or nil if it could not be made — the
+    /// caller must treat nil as "do not delete yet".
     @discardableResult
-    public func createBackup() -> URL? {
-        do {
-            try FileManager.default.createDirectory(at: backupsDir, withIntermediateDirectories: true)
-        } catch {
-            logger.error("Failed to create backups dir: \(error)")
-            return nil
-        }
-
+    public func backup(file: URL) -> URL? {
+        // Sorts lexically and is safe in a filename (no colons).
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate, .withTime, .withDashSeparatorInDate]
-        let timestamp = formatter.string(from: Date())
-            .replacingOccurrences(of: ":", with: "-")
-        let backupName = "\(timestamp).tar.gz"
-        let backupPath = backupsDir.appending(path: backupName)
-
-        // Use tar to create compressed backup, excluding backups/ and logs/
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
-        process.arguments = [
-            "czf", backupPath.path(),
-            "--exclude", "backups",
-            "--exclude", "logs",
-            "-C", configDir.deletingLastPathComponent().path(),
-            configDir.lastPathComponent
-        ]
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-
+        let stamp = formatter.string(from: Date())
+        let dest = backupsDir.appending(path: "\(stamp)-\(file.lastPathComponent)")
         do {
-            try process.run()
-            process.waitUntilExit()
-            if process.terminationStatus == 0 {
-                pruneOldBackups()
-                return backupPath
-            } else {
-                logger.error("tar exited with status \(process.terminationStatus)")
-                return nil
-            }
+            try FileManager.default.createDirectory(at: backupsDir, withIntermediateDirectories: true)
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.copyItem(at: file, to: dest)
+            return dest
         } catch {
-            logger.error("Failed to create backup: \(error)")
+            logger.error("Failed to back up \(file.lastPathComponent): \(error.localizedDescription)")
             return nil
-        }
-    }
-
-    /// Remove backups older than maxAgeDays or beyond maxBackups count
-    private func pruneOldBackups() {
-        let fm = FileManager.default
-        guard let contents = try? fm.contentsOfDirectory(
-            at: backupsDir, includingPropertiesForKeys: [.creationDateKey]
-        ) else { return }
-
-        let backups = contents
-            .filter { $0.pathExtension == "gz" }
-            .sorted { $0.lastPathComponent > $1.lastPathComponent }
-
-        // Prune by count
-        if backups.count > maxBackups {
-            for backup in backups.dropFirst(maxBackups) {
-                try? fm.removeItem(at: backup)
-            }
-        }
-
-        // Prune by age
-        let cutoff = Date().addingTimeInterval(-Double(maxAgeDays) * 86400)
-        for backup in backups {
-            if let attrs = try? fm.attributesOfItem(atPath: backup.path()),
-               let created = attrs[.creationDate] as? Date,
-               created < cutoff {
-                try? fm.removeItem(at: backup)
-            }
         }
     }
 }
