@@ -22,13 +22,9 @@ public final class SettingsWindow {
 
         settingsState.load()
 
-        // Reuse the window after a close. The close observer removed itself
-        // with the last close, so a reopen must arm a fresh one, or .regular
-        // is never handed back and the Dock icon outlives the window.
+        // Reuse the window after a close. Its close observer is armed once, at
+        // creation, and lives as long as the window does.
         if let window {
-            if !window.isVisible {
-                WindowActivationPolicy.handBackWhenClosed(window)
-            }
             bringToFront(window)
             return
         }
@@ -76,24 +72,16 @@ enum WindowActivationPolicy {
         NSApp.setActivationPolicy(.regular)
     }
 
-    /// Restores .accessory when `window` closes. The observer removes itself, so
-    /// it is removed exactly once and does not outlive the window.
+    /// Restores .accessory every time `window` closes. Arm it once per window:
+    /// the observer holds nothing but the notification name, so it costs the
+    /// same as the window it watches.
     static func handBackWhenClosed(_ window: NSWindow) {
-        // Box so the observer can remove itself; the closure only runs on the main queue.
-        final class Box: @unchecked Sendable { var token: NSObjectProtocol? }
-        let box = Box()
-        box.token = NotificationCenter.default.addObserver(
+        _ = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: window,
             queue: .main
         ) { _ in
-            MainActor.assumeIsolated {
-                NSApp.setActivationPolicy(.accessory)
-                if let token = box.token {
-                    NotificationCenter.default.removeObserver(token)
-                    box.token = nil
-                }
-            }
+            MainActor.assumeIsolated { _ = NSApp.setActivationPolicy(.accessory) }
         }
     }
 }
