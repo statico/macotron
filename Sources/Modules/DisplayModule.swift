@@ -72,6 +72,7 @@ enum DisplayChange {
 @MainActor
 public final class DisplayModule: NativeModule {
     public let name = "display"
+    public let moduleVersion = 5
 
     private var xdrWindow: NSWindow?
     private let crt = CRTOverlay()

@@ -7,6 +7,7 @@ import MacotronEngine
 @MainActor
 public final class SpacesModule: NativeModule {
     public let name = "spaces"
+    public let moduleVersion = 1
 
     private weak var engine: Engine?
     private var observer: NSObjectProtocol?

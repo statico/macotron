@@ -91,6 +91,7 @@ private final class EventTapState: @unchecked Sendable {
 @MainActor
 public final class EventModule: NativeModule {
     public let name = "event"
+    public let moduleVersion = 1
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?

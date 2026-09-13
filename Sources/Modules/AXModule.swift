@@ -7,6 +7,7 @@ import MacotronEngine
 @MainActor
 public final class AXModule: NativeModule {
     public let name = "ax"
+    public let moduleVersion = 1
 
     let handles = AXHandleTable<AXUIElement>()
 

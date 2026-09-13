@@ -298,6 +298,7 @@ public enum SpotlightSearch {
 @MainActor
 public final class SpotlightModule: NativeModule {
     public let name = "spotlight"
+    public let moduleVersion = 2
 
     public init() {}
 
