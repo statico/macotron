@@ -34,7 +34,7 @@ public final class PowerModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let power = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, power, "preventSleep", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, power, "preventSleep", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             guard let module: PowerModule = Engine.module(ctx, "__powerModule") else {
                 return JSBridge.newBool(ctx, false)
@@ -48,20 +48,20 @@ public final class PowerModule: NativeModule {
             return JSBridge.newBool(ctx, module.preventSleep(
                 display: display, reason: reason, dryRun: Engine.isDryRun(ctx)
             ))
-        }, "preventSleep", 1))
+        }
 
-        JS_SetPropertyStr(ctx, power, "allowSleep", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, power, "allowSleep", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             let module: PowerModule? = Engine.module(ctx, "__powerModule")
             module?.allowSleep()
             return QJS_Undefined()
-        }, "allowSleep", 0))
+        }
 
-        JS_SetPropertyStr(ctx, power, "isPreventing", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, power, "isPreventing", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             let module: PowerModule? = Engine.module(ctx, "__powerModule")
             return JSBridge.newBool(ctx, module?.active ?? false)
-        }, "isPreventing", 0))
+        }
 
         // The rest differ only in which PowerActions function they call, so the
         // name and the action come off one row and the magic index picks the row.

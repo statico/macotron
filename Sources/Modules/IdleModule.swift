@@ -24,17 +24,17 @@ public final class IdleModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let idle = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, idle, "seconds", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, idle, "seconds", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newFloat64(ctx, IdleModule.idleSeconds())
-        }, "seconds", 0))
+        }
 
-        JS_SetPropertyStr(ctx, idle, "setThreshold", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, idle, "setThreshold", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let mod: IdleModule? = Engine.module(ctx, "__idleModule")
             mod?.threshold = JSBridge.toDouble(ctx, argv[0])
             return QJS_Undefined()
-        }, "setThreshold", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "idle", idle)
         JS_FreeValue(ctx, macotron)

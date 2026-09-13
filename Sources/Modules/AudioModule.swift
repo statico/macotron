@@ -21,50 +21,50 @@ public final class AudioModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let audio = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, audio, "devices", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, audio, "devices", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newArray(ctx, AudioDevices.list().map(\.js))
-        }, "devices", 0))
+        }
 
-        JS_SetPropertyStr(ctx, audio, "input", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, audio, "input", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             guard let dev = AudioDevices.input() else { return QJS_Null() }
             return JSBridge.newObject(ctx, dev.js)
-        }, "input", 0))
+        }
 
-        JS_SetPropertyStr(ctx, audio, "output", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, audio, "output", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             guard let dev = AudioDevices.output() else { return QJS_Null() }
             return JSBridge.newObject(ctx, dev.js)
-        }, "output", 0))
+        }
 
-        JS_SetPropertyStr(ctx, audio, "setInput", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, audio, "setInput", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
             return JSBridge.newBool(ctx, AudioModule.setDefault(ctx, argv[0], input: true))
-        }, "setInput", 1))
+        }
 
-        JS_SetPropertyStr(ctx, audio, "setOutput", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, audio, "setOutput", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
             return JSBridge.newBool(ctx, AudioModule.setDefault(ctx, argv[0], input: false))
-        }, "setOutput", 1))
+        }
 
-        JS_SetPropertyStr(ctx, audio, "volume", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, audio, "volume", 1) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             let id = AudioModule.deviceID(ctx, argc > 0 ? argv?[0] : nil) ?? AudioDevices.output().map { AudioDeviceID($0.id) }
             guard let id, let vol = AudioDevices.volume(id: id) else { return QJS_Null() }
             return JSBridge.newFloat64(ctx, vol)
-        }, "volume", 1))
+        }
 
-        JS_SetPropertyStr(ctx, audio, "setVolume", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, audio, "setVolume", 2) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
             let value = JSBridge.toDouble(ctx, argv[0])
             let id = (argc > 1 ? AudioModule.deviceID(ctx, argv[1]) : nil)
                 ?? AudioDevices.output().map { AudioDeviceID($0.id) }
             guard let id else { return JSBridge.newBool(ctx, false) }
             return JSBridge.newBool(ctx, AudioDevices.setVolume(id: id, value))
-        }, "setVolume", 2))
+        }
 
-        JS_SetPropertyStr(ctx, audio, "isMuted", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, audio, "isMuted", 1) { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
             let explicit = argc > 0 ? AudioModule.deviceID(ctx, argv?[0]) : nil
             if let id = explicit {
@@ -75,9 +75,9 @@ public final class AudioModule: NativeModule {
                 return JSBridge.newBool(ctx, false)
             }
             return JSBridge.newBool(ctx, AudioDevices.isMuted(id: id, preferInput: false))
-        }, "isMuted", 1))
+        }
 
-        JS_SetPropertyStr(ctx, audio, "setMuted", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, audio, "setMuted", 2) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
             let on = JSBridge.toBool(ctx, argv[0])
             let explicit = argc > 1 ? AudioModule.deviceID(ctx, argv[1]) : nil
@@ -89,27 +89,27 @@ public final class AudioModule: NativeModule {
                 return JSBridge.newBool(ctx, false)
             }
             return JSBridge.newBool(ctx, AudioDevices.setMuted(id: id, on, preferInput: false))
-        }, "setMuted", 2))
+        }
 
-        JS_SetPropertyStr(ctx, audio, "record", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, audio, "record", 1) { ctx, _, argc, argv in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
             if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, false) }
             guard let argv, argc >= 1 else { return JSBridge.newBool(ctx, false) }
             guard let path = JSBridge.string(ctx, argv[0], "path"), !path.isEmpty else { return JSBridge.newBool(ctx, false) }
             return JSBridge.newBool(ctx, AudioModule.module(ctx)?.record(path) ?? false)
-        }, "record", 1))
+        }
 
-        JS_SetPropertyStr(ctx, audio, "stopRecord", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, audio, "stopRecord", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             if Engine.isDryRun(ctx) { return QJS_Null() }
             guard let result = AudioModule.module(ctx)?.stopRecord() else { return QJS_Null() }
             return JSBridge.newObject(ctx, result)
-        }, "stopRecord", 0))
+        }
 
-        JS_SetPropertyStr(ctx, audio, "isRecording", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, audio, "isRecording", 0) { ctx, _, _, _ in
             guard let ctx else { return JSBridge.newBool(ctx!, false) }
             return JSBridge.newBool(ctx, AudioModule.module(ctx)?.recorder?.isRecording ?? false)
-        }, "isRecording", 0))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "audio", audio)
         JS_FreeValue(ctx, macotron)

@@ -19,7 +19,7 @@ public final class ShellModule: NativeModule {
         // -----------------------------------------------------------------
         // macotron.shell.run(command, args?) -> Promise<{stdout, stderr, exitCode}>
         // -----------------------------------------------------------------
-        JS_SetPropertyStr(ctx, shellObj, "run", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, shellObj, "run", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
 
             // Extract command string
@@ -59,7 +59,7 @@ public final class ShellModule: NativeModule {
                     "exitCode": Int(result.exitCode),
                 ] as [String: Any])
             }
-        }, "run", 2))
+        }
         JS_SetPropertyStr(ctx, macotron, "shell", shellObj)
 
         JS_FreeValue(ctx, macotron)

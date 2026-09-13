@@ -48,7 +48,7 @@ public final class LocalStorageModule: NativeModule {
         let storageObj = JS_NewObject(ctx)
 
         // --- getItem(key) → string | null ---
-        JS_SetPropertyStr(ctx, storageObj, "getItem", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, storageObj, "getItem", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Null() }
             guard let key = JSBridge.toString(ctx, argv[0]) else { return QJS_Null() }
 
@@ -57,10 +57,10 @@ public final class LocalStorageModule: NativeModule {
                 return JSBridge.newString(ctx, value)
             }
             return QJS_Null()
-        }, "getItem", 1))
+        }
 
         // --- setItem(key, value) ---
-        JS_SetPropertyStr(ctx, storageObj, "setItem", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, storageObj, "setItem", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
             guard let key = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
             let value = JSBridge.toString(ctx, argv[1]) ?? ""
@@ -70,10 +70,10 @@ public final class LocalStorageModule: NativeModule {
                 mod.saveToDisk()
             }
             return QJS_Undefined()
-        }, "setItem", 2))
+        }
 
         // --- removeItem(key) ---
-        JS_SetPropertyStr(ctx, storageObj, "removeItem", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, storageObj, "removeItem", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             guard let key = JSBridge.toString(ctx, argv[0]) else { return QJS_Undefined() }
 
@@ -82,17 +82,17 @@ public final class LocalStorageModule: NativeModule {
                 mod.saveToDisk()
             }
             return QJS_Undefined()
-        }, "removeItem", 1))
+        }
 
         // --- clear() ---
-        JS_SetPropertyStr(ctx, storageObj, "clear", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, storageObj, "clear", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             if let mod: LocalStorageModule = Engine.module(ctx, "__localStorageModule") {
                 mod.store.removeAll()
                 mod.saveToDisk()
             }
             return QJS_Undefined()
-        }, "clear", 0))
+        }
 
         JS_SetPropertyStr(ctx, global, "localStorage", storageObj)
         JS_FreeValue(ctx, global)

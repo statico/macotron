@@ -42,12 +42,12 @@ public final class ClipboardModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let clipboard = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, clipboard, "text", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, clipboard, "text", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newString(ctx, NSPasteboard.general.string(forType: .string) ?? "")
-        }, "text", 0))
+        }
 
-        JS_SetPropertyStr(ctx, clipboard, "set", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, clipboard, "set", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let text = JSBridge.toString(ctx, argv[0]) else {
                 return QJS_Undefined()
             }
@@ -55,9 +55,9 @@ public final class ClipboardModule: NativeModule {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(text, forType: .string)
             return QJS_Undefined()
-        }, "set", 1))
+        }
 
-        JS_SetPropertyStr(ctx, clipboard, "setImage", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, clipboard, "setImage", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let raw = JSBridge.toString(ctx, argv[0]) else {
                 return JSBridge.newBool(ctx!, false)
             }
@@ -67,9 +67,9 @@ public final class ClipboardModule: NativeModule {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setData(data, forType: .png)
             return JSBridge.newBool(ctx, true)
-        }, "setImage", 1))
+        }
 
-        JS_SetPropertyStr(ctx, clipboard, "history", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, clipboard, "history", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             guard let module = clipboardModule(ctx) else {
                 return JSBridge.newArray(ctx, [])
@@ -77,9 +77,9 @@ public final class ClipboardModule: NativeModule {
             module.historyOptIn = true
             module.startPolling()
             return JSBridge.newArray(ctx, module.trimmedHistory())
-        }, "history", 0))
+        }
 
-        JS_SetPropertyStr(ctx, clipboard, "paste", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, clipboard, "paste", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]) else {
                 return JSBridge.newBool(ctx!, false)
             }
@@ -99,9 +99,9 @@ public final class ClipboardModule: NativeModule {
                 pb.setString(text, forType: .string)
             }
             return JSBridge.newBool(ctx, true)
-        }, "paste", 1))
+        }
 
-        JS_SetPropertyStr(ctx, clipboard, "remove", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, clipboard, "remove", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let id = JSBridge.toString(ctx, argv[0]) else {
                 return JSBridge.newBool(ctx!, false)
             }
@@ -111,46 +111,46 @@ public final class ClipboardModule: NativeModule {
             let before = module.history.count
             module.history.removeAll { ($0["id"] as? String) == id }
             return JSBridge.newBool(ctx, module.history.count < before)
-        }, "remove", 1))
+        }
 
-        JS_SetPropertyStr(ctx, clipboard, "clearHistory", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, clipboard, "clearHistory", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             clipboardModule(ctx)?.history.removeAll()
             return QJS_Undefined()
-        }, "clearHistory", 0))
+        }
 
-        JS_SetPropertyStr(ctx, clipboard, "clear", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, clipboard, "clear", 0) { ctx, _, _, _ in
             if Engine.isDryRun(ctx) { return QJS_Undefined() }
             NSPasteboard.general.clearContents()
             return QJS_Undefined()
-        }, "clear", 0))
+        }
 
-        JS_SetPropertyStr(ctx, clipboard, "types", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, clipboard, "types", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newArray(ctx, ClipboardPasteboard.types())
-        }, "types", 0))
+        }
 
-        JS_SetPropertyStr(ctx, clipboard, "data", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, clipboard, "data", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let uti = JSBridge.toString(ctx, argv[0]) else {
                 return QJS_Undefined()
             }
             guard let raw = ClipboardPasteboard.data(uti) else { return QJS_Null() }
             return JSBridge.newString(ctx, raw.base64EncodedString())
-        }, "data", 1))
+        }
 
-        JS_SetPropertyStr(ctx, clipboard, "setPastePlain", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, clipboard, "setPastePlain", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1, let module = clipboardModule(ctx) else {
                 return JSBridge.newBool(ctx!, false)
             }
             return JSBridge.newBool(ctx, module.setPastePlain(JSBridge.toBool(ctx, argv[0])))
-        }, "setPastePlain", 1))
+        }
 
-        JS_SetPropertyStr(ctx, clipboard, "isPastePlain", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, clipboard, "isPastePlain", 0) { ctx, _, _, _ in
             guard let ctx, let module = clipboardModule(ctx) else {
                 return JSBridge.newBool(ctx!, false)
             }
             return JSBridge.newBool(ctx, module.pastePlain)
-        }, "isPastePlain", 0))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "clipboard", clipboard)
         JS_FreeValue(ctx, macotron)

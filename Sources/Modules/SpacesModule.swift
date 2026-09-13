@@ -22,23 +22,23 @@ public final class SpacesModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let spaces = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, spaces, "list", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, spaces, "list", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newArray(ctx, Spaces.list().map(\.js))
-        }, "list", 0))
+        }
 
-        JS_SetPropertyStr(ctx, spaces, "current", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, spaces, "current", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             guard let space = Spaces.current() else { return QJS_Null() }
             return JSBridge.newObject(ctx, space.js)
-        }, "current", 0))
+        }
 
-        JS_SetPropertyStr(ctx, spaces, "go", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, spaces, "go", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
             return JSBridge.newBool(ctx, Spaces.go(JSBridge.jsToSwift(ctx, argv[0])))
-        }, "go", 1))
+        }
 
-        JS_SetPropertyStr(ctx, spaces, "moveWindow", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, spaces, "moveWindow", 2) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 2 else { return JSBridge.newBool(ctx!, false) }
             let windowID = JSBridge.toInt32(ctx, argv[0])
             guard let space = Spaces.resolve(JSBridge.jsToSwift(ctx, argv[1])),
@@ -46,7 +46,7 @@ public final class SpacesModule: NativeModule {
                 return JSBridge.newBool(ctx, false)
             }
             return JSBridge.newBool(ctx, Spaces.moveWindow(cgWindowID: cgID, space: space))
-        }, "moveWindow", 2))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "spaces", spaces)
         JS_FreeValue(ctx, macotron)

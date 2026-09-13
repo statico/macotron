@@ -126,7 +126,7 @@ public final class NotifyModule: NativeModule {
         //   opts.id      — String (optional, for replacing existing)
         //   opts.url     — String (optional, opened when the banner is clicked)
         // -----------------------------------------------------------------
-        JS_SetPropertyStr(ctx, notifyObj, "show", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, notifyObj, "show", 3) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else {
                 return QJS_ThrowTypeError(ctx, "notify.show requires at least title and body")
             }
@@ -175,13 +175,13 @@ public final class NotifyModule: NativeModule {
             NotifyModule.deliver(request)
 
             return QJS_Undefined()
-        }, "show", 3))
+        }
 
         // macotron.notify.toast(title, body?, opts?)
         //   opts.position — "top" | "bottom" (default "bottom")
         //   opts.duration — milliseconds (default 3000)
         //   opts.color    — "info" | "success" | "error" | "warning" | name | #RRGGBB
-        JS_SetPropertyStr(ctx, notifyObj, "toast", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, notifyObj, "toast", 3) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else {
                 return QJS_ThrowTypeError(ctx, "notify.toast requires a title")
             }
@@ -229,7 +229,7 @@ public final class NotifyModule: NativeModule {
                 color: color
             )
             return QJS_Undefined()
-        }, "toast", 3))
+        }
         JS_SetPropertyStr(ctx, macotron, "notify", notifyObj)
 
         JS_FreeValue(ctx, macotron)

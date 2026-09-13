@@ -16,10 +16,10 @@ public final class USBModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let usb = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, usb, "list", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, usb, "list", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newArray(ctx, USBDevices.list().map { $0 as Any })
-        }, "list", 0))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "usb", usb)
         JS_FreeValue(ctx, macotron)

@@ -109,64 +109,64 @@ public final class WindowModule: NativeModule {
         let windowObj = JS_NewObject(ctx)
 
         // ---------- getAll() ----------
-        JS_SetPropertyStr(ctx, windowObj, "getAll", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, windowObj, "getAll", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             return WindowModule.jsGetAll(ctx)
-        }, "getAll", 0))
+        }
 
         // ---------- focused() ----------
-        JS_SetPropertyStr(ctx, windowObj, "focused", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, windowObj, "focused", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             return WindowModule.jsFocused(ctx)
-        }, "focused", 0))
+        }
 
         // ---------- focus(id) ----------
-        JS_SetPropertyStr(ctx, windowObj, "focus", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, windowObj, "focus", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
             if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
             return WindowModule.jsFocus(ctx, windowID: JSBridge.toInt32(ctx, argv[0]))
-        }, "focus", 1))
+        }
 
         // ---------- move(id, {x?, y?, width?, height?}) ----------
-        JS_SetPropertyStr(ctx, windowObj, "move", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, windowObj, "move", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_NewBool(ctx!, 0) }
             if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
             let windowID = JSBridge.toInt32(ctx, argv[0])
             let opts = argv[1]
             return WindowModule.jsMove(ctx, windowID: windowID, opts: opts)
-        }, "move", 2))
+        }
 
         // ---------- moveToFraction(id, {x?, y?, w?, h?}) ----------
-        JS_SetPropertyStr(ctx, windowObj, "moveToFraction", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, windowObj, "moveToFraction", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_NewBool(ctx!, 0) }
             if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
             let windowID = JSBridge.toInt32(ctx, argv[0])
             let opts = argv[1]
             return WindowModule.jsMoveToFraction(ctx, windowID: windowID, opts: opts)
-        }, "moveToFraction", 2))
+        }
 
         // ---------- setSnapEnabled(enabled) ----------
-        JS_SetPropertyStr(ctx, windowObj, "setSnapEnabled", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, windowObj, "setSnapEnabled", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
             let enabled = JSBridge.toBool(ctx, argv[0])
             let ok = WindowSnapState.shared.module?.setSnapEnabled(enabled) ?? false
             return QJS_NewBool(ctx, ok ? 1 : 0)
-        }, "setSnapEnabled", 1))
+        }
 
         // ---------- isSnapEnabled() ----------
-        JS_SetPropertyStr(ctx, windowObj, "isSnapEnabled", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, windowObj, "isSnapEnabled", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_NewBool(ctx!, 0) }
             let on = WindowSnapState.shared.module?.snapEnabled ?? false
             return QJS_NewBool(ctx, on ? 1 : 0)
-        }, "isSnapEnabled", 0))
+        }
 
-        JS_SetPropertyStr(ctx, windowObj, "snap", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, windowObj, "snap", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
             let ok = WindowSnapState.shared.module?.configureSnap(ctx, argv[0]) ?? false
             return QJS_NewBool(ctx, ok ? 1 : 0)
-        }, "snap", 1))
+        }
 
-        JS_SetPropertyStr(ctx, windowObj, "previewFraction", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, windowObj, "previewFraction", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_NewBool(ctx!, 0) }
             if argc < 1 || argv == nil || JSBridge.isUndefined(argv![0]) || JSBridge.isNull(argv![0]) {
                 SnapPreview.shared.hide()
@@ -174,36 +174,36 @@ public final class WindowModule: NativeModule {
             }
             let ok = WindowSnapState.shared.module?.previewFraction(ctx, argv![0]) ?? false
             return QJS_NewBool(ctx, ok ? 1 : 0)
-        }, "previewFraction", 1))
+        }
 
-        JS_SetPropertyStr(ctx, windowObj, "minimize", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, windowObj, "minimize", 2) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
             if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
             let on = argc < 2 || JSBridge.toBool(ctx, argv[1])
             return QJS_NewBool(ctx, WindowAX.minimize(JSBridge.toInt32(ctx, argv[0]), on) ? 1 : 0)
-        }, "minimize", 2))
+        }
 
-        JS_SetPropertyStr(ctx, windowObj, "close", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, windowObj, "close", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
             if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
             return QJS_NewBool(ctx, WindowAX.close(JSBridge.toInt32(ctx, argv[0])) ? 1 : 0)
-        }, "close", 1))
+        }
 
-        JS_SetPropertyStr(ctx, windowObj, "setFullscreen", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, windowObj, "setFullscreen", 2) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 2 else { return QJS_NewBool(ctx!, 0) }
             if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
             return QJS_NewBool(
                 ctx,
                 WindowAX.setFullscreen(JSBridge.toInt32(ctx, argv[0]), JSBridge.toBool(ctx, argv[1])) ? 1 : 0
             )
-        }, "setFullscreen", 2))
+        }
 
-        JS_SetPropertyStr(ctx, windowObj, "restore", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, windowObj, "restore", 1) { ctx, _, argc, argv in
             guard let ctx, let argv, argc >= 1 else {
                 return JSBridge.newObject(ctx!, ["restored": 0, "missing": 0])
             }
             return WindowModule.jsRestore(ctx, entries: argv[0])
-        }, "restore", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "window", windowObj)
         JS_FreeValue(ctx, macotron)

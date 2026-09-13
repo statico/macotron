@@ -150,7 +150,7 @@ public final class FileSystemModule: NativeModule {
         // -----------------------------------------------------------------
         // macotron.fs.read(path) -> string
         // -----------------------------------------------------------------
-        JS_SetPropertyStr(ctx, fsObj, "read", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, fsObj, "read", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else {
                 return QJS_ThrowTypeError(ctx, "fs.read requires a path argument")
             }
@@ -165,9 +165,9 @@ public final class FileSystemModule: NativeModule {
             } catch {
                 return QJS_ThrowInternalError(ctx, "fs.read failed: \(error.localizedDescription)")
             }
-        }, "read", 1))
+        }
 
-        JS_SetPropertyStr(ctx, fsObj, "readBytes", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, fsObj, "readBytes", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else {
                 return QJS_ThrowTypeError(ctx, "fs.readBytes requires a path argument")
             }
@@ -181,12 +181,12 @@ public final class FileSystemModule: NativeModule {
             } catch {
                 return QJS_ThrowInternalError(ctx, "fs.readBytes failed: \(error.localizedDescription)")
             }
-        }, "readBytes", 1))
+        }
 
         // -----------------------------------------------------------------
         // macotron.fs.write(path, content) -> void
         // -----------------------------------------------------------------
-        JS_SetPropertyStr(ctx, fsObj, "write", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, fsObj, "write", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else {
                 return QJS_ThrowTypeError(ctx, "fs.write requires path and content arguments")
             }
@@ -210,12 +210,12 @@ public final class FileSystemModule: NativeModule {
             } catch {
                 return QJS_ThrowInternalError(ctx, "fs.write failed: \(error.localizedDescription)")
             }
-        }, "write", 2))
+        }
 
         // -----------------------------------------------------------------
         // macotron.fs.exists(path) -> bool
         // -----------------------------------------------------------------
-        JS_SetPropertyStr(ctx, fsObj, "exists", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, fsObj, "exists", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else {
                 return QJS_ThrowTypeError(ctx, "fs.exists requires a path argument")
             }
@@ -226,12 +226,12 @@ public final class FileSystemModule: NativeModule {
             let expandedPath = NSString(string: path).expandingTildeInPath
             let exists = FileManager.default.fileExists(atPath: expandedPath)
             return JSBridge.newBool(ctx, exists)
-        }, "exists", 1))
+        }
 
         // -----------------------------------------------------------------
         // macotron.fs.rename(from, to) -> void
         // -----------------------------------------------------------------
-        JS_SetPropertyStr(ctx, fsObj, "rename", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, fsObj, "rename", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else {
                 return QJS_ThrowTypeError(ctx, "fs.rename requires from and to arguments")
             }
@@ -248,12 +248,12 @@ public final class FileSystemModule: NativeModule {
             } catch {
                 return QJS_ThrowInternalError(ctx, "fs.rename failed: \(error.localizedDescription)")
             }
-        }, "rename", 2))
+        }
 
         // -----------------------------------------------------------------
         // macotron.fs.list(path) -> string[]
         // -----------------------------------------------------------------
-        JS_SetPropertyStr(ctx, fsObj, "list", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, fsObj, "list", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else {
                 return QJS_ThrowTypeError(ctx, "fs.list requires a path argument")
             }
@@ -273,7 +273,7 @@ public final class FileSystemModule: NativeModule {
             } catch {
                 return QJS_ThrowInternalError(ctx, "fs.list failed: \(error.localizedDescription)")
             }
-        }, "list", 1))
+        }
 
         // -----------------------------------------------------------------
         // $$__fsStopWatcher(id) — hidden native helper called by stop closures
@@ -301,7 +301,7 @@ public final class FileSystemModule: NativeModule {
         // whenever a change is detected. Returns a stop function that cancels
         // the watcher when called.
         // -----------------------------------------------------------------
-        JS_SetPropertyStr(ctx, fsObj, "watch", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, fsObj, "watch", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else {
                 return QJS_ThrowTypeError(ctx, "fs.watch requires path and callback arguments")
             }
@@ -403,7 +403,7 @@ public final class FileSystemModule: NativeModule {
             }
 
             return stopFn
-        }, "watch", 2))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "fs", fsObj)
 

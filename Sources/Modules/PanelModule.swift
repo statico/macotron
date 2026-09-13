@@ -29,7 +29,7 @@ public final class PanelModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let panelObj = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, panelObj, "open", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, panelObj, "open", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else {
                 return QJS_ThrowTypeError(ctx, "panel.open requires an options object")
             }
@@ -84,30 +84,30 @@ public final class PanelModule: NativeModule {
                 id: requestedId
             )
             return JSBridge.newString(ctx, id)
-        }, "open", 1))
+        }
 
-        JS_SetPropertyStr(ctx, panelObj, "close", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, panelObj, "close", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let id = JSBridge.toString(ctx, argv[0]) ?? ""
             PanelModuleState.shared.module?.closePanel(id)
             return QJS_Undefined()
-        }, "close", 1))
+        }
 
-        JS_SetPropertyStr(ctx, panelObj, "focus", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, panelObj, "focus", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_False() }
             let id = JSBridge.toString(ctx, argv[0]) ?? ""
             return JSBridge.newBool(ctx, PanelModuleState.shared.module?.focusPanel(id) ?? false)
-        }, "focus", 1))
+        }
 
-        JS_SetPropertyStr(ctx, panelObj, "postMessage", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, panelObj, "postMessage", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
             let id = JSBridge.toString(ctx, argv[0]) ?? ""
             let data = JSBridge.jsToSwift(ctx, argv[1])
             PanelModuleState.shared.module?.postToPage(id: id, data: data)
             return QJS_Undefined()
-        }, "postMessage", 2))
+        }
 
-        JS_SetPropertyStr(ctx, panelObj, "onMessage", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, panelObj, "onMessage", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1,
                   let module = PanelModuleState.shared.module else { return QJS_Undefined() }
 
@@ -118,7 +118,7 @@ public final class PanelModule: NativeModule {
                 module.globalCallbacks.append(JS_DupValue(ctx, argv[0]))
             }
             return QJS_Undefined()
-        }, "onMessage", 2))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "panel", panelObj)
         JS_FreeValue(ctx, macotron)

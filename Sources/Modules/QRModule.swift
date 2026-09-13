@@ -15,24 +15,24 @@ public final class QRModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let qr = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, qr, "detect", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, qr, "detect", 1) { ctx, _, argc, argv in
             QRModule.detect(ctx, argc: argc, argv: argv)
-        }, "detect", 1))
+        }
 
-        JS_SetPropertyStr(ctx, qr, "scan", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, qr, "scan", 1) { ctx, _, argc, argv in
             QRModule.scan(ctx, argc: argc, argv: argv)
-        }, "scan", 1))
+        }
 
-        JS_SetPropertyStr(ctx, qr, "image", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, qr, "image", 2) { ctx, _, argc, argv in
             if Engine.isDryRun(ctx) { return QJS_Null() }
             guard let ctx, let argv, argc >= 1, let text = JSBridge.toString(ctx, argv[0]), !text.isEmpty,
                   let png = QRCodes.png(text: text, size: QRModule.size(ctx, argc: argc, argv: argv)) else {
                 return QJS_Null()
             }
             return JSBridge.newString(ctx, png.base64EncodedString())
-        }, "image", 2))
+        }
 
-        JS_SetPropertyStr(ctx, qr, "show", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, qr, "show", 2) { ctx, _, argc, argv in
             if Engine.isDryRun(ctx) { return QJS_Undefined() }
             guard let ctx, let argv, argc >= 1, let text = JSBridge.toString(ctx, argv[0]), !text.isEmpty,
                   let png = QRCodes.png(text: text, size: QRModule.size(ctx, argc: argc, argv: argv)),
@@ -41,7 +41,7 @@ public final class QRModule: NativeModule {
             }
             QRWindow.show(image)
             return QJS_Undefined()
-        }, "show", 2))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "qr", qr)
         JS_FreeValue(ctx, macotron)

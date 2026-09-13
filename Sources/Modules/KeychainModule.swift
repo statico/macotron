@@ -25,7 +25,7 @@ public final class KeychainModule: NativeModule {
         let keychainObj = JS_NewObject(ctx)
 
         // --- get(key) → string | null ---
-        JS_SetPropertyStr(ctx, keychainObj, "get", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, keychainObj, "get", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Null() }
             guard let key = JSBridge.toString(ctx, argv[0]), !isLedgerAccount(key) else { return QJS_Null() }
 
@@ -33,10 +33,10 @@ public final class KeychainModule: NativeModule {
                 return JSBridge.newString(ctx, value)
             }
             return QJS_Null()
-        }, "get", 1))
+        }
 
         // --- set(key, value) ---
-        JS_SetPropertyStr(ctx, keychainObj, "set", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, keychainObj, "set", 2) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 2 else { return QJS_Undefined() }
             guard let key = JSBridge.toString(ctx, argv[0]), !isLedgerAccount(key),
                   let value = JSBridge.toString(ctx, argv[1]) else { return QJS_Undefined() }
@@ -44,26 +44,26 @@ public final class KeychainModule: NativeModule {
 
             KeychainStore.write(account: key, value: value)
             return QJS_Undefined()
-        }, "set", 2))
+        }
 
         // --- delete(key) ---
-        JS_SetPropertyStr(ctx, keychainObj, "delete", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, keychainObj, "delete", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             guard let key = JSBridge.toString(ctx, argv[0]), !isLedgerAccount(key) else { return QJS_Undefined() }
             if Engine.isDryRun(ctx) { return QJS_Undefined() }
 
             KeychainStore.delete(account: key)
             return QJS_Undefined()
-        }, "delete", 1))
+        }
 
         // --- has(key) → bool ---
-        JS_SetPropertyStr(ctx, keychainObj, "has", JS_NewCFunction(ctx, { ctx, thisVal, argc, argv -> JSValue in
+        JSBridge.fn(ctx, keychainObj, "has", 1) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return JSBridge.newBool(ctx!, false) }
             guard let key = JSBridge.toString(ctx, argv[0]), !isLedgerAccount(key) else {
                 return JSBridge.newBool(ctx, false)
             }
             return JSBridge.newBool(ctx, KeychainStore.read(account: key) != nil)
-        }, "has", 1))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "keychain", keychainObj)
         JS_FreeValue(ctx, macotron)

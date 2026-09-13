@@ -77,14 +77,14 @@ public final class AppleTVModule: NativeModule {
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
         let obj = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, obj, "list", JS_NewCFunction(ctx, { ctx, _, _, _ in
+        JSBridge.fn(ctx, obj, "list", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.promise(ctx, dryRun: [Any]()) {
                 .value(AppleTVRemote.devices().map { $0 as Any })
             }
-        }, "list", 0))
+        }
 
-        JS_SetPropertyStr(ctx, obj, "send", JS_NewCFunction(ctx, { ctx, _, argc, argv in
+        JSBridge.fn(ctx, obj, "send", 2) { ctx, _, argc, argv in
             guard let ctx else { return QJS_Undefined() }
             let dry: [String: Any] = ["ok": true]
             guard let argv, argc >= 2,
@@ -99,7 +99,7 @@ public final class AppleTVModule: NativeModule {
                     id: id, command: command, devices: AppleTVRemote.devices(), dryRun: false
                 ))
             }
-        }, "send", 2))
+        }
 
         JS_SetPropertyStr(ctx, macotron, "appletv", obj)
         JS_FreeValue(ctx, macotron)

@@ -16,8 +16,7 @@ public final class FilesModule: NativeModule {
 
         let filesObj = JS_NewObject(ctx)
 
-        JS_SetPropertyStr(ctx, filesObj, "configure",
-                          JS_NewCFunction(ctx, { ctx, _, argc, argv -> JSValue in
+        JSBridge.fn(ctx, filesObj, "configure", 1) { ctx, _, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             var opts: [String: Any] = [:]
             if argc >= 1, let argv, JS_IsObject(argv[0]) {
@@ -33,10 +32,9 @@ public final class FilesModule: NativeModule {
                         roots: roots, ignore: ignore, hidden: hidden, ignoreFiles: ignoreFiles)
                 }
             }
-        }, "configure", 1))
+        }
 
-        JS_SetPropertyStr(ctx, filesObj, "search",
-                          JS_NewCFunction(ctx, { ctx, _, argc, argv -> JSValue in
+        JSBridge.fn(ctx, filesObj, "search", 2) { ctx, _, argc, argv -> JSValue in
             guard let ctx, let argv, argc >= 1 else { return QJS_Undefined() }
             let query = JSBridge.toString(ctx, argv[0]) ?? ""
             var opts: [String: Any] = [:]
@@ -58,10 +56,9 @@ public final class FilesModule: NativeModule {
                     return .failure("\(error)")
                 }
             }
-        }, "search", 2))
+        }
 
-        JS_SetPropertyStr(ctx, filesObj, "status",
-                          JS_NewCFunction(ctx, { ctx, _, _, _ -> JSValue in
+        JSBridge.fn(ctx, filesObj, "status", 0) { ctx, _, _, _ -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.promise(ctx, dryRun: ["available": false]) {
                 var status: [String: Any] = [
@@ -79,15 +76,14 @@ public final class FilesModule: NativeModule {
                 }
                 return .value(status)
             }
-        }, "status", 0))
+        }
 
-        JS_SetPropertyStr(ctx, filesObj, "reindex",
-                          JS_NewCFunction(ctx, { ctx, _, _, _ -> JSValue in
+        JSBridge.fn(ctx, filesObj, "reindex", 0) { ctx, _, _, _ -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.promise(ctx) {
                 FilesModule.void { try FileIndex.shared.reindex() }
             }
-        }, "reindex", 0))
+        }
 
         JS_SetPropertyStr(ctx, macotronObj, "files", filesObj)
         JS_FreeValue(ctx, macotronObj)

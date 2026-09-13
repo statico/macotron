@@ -114,6 +114,18 @@ public enum JSBridge {
     }
 
     /// Set a property on a JS object by string key
+    /// Registers `obj[name]` as a JS function. The body is a C function pointer
+    /// and so cannot capture: unwrap `ctx` inside it.
+    public static func fn(
+        _ ctx: OpaquePointer,
+        _ obj: JSValue,
+        _ name: String,
+        _ argc: Int32,
+        _ body: @convention(c) (OpaquePointer?, JSValue, Int32, UnsafeMutablePointer<JSValue>?) -> JSValue
+    ) {
+        JS_SetPropertyStr(ctx, obj, name, JS_NewCFunction(ctx, body, name, argc))
+    }
+
     public static func setProperty(_ ctx: OpaquePointer, _ obj: JSValue, _ key: String, _ val: JSValue) {
         JS_SetPropertyStr(ctx, obj, key, val)
     }
