@@ -561,11 +561,20 @@ enum StatusLineStyle {
         let heights = lines.map { $0.size().height }
         let origins = lineOrigins(barHeight: height, heights: heights)
         let center = textCenter(lines: lines, origins: origins, height: height)
+        // The cap-to-baseline band sits ~0.7pt below the middle of the line
+        // boxes, so centring on it leaves the whole block low in the bar. Lift
+        // icon and text together by that gap -- keeping their relationship,
+        // since an icon centred on the bar alone reads high against its text --
+        // but never past an edge: a full-height two-line stack has only a
+        // fraction of a point of headroom and would clip.
+        let topRoom = height - ((origins.first ?? 0) + (heights.first ?? 0))
+        let bottomRoom = origins.last ?? 0
+        let shift = min(max(height / 2 - center, -bottomRoom), topRoom)
         return NSImage(size: size, flipped: false) { _ in
             if let icon, let ink {
                 let iconRect = NSRect(
                     x: -ink.origin.x,
-                    y: center - ink.height / 2 - ink.origin.y,
+                    y: center + shift - ink.height / 2 - ink.origin.y,
                     width: icon.size.width,
                     height: icon.size.height
                 )
@@ -576,7 +585,7 @@ enum StatusLineStyle {
                 }
             }
             for (line, y) in zip(lines, origins) {
-                line.draw(at: NSPoint(x: textX, y: y))
+                line.draw(at: NSPoint(x: textX, y: y + shift))
             }
             return true
         }

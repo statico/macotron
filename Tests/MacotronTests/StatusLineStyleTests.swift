@@ -139,6 +139,27 @@ struct StatusLineStyleTests {
         #expect(abs(ink.height - 2) < 0.6)
     }
 
+    @Test("a single-line item centres its block on the bar")
+    @MainActor
+    func singleLineCentred() {
+        let lines = StatusLineStyle.lines(
+            title: "68°", subtitle: nil, color: nil, subtitleColor: nil,
+            bold: false, italic: false, secondary: false)
+        guard let base = NSImage(systemSymbolName: "moon.stars.fill", accessibilityDescription: nil),
+              let icon = base.withSymbolConfiguration(.init(pointSize: 15, weight: .medium))
+        else {
+            Issue.record("missing moon.stars.fill symbol")
+            return
+        }
+        // Centring on the cap-to-baseline band alone left the block 0.68pt low,
+        // which reads as a pixel or two off on a 2x display.
+        for height in [CGFloat(22), 24, 30] {
+            let ink = StatusLineStyle.inkFrame(
+                StatusLineStyle.image(icon: icon, lines: lines, height: height))
+            #expect(abs(ink.midY - height / 2) < 0.3)
+        }
+    }
+
     @Test("composed image spans the bar height")
     @MainActor
     func composedImage() {
