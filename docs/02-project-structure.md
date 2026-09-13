@@ -26,65 +26,6 @@ macotron/
 └── Tests/
 ```
 
-## Source Targets (Intended)
-
-```
-Sources/
-├── Macotron/                    # App entry point
-│   ├── MacotronApp.swift
-│   ├── AppDelegate.swift
-│   ├── Permissions.swift        # Lazy Accessibility / Input Monitoring / Screen Recording
-│   └── Resources/
-│       ├── macotron-runtime.js
-│       └── macotron.d.ts
-│
-├── MacotronUI/                  # Host UI only
-│   ├── WizardView.swift         # Pick workdir, optional open in Finder or your editor
-│   ├── WizardWindow.swift
-│   ├── SettingsView.swift
-│   ├── SettingsWindow.swift
-│   ├── MenuBarManager.swift
-│   ├── LauncherPanel.swift
-│   ├── LauncherView.swift       # Plugin list / launcher
-│   └── GlobalHotkey.swift
-│
-├── MacotronEngine/              # Core engine
-│   ├── Engine.swift             # QuickJS lifecycle, timers, job queue
-│   ├── EventBus.swift
-│   ├── SnippetManager.swift     # Load / watch / reload plugins/ (name can stay)
-│   ├── NativeModule.swift
-│   └── JSBridge.swift
-│
-├── Modules/                     # Native API modules
-│   ├── WindowModule.swift
-│   ├── KeyboardModule.swift
-│   ├── EventModule.swift
-│   ├── ScreenModule.swift
-│   ├── ShellModule.swift
-│   ├── NotifyModule.swift
-│   ├── URLSchemeModule.swift
-│   ├── FileSystemModule.swift
-│   ├── ClipboardModule.swift
-│   ├── AIModule.swift           # Exposes macotron.ai to plugins
-│   ├── PanelModule.swift        # WKWebView panels (macotron.panel)
-│   ├── SpotlightModule.swift
-│   ├── FileIndex.swift              # Client for the macotron-index process
-│   ├── FilesModule.swift            # macotron.files
-│   ├── AppModule.swift
-│   ├── SystemModule.swift
-│   ├── HTTPModule.swift
-│   ├── MenuBarModule.swift
-│   ├── DisplayModule.swift
-│   ├── LocalStorageModule.swift
-│   └── KeychainModule.swift
-│
-└── AI/                          # Cloud and on-device providers for plugins
-    ├── AIProvider.swift
-    ├── ClaudeProvider.swift
-    ├── OpenAIProvider.swift
-    └── LocalProvider.swift      # Apple Foundation Models
-```
-
 The redesign removes in-app agent UI and agent loop types. Do not keep `AgentSession`, `ChatSession`, `SnippetAutoFix`, or agent progress panels as product surfaces.
 
 ## User Workdir
@@ -108,13 +49,3 @@ Only `pluginsDirectory` can live in UserDefaults. All other settings live in `se
 
 See [10-plugins-workdir.md](10-plugins-workdir.md).
 
-## Module Versioning
-
-Each native module declares a version number. The JS runtime exposes this via `macotron.version.modules` so plugins can guard compatibility:
-
-```javascript
-macotron.version.app;     // "1.0.0"
-macotron.version.modules; // { window: 1, keyboard: 1, shell: 1, ... }
-```
-
-When a module API changes, its version bumps.

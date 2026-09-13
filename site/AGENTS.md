@@ -6,7 +6,7 @@ This directory is the public site for Macotron, a native macOS host for JavaScri
 
 A static homepage. No build step. Vercel serves the `site/` folder as the domain root.
 
-- `index.html` / `index.md` — product page
+- `index.html` — product page
 - `site.js` / `site.css` — capabilities, API cards, plugin finder
 - `workdir/plugins/*.js` — copies of the 73 built-in plugins
 - `glossary.html` — terms used on the page and in the host API

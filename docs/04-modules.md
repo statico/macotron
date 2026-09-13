@@ -2,12 +2,6 @@
 
 Each module conforms to `NativeModule`, declares a `name`, and registers C functions on the `macotron` global object in the QuickJS context.
 
-## Module List
-
-The list of modules and their JS namespaces lives in `Sources/Modules/` and in
-`Sources/Macotron/Resources/macotron.d.ts`, which is the typed contract plugins
-are checked against.
-
 ## Key JS APIs
 
 **Window:** `macotron.window.getAll()`, `.focused()`, `.focus(id)` (raise, unminimize, activate the app), `.minimize(id, on?)`, `.close(id)`, `.setFullscreen(id, on)`, `.move(id, frame)`, `.moveToFraction(id, {x,y,w,h,display?})` (fractions of the window's current display, or `display` from `macotron.display.list()`), `.previewFraction({x,y,w,h,display?})` (translucent destination overlay; pass `null` to hide), `.snap({ enabled, threshold, corner, gap, zones, modifiers })` — drag the focused window to a screen edge or corner (clicks do not snap). A preview box fades in over the destination. Zones are `{x,y,w,h}` fractions of the visible frame (same as `moveToFraction`). Omit a slot to disable it. Default zones are halves. `modifiers` is a map of held keys (`shift`, `cmd+shift`) to an alternate zone map. `.setSnapEnabled` / `.isSnapEnabled` toggle without changing the map. `window:created` and `window:focused` fire with `{ id, title, app }`.

@@ -4,7 +4,7 @@ Native macOS host for JavaScript plugins.
 
 ## Read these
 
-- [Home](/index.md)
-- [Glossary](/glossary.md)
+- [Home](/)
+- [Glossary](/glossary.html)
 - [AGENTS.md](/AGENTS.md)
-- [Sitemap](/sitemap.md)
+- [Sitemap](/sitemap.xml)
