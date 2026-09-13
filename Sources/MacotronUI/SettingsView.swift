@@ -1325,49 +1325,11 @@ struct PluginListRow: View {
     }
 }
 
-final class CommandHeld: ObservableObject, @unchecked Sendable {
-    @Published private(set) var isHeld = false
-    private var monitor: Any?
-    private var observers: [NSObjectProtocol] = []
-
-    init() {
-        sync()
-        monitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged, .leftMouseUp, .rightMouseUp]) { [weak self] event in
-            self?.sync()
-            return event
-        }
-        let center = NotificationCenter.default
-        observers.append(center.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.sync()
-        })
-        observers.append(center.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.sync(appActive: false)
-        })
-        observers.append(center.addObserver(forName: ShortcutRecording.didChange, object: nil, queue: .main) { [weak self] _ in
-            self?.sync()
-        })
-    }
-
-    deinit {
-        if let monitor { NSEvent.removeMonitor(monitor) }
-        for observer in observers {
-            NotificationCenter.default.removeObserver(observer)
-        }
-    }
-
-    func sync(appActive: Bool = true) {
-        let commandDown = NSEvent.modifierFlags.intersection(.deviceIndependentFlagsMask).contains(.command)
-        let held = appActive && !ShortcutRecording.isActive && commandDown
-        if isHeld != held { isHeld = held }
-    }
-}
-
 struct PluginDetailView: View {
     let summary: ModuleSummary
     @ObservedObject var state: SettingsState
     @State private var showDeleteAlert = false
     @State private var showUpdateAlert = false
-    @StateObject private var command = CommandHeld()
 
     var body: some View {
         ScrollView {
@@ -1421,45 +1383,57 @@ struct PluginDetailView: View {
         }
     }
 
-    /// The repository published new bytes. The update goes through the same
-    /// review sheet as a first install: the user reads the code, then approves.
-    private func communityUpdateBox(_ entry: CommunityEntry) -> some View {
-        HStack(alignment: .center, spacing: 8) {
-            Image(systemName: "arrow.down.circle.fill")
+    /// Shared shape for the notices at the top of the page: tinted row, icon,
+    /// one line of copy, optional control on the right.
+    private func noticeBox<Accessory: View>(
+        color: Color,
+        icon: String,
+        text: String,
+        alignment: VerticalAlignment = .center,
+        spacing: CGFloat = 8,
+        @ViewBuilder accessory: () -> Accessory
+    ) -> some View {
+        HStack(alignment: alignment, spacing: spacing) {
+            Image(systemName: icon)
                 .font(.system(size: 11))
-            Text("A newer version is published on GitHub (\(entry.repo)).")
+            Text(text)
                 .font(.system(size: 11))
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 8)
+            accessory()
+        }
+        .foregroundStyle(color)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.08))
+        .cornerRadius(6)
+    }
+
+    /// The repository published new bytes. The update goes through the same
+    /// review sheet as a first install: the user reads the code, then approves.
+    private func communityUpdateBox(_ entry: CommunityEntry) -> some View {
+        noticeBox(
+            color: .blue,
+            icon: "arrow.down.circle.fill",
+            text: "A newer version is published on GitHub (\(entry.repo))."
+        ) {
             Button("Update…") { state.beginCommunityInstall(entry) }
                 .controlSize(.small)
                 .disabled(state.installingRepo != nil)
         }
-        .foregroundStyle(.blue)
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.blue.opacity(0.08))
-        .cornerRadius(6)
     }
 
     /// The file differs from the copy in the catalog -- either the user edited
     /// it, or Macotron shipped a newer one. Either way the fix is the same.
     private func updateBox(_ plugin: CatalogPlugin) -> some View {
-        HStack(alignment: .center, spacing: 8) {
-            Image(systemName: "arrow.down.circle.fill")
-                .font(.system(size: 11))
-            Text("This copy differs from the one built into Macotron.")
-                .font(.system(size: 11))
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 8)
+        noticeBox(
+            color: .blue,
+            icon: "arrow.down.circle.fill",
+            text: "This copy differs from the one built into Macotron."
+        ) {
             Button("Update…") { showUpdateAlert = true }
                 .controlSize(.small)
         }
-        .foregroundStyle(.blue)
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.blue.opacity(0.08))
-        .cornerRadius(6)
     }
 
     private var header: some View {
@@ -1495,13 +1469,13 @@ struct PluginDetailView: View {
             }
 
             HStack {
-                Button(command.isHeld ? "Reveal in Finder" : "Open Source File") {
+                // Cmd-click reveals the file in Finder instead of opening it.
+                Button("Open Source File") {
                     if NSEvent.modifierFlags.intersection(.deviceIndependentFlagsMask).contains(.command) {
                         state.revealModuleFile?(summary.filename)
                     } else {
                         state.openModuleFile?(summary.filename)
                     }
-                    command.sync()
                 }
                 .controlSize(.small)
                 Spacer()
@@ -1521,40 +1495,28 @@ struct PluginDetailView: View {
     /// wondering why nothing is running.
     private var reviewBox: some View {
         let isNew = state.newPlugins.contains(summary.filename)
-        return HStack(alignment: .center, spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 11))
-            Text(isNew
-                 ? "This plugin is new. It does not run until you review it."
-                 : "The source file changed. This plugin stays stopped until you review it.")
-                .font(.system(size: 11))
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 8)
+        return noticeBox(
+            color: .orange,
+            icon: "exclamationmark.triangle.fill",
+            text: isNew
+                ? "This plugin is new. It does not run until you review it."
+                : "The source file changed. This plugin stays stopped until you review it."
+        ) {
             Button(isNew ? "Review & Load" : "Review & Reload") {
                 state.onReviewPending?(summary.filename)
             }
-                .controlSize(.small)
+            .controlSize(.small)
         }
-        .foregroundStyle(.orange)
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.orange.opacity(0.08))
-        .cornerRadius(6)
     }
 
     private var errorBox: some View {
-        HStack(alignment: .top, spacing: 6) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 11))
-            Text(summary.errorMessage ?? "Plugin has errors")
-                .font(.system(size: 11))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .foregroundStyle(.red)
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.red.opacity(0.08))
-        .cornerRadius(6)
+        noticeBox(
+            color: .red,
+            icon: "exclamationmark.triangle.fill",
+            text: summary.errorMessage ?? "Plugin has errors",
+            alignment: .top,
+            spacing: 6
+        ) { EmptyView() }
     }
 
     private var helpBox: some View {

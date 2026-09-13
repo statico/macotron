@@ -557,10 +557,6 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         return running.isEmpty ? header.permissions.compactMap(Permissions.parse) : running
     }
 
-    private func buildPluginSummaries() -> [ModuleSummary] {
-        StepTimer.measure("buildPluginSummaries") { buildPluginSummariesBody() }
-    }
-
     /// The user's calendars, for `calendars` plugin options. Values are titles:
     /// they read plainly in settings.json and survive an account re-sync, which
     /// regenerates identifiers. Two calendars sharing a title across accounts
@@ -572,140 +568,142 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             .map { ModuleOptionChoice(value: $0, label: $0) }
     }
 
-    private func buildPluginSummariesBody() -> [ModuleSummary] {
-        let errorMap = Dictionary(
-            moduleManager.lastReloadErrors.map { ($0.filename, $0.error) },
-            uniquingKeysWith: { first, _ in first }
-        )
-        let metadata = engine.moduleMetadata
-        // A disabled plugin declares nothing this run; fall back to what it
-        // declared last time so its options stay on the page.
-        let remembered = moduleManager.rememberedMetadata()
-        let settingsJSON = workspace.readSettings()
-        let settings = settingsJSON["pluginSettings"] as? [String: [String: Any]] ?? [:]
-        let disabled = Set(settingsJSON["disabledPlugins"] as? [String] ?? [])
-        let shortcuts = CommandShortcuts.load(from: settingsJSON["commandShortcuts"])
-        let keyboardShortcuts = CommandShortcuts.load(from: settingsJSON["keyboardShortcuts"])
-        var summaries: [ModuleSummary] = []
+    private func buildPluginSummaries() -> [ModuleSummary] {
+        StepTimer.measure("buildPluginSummaries") {
+            let errorMap = Dictionary(
+                moduleManager.lastReloadErrors.map { ($0.filename, $0.error) },
+                uniquingKeysWith: { first, _ in first }
+            )
+            let metadata = engine.moduleMetadata
+            // A disabled plugin declares nothing this run; fall back to what it
+            // declared last time so its options stay on the page.
+            let remembered = moduleManager.rememberedMetadata()
+            let settingsJSON = workspace.readSettings()
+            let settings = settingsJSON["pluginSettings"] as? [String: [String: Any]] ?? [:]
+            let disabled = Set(settingsJSON["disabledPlugins"] as? [String] ?? [])
+            let shortcuts = CommandShortcuts.load(from: settingsJSON["commandShortcuts"])
+            let keyboardShortcuts = CommandShortcuts.load(from: settingsJSON["keyboardShortcuts"])
+            var summaries: [ModuleSummary] = []
 
-        for file in moduleManager.listModules(directory: "plugins") {
-            let isEnabled = !disabled.contains(file.filename)
-            let events = isEnabled ? (engine.pluginEvents[file.filename] ?? []) : []
+            for file in moduleManager.listModules(directory: "plugins") {
+                let isEnabled = !disabled.contains(file.filename)
+                let events = isEnabled ? (engine.pluginEvents[file.filename] ?? []) : []
 
-            let meta = metadata[file.filename] ?? remembered[file.filename] ?? [:]
-            let metaTitle = nonEmptyString(meta["title"])
-            let metaDescription = nonEmptyString(meta["description"])
-            let header = (metaTitle == nil || metaDescription == nil)
-                ? PluginHeader.parse(file: workspace.pluginsDir.appending(path: file.filename))
-                : PluginHeader.Info()
-            let title = metaTitle ?? header.title ?? file.filename
-            let description = metaDescription ?? header.description ?? file.description
-            let fileSettings = settings[file.filename] ?? [:]
-            var options: [ModuleOption] = []
+                let meta = metadata[file.filename] ?? remembered[file.filename] ?? [:]
+                let metaTitle = nonEmptyString(meta["title"])
+                let metaDescription = nonEmptyString(meta["description"])
+                let header = (metaTitle == nil || metaDescription == nil)
+                    ? PluginHeader.parse(file: workspace.pluginsDir.appending(path: file.filename))
+                    : PluginHeader.Info()
+                let title = metaTitle ?? header.title ?? file.filename
+                let description = metaDescription ?? header.description ?? file.description
+                let fileSettings = settings[file.filename] ?? [:]
+                var options: [ModuleOption] = []
 
-            if let optionsDefs = meta["options"] as? [String: [String: Any]] {
-                // Required options lead, since the plugin does nothing until
-                // they are set; the rest sort by key.
-                let isRequired = { (def: [String: Any]) in def["required"] as? Bool ?? false }
-                for (key, def) in optionsDefs.sorted(by: {
-                    isRequired($0.value) != isRequired($1.value) ? isRequired($0.value) : $0.key < $1.key
-                }) {
-                    let type = def["type"] as? String ?? "string"
-                    let label = def["label"] as? String ?? key
-                    let defaultValue = def["default"] ?? ""
-                    let currentValue = fileSettings[key] ?? defaultValue
-                    let required = def["required"] as? Bool ?? false
-                    let placeholder = def["placeholder"] as? String ?? ""
-                    let help = def["help"] as? String ?? ""
+                if let optionsDefs = meta["options"] as? [String: [String: Any]] {
+                    // Required options lead, since the plugin does nothing until
+                    // they are set; the rest sort by key.
+                    let isRequired = { (def: [String: Any]) in def["required"] as? Bool ?? false }
+                    for (key, def) in optionsDefs.sorted(by: {
+                        isRequired($0.value) != isRequired($1.value) ? isRequired($0.value) : $0.key < $1.key
+                    }) {
+                        let type = def["type"] as? String ?? "string"
+                        let label = def["label"] as? String ?? key
+                        let defaultValue = def["default"] ?? ""
+                        let currentValue = fileSettings[key] ?? defaultValue
+                        let required = def["required"] as? Bool ?? false
+                        let placeholder = def["placeholder"] as? String ?? ""
+                        let help = def["help"] as? String ?? ""
 
-                    var choices = ((def["choices"] as? [[String: Any]]) ?? []).compactMap { choice -> ModuleOptionChoice? in
-                        guard let value = choice["value"] as? String,
-                              let choiceLabel = choice["label"] as? String else { return nil }
-                        return ModuleOptionChoice(value: value, label: choiceLabel)
+                        var choices = ((def["choices"] as? [[String: Any]]) ?? []).compactMap { choice -> ModuleOptionChoice? in
+                            guard let value = choice["value"] as? String,
+                                  let choiceLabel = choice["label"] as? String else { return nil }
+                            return ModuleOptionChoice(value: value, label: choiceLabel)
+                        }
+                        if type == "dropdown" && choices.isEmpty {
+                            NSLog("[Macotron] \(file.filename): dropdown option '\(key)' is missing choices")
+                        }
+                        // A `calendars` option lists the user's actual calendars,
+                        // so its choices come from EventKit, not the plugin.
+                        if type == "calendars" {
+                            choices = Self.calendarChoices()
+                        }
+
+                        let isSet: Bool
+                        switch type {
+                        case "password":
+                            isSet = !(fileSettings[key] as? String ?? "").isEmpty
+                        case "boolean", "number":
+                            isSet = (fileSettings[key] ?? def["default"]) != nil
+                        default:
+                            isSet = !(((fileSettings[key] ?? def["default"]) as? String) ?? "").isEmpty
+                        }
+
+                        var range: ClosedRange<Double>?
+                        if type == "number",
+                           let lo = (def["min"] as? NSNumber)?.doubleValue,
+                           let hi = (def["max"] as? NSNumber)?.doubleValue, lo < hi {
+                            range = lo...hi
+                        }
+                        options.append(ModuleOption(
+                            key: key, label: label, type: type, currentValue: currentValue,
+                            required: required, isSet: isSet, choices: choices,
+                            placeholder: placeholder, help: help,
+                            range: range, step: (def["step"] as? NSNumber)?.doubleValue
+                        ))
                     }
-                    if type == "dropdown" && choices.isEmpty {
-                        NSLog("[Macotron] \(file.filename): dropdown option '\(key)' is missing choices")
-                    }
-                    // A `calendars` option lists the user's actual calendars,
-                    // so its choices come from EventKit, not the plugin.
-                    if type == "calendars" {
-                        choices = Self.calendarChoices()
-                    }
-
-                    let isSet: Bool
-                    switch type {
-                    case "password":
-                        isSet = !(fileSettings[key] as? String ?? "").isEmpty
-                    case "boolean", "number":
-                        isSet = (fileSettings[key] ?? def["default"]) != nil
-                    default:
-                        isSet = !(((fileSettings[key] ?? def["default"]) as? String) ?? "").isEmpty
-                    }
-
-                    var range: ClosedRange<Double>?
-                    if type == "number",
-                       let lo = (def["min"] as? NSNumber)?.doubleValue,
-                       let hi = (def["max"] as? NSNumber)?.doubleValue, lo < hi {
-                        range = lo...hi
-                    }
-                    options.append(ModuleOption(
-                        key: key, label: label, type: type, currentValue: currentValue,
-                        required: required, isSet: isSet, choices: choices,
-                        placeholder: placeholder, help: help,
-                        range: range, step: (def["step"] as? NSNumber)?.doubleValue
-                    ))
                 }
+
+                let commands = engine.commandRegistry.values
+                    .filter { $0.pluginFile == file.filename }
+                    .sorted { $0.name < $1.name }
+                    .map {
+                        PluginCommandSummary(
+                            id: $0.id,
+                            name: $0.name,
+                            shortcut: shortcuts.combo(for: $0.id)
+                        )
+                    }
+
+                let hotkeys = engine.hotkeyRegistry.values
+                    .filter { $0.pluginFile == file.filename }
+                    .sorted { $0.key < $1.key }
+                    .map {
+                        PluginCommandSummary(
+                            id: $0.id,
+                            name: $0.key,
+                            shortcut: keyboardShortcuts.resolved($0.id, default: $0.defaultCombo)
+                        )
+                    }
+
+                let errorMsg = errorMap[file.filename]
+                summaries.append(ModuleSummary(
+                    filename: file.filename,
+                    title: title,
+                    description: description,
+                    help: meta["help"] as? String ?? "",
+                    checks: engine.pluginChecks[file.filename] ?? [],
+                    options: options,
+                    events: events,
+                    hotkeys: hotkeys,
+                    hasErrors: errorMsg != nil,
+                    errorMessage: errorMsg,
+                    isEnabled: isEnabled,
+                    commands: commands,
+                    // A plugin that is disabled, or quarantined until its source is
+                    // reviewed, never runs and so declares nothing at runtime. Its
+                    // header still says what it needs, so read that instead.
+                    permissions: declaredPermissions(meta: meta, header: header),
+                    hiddenStatusItems: hiddenStatusItems(of: file.filename),
+                    occludedStatusItems: occludedStatusItems(of: file.filename),
+                    sourceHash: PluginHash.sha256(
+                        file: workspace.pluginsDir.appending(path: file.filename)) ?? ""
+                ))
             }
 
-            let commands = engine.commandRegistry.values
-                .filter { $0.pluginFile == file.filename }
-                .sorted { $0.name < $1.name }
-                .map {
-                    PluginCommandSummary(
-                        id: $0.id,
-                        name: $0.name,
-                        shortcut: shortcuts.combo(for: $0.id)
-                    )
-                }
-
-            let hotkeys = engine.hotkeyRegistry.values
-                .filter { $0.pluginFile == file.filename }
-                .sorted { $0.key < $1.key }
-                .map {
-                    PluginCommandSummary(
-                        id: $0.id,
-                        name: $0.key,
-                        shortcut: keyboardShortcuts.resolved($0.id, default: $0.defaultCombo)
-                    )
-                }
-
-            let errorMsg = errorMap[file.filename]
-            summaries.append(ModuleSummary(
-                filename: file.filename,
-                title: title,
-                description: description,
-                help: meta["help"] as? String ?? "",
-                checks: engine.pluginChecks[file.filename] ?? [],
-                options: options,
-                events: events,
-                hotkeys: hotkeys,
-                hasErrors: errorMsg != nil,
-                errorMessage: errorMsg,
-                isEnabled: isEnabled,
-                commands: commands,
-                // A plugin that is disabled, or quarantined until its source is
-                // reviewed, never runs and so declares nothing at runtime. Its
-                // header still says what it needs, so read that instead.
-                permissions: declaredPermissions(meta: meta, header: header),
-                hiddenStatusItems: hiddenStatusItems(of: file.filename),
-                occludedStatusItems: occludedStatusItems(of: file.filename),
-                sourceHash: PluginHash.sha256(
-                    file: workspace.pluginsDir.appending(path: file.filename)) ?? ""
-            ))
+            summaries.sort { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+            return summaries
         }
-
-        summaries.sort { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
-        return summaries
     }
 
     // MARK: - Wizard
@@ -869,23 +867,21 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     /// The first check also registers Macotron in the System Settings lists, so
     /// the user can find the toggles without hunting for the app.
     private func refreshPermissions() {
-        StepTimer.measure("refreshPermissions") { refreshPermissionsBody() }
-    }
+        StepTimer.measure("refreshPermissions") {
+            let required = requiredPermissions()
+            let missing = Permissions.missing(from: required)
 
-    private func refreshPermissionsBody() {
-        let required = requiredPermissions()
-        let missing = Permissions.missing(from: required)
+            missingPermissions = missing
+            let unregistered = missing.filter { !registeredPermissions.contains($0) }
+            if !unregistered.isEmpty {
+                registeredPermissions.formUnion(unregistered)
+                Permissions.registerWithSystem(unregistered)
+            }
 
-        missingPermissions = missing
-        let unregistered = missing.filter { !registeredPermissions.contains($0) }
-        if !unregistered.isEmpty {
-            registeredPermissions.formUnion(unregistered)
-            Permissions.registerWithSystem(unregistered)
+            menuBarManager?.setMissingPermissions(missing.filter(\.isAutoRequestable))
+            settingsState.refreshPermissions()
+            schedulePermissionPolling(active: !missing.isEmpty)
         }
-
-        menuBarManager?.setMissingPermissions(missing.filter(\.isAutoRequestable))
-        settingsState.refreshPermissions()
-        schedulePermissionPolling(active: !missing.isEmpty)
     }
 
     /// Poll while anything is missing, so the warning clears as soon as the user
@@ -1221,23 +1217,21 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func executeCommand(_ id: String, args: [String: Any] = [:]) {
-        StepTimer.measure("execute \(id)") { executeCommandBody(id, args: args) }
-    }
-
-    private func executeCommandBody(_ id: String, args: [String: Any]) {
-        launcherPanel.dismiss()
-        recordUse(id)
-        if runHostCommand(id) {
-            return
+        StepTimer.measure("execute \(id)") {
+            launcherPanel.dismiss()
+            recordUse(id)
+            if runHostCommand(id) {
+                return
+            }
+            if engine.commandRegistry[id] != nil {
+                _ = engine.invokeCommand(id, args: args)
+                return
+            }
+            if launcherModule?.run(id) == true {
+                return
+            }
+            appSearchProvider.launchApp(bundleID: id)
         }
-        if engine.commandRegistry[id] != nil {
-            _ = engine.invokeCommand(id, args: args)
-            return
-        }
-        if launcherModule?.run(id) == true {
-            return
-        }
-        appSearchProvider.launchApp(bundleID: id)
     }
 
     @discardableResult
@@ -1292,35 +1286,33 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleCommandShortcut(_ commandId: String) {
-        StepTimer.measure("command shortcut \(commandId)") { handleCommandShortcutBody(commandId) }
-    }
-
-    private func handleCommandShortcutBody(_ commandId: String) {
-        if runHostCommand(commandId) {
-            return
-        }
-        guard let cmd = engine.commandRegistry[commandId] else {
-            if launcherPanel.isVisible {
-                launcherPanel.dismiss()
-            }
-            if launcherModule?.run(commandId) == true {
+        StepTimer.measure("command shortcut \(commandId)") {
+            if runHostCommand(commandId) {
                 return
             }
-            appSearchProvider.launchApp(bundleID: commandId, hideIfFrontmost: true)
-            return
-        }
-        switch CommandArgumentResolver.resolve(specs: cmd.arguments, raw: [:]) {
-        case .success(let values):
-            _ = engine.invokeCommand(commandId, args: values)
-        case .failure:
-            launcherSession.pendingArgs = .init(
-                commandId: cmd.id,
-                title: cmd.name,
-                arguments: cmd.arguments
-            )
-            if !launcherPanel.isVisible {
-                launcherPanel.showReason = "command \(cmd.id) needs arguments"
-                launcherPanel.toggle()
+            guard let cmd = engine.commandRegistry[commandId] else {
+                if launcherPanel.isVisible {
+                    launcherPanel.dismiss()
+                }
+                if launcherModule?.run(commandId) == true {
+                    return
+                }
+                appSearchProvider.launchApp(bundleID: commandId, hideIfFrontmost: true)
+                return
+            }
+            switch CommandArgumentResolver.resolve(specs: cmd.arguments, raw: [:]) {
+            case .success(let values):
+                _ = engine.invokeCommand(commandId, args: values)
+            case .failure:
+                launcherSession.pendingArgs = .init(
+                    commandId: cmd.id,
+                    title: cmd.name,
+                    arguments: cmd.arguments
+                )
+                if !launcherPanel.isVisible {
+                    launcherPanel.showReason = "command \(cmd.id) needs arguments"
+                    launcherPanel.toggle()
+                }
             }
         }
     }
@@ -1416,124 +1408,122 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func search(_ query: String) -> [SearchResult] {
-        StepTimer.measure("search") { searchBody(query) }
-    }
+        StepTimer.measure("search") {
+            let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            let pluginHits = launcherModule?.allHits() ?? []
+            let settings = workspace.readSettings()
+            let favorites = Self.favoriteIDs(from: settings["launcherFavorites"])
+            let shortcuts = CommandShortcuts.load(from: settings["commandShortcuts"])
+            let uses = settings["launcherUses"] as? [String: Int] ?? [:]
 
-    private func searchBody(_ query: String) -> [SearchResult] {
-        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let pluginHits = launcherModule?.allHits() ?? []
-        let settings = workspace.readSettings()
-        let favorites = Self.favoriteIDs(from: settings["launcherFavorites"])
-        let shortcuts = CommandShortcuts.load(from: settings["commandShortcuts"])
-        let uses = settings["launcherUses"] as? [String: Int] ?? [:]
-
-        if q.isEmpty {
-            // Starred results only: the empty launcher is the user's own list,
-            // not a guess at what they might want.
-            return permissionResult() + favorites.compactMap { id in
-                result(id: id, pluginHits: pluginHits, shortcuts: shortcuts, isFavorite: true)
+            if q.isEmpty {
+                // Starred results only: the empty launcher is the user's own list,
+                // not a guess at what they might want.
+                return permissionResult() + favorites.compactMap { id in
+                    result(id: id, pluginHits: pluginHits, shortcuts: shortcuts, isFavorite: true)
+                }
             }
-        }
 
-        var results: [SearchResult] = []
+            var results: [SearchResult] = []
 
-        for host in HostCommands.all {
-            if let score = FuzzyMatch.score(query: q, target: host.name), score > 0 {
-                results.append(SearchResult(
-                    id: host.id,
-                    title: host.name,
-                    subtitle: host.description,
-                    type: .command,
-                    shortcut: shortcuts.combo(for: host.id),
-                    isFavorite: favorites.contains(host.id)
-                ))
+            for host in HostCommands.all {
+                if let score = FuzzyMatch.score(query: q, target: host.name), score > 0 {
+                    results.append(SearchResult(
+                        id: host.id,
+                        title: host.name,
+                        subtitle: host.description,
+                        type: .command,
+                        shortcut: shortcuts.combo(for: host.id),
+                        isFavorite: favorites.contains(host.id)
+                    ))
+                }
             }
-        }
 
-        for (_, cmd) in engine.commandRegistry {
-            if let score = FuzzyMatch.score(query: q, target: cmd.name), score > 0 {
-                results.append(SearchResult(
-                    id: cmd.id,
-                    title: cmd.name,
-                    subtitle: cmd.description,
-                    type: .command,
-                    commandArguments: cmd.arguments,
-                    shortcut: shortcuts.combo(for: cmd.id),
-                    isFavorite: favorites.contains(cmd.id)
-                ))
+            for (_, cmd) in engine.commandRegistry {
+                if let score = FuzzyMatch.score(query: q, target: cmd.name), score > 0 {
+                    results.append(SearchResult(
+                        id: cmd.id,
+                        title: cmd.name,
+                        subtitle: cmd.description,
+                        type: .command,
+                        commandArguments: cmd.arguments,
+                        shortcut: shortcuts.combo(for: cmd.id),
+                        isFavorite: favorites.contains(cmd.id)
+                    ))
+                }
             }
-        }
 
-        let apps = StepTimer.measure("search apps", threshold: 0.005) {
-            appSearchProvider.matching(q, limit: 20)
-        }
-        results.append(contentsOf: apps.map { app in
-            SearchResult(
-                id: app.bundleID,
-                title: app.name,
-                subtitle: "",
-                type: .app,
-                nsImage: app.icon,
-                shortcut: shortcuts.combo(for: app.bundleID),
-                isFavorite: favorites.contains(app.bundleID)
-            )
-        })
+            let apps = StepTimer.measure("search apps", threshold: 0.005) {
+                appSearchProvider.matching(q, limit: 20)
+            }
+            results.append(contentsOf: apps.map { app in
+                SearchResult(
+                    id: app.bundleID,
+                    title: app.name,
+                    subtitle: "",
+                    type: .app,
+                    nsImage: app.icon,
+                    shortcut: shortcuts.combo(for: app.bundleID),
+                    isFavorite: favorites.contains(app.bundleID)
+                )
+            })
 
-        for hit in pluginHits {
-            if FuzzyMatch.best(query: q, targets: [hit.title, hit.subtitle]) != nil {
-                results.append(SearchResult(
+            for hit in pluginHits {
+                if FuzzyMatch.best(query: q, targets: [hit.title, hit.subtitle]) != nil {
+                    results.append(SearchResult(
+                        id: hit.id,
+                        title: hit.title,
+                        subtitle: hit.subtitle,
+                        type: .plugin,
+                        nsImage: hit.image ?? fileIcon(hit.path),
+                        kind: hit.kind,
+                        isFavorite: favorites.contains(hit.id),
+                        path: hit.path
+                    ))
+                }
+            }
+
+            // A live row the typed text cannot find by name is answering the query
+            // itself — a sum, a unit conversion — and leads, because "4" belongs
+            // above every app sharing a letter with "2+2". A row that does match by
+            // name is competing on that name, so it is ranked with everything else:
+            // a symbol whose description happens to contain the word typed has no
+            // claim on the top of the list. Providers that answer every query, not
+            // only their own syntax, mark their rows secondary and lose ties.
+            let live = StepTimer.measure("search live providers", threshold: 0.005) {
+                launcherModule?.liveHits(query: q) ?? []
+            }
+            let row = { (hit: LauncherHit) in
+                SearchResult(
                     id: hit.id,
                     title: hit.title,
                     subtitle: hit.subtitle,
                     type: .plugin,
-                    nsImage: hit.image ?? fileIcon(hit.path),
+                    nsImage: hit.image ?? self.fileIcon(hit.path),
                     kind: hit.kind,
                     isFavorite: favorites.contains(hit.id),
                     path: hit.path
-                ))
+                )
             }
-        }
+            let answers = live.filter {
+                !$0.secondary && FuzzyMatch.best(query: q, targets: [$0.title, $0.subtitle]) == nil
+            }
+            let answered = Set(answers.map(\.id))
+            let rest = live.filter { !answered.contains($0.id) }
 
-        // A live row the typed text cannot find by name is answering the query
-        // itself — a sum, a unit conversion — and leads, because "4" belongs
-        // above every app sharing a letter with "2+2". A row that does match by
-        // name is competing on that name, so it is ranked with everything else:
-        // a symbol whose description happens to contain the word typed has no
-        // claim on the top of the list. Providers that answer every query, not
-        // only their own syntax, mark their rows secondary and lose ties.
-        let live = StepTimer.measure("search live providers", threshold: 0.005) {
-            launcherModule?.liveHits(query: q) ?? []
-        }
-        let row = { (hit: LauncherHit) in
-            SearchResult(
-                id: hit.id,
-                title: hit.title,
-                subtitle: hit.subtitle,
-                type: .plugin,
-                nsImage: hit.image ?? self.fileIcon(hit.path),
-                kind: hit.kind,
-                isFavorite: favorites.contains(hit.id),
-                path: hit.path
+            // An app the query already matched needs no second row for its bundle
+            // on disk, whichever plugin happened to index /Applications.
+            let appPaths = Set(apps.map { $0.url.resolvingSymlinksInPath().path })
+            let answerRows = SearchResult.withoutAppDuplicates(answers.map(row), appPaths: appPaths)
+
+            return answerRows + SearchResult.ranked(
+                query: q,
+                rows: SearchResult.withoutAppDuplicates(results + rest.map(row), appPaths: appPaths),
+                late: Set(rest.filter(\.secondary).map(\.id)),
+                uses: uses,
+                limit: max(0, 20 - answerRows.count)
             )
         }
-        let answers = live.filter {
-            !$0.secondary && FuzzyMatch.best(query: q, targets: [$0.title, $0.subtitle]) == nil
-        }
-        let answered = Set(answers.map(\.id))
-        let rest = live.filter { !answered.contains($0.id) }
-
-        // An app the query already matched needs no second row for its bundle
-        // on disk, whichever plugin happened to index /Applications.
-        let appPaths = Set(apps.map { $0.url.resolvingSymlinksInPath().path })
-        let answerRows = SearchResult.withoutAppDuplicates(answers.map(row), appPaths: appPaths)
-
-        return answerRows + SearchResult.ranked(
-            query: q,
-            rows: SearchResult.withoutAppDuplicates(results + rest.map(row), appPaths: appPaths),
-            late: Set(rest.filter(\.secondary).map(\.id)),
-            uses: uses,
-            limit: max(0, 20 - answerRows.count)
-        )
     }
 
     /// What gets picked is the best ranking signal there is, and the one the
