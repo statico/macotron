@@ -27,7 +27,7 @@ build-time dependency only: the shipped app has no runtime dependency beyond
 the binary it carries. The GitHub macOS runners ship rustup, so CI needs no
 extra step.
 
-When the binary is not in the bundle (`swift run`, tests, SearchProbe) the host
+When the binary is not in the bundle (`swift run`, tests) the host
 looks at `$MACOTRON_INDEXER`, then `Indexer/target/release/macotron-index`
 relative to the working directory.
 

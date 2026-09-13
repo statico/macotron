@@ -133,21 +133,18 @@ bundle: build ## Create ~/Applications/Macotron.app
 	done; \
 	codesign --force --sign "$(SIGN)" $(SIGN_FLAGS) \
 		"$(BUNDLE)/Contents/Frameworks/Sparkle.framework"
-	@if [ -n "$(SIGN_IDENTITY)" ]; then \
-		codesign --force --sign "$(SIGN_IDENTITY)" $(SIGN_FLAGS) \
-			"$(BUNDLE)/Contents/MacOS/$(HELPER_NAME)"; \
-		codesign --force --sign "$(SIGN_IDENTITY)" $(SIGN_FLAGS) \
-			"$(BUNDLE)/Contents/MacOS/macotron-index"; \
-		codesign --force --sign "$(SIGN_IDENTITY)" $(SIGN_FLAGS) \
-			--entitlements Resources/Macotron.entitlements "$(BUNDLE)"; \
-		echo "Signed with $(SIGN_IDENTITY)"; \
-	else \
-		codesign --force --sign - "$(BUNDLE)/Contents/MacOS/$(HELPER_NAME)"; \
-		codesign --force --sign - "$(BUNDLE)/Contents/MacOS/macotron-index"; \
-		codesign --force --sign - --entitlements Resources/Macotron.entitlements "$(BUNDLE)"; \
-		printf '\033[33mWarning: ad-hoc signed. macOS permissions reset on every build.\033[0m\n'; \
-		printf '\033[33mCreate a Code Signing certificate in Keychain Access to keep them.\033[0m\n'; \
-	fi
+	@codesign --force --sign "$(SIGN)" $(SIGN_FLAGS) \
+		"$(BUNDLE)/Contents/MacOS/$(HELPER_NAME)"
+	@codesign --force --sign "$(SIGN)" $(SIGN_FLAGS) \
+		"$(BUNDLE)/Contents/MacOS/macotron-index"
+	@codesign --force --sign "$(SIGN)" $(SIGN_FLAGS) \
+		--entitlements Resources/Macotron.entitlements "$(BUNDLE)"
+ifeq ($(strip $(SIGN_IDENTITY)),)
+	@printf '\033[33mWarning: ad-hoc signed. macOS permissions reset on every build.\033[0m\n'
+	@printf '\033[33mCreate a Code Signing certificate in Keychain Access to keep them.\033[0m\n'
+else
+	@echo "Signed with $(SIGN_IDENTITY)"
+endif
 	@if codesign -dv "$(BUNDLE)" 2>&1 | grep -q '^TeamIdentifier=not set'; then \
 		printf '\033[33mNote: no Team ID, so the helper cannot be installed.\033[0m\n'; \
 		printf '\033[33mSign with a Developer ID to enable fan control.\033[0m\n'; \
@@ -162,9 +159,8 @@ run: bundle ## Bundle and launch (kills existing instance first)
 check: bundle ## Typecheck load plugins (ARGS='plugins/foo.js' optional)
 	$(BUNDLE)/Contents/MacOS/$(APP_NAME) --check $(ARGS)
 
-# site/ is served straight from the repo by Vercel, with no build step, so the
-# plugin browser's copies have to be committed. This re-syncs them from the
-# originals and rewrites the manifest site.js reads, so the copies cannot drift.
+# Vercel runs this at deploy time (site/vercel.json), so the copies under
+# site/workdir are generated, not committed. Also run it locally to preview.
 site: ## Re-sync site/workdir/plugins from Examples/plugins
 	@mkdir -p site/workdir/plugins
 	@/bin/rm -f site/workdir/plugins/*.js
