@@ -8,7 +8,7 @@ A static homepage. No build step. Vercel serves the `site/` folder as the domain
 
 - `index.html` — product page
 - `site.js` / `site.css` — capabilities, API cards, plugin finder
-- `workdir/plugins/*.js` — copies of the 73 built-in plugins
+- `workdir/plugins/*.js` — copies of the 74 built-in plugins
 - `glossary.html` — terms used on the page and in the host API
 - `og.html` / `og.png` — the social preview card. `og.html` is the source; screenshot it at exactly 1200x630 to regenerate `og.png` after changing the wording. It is not linked from the site.
 
