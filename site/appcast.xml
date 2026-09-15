@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.6.1</title>
+            <sparkle:version>0.6.1</sparkle:version>
+            <sparkle:shortVersionString>0.6.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Tue, 15 Sep 2026 14:08:31 +0000</pubDate>
+            <description><![CDATA[<ul><li>Generate the site plugin mirror instead of committing it</li><li>Drop dead engine API and unshare what was copy-pasted</li><li>Collapse repeated settings views and drop a dead hold tracker</li><li>Share the numeric and IOKit helpers the modules each rewrote</li><li>Delete the SearchProbe target and shrink the scan harness</li><li>Register JS functions through one helper</li><li>Correct the built-in plugin count on the site</li><li>Restore the host APIs the audit mistook for dead</li><li>Centre menu bar status items on the bar, not just on their text</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.6.1/Macotron-0.6.1.dmg" type="application/octet-stream" sparkle:edSignature="AoaPCn6iUQQmMxs5dvVfVlLgG86+FtDtq1B8Fd8sxoP9uPvjgzvsnRGnXSz4l34MNBDotju3KhirHKeTgAdKAw==" length="10263368" />
+        </item>
+        <item>
             <title>0.6.0</title>
             <sparkle:version>0.6.0</sparkle:version>
             <sparkle:shortVersionString>0.6.0</sparkle:shortVersionString>
