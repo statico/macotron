@@ -149,6 +149,8 @@ declare const macotron: {
             app: string;
             bundleID?: string;
             display?: number;
+            /** True while the window is minimized to the Dock. Minimized windows are still listed. */
+            minimized: boolean;
             frame: { x: number; y: number; width: number; height: number };
         }>;
         focused(): {
@@ -157,6 +159,8 @@ declare const macotron: {
             app: string;
             bundleID?: string;
             display?: number;
+            /** True while the window is minimized to the Dock. Minimized windows are still listed. */
+            minimized: boolean;
             frame: { x: number; y: number; width: number; height: number };
         } | null;
         /** Raise, unminimize, and activate the window's app. */
