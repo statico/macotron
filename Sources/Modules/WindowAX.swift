@@ -83,6 +83,14 @@ enum WindowAX {
         ) == .success
     }
 
+    /// Whether the window is in the Dock. `enumerate` yields minimized windows
+    /// like any other, so anything that lays windows out has to ask.
+    static func isMinimized(_ win: AXUIElement) -> Bool {
+        var ref: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(win, kAXMinimizedAttribute as CFString, &ref) == .success else { return false }
+        return (ref as? Bool) ?? false
+    }
+
     static func minimize(_ id: Int32, _ on: Bool) -> Bool {
         guard let win = resolve(id: id) else { return false }
         return setBool(win, kAXMinimizedAttribute as String, on)

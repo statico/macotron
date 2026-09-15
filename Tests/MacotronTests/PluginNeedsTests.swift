@@ -33,8 +33,10 @@ struct PluginNeedsTests {
         let host = SemVer(Engine.apiVersion)!
         #expect(needs > host)
         #expect(!(host >= needs))
+        // Derived from the host version, not spelled out: this assertion broke on
+        // the last API bump for no reason other than the number in the string.
         #expect(PluginNeeds.unmetMessage(needs: needs, host: host)
-                == "Needs Macotron API 99.9 (this host is 1.2)")
+                == "Needs Macotron API 99.9 (this host is \(host.major).\(host.minor))")
     }
 
     @Test("Invalid pragma fails")

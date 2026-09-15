@@ -86,7 +86,7 @@ private final class WindowSnapState: @unchecked Sendable {
 @MainActor
 public final class WindowModule: NativeModule {
     public let name = "window"
-    public let moduleVersion = 5
+    public let moduleVersion = 6
 
     private weak var engine: Engine?
     private var eventTap: CFMachPort?
@@ -230,7 +230,7 @@ public final class WindowModule: NativeModule {
 
     // MARK: - AX Helpers
 
-    /// Build a JS object {id, title, app, frame:{x,y,width,height}} for a window.
+    /// Build a JS object {id, title, app, frame, minimized} for a window.
     private static func windowToJS(
         _ ctx: OpaquePointer,
         pid: pid_t,
@@ -245,7 +245,8 @@ public final class WindowModule: NativeModule {
             "id": Int(id),
             "title": WindowAX.title(win),
             "app": app,
-            "frame": frame.js
+            "frame": frame.js,
+            "minimized": WindowAX.isMinimized(win)
         ]
         if let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier {
             winDict["bundleID"] = bundleID
