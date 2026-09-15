@@ -109,6 +109,11 @@ bundle: build ## Create ~/Applications/Macotron.app
 	@cp Sources/Macotron/Resources/macotron-runtime.js "$(BUNDLE)/Contents/Resources/"
 	@cp Sources/Macotron/Resources/macotron.d.ts "$(BUNDLE)/Contents/Resources/"
 	@cp Sources/MacotronEngine/Resources/agents-template.md "$(BUNDLE)/Contents/Resources/"
+	@# SwiftPM puts a target's declared resources in a generated .bundle, and the
+	@# binary reaches them through Bundle.module, which traps when it is missing.
+	@# Copying the loose files above is not enough: the bundle itself must ship.
+	@/bin/rm -rf "$(BUNDLE)/Contents/Resources/"*.bundle
+	@cp -R $(BUILD_DIR)/$(CONFIG)/*.bundle "$(BUNDLE)/Contents/Resources/"
 	@xcrun actool $(CURDIR)/Resources/$(APP_NAME).icon --compile "$(BUNDLE)/Contents/Resources" \
 		--app-icon $(APP_NAME) --output-partial-info-plist $(BUILD_DIR)/icon-partial.plist \
 		--platform macosx --minimum-deployment-target 15.0 --errors --warnings >/dev/null
