@@ -86,7 +86,7 @@ private final class WindowSnapState: @unchecked Sendable {
 @MainActor
 public final class WindowModule: NativeModule {
     public let name = "window"
-    public let moduleVersion = 7
+    public let moduleVersion = 8
 
     private weak var engine: Engine?
     private var eventTap: CFMachPort?
@@ -263,6 +263,12 @@ public final class WindowModule: NativeModule {
         }
         if let displayID = screen(forAXFrame: frame).map(Self.displayID) {
             winDict["display"] = Int(displayID)
+        }
+        // A stable identity. `id` is a pid and an AX index, so it is recycled
+        // when a window closes and can shift when one is raised. Anything that
+        // must outlive a single pass belongs on this instead.
+        if let number = WindowAX.windowNumber(win) {
+            winDict["number"] = Int(number)
         }
         return JSBridge.newObject(ctx, winDict)
     }

@@ -111,18 +111,30 @@ enum WindowAX {
         return AXUIElementPerformAction(button as! AXUIElement, kAXPressAction as CFString) == .success
     }
 
-    static func cgWindowID(_ id: Int32) -> CGWindowID? {
-        guard let win = resolve(id: id) else { return nil }
-        typealias Fn = @convention(c) (AXUIElement, UnsafeMutablePointer<CGWindowID>) -> AXError
+    private typealias GetWindowFn = @convention(c) (AXUIElement, UnsafeMutablePointer<CGWindowID>) -> AXError
+
+    /// Looked up once. windowNumber runs for every window of every app on each
+    /// getAll, and dlopen/dlsym per window is a lot of work for one symbol.
+    nonisolated(unsafe) private static let getWindowFn: GetWindowFn? = {
         guard let handle = dlopen(
             "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices",
             RTLD_LAZY
-        ), let sym = dlsym(handle, "_AXUIElementGetWindow") else {
-            return nil
-        }
-        let fn = unsafeBitCast(sym, to: Fn.self)
+        ), let sym = dlsym(handle, "_AXUIElementGetWindow") else { return nil }
+        return unsafeBitCast(sym, to: GetWindowFn.self)
+    }()
+
+    /// The window server's own number for a window. Unlike the ids this module
+    /// builds from a pid and an AX index, it does not change when the window is
+    /// raised, retitled, or moved behind another window.
+    static func windowNumber(_ win: AXUIElement) -> CGWindowID? {
+        guard let fn = getWindowFn else { return nil }
         var cgID: CGWindowID = 0
         return fn(win, &cgID) == .success ? cgID : nil
+    }
+
+    static func cgWindowID(_ id: Int32) -> CGWindowID? {
+        guard let win = resolve(id: id) else { return nil }
+        return windowNumber(win)
     }
 }
 
