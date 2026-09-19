@@ -62,7 +62,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // The last exhaustion took five hours to build; a periodic census in
         // the log says which kind of descriptor is growing before it bites.
         Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { _ in
-            Self.logDescriptorCensus()
+            MainActor.assumeIsolated { Self.logDescriptorCensus() }
         }
         Self.logDescriptorCensus()
         NSAppleEventManager.shared().setEventHandler(

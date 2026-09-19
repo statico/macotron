@@ -115,7 +115,7 @@ enum WindowAX {
 
     /// Looked up once. windowNumber runs for every window of every app on each
     /// getAll, and dlopen/dlsym per window is a lot of work for one symbol.
-    nonisolated(unsafe) private static let getWindowFn: GetWindowFn? = {
+    private static let getWindowFn: GetWindowFn? = {
         guard let handle = dlopen(
             "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices",
             RTLD_LAZY
