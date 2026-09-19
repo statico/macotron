@@ -1,4 +1,5 @@
 // WindowModule.swift — macotron.window: query and manipulate windows via AXUIElement
+import OSLog
 import AppKit
 import CQuickJS
 import MacotronEngine
@@ -814,6 +815,12 @@ public final class WindowModule: NativeModule {
         var pt = point
         guard let value = AXValueCreate(.cgPoint, &pt) else { return false }
         let err = AXUIElementSetAttributeValue(win, kAXPositionAttribute as CFString, value)
+        // A refused move is the one failure a plugin cannot explain for itself.
+        // The bridge hands back false and the reason died here, so "the windows
+        // will not move" had no answer anywhere in the log.
+        if err != .success {
+            logger.error("move refused: position, AXError \(err.rawValue, privacy: .public)")
+        }
         return err == .success
     }
 
@@ -821,6 +828,9 @@ public final class WindowModule: NativeModule {
         var sz = size
         guard let value = AXValueCreate(.cgSize, &sz) else { return false }
         let err = AXUIElementSetAttributeValue(win, kAXSizeAttribute as CFString, value)
+        if err != .success {
+            logger.error("move refused: size, AXError \(err.rawValue, privacy: .public)")
+        }
         return err == .success
     }
 }
