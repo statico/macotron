@@ -108,7 +108,7 @@ struct ScreenEffectsTests {
             """#)
         #expect(result.contains(#"{"op":"crt","on":true}"#))
         #expect(result.contains(#"{"op":"crt","on":false}"#))
-        #expect(result.contains(#"["On","Off"]"#))
+        #expect(result.contains(#"["on","off"]"#))
     }
 
     @Test("a Mac without Metal reports the effect unavailable")

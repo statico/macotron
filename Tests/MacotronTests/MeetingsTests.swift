@@ -11,6 +11,12 @@ struct MeetingsTests {
         // paint() is async, so read the menu bar back only after the job queue
         // that settles it has drained -- which evalSettled's second pass does.
         let result = try PluginHarness.evalSettled(plugin: "meetings.js", mock: """
+            var store = {};
+            var localStorage = {
+                getItem: (k) => (k in store ? store[k] : null),
+                setItem: (k, v) => { store[k] = String(v); },
+                removeItem: (k) => { delete store[k]; }
+            };
             var statusConfig = null;
             var macotron = {
                 plugin: () => ({ hours: 12, hide: "personal\\nOOO", time: "relative" }),
@@ -38,6 +44,12 @@ struct MeetingsTests {
     func sortsUnsortedEvents() throws {
         let now = Int(Date().timeIntervalSince1970 * 1000)
         let result = try PluginHarness.evalSettled(plugin: "meetings.js", mock: """
+            var store = {};
+            var localStorage = {
+                getItem: (k) => (k in store ? store[k] : null),
+                setItem: (k, v) => { store[k] = String(v); },
+                removeItem: (k) => { delete store[k]; }
+            };
             var statusConfig = null;
             var macotron = {
                 plugin: () => ({ hours: 12, hide: "", time: "relative" }),
@@ -65,6 +77,12 @@ struct MeetingsTests {
         // First paint sees one meeting already over and one rejection later:
         // the item must still paint, and the ended meeting must not linger.
         let engine = try PluginHarness.load(plugin: "meetings.js", mock: """
+            var store = {};
+            var localStorage = {
+                getItem: (k) => (k in store ? store[k] : null),
+                setItem: (k, v) => { store[k] = String(v); },
+                removeItem: (k) => { delete store[k]; }
+            };
             var statusConfig = null;
             var paintCount = 0;
             var tick = null;
@@ -82,7 +100,10 @@ struct MeetingsTests {
                 notify: { toast: () => {} }
             };
             """)
-        #expect(PluginHarness.run(engine, "statusConfig.title") == "No meetings")
+        // def2dd4 made the empty state icon-only, so an empty title is the
+        // paint. What this test is really about is that a paint happened.
+        #expect(PluginHarness.run(engine, "statusConfig.title") == "")
+        #expect(PluginHarness.run(engine, "paintCount") != "0")
         // A later tick after the calendar recovers, then breaks again: the
         // cached events keep painting, minus anything that has since ended.
         PluginHarness.run(engine, """
