@@ -151,6 +151,8 @@ declare const macotron: {
             display?: number;
             /** True while the window is minimized to the Dock. Minimized windows are still listed. */
             minimized: boolean;
+            /** The window server's own number. Unlike `id`, it survives a retitle, a raise, and another window closing. Host API 1.5 and newer. */
+            number?: number;
             frame: { x: number; y: number; width: number; height: number };
         }>;
         focused(): {
@@ -161,6 +163,8 @@ declare const macotron: {
             display?: number;
             /** True while the window is minimized to the Dock. Minimized windows are still listed. */
             minimized: boolean;
+            /** The window server's own number. Unlike `id`, it survives a retitle, a raise, and another window closing. Host API 1.5 and newer. */
+            number?: number;
             frame: { x: number; y: number; width: number; height: number };
         } | null;
         /** Raise, unminimize, and activate the window's app. */
