@@ -568,7 +568,10 @@ public final class MenuBarManager: NSObject {
         pluginMenuBoxes.append(box)
         let item = NSMenuItem(title: title, action: #selector(PluginMenu.Action.invoke(_:)), keyEquivalent: key)
         item.target = box
-        if let symbol { item.image = Self.menuSymbol(symbol) }
+        if let symbol {
+            item.image = Self.menuSymbol(symbol)
+            Self.keepImageVisible(item)
+        }
         menu.addItem(item)
         return item
     }
@@ -603,6 +606,7 @@ public final class MenuBarManager: NSObject {
             systemSymbolName: "exclamationmark.triangle.fill",
             accessibilityDescription: nil
         )?.withSymbolConfiguration(.init(paletteColors: [.systemRed]))
+        Self.keepImageVisible(item)
 
         let hint = addRow("Open Settings to grant…") { [weak self] in self?.onOpenPermissions?() }
         hint.attributedTitle = NSAttributedString(
@@ -642,11 +646,19 @@ public final class MenuBarManager: NSObject {
 
     /// Blue row matching the blue arrow the Plugins tab badges a row with.
     /// Permissions outrank it: that menu is already telling a louder story.
+    /// macOS 27 hides menu item images by default, for every app built
+    /// against the macOS 26 SDK or newer. Our few icons carry meaning, so ask
+    /// for them back one item at a time, which is what Apple tells us to do.
+    private static func keepImageVisible(_ item: NSMenuItem) {
+        if #available(macOS 27, *) { item.preferredImageVisibility = .visible }
+    }
+
     private func addPluginUpdatesRowIfNeeded() {
         guard missingPermissions.isEmpty, pluginUpdateCount > 0 else { return }
         let text = Self.updateLabel(pluginUpdateCount) + " available"
         let item = addRow(text) { [weak self] in self?.onOpenPluginUpdates?() }
         item.image = Self.menuSymbol("arrow.down.circle.fill", color: .systemBlue)
+        Self.keepImageVisible(item)
         item.attributedTitle = NSAttributedString(
             string: text,
             attributes: [
