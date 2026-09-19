@@ -195,25 +195,32 @@ public enum SettingsTab: Int, CaseIterable {
 
 @MainActor
 public final class SettingsState: ObservableObject {
-    @Published public var launcherHotkey: String = "opt+space" { didSet { claimsCache = nil } }
-    @Published public var showHotkeysHotkey: String = "" { didSet { claimsCache = nil } }
+    @Published public var launcherHotkey: String = "opt+space" { didSet { claimsCache = nil; conflictCache = nil } }
+    @Published public var showHotkeysHotkey: String = "" { didSet { claimsCache = nil; conflictCache = nil } }
     @Published public var showMenuBarIcon: Bool = true
     @Published public var launchAtLogin: Bool = false
     @Published public var automaticUpdates: Bool = true
     @Published public var appearance: AppearanceSetting = .system
     @Published public var textScale: Double = 1.0
     @Published public var launcherBackground: LauncherBackground = .translucent
-    @Published public var moduleSummaries: [ModuleSummary] = [] { didSet { claimsCache = nil } }
-    @Published public var appShortcuts: [AppShortcutSummary] = [] { didSet { claimsCache = nil } }
+    @Published public var moduleSummaries: [ModuleSummary] = [] { didSet { claimsCache = nil; conflictCache = nil; updatableCache = nil } }
+    @Published public var appShortcuts: [AppShortcutSummary] = [] { didSet { claimsCache = nil; conflictCache = nil } }
 
     /// Building the claim table walks every plugin, hotkey, and app shortcut,
     /// and the plugin list asks for it once per row while it draws. Cache it and
     /// let the four inputs above clear it.
     var claimsCache: [ShortcutConflicts.Claim]?
+
+    /// The plugin list draws 80-odd rows, and each row asks whether that
+    /// plugin has an update and whether it has a shortcut conflict. Both
+    /// answers used to walk the whole catalog again per row. Build each set
+    /// once and let the inputs above clear it.
+    var updatableCache: Set<String>?
+    var conflictCache: Set<String>?
     @Published public var requestedTab: Int?
     @Published public var requestedPlugin: String?
-    @Published public var catalogPlugins: [CatalogPlugin] = []
-    @Published public var installedPluginNames: Set<String> = []
+    @Published public var catalogPlugins: [CatalogPlugin] = [] { didSet { updatableCache = nil } }
+    @Published public var installedPluginNames: Set<String> = [] { didSet { updatableCache = nil } }
     @Published public var pendingReview: [String] = []
     /// Pending plugins that have never run — new files rather than edits.
     @Published public var newPlugins: Set<String> = []
@@ -226,11 +233,11 @@ public final class SettingsState: ObservableObject {
 
     // Community plugins, found through the GitHub topic. No index file and no
     // server: see CommunityCatalog.
-    @Published public var communityEntries: [CommunityEntry] = []
+    @Published public var communityEntries: [CommunityEntry] = [] { didSet { updatableCache = nil } }
     @Published public var communityLoading = false
     @Published public var communityError: String?
     /// Repository ids whose published bytes differ from the installed copy.
-    @Published public var communityUpdates: Set<String> = []
+    @Published public var communityUpdates: Set<String> = [] { didSet { updatableCache = nil } }
     @Published public var installingRepo: String?
     private var communityFetchedAt: Date?
     private var communityTask: Task<Void, Never>?
@@ -458,6 +465,17 @@ public final class SettingsState: ObservableObject {
 
     public func communityUpdate(for summary: ModuleSummary) -> CommunityEntry? {
         communityUpdatableEntries.first { $0.filename == summary.filename }
+    }
+
+    /// Filenames with an update waiting, for the per-row marker.
+    var updatableFilenames: Set<String> {
+        if let updatableCache { return updatableCache }
+        var names = Set(communityUpdatableEntries.map(\.filename))
+        for summary in moduleSummaries where catalogUpdate(for: summary) != nil {
+            names.insert(summary.filename)
+        }
+        updatableCache = names
+        return names
     }
 
     public var updateCount: Int {
@@ -1053,8 +1071,7 @@ public struct SettingsView: View {
                         PluginListRow(
                             summary: summary,
                             hasShortcutConflict: state.pluginHasShortcutConflict(summary.filename),
-                            hasUpdate: state.catalogUpdate(for: summary) != nil
-                                || state.communityUpdate(for: summary) != nil
+                            hasUpdate: state.updatableFilenames.contains(summary.filename)
                         )
                     }
                     .listStyle(.sidebar)
