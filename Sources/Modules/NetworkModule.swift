@@ -125,9 +125,12 @@ public final class NetworkModule: NativeModule {
     private func poll() {
         // Sampling costs three networksetup runs; on main that is a stutter
         // every five seconds for a value that rarely changes.
-        DispatchQueue.global(qos: .utility).async {
+        // Weak on the outer closure, not the inner one. The sampling block
+        // holds the module for as long as three networksetup runs take, and
+        // an inner weak capture cannot undo an outer strong one.
+        DispatchQueue.global(qos: .utility).async { [weak self] in
             let key = NetworkModule.wifiKey()
-            Task { @MainActor [weak self] in self?.emit(key) }
+            Task { @MainActor in self?.emit(key) }
         }
     }
 
