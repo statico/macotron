@@ -81,9 +81,20 @@ public enum ShortcutConflicts {
     }
 
     public static func pluginHasConflict(_ filename: String, in claims: [Claim]) -> Bool {
-        Dictionary(grouping: claims, by: \.combo).values.contains { group in
-            group.count > 1 && group.contains { $0.pluginFile == filename }
+        conflictedPlugins(in: claims).contains(filename)
+    }
+
+    /// Every plugin that shares a combo with something else, in one pass. The
+    /// plugin list asks per row, and grouping every claim once per row is what
+    /// made the tab slow to draw.
+    public static func conflictedPlugins(in claims: [Claim]) -> Set<String> {
+        var out: Set<String> = []
+        for group in Dictionary(grouping: claims, by: \.combo).values where group.count > 1 {
+            for claim in group {
+                if let file = claim.pluginFile { out.insert(file) }
+            }
         }
+        return out
     }
 
     public static func hotkeyRows(from claims: [Claim]) -> [ShowHotkeysRow] {
@@ -119,7 +130,10 @@ extension SettingsState {
     }
 
     func pluginHasShortcutConflict(_ filename: String) -> Bool {
-        ShortcutConflicts.pluginHasConflict(filename, in: shortcutClaims)
+        if let conflictCache { return conflictCache.contains(filename) }
+        let conflicted = ShortcutConflicts.conflictedPlugins(in: shortcutClaims)
+        conflictCache = conflicted
+        return conflicted.contains(filename)
     }
 }
 
