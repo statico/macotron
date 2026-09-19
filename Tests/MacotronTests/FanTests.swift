@@ -50,7 +50,7 @@ struct FanTests {
         // drained -- which load()'s evaluate does on its way out.
         let result = PluginHarness.run(engine, "JSON.stringify(toasts)")
         // The toast has to name the speed it set; "On" told the user nothing.
-        #expect(result.contains("\"body\":\"minimum speed: 100%\""))
+        #expect(result.contains("\"body\":\"Minimum speed: 100%\""))
         #expect(result.contains("\"body\":\"Set to automatic speed\""))
     }
 }
