@@ -60,7 +60,7 @@ SPARKLE_FRAMEWORK = $(SPARKLE_DIR)/Sparkle.xcframework/macos-arm64_x86_64/Sparkl
 
 .DEFAULT_GOAL := help
 
-.PHONY: help version build run bundle check site clean cleanprefs release dmg publish scan trace
+.PHONY: help version build run run/hot-reload bundle check site clean cleanprefs release dmg publish scan trace
 
 ##@ General
 
@@ -160,6 +160,20 @@ run: bundle ## Bundle and launch (kills existing instance first)
 	@killall $(APP_NAME) 2>/dev/null || true
 	@sleep 0.3
 	open $(BUNDLE)
+
+# Debug only, and the app enforces that as well: the environment variable this
+# sets is read inside #if DEBUG, so a release binary has no code that can act on
+# it. Hot Reload runs whatever is on disk with no hash gate, so a way to turn it
+# on from outside the app must never exist in a shipped build.
+run/hot-reload: ## DEBUG ONLY. Bundle and launch with Hot Reload on
+ifneq ($(CONFIG),debug)
+	@echo "run/hot-reload is a development target. CONFIG=$(CONFIG) refused."
+	@exit 1
+endif
+	@$(MAKE) bundle
+	@killall $(APP_NAME) 2>/dev/null || true
+	@sleep 0.3
+	open --env MACOTRON_HOT_RELOAD=1 $(BUNDLE)
 
 check: bundle ## Typecheck load plugins (ARGS='plugins/foo.js' optional)
 	$(BUNDLE)/Contents/MacOS/$(APP_NAME) --check $(ARGS)

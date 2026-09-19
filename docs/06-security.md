@@ -61,6 +61,14 @@ to run. It is checked before the trust ledger and before hot reload, and it is
 cached on disk so an offline Mac still refuses. Delisting a repository stops
 discovery; only this list stops code that is already installed.
 
+`make run/hot-reload` starts the app with Hot Reload already on, through the
+`MACOTRON_HOT_RELOAD` variable. This is a development switch, and it exists
+only in a debug build: the app reads the variable inside `#if DEBUG`, and the
+Makefile target refuses any configuration other than `debug`. A released build
+holds no code that reads it, so no other program can start Macotron with the
+hash gate lifted. In a released build, Hot Reload comes only from the switch in
+Settings, which a person has to operate.
+
 With Hot Reload off, an on-disk rewrite keeps the running plugin and asks for Review & Reload. Cold start does not execute unapproved bytes. Turning Hot Reload on skips the scan and shows an orange menu-bar dot.
 
 ## Gitignore for App-Owned Docs

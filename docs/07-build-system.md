@@ -7,6 +7,13 @@ No Xcode GUI. Everything runs from the CLI.
 The targets, their dependencies, and the build settings are declared in
 `Package.swift`. `Makefile` drives everything on top of them.
 
+`make run` bundles the app and launches it. `make run/hot-reload` does the
+same and turns Hot Reload on, through the `MACOTRON_HOT_RELOAD` variable.
+
+`make run/hot-reload` is for development only. The target refuses to run when
+`CONFIG` is not `debug`, and the app reads the variable inside `#if DEBUG`, so
+a release binary contains no code that can act on it. See `docs/06-security.md`.
+
 ## Sparkle
 
 Self-updates use [Sparkle](https://sparkle-project.org), the one Swift
