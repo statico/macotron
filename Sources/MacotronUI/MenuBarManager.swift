@@ -650,7 +650,12 @@ public final class MenuBarManager: NSObject {
     /// against the macOS 26 SDK or newer. Our few icons carry meaning, so ask
     /// for them back one item at a time, which is what Apple tells us to do.
     private static func keepImageVisible(_ item: NSMenuItem) {
-        if #available(macOS 27, *) { item.preferredImageVisibility = .visible }
+        // Set by name, not by symbol. The property arrived in the macOS 27
+        // SDK, and the release runner still builds against an older one, where
+        // the symbol does not exist to compile against. responds(to:) makes
+        // this a no-op on macOS 26 and earlier. 1 is .visible.
+        guard item.responds(to: Selector(("setPreferredImageVisibility:"))) else { return }
+        item.setValue(1, forKey: "preferredImageVisibility")
     }
 
     private func addPluginUpdatesRowIfNeeded() {
