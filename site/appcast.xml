@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.7.0</title>
+            <sparkle:version>0.7.0</sparkle:version>
+            <sparkle:shortVersionString>0.7.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Sat, 19 Sep 2026 06:11:23 +0000</pubDate>
+            <description><![CDATA[<ul><li>Expose whether a window is minimized</li><li>Ship the SwiftPM resource bundles in the app bundle</li><li>Add window.flash to outline a window when the focus moves to it</li><li>Give every window a stable number beside its recycled id</li><li>Log the accessibility error behind a refused window move</li><li>Flash the window that has the focus, not a stale id</li><li>Stop a checkbox from saving every time a settings page appears</li><li>Add make run/hot-reload, for debug builds only</li><li>Log what a settings tab click actually costs</li><li>Claim the fan floor again when the helper connection drops</li><li>Stop the Plugins tab recomputing every answer once per row</li><li>Report a resize that did not land, and keep menu icons visible</li><li>Divide a toast title from its body, and give a wrapped one room</li><li>Expect the fan wording the plugin actually sends</li><li>Fix the tests that drifted away from the code they check</li><li>Set the new menu image property by name, so the runner can build it</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.7.0/Macotron-0.7.0.dmg" type="application/octet-stream" sparkle:edSignature="LuYRpAELC5rNxAraeddixkYfXrN2pWgHkQ60MvtoQrv7zm3mAXvalcL5VFMtUDt/t9rBHe893a0yeIbYpwfPCg==" length="10295987" />
+        </item>
+        <item>
             <title>0.6.1</title>
             <sparkle:version>0.6.1</sparkle:version>
             <sparkle:shortVersionString>0.6.1</sparkle:shortVersionString>
