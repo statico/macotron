@@ -320,7 +320,25 @@ public final class FanController: @unchecked Sendable {
             if helperConnection === connection {
                 helperConnection = nil
             }
+            let held = floor
             lock.unlock()
+            // The helper hands the fans back to macOS the moment its last
+            // client goes away, so a lost connection means the floor is
+            // already gone. Claim it again. If that fails, forget the floor,
+            // so the menu bar stops reporting a hold that does not exist --
+            // and so this does not try again on every later drop.
+            guard let held else { return }
+            DispatchQueue.global().async { [weak self] in
+                guard let self else { return }
+                if let error = call({ $0.setFanFloor(held, reply: $1) }) {
+                    logger.error("fan floor lost with the helper connection and not reclaimed: \(error, privacy: .public)")
+                    lock.lock()
+                    floor = nil
+                    lock.unlock()
+                } else {
+                    logger.info("fan floor \(held)% reclaimed after the helper connection dropped")
+                }
+            }
         }
         connection.resume()
         helperConnection = connection
