@@ -1731,6 +1731,10 @@ struct ModuleOptionRow: View {
         pendingSave?.cancel()
         pendingSave = nil
         if let text = value as? String, text == (option.currentValue as? String) ?? "" { return }
+        // A checkbox reads its value in onAppear, which counts as a change from
+        // the false it starts at. Showing the page saved every option that was
+        // already on, and each save reloads every plugin on the main thread.
+        if let flag = value as? Bool, flag == (option.currentValue as? Bool) ?? false { return }
         // Through JSON and JS a number arrives as Int, Double or NSNumber, and
         // a mismatch here would save on every appearance -- and every save
         // reloads, which brings the field straight back round.
@@ -1757,10 +1761,7 @@ struct ModuleOptionRow: View {
                 .toggleStyle(.checkbox)
                 .labelsHidden()
                 .onAppear { boolValue = (option.currentValue as? Bool) ?? false }
-                .onChange(of: boolValue) {
-                    state.saveModuleOption?(filename, option.key, boolValue)
-                    state.refreshModules()
-                }
+                .onChange(of: boolValue) { commit(boolValue) }
         case "number" where option.range != nil:
             let range = option.range ?? 0...1
             HStack(spacing: 8) {
