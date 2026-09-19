@@ -149,8 +149,8 @@ struct MenuPluginsTests {
             handler({ action: "remove", name: "Hub" });
             JSON.stringify({ toasts: toasts, says: says })
             """#)
-        #expect(result.contains("USB Attached"))
-        #expect(result.contains("USB Removed"))
+        #expect(result.contains("USB attached"))
+        #expect(result.contains("USB removed"))
         #expect(result.contains(#""Device","Hub","connected""#) || result.contains("Device"))
         #expect(!result.contains(#""remove""#))
     }

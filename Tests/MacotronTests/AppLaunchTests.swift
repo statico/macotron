@@ -51,7 +51,7 @@ struct AppLaunchTests {
 
     @Test(
         "the scan finds Simulator, which Xcode nests inside its own bundle",
-        .enabled(if: FileManager.default.fileExists(atPath: "/Applications/Xcode.app"))
+        .enabled(if: FileManager.default.fileExists(atPath: "/Applications/Xcode.app/Contents/Developer/Applications/Simulator.app"))
     )
     func scanFindsSimulator() {
         let nested = AppCatalog.nestedBundles(in: URL(fileURLWithPath: "/Applications/Xcode.app"))

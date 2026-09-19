@@ -93,7 +93,7 @@ public enum PluginCatalog {
         ai-chat appearance audio batch-rename battery brightness browser-picker calculator \
         calendar clipboard-history clipboard-image color-picker cpu-graph datetime devutils \
         disk-usage fan file-search focus-idle gestures heic-to-jpeg hid hyper icon-rainbow \
-        idle layouts lock-screen lorem meeting-overlay meetings notes now-playing ocr \
+        idle layouts lock-screen lorem meetings notes now-playing ocr \
         plain-paste pomodoro power present-mode qr record regex screen-ai-summary \
         screenshot-rename security-checklist share shortcuts snippets spaces system-metrics \
         system-settings usb weather wifi window-grid window-switcher windows

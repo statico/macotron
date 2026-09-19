@@ -743,15 +743,9 @@ enum PluginMenu {
     }
 
     private static func bind(_ entry: MenuBarEntry, to item: NSMenuItem, retaining boxes: inout [Action]) {
-        guard let onClick = entry.onClick else {
-            // No handler means the row is a label; a nil action lets
-            // autoenable grey it out instead of leaving a clickable no-op.
-            item.representedObject = nil
-            item.target = nil
-            item.action = nil
-            return
-        }
-        let box = Action(onClick)
+        // A label row keeps a no-op action so autoenable leaves it
+        // readable instead of greying out text the user is meant to read.
+        let box = Action(entry.onClick ?? {})
         boxes.append(box)
         item.representedObject = box
         item.target = box

@@ -227,7 +227,7 @@ struct PluginCatalogTests {
         #expect(plugins.allSatisfy { !$0.title.isEmpty && !$0.description.isEmpty })
         #expect(plugins.prefix(12).map(\.title) == [
             "Calculator", "Clipboard History", "File Search", "Lock Screen Command",
-            "Meetings Menu", "Mini Calendar", "Notes Search", "System Settings Search",
+            "Meetings", "Mini Calendar", "Notes Search", "System Settings Search",
             "Text Snippets", "Weather", "Window Controls", "Window Quick Grid",
         ])
     }
