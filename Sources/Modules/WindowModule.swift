@@ -86,7 +86,7 @@ private final class WindowSnapState: @unchecked Sendable {
 @MainActor
 public final class WindowModule: NativeModule {
     public let name = "window"
-    public let moduleVersion = 6
+    public let moduleVersion = 7
 
     private weak var engine: Engine?
     private var eventTap: CFMachPort?
@@ -175,6 +175,16 @@ public final class WindowModule: NativeModule {
             }
             let ok = WindowSnapState.shared.module?.previewFraction(ctx, argv![0]) ?? false
             return QJS_NewBool(ctx, ok ? 1 : 0)
+        }
+
+        JSBridge.fn(ctx, windowObj, "flash", 1) { ctx, _, argc, argv -> JSValue in
+            guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
+            if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
+            guard let win = WindowAX.resolve(id: JSBridge.toInt32(ctx, argv[0])) else { return QJS_NewBool(ctx, 0) }
+            let ax = WindowAX.frame(win)
+            guard ax.width > 0, ax.height > 0 else { return QJS_NewBool(ctx, 0) }
+            FocusFlash.shared.show(WindowModule.axRectToCocoa(ax))
+            return QJS_NewBool(ctx, 1)
         }
 
         JSBridge.fn(ctx, windowObj, "minimize", 2) { ctx, _, argc, argv in

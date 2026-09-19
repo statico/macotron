@@ -173,6 +173,8 @@ declare const macotron: {
         moveToFraction(id: number, frac: { x?: number; y?: number; w?: number; h?: number; display?: number; gap?: number }): boolean;
         /** Show or hide the snap destination overlay. Pass `null` to hide. */
         previewFraction(frac: { x?: number; y?: number; w?: number; h?: number; display?: number; gap?: number } | null): boolean;
+        /** Flash a brief outline around a window, to show where the focus went. */
+        flash(id: number): boolean;
         setSnapEnabled(enabled: boolean): boolean;
         isSnapEnabled(): boolean;
         /** Drag-to-edge tiling. Zones are fractions of the visible frame (same as moveToFraction). Omit a slot to disable it. `modifiers` swaps the map while those keys are held (`shift`, `cmd+shift`). */
