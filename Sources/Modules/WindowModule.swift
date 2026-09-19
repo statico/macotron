@@ -87,7 +87,7 @@ private final class WindowSnapState: @unchecked Sendable {
 @MainActor
 public final class WindowModule: NativeModule {
     public let name = "window"
-    public let moduleVersion = 8
+    public let moduleVersion = 9
 
     private weak var engine: Engine?
     private var eventTap: CFMachPort?
@@ -179,11 +179,30 @@ public final class WindowModule: NativeModule {
         }
 
         JSBridge.fn(ctx, windowObj, "flash", 1) { ctx, _, argc, argv -> JSValue in
-            guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
+            guard let ctx else { return QJS_NewBool(ctx!, 0) }
             if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
-            guard let win = WindowAX.resolve(id: JSBridge.toInt32(ctx, argv[0])) else { return QJS_NewBool(ctx, 0) }
+            // With no id, the window that holds the focus right now. An id is a
+            // pid and a position in that app's window list, and raising a window
+            // reorders that list, so an id read before a focus call points at
+            // another window of the same app by the time the flash runs. That is
+            // how a Finder window nobody focused got the outline.
+            let target: AXUIElement?
+            if let argv, argc >= 1 {
+                target = WindowAX.resolve(id: JSBridge.toInt32(ctx, argv[0]))
+            } else {
+                target = WindowModule.focusedAXWindow()
+            }
+            guard let win = target else {
+                logger.error("flash: no window to flash")
+                return QJS_NewBool(ctx, 0)
+            }
             let ax = WindowAX.frame(win)
-            guard ax.width > 0, ax.height > 0 else { return QJS_NewBool(ctx, 0) }
+            guard ax.width > 0, ax.height > 0 else {
+                logger.error("flash: the window has no size")
+                return QJS_NewBool(ctx, 0)
+            }
+            let app = NSRunningApplication(processIdentifier: WindowModule.pid(of: win))?.localizedName ?? "unknown"
+            logger.info("flash: \(app, privacy: .public) at \(Int(ax.origin.x)),\(Int(ax.origin.y)) size \(Int(ax.width))x\(Int(ax.height))")
             FocusFlash.shared.show(WindowModule.axRectToCocoa(ax))
             return QJS_NewBool(ctx, 1)
         }
