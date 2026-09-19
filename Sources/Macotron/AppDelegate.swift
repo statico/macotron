@@ -8,6 +8,9 @@ import MacotronUI
 import Modules
 import AI
 import os
+import OSLog
+
+private let logger = Logger(subsystem: "io.statico.macotron", category: "app")
 
 private let appLogger = Logger(subsystem: "io.statico.macotron", category: "app")
 
@@ -111,6 +114,17 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         if let root = PluginWorkspace.resolveFromDefaults() {
             bootstrap(workspaceRoot: root)
         }
+
+        #if DEBUG
+        // `make run/hot-reload`, for debugging a plugin without the approval
+        // step. Hot Reload runs the bytes on disk with no hash gate, so this
+        // must stay inside #if DEBUG: a release binary has no code that reads
+        // this variable, and nothing outside the app can turn the gate off.
+        if ProcessInfo.processInfo.environment["MACOTRON_HOT_RELOAD"] == "1" {
+            logger.warning("hot reload turned on by MACOTRON_HOT_RELOAD, debug build only")
+            setHotReload(true)
+        }
+        #endif
 
         refreshPermissions()
 
