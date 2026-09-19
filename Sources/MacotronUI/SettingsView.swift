@@ -5,6 +5,8 @@ import os
 import SwiftUI
 import UniformTypeIdentifiers
 
+private let logger = Logger(subsystem: "io.statico.macotron", category: "settings")
+
 private let settingsLogger = Logger(subsystem: "io.statico.macotron", category: "settings")
 
 /// What the plugin sidebar should have selected. Arrow keys, the highlight and
@@ -316,9 +318,13 @@ public final class SettingsState: ObservableObject {
         // The app bundle can be replaced under a running app, and a catalog
         // read once at launch then hands "Update" the copy that shipped with
         // the old bundle.
+        let timer = StepTimer("refreshModules", category: "settings")
         catalogPlugins = PluginCatalog.load()
+        timer.step("catalog")
         moduleSummaries = loadModuleSummaries?() ?? []
+        timer.step("summaries")
         onUpdateCountChange?(updateCount)
+        timer.total()
     }
 
     public func refreshAppShortcuts() {
@@ -689,6 +695,9 @@ public struct SettingsView: View {
             state.load()
             applySettingsRequest()
         }
+        .onChange(of: selectedPlugin) {
+            logger.info("plugin selected: \(String(describing: selectedPlugin), privacy: .public)")
+        }
         .onChange(of: state.requestedTab) { applySettingsRequest() }
         .onChange(of: state.requestedPlugin) { applySettingsRequest() }
         .sheet(isPresented: $showCatalog) { catalogSheet }
@@ -794,6 +803,7 @@ public struct SettingsView: View {
     private func tabButton(icon: String, label: String, tab: SettingsTab, warn: Bool = false) -> some View {
         let isSelected = selectedTab == tab
         return Button {
+            logger.info("tab clicked: \(label, privacy: .public)")
             selectedTab = tab
         } label: {
             VStack(spacing: 2) {
@@ -1741,6 +1751,16 @@ struct ModuleOptionRow: View {
         if let number = value as? Double,
            let current = option.currentValue as? NSNumber,
            current.doubleValue == number { return }
+        // An option with no saved value and no default arrives as an empty
+        // string, so the NSNumber test above does not see it.
+        if let number = value as? Double,
+           let text = option.currentValue as? String,
+           Double(text) == number { return }
+        // Every save reloads every plugin, so a save nobody asked for is the
+        // first thing to look for when a settings page is slow.
+        logger.info(
+            "save \(filename, privacy: .public)/\(option.key, privacy: .public) type \(option.type, privacy: .public)"
+        )
         let work = DispatchWorkItem {
             state.saveModuleOption?(filename, option.key, value)
             state.refreshModules()

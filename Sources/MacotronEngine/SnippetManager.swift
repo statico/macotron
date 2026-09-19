@@ -371,6 +371,12 @@ public final class ModuleManager {
             $0.hasSuffix(".js") && $0.contains("/plugins/")
         }
         let settingsChanged = paths.contains { $0.hasSuffix("settings.json") }
+        // Counts only. The paths carry the names of what the user keeps here.
+        // A write to settings.json lands here 0.8s after the save that made
+        // it, so a reload that looks spontaneous usually started as a save.
+        logger.info(
+            "disk change: \(paths.count) paths, \(pluginChanges.count) plugins, settings \(settingsChanged), hot reload \(self.hotReload)"
+        )
         // Hot reload means "run what is on disk", not "reload on any write in
         // the workspace": only a plugin or the settings are worth a reload.
         if hotReload {
