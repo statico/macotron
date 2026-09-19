@@ -785,7 +785,22 @@ public final class WindowModule: NativeModule {
         let firstSize = setWindowSize(win, size: size)
         let position = setWindowPosition(win, point: origin)
         let finalSize = setWindowSize(win, size: size)
-        return firstSize || position || finalSize
+        guard firstSize || position || finalSize else { return false }
+        // Accessibility reports success for a size the window never took. An
+        // app with a minimum size larger than the tile keeps its own size and
+        // covers its neighbour, which reads as "tiling forgot this window".
+        // Read the frame back and say what really happened.
+        let landed = WindowAX.frame(win)
+        let slack: CGFloat = 8
+        if abs(landed.width - size.width) > slack || abs(landed.height - size.height) > slack {
+            let app = NSRunningApplication(processIdentifier: WindowModule.pid(of: win))?.localizedName ?? "unknown"
+            logger.error("""
+                move: \(app, privacy: .public) kept \(Int(landed.width))x\(Int(landed.height)) \
+                instead of \(Int(size.width))x\(Int(size.height))
+                """)
+            return false
+        }
+        return true
     }
 
     /// Screen whose Cocoa origin is (0,0) — AX/Quartz y is measured down from this screen's top.
