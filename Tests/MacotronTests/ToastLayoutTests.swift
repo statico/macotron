@@ -5,6 +5,7 @@ import Testing
 
 @Suite("Toast")
 struct ToastLayoutTests {
+
     @Test("bottom toast is centered and inset from the anchor")
     func bottomCenters() {
         let anchor = NSRect(x: 100, y: 200, width: 800, height: 600)
@@ -39,11 +40,13 @@ struct ToastLayoutTests {
         #expect(frame.height == 72)
     }
 
-    @Test("title and body join on one line")
+    @Test("a colon divides the title from the body")
     func oneLine() {
         #expect(ToastLayout.line("Copied", nil) == "Copied")
-        #expect(ToastLayout.line("Copied", "UUID") == "Copied UUID")
+        #expect(ToastLayout.line("Copied", "UUID") == "Copied: UUID")
         #expect(ToastLayout.line("Copied", "  ") == "Copied")
+        // A title that brings its own colon must not end up with two.
+        #expect(ToastLayout.line("Tiles:", "moved") == "Tiles: moved")
     }
 
     @Test("success is green")

@@ -12,9 +12,9 @@ enum ToastPosition: Equatable {
 }
 
 enum ToastLayout {
-    static let maxWidth: CGFloat = 420
+    static let maxWidth: CGFloat = 520
     static let minWidth: CGFloat = 120
-    static let minHeight: CGFloat = 40
+    static let minHeight: CGFloat = 44
     static let margin: CGFloat = 48
 
     enum Kind: Equatable {
@@ -55,7 +55,12 @@ enum ToastLayout {
 
     static func line(_ title: String, _ body: String?) -> String {
         let extra = body?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return extra.isEmpty ? title : "\(title) \(extra)"
+        if extra.isEmpty { return title }
+        // A toast is one line, so the title needs a separator to read as a
+        // label. Plugins pass a name as the title, such as "Tiles", and a
+        // sentence as the body.
+        let name = title.hasSuffix(":") ? String(title.dropLast()) : title
+        return "\(name): \(extra)"
     }
 
     static func kind(_ raw: String?) -> Kind {
@@ -189,7 +194,9 @@ public final class ToastHost {
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 8
-        row.edgeInsets = NSEdgeInsets(top: 8, left: 14, bottom: 8, right: 14)
+        // A wrapped message needs room above and below, or the two lines sit
+        // against the edge of the panel.
+        row.edgeInsets = NSEdgeInsets(top: 12, left: 18, bottom: 12, right: 18)
         row.translatesAutoresizingMaskIntoConstraints = false
         self.row = row
 
@@ -261,9 +268,12 @@ public final class ToastHost {
 
     private func layoutAndPlace(_ panel: NSPanel, position: ToastPosition) {
         let anchor = ToastAnchor.rect()
+        // The text may use the panel width less the insets, the icon, and the
+        // gap beside it. Keep this in step with makePanel.
+        let chrome: CGFloat = 18 * 2 + 18 + 8
         titleField?.preferredMaxLayoutWidth = min(
-            ToastLayout.maxWidth - 48,
-            max(80, anchor.width - ToastLayout.margin * 2 - 48)
+            ToastLayout.maxWidth - chrome,
+            max(80, anchor.width - ToastLayout.margin * 2 - chrome)
         )
         row?.layoutSubtreeIfNeeded()
         var size = row?.fittingSize ?? NSSize(width: 120, height: 40)
