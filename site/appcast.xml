@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.7.1</title>
+            <sparkle:version>0.7.1</sparkle:version>
+            <sparkle:shortVersionString>0.7.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Sun, 20 Sep 2026 17:02:28 +0000</pubDate>
+            <description><![CDATA[<ul><li>Say where the timer runs, and drop an opt-out that says nothing</li><li>Hold the network module weakly while it samples</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.7.1/Macotron-0.7.1.dmg" type="application/octet-stream" sparkle:edSignature="Qg+o2LVp+XWvuuNye8yQpMHfrwCDlFB6HeIDA1ibkCOZeUGm1Jm/Bq4Q8c7pjoXCV08QpphpX6/MdmTalHqdDg==" length="10293792" />
+        </item>
+        <item>
             <title>0.7.0</title>
             <sparkle:version>0.7.0</sparkle:version>
             <sparkle:shortVersionString>0.7.0</sparkle:shortVersionString>
