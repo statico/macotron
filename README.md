@@ -72,8 +72,8 @@ Everything hangs off a `macotron` global. Plugins are plain JavaScript on QuickJ
 
 | Namespace | What it covers |
 |---|---|
-| `window` | List, focus, move, tile, fullscreen, drag-to-edge snap, restore layouts |
-| `display` | Frames and scale, brightness, XDR, gamma LUT, Night Shift, True Tone, grayscale |
+| `window` | List, focus, move, tile, fullscreen, drag-to-edge snap, `flash()`, restore layouts |
+| `display` | Frames and scale, brightness, XDR, gamma LUT, CRT overlay, Night Shift, True Tone, grayscale |
 | `spaces` | Mission Control desktops; move a window when SIP allows |
 | `keyboard` | Global hotkeys overridable in Settings, modifier flags, hyper key |
 | `event` / `mouse` | Post clicks, keys, unicode, scroll; tap HID and swallow events; cursor warp |
@@ -82,33 +82,33 @@ Everything hangs off a `macotron` global. Plugins are plain JavaScript on QuickJ
 | `menubar` | Menu rows and status items: SF Symbols, images, two-line text, sparklines, SVG |
 | `notify` | System banners and HUD toasts |
 | `panel` | WKWebView windows for custom UI; Liquid Glass, frameless, `postMessage` |
-| `dialog` | `alert`, `confirm`, `prompt` — blocking sheets, also available as globals |
-| `system` | CPU, GPU, memory, processes, battery, fans, locale, dark mode, Focus |
+| `alert` / `confirm` / `prompt` | Blocking sheets, on `macotron` and as bare globals |
+| `system` | CPU, GPU, memory pressure, processes, battery, fans, Low Power Mode, `timeIn()` for any zone (there is no `Intl`), dark mode, Focus |
 | `power` | Prevent sleep, lock, sleep, screensaver, log out, restart, shut down |
 | `idle` | Seconds idle, thresholds, `system:idle` / `system:active` |
 | `network` | Wi-Fi, Bluetooth and device batteries, AirDrop, interfaces, counters, ping |
 | `http` | `get`, `post`, `put`, `delete` |
 | `bonjour` / `udp` | Browse mDNS services; send and listen on IPv4 |
-| `appletv` | Discover Apple TVs on the LAN |
+| `appletv` | Discover Apple TVs; `send()` awaits Companion pairing, so keys report "not paired" |
 | `usb` / `hid` | Enumerate devices; open a HID device, read and write reports |
 | `fs` | `read`, `readBytes`, `write`, `exists`, `list`, `watch`, `rename` |
 | `files` | Millisecond name search over an in-memory file index you point at folders |
-| `spotlight` | Metadata search by query, folder, and kind |
+| `spotlight` | Filename search via `mdfind`, filtered by folder and kind |
 | `shell` | Run a command through `/bin/zsh` |
 | `clipboard` | Text, images, UTIs, history, plain paste |
 | `snippets` | Abbreviations and as-you-type expansion |
-| `screen` / `ocr` / `qr` | Capture or pick a region, recognize text, scan and generate QR codes |
+| `screen` / `ocr` / `qr` | Capture a region, `pickColor()` eyedropper, recognize text, scan and generate QR codes |
 | `camera` / `share` | List cameras, preview, snapshot; share sheet and AirDrop |
 | `audio` / `media` | Devices, volume, mute, record; Now Playing and transport controls |
 | `calendar` / `reminders` | Upcoming events; list, add, and complete reminders |
 | `notes` / `contacts` | List and open Apple Notes; search contacts |
-| `homekit` / `dock` | Accessories and values; Dock tile badges |
-| `shortcuts` / `url` | Run Shortcuts.app; route URL schemes and hosts |
+| `homekit` / `dock` | HomeKit is a stub on native macOS (no public framework); Dock tile badges |
+| `shortcuts` / `url` | Run Shortcuts.app; route schemes and hosts, `setDefaultHandler`, `onFallback` |
 | `ax` | Focused element, selected text, tree walk, press, `setValue` |
 | `ai` | Apple Intelligence on-device, Claude, Gemini, OpenAI; chat and streaming |
 | `keychain` | `get`, `set`, `delete`, `has` for secrets that never touch `settings.json` |
 
-Plus, directly on `macotron`: `plugin()` for metadata, permissions, and typed Settings options; `command()` for launcher commands with text, number, and dropdown arguments; `on()` / `off()` for host events; `every()` and `at()` for interval and wall-clock jobs; `checks()` for status rows in Settings; `settings.open()`; and `log()`, `sleep()`, `flash()`. `localStorage` and `console` are globals.
+Plus, directly on `macotron`: `plugin()` for metadata, permissions, and typed Settings options; `command()` for launcher commands with text, number, and dropdown arguments; `on()` / `off()` for host events; `every()` and `at()` for interval and wall-clock jobs; `checks()` for status rows in Settings; `settings.open()`; `config()` for stored options; and `log()` and `sleep()`. `localStorage` and `console` are globals.
 
 Read [the full API reference](https://github.com/statico/macotron/blob/main/Sources/Macotron/Resources/macotron.d.ts) for exact signatures, or [browse the built-in plugins](https://github.com/statico/macotron/blob/main/Examples/plugins/README.md). Or just, y'know, let your agent do that for you or whatever.
 
@@ -183,7 +183,7 @@ make bundle   # build, then assemble ~/Applications/Macotron.app
 make run      # bundle and launch (kills the running instance first)
 make check    # typecheck-load plugins (ARGS='plugins/foo.js' optional)
 make trace    # stream the app log to the terminal and tmp/log
-make scan     # sweep the built-in plugins with the on-device scanner
+make scan     # sweep the built-in plugins, and a malware corpus, with the scanner
 make clean    # remove build artifacts *and* ~/Applications/Macotron.app
 ```
 
