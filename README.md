@@ -83,7 +83,7 @@ Everything hangs off a `macotron` global. Plugins are plain JavaScript on QuickJ
 | `notify` | System banners and HUD toasts |
 | `panel` | WKWebView windows for custom UI; Liquid Glass, frameless, `postMessage` |
 | `alert` / `confirm` / `prompt` | Blocking sheets, on `macotron` and as bare globals |
-| `system` | CPU, GPU, memory pressure, processes, battery, fans, Low Power Mode, `timeIn()` for any zone (there is no `Intl`), dark mode, Focus |
+| `system` | CPU, GPU, memory pressure, processes, battery, fans, Low Power Mode, `timeIn()` for any IANA zone (there is no `Intl`), dark mode, Focus |
 | `power` | Prevent sleep, lock, sleep, screensaver, log out, restart, shut down |
 | `idle` | Seconds idle, thresholds, `system:idle` / `system:active` |
 | `network` | Wi-Fi, Bluetooth and device batteries, AirDrop, interfaces, counters, ping |
@@ -97,7 +97,7 @@ Everything hangs off a `macotron` global. Plugins are plain JavaScript on QuickJ
 | `shell` | Run a command through `/bin/zsh` |
 | `clipboard` | Text, images, UTIs, history, plain paste |
 | `snippets` | Abbreviations and as-you-type expansion |
-| `screen` / `ocr` / `qr` | Capture a region, `pickColor()` eyedropper, recognize text, scan and generate QR codes |
+| `screen` / `ocr` / `qr` | Capture a display or region, `pickColor()` eyedropper, recognize text, scan and generate QR codes |
 | `camera` / `share` | List cameras, preview, snapshot; share sheet and AirDrop |
 | `audio` / `media` | Devices, volume, mute, record; Now Playing and transport controls |
 | `calendar` / `reminders` | Upcoming events; list, add, and complete reminders |
@@ -108,7 +108,7 @@ Everything hangs off a `macotron` global. Plugins are plain JavaScript on QuickJ
 | `ai` | Apple Intelligence on-device, Claude, Gemini, OpenAI; chat and streaming |
 | `keychain` | `get`, `set`, `delete`, `has` for secrets that never touch `settings.json` |
 
-Plus, directly on `macotron`: `plugin()` for metadata, permissions, and typed Settings options; `command()` for launcher commands with text, number, and dropdown arguments; `on()` / `off()` for host events; `every()` and `at()` for interval and wall-clock jobs; `checks()` for status rows in Settings; `settings.open()`; `config()` for stored options; and `log()` and `sleep()`. `localStorage` and `console` are globals.
+Plus, directly on `macotron`: `plugin()` for metadata, permissions, and typed Settings options; `command()` for launcher commands with text, number, and dropdown arguments; `on()` / `off()` for host events; `every()` and `at()` for interval and wall-clock jobs; `checks()` for status rows in Settings; `settings.open()`; `config()` for the host module config; and `log()` and `sleep()`. `localStorage` and `console` are globals.
 
 Read [the full API reference](https://github.com/statico/macotron/blob/main/Sources/Macotron/Resources/macotron.d.ts) for exact signatures, or [browse the built-in plugins](https://github.com/statico/macotron/blob/main/Examples/plugins/README.md). Or just, y'know, let your agent do that for you or whatever.
 

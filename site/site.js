@@ -158,7 +158,7 @@ const CARDS = [
   ["Devices", [
     ["Camera list", "Built-in and USB cameras."],
     ["Camera preview", "Live panel, then a JPEG snapshot."],
-    ["Apple TV", "Browse the LAN and send remote keys."],
+    ["Apple TV", "Browse the LAN; keys need Companion pairing."],
     ["Share sheet", "Text, files, or a URL."],
     ["AirDrop", "Push paths through sharingd."],
   ]],
@@ -167,7 +167,7 @@ const CARDS = [
     ["Write files", "Overwrite a path from a plugin."],
     ["Rename", "Atomic rename; fails if the dest exists."],
     ["Watch files", "FSEvents callback on change."],
-    ["Spotlight kind", "folder and kind on mdfind-style search."],
+    ["Spotlight kind", "folder and extension on mdfind search."],
     ["Shell", "Runs through /bin/zsh. Enabling the plugin is the gate."],
     ["Keychain", "Secrets that never hit settings.json."],
   ]],
@@ -217,7 +217,7 @@ const CARDS = [
     ["Windows", "Tile with the keyboard or snap by dragging."],
   ]],
   ["Built-in plugins", [
-    ["Apple TV", "Remote for Apple TVs on the LAN."],
+    ["Apple TV", "Finds Apple TVs; keys need Companion pairing."],
     ["Bluetooth", "Paired device batteries in the menu bar."],
     ["Contacts", "Search contacts from the launcher."],
     ["HomeKit", "Menu bar shell; macOS exposes no accessories."],
@@ -340,7 +340,7 @@ const APIS = [
   ]],
   ["macotron.bonjour", ["Browse mDNS; timeout in seconds"]],
   ["macotron.udp", ["send, listen, unlisten; udp:message"]],
-  ["macotron.appletv", ["list on the LAN; send remote keys"]],
+  ["macotron.appletv", ["list on the LAN; send() awaits pairing"]],
   ["macotron.app", [
     "List, launch, switch, hide, quit",
     "Choose an AX menu path",
@@ -367,7 +367,7 @@ const APIS = [
     "setPastePlain for Command-V",
   ]],
   ["macotron.snippets", ["List, set, insert, expansion on/off"]],
-  ["macotron.fs", ["read, readBytes, write, exists, rename, watch"]],
+  ["macotron.fs", ["read, readBytes, write, list, exists, rename, watch"]],
   ["macotron.files", [
     "Name search over an in-memory index",
     "Answers in ms where spotlight takes ~1s",
@@ -420,7 +420,7 @@ const APIS = [
   ["alert / confirm / prompt", ["Blocking NSAlert sheets"]],
   ["macotron.settings / checks", ["Open the plugin page; status rows"]],
   ["macotron.version", ["app, api, and per-namespace versions"]],
-  ["macotron.config / log / sleep", ["Store options, log, await a delay"]],
+  ["macotron.config / log / sleep", ["Set module config, log, await a delay"]],
   ["localStorage / console", ["Web globals, plus setTimeout and friends"]],
 ];
 
