@@ -9,6 +9,7 @@
   <a href="#install">Install</a> ·
   <a href="#quickstart">Quickstart</a> ·
   <a href="#what-it-does">What it Does</a> ·
+  <a href="#the-api">API</a> ·
   <a href="#plugins">Plugins</a> ·
   <a href="#security">Security</a> ·
   <a href="https://macotron.statico.io">Home Page</a>
@@ -28,6 +29,8 @@ Pick one:
 
 Either way, Macotron updates itself after that. It checks daily and asks before installing anything; **Check for Updates...** in the menu checks right now, and Settings > General turns the automatic check off.
 
+Macotron runs on macOS 15 Sequoia and later. A few things need macOS 26 Tahoe: the Apple Intelligence chat and plugin scanner (Foundation Models), and the Liquid Glass chrome.
+
 ## Quickstart
 
 1. Download, install, and open Macotron
@@ -41,29 +44,77 @@ Either way, Macotron updates itself after that. It checks daily and asks before 
 
 ## What it Does
 
-The default plugins do things like:
+The 74 built-in plugins do things like:
 
 - Extend quick search with files, contacts, or Apple Notes
 - Toggle extra-dark or red night vision mode
-- Control your Apple TV
 - Put CPU, GPU, and memory meters in the menu bar
 - Show upcoming meetings and alert you when they start
 - Organize windows by halves, thirds, or by snapping edges & corners
-- Clipboard history, text snippets, text replacement
+- Hold Option and press Tab to flip through windows
+- Clipboard history, text snippets, and text replacement
 - Open certain URLs in certain browsers
 - Control your fan speed
 - Convert HEIC images to JPEGs in `~/Downloads`
 - Toggle mic mute or cycle through audio output devices
 - Show the now-playing music information with album art
-- Start a chat window with Apple Intelligence
+- Start a chat window with Apple Intelligence, Claude, or Gemini
 - Select a region on the screen and OCR it
-- Show Time Machine backup time remaining
+- Scan a QR code off the screen, or show one
+- Show Time Machine backup progress
+- Browse Apple TVs on your network
 
 ...but that's not all. Check [the home page](https://macotron.statico.io) for a longer list of examples.
 
+## The API
+
+Everything hangs off a `macotron` global. Plugins are plain JavaScript on QuickJS, so there is no `npm`, no bundler, and no build step. The plugin-facing API is versioned: `macotron.version` is `{ app, api, modules }`, and `api` is currently `1.5.0`.
+
+| Namespace | What it covers |
+|---|---|
+| `window` | List, focus, move, tile, fullscreen, drag-to-edge snap, restore layouts |
+| `display` | Frames and scale, brightness, XDR, gamma LUT, Night Shift, True Tone, grayscale |
+| `spaces` | Mission Control desktops; move a window when SIP allows |
+| `keyboard` | Global hotkeys overridable in Settings, modifier flags, hyper key |
+| `event` / `mouse` | Post clicks, keys, unicode, scroll; tap HID and swallow events; cursor warp |
+| `app` | Launch, switch, hide, quit, drive menus; activated/launched/terminated events |
+| `launcher` | Inject rows into the quick launcher, or answer the typed query |
+| `menubar` | Menu rows and status items: SF Symbols, images, two-line text, sparklines, SVG |
+| `notify` | System banners and HUD toasts |
+| `panel` | WKWebView windows for custom UI; Liquid Glass, frameless, `postMessage` |
+| `dialog` | `alert`, `confirm`, `prompt` — blocking sheets, also available as globals |
+| `system` | CPU, GPU, memory, processes, battery, fans, locale, dark mode, Focus |
+| `power` | Prevent sleep, lock, sleep, screensaver, log out, restart, shut down |
+| `idle` | Seconds idle, thresholds, `system:idle` / `system:active` |
+| `network` | Wi-Fi, Bluetooth and device batteries, AirDrop, interfaces, counters, ping |
+| `http` | `get`, `post`, `put`, `delete` |
+| `bonjour` / `udp` | Browse mDNS services; send and listen on IPv4 |
+| `appletv` | Discover Apple TVs on the LAN |
+| `usb` / `hid` | Enumerate devices; open a HID device, read and write reports |
+| `fs` | `read`, `readBytes`, `write`, `exists`, `list`, `watch`, `rename` |
+| `files` | Millisecond name search over an in-memory file index you point at folders |
+| `spotlight` | Metadata search by query, folder, and kind |
+| `shell` | Run a command through `/bin/zsh` |
+| `clipboard` | Text, images, UTIs, history, plain paste |
+| `snippets` | Abbreviations and as-you-type expansion |
+| `screen` / `ocr` / `qr` | Capture or pick a region, recognize text, scan and generate QR codes |
+| `camera` / `share` | List cameras, preview, snapshot; share sheet and AirDrop |
+| `audio` / `media` | Devices, volume, mute, record; Now Playing and transport controls |
+| `calendar` / `reminders` | Upcoming events; list, add, and complete reminders |
+| `notes` / `contacts` | List and open Apple Notes; search contacts |
+| `homekit` / `dock` | Accessories and values; Dock tile badges |
+| `shortcuts` / `url` | Run Shortcuts.app; route URL schemes and hosts |
+| `ax` | Focused element, selected text, tree walk, press, `setValue` |
+| `ai` | Apple Intelligence on-device, Claude, Gemini, OpenAI; chat and streaming |
+| `keychain` | `get`, `set`, `delete`, `has` for secrets that never touch `settings.json` |
+
+Plus, directly on `macotron`: `plugin()` for metadata, permissions, and typed Settings options; `command()` for launcher commands with text, number, and dropdown arguments; `on()` / `off()` for host events; `every()` and `at()` for interval and wall-clock jobs; `checks()` for status rows in Settings; `settings.open()`; and `log()`, `sleep()`, `flash()`. `localStorage` and `console` are globals.
+
+Read [the full API reference](https://github.com/statico/macotron/blob/main/Sources/Macotron/Resources/macotron.d.ts) for exact signatures, or [browse the built-in plugins](https://github.com/statico/macotron/blob/main/Examples/plugins/README.md). Or just, y'know, let your agent do that for you or whatever.
+
 ## Plugins
 
-Each bit of Macotron functionality is contained in a **plugin**. A plugin is a single JavaScript file that defines metadata, permissions required, settings that the user can override, and all of the hooks and logic needed for it to run.
+Each bit of Macotron functionality is contained in a **plugin**: a JavaScript file that defines metadata, permissions required, settings that the user can override, and all of the hooks and logic needed for it to run. One file is the usual shape, but a plugin can `import` sibling files as ES modules, and those imports are hash-approved too.
 
 **The intention is to let AI coding agents make plugins for you.** The plugins directory will contain an `AGENTS.md` with all of the information your agent needs.
 
@@ -75,6 +126,7 @@ Each bit of Macotron functionality is contained in a **plugin**. A plugin is a s
 macotron.plugin({
   title: "Move Windows",
   description: "Tile windows using hotkeys",
+  permissions: ["accessibility"],
 });
 
 macotron.keyboard.on("Tile Left", "ctrl+opt+left", () => {
@@ -89,13 +141,11 @@ macotron.keyboard.on("Tile Left", "ctrl+opt+left", () => {
 
 If you have Hot Reloading turned on, changing the plugin source will take effect instantly.
 
-You can read [a concise description of the API](https://macotron.statico.io/#api), the [full API reference](https://github.com/statico/macotron/blob/main/Sources/Macotron/Resources/macotron.d.ts), or [browse the default plugins](https://github.com/statico/macotron/blob/main/Examples/plugins/README.md). Or just, y'know, let your agent do that for you or whatever.
-
 ### Sharing Plugins
 
 **Settings → Plugins → Catalog → Community** lists every GitHub repo tagged [`macotron-plugin`](https://github.com/topics/macotron-plugin). To get yours in there:
 
-1. Name the repo `macotron-plugin-<name>`. One plugin per repo, one `.js` file in the root, called `<name>.js`.
+1. Name the repo `macotron-plugin-<name>`. One plugin per repo, with the script in the root — `<name>.js` is the tidiest choice, and `plugin.js` or `index.js` also work.
 2. Add the `macotron-plugin` topic.
 
 That's the whole process. There's no index to update, no PR to file, and no review queue to wait on. [macotron-plugin-cleanshot](https://github.com/statico/macotron-plugin-cleanshot) is a working example.
@@ -106,9 +156,11 @@ Nothing installs or updates itself. Macotron downloads the source, scans it, sho
 
 Hotkeys and window control need Accessibility and Input Monitoring. Screen capture needs Screen Recording. Fan control needs a system helper app installed. It's a little scary, but Macotron tries to only ask for additional permissions when an enabled plugin needs them.
 
-By default, plugins are not reloaded if the source changes. This is to prevent a malicious app from running arbitrary code. You'll need to approve all plugin changes, or you can turn on Hot Reloading in the menu bar to automatically reload plugins when developing them.
+By default, plugins are not reloaded if the source changes. Every plugin file is tracked in a hash ledger, and a file whose bytes changed has to be approved again before it runs. That is what stops another program from quietly editing a plugin to run its own code. You can turn on Hot Reloading in the menu bar to skip that while developing.
 
-Shell commands require approval the first time they're run.
+Plugin source that came from outside the signed app bundle gets scanned before you approve it. On macOS 26 the scan makes three on-device Apple Intelligence passes, and static checks flag `eval()`, keychain-plus-HTTP, `curl`/`wget` shells, and prompt-injection comments either way. `make scan` sweeps the built-in plugins. A published blocklist of SHA-256 hashes is checked before the ledger and cached on disk, so an offline Mac still refuses known-bad code.
+
+**`macotron.shell.run` is not gated.** It runs what it is given through `/bin/zsh`, with no allowlist and no per-command prompt. The decision to enable a plugin *is* the decision to let it run shell commands — treat it as equivalent to running them yourself. See [docs/06-security.md](docs/06-security.md).
 
 Plugins can define secrets that are stored in the Keychain instead of on disk.
 
@@ -118,17 +170,24 @@ Updates are signed. Macotron only installs one that verifies against the key ins
 
 Due to the hopelessness of reviewing code contributions in the AI era, pull requests have been disabled. Instead, file an issue to report a bug or request a feature.
 
-The intent behind default plugins isn't to offer every plugin imaginable, but rather a set just big enough to show off Macotron's capabilities and provide great default behavior.
+The intent behind built-in plugins isn't to offer every plugin imaginable, but rather a set just big enough to show off Macotron's capabilities and provide great default behavior.
 
 ### Building
 
-If you do want to build Macotron locally, you'll need macOS 15 Sequoia and Swift 6.2 or later. No Xcode GUI is required.
+You'll need macOS 15 Sequoia or later, Swift 6.0 or later, and a Rust toolchain — the file indexer is a small Rust binary that ships inside the app bundle. No Xcode GUI is required.
 
 ```bash
-make build    # compile, app lands in ~/Applications/Macotron.app
-make run      # compile, bundle, launch
-make clean    # build artifacts
+make          # list every target
+make build    # compile the Rust indexer and the Swift binaries
+make bundle   # build, then assemble ~/Applications/Macotron.app
+make run      # bundle and launch (kills the running instance first)
+make check    # typecheck-load plugins (ARGS='plugins/foo.js' optional)
+make trace    # stream the app log to the terminal and tmp/log
+make scan     # sweep the built-in plugins with the on-device scanner
+make clean    # remove build artifacts *and* ~/Applications/Macotron.app
 ```
+
+`make build` alone does not produce an app — `make bundle` is what creates, signs, and populates the bundle. Note that `make clean` deletes your installed copy along with the build directory.
 
 For more information, refer to the plans and documentation in `docs/`.
 
@@ -142,10 +201,11 @@ Macotron is MIT licensed. See [LICENSE](LICENSE).
 |---|---|---|
 | [QuickJS-ng](https://github.com/quickjs-ng/quickjs), the JavaScript engine | `Vendor/quickjs-ng/` | MIT |
 | [Sparkle](https://sparkle-project.org), the self-update framework | Swift package, embedded in the app bundle | MIT |
+| The file indexer's Rust crates | `Indexer/Cargo.toml` | MIT / Apache-2.0 |
 
 QuickJS-ng is the only vendored dependency. It ships here as an amalgamated `quickjs-amalgam.c` plus headers, with the upstream copyright notices intact in the source: Fabrice Bellard, Charlie Gordon, Ben Noordhuis, Saúl Ibarra Corretgé, and Marcin Kolny. The vendored version is whatever `QJS_VERSION_*` in `Vendor/quickjs-ng/include/quickjs.h` says. `quickjs-swift-helpers.c` is Macotron's own shim, not upstream code.
 
-Everything else is first-party Swift or an Apple-shipped framework. Sparkle is the only Swift package dependency. No npm, no Homebrew.
+Sparkle is the only Swift package dependency. The `macotron-index` binary is built from `Indexer/` and pulls a handful of crates from crates.io (`serde`, `serde_json`, `ignore`, `notify`, `libc`, `memchr`, `unicode-normalization`). Everything else is first-party Swift or an Apple-shipped framework. Nothing at runtime needs Homebrew or npm: plugins use `macotron.*` and Apple-shipped tools only.
 
 ### AI Disclaimer
 
