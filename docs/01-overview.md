@@ -68,7 +68,7 @@ https://github.com/topics/macotron-plugin
 
 | Layer | Technology |
 |---|---|
-| Language | Swift 6.2 (strict concurrency, `defaultIsolation: MainActor`) |
+| Language | Swift 6.0 language mode (strict concurrency, explicit `@MainActor`) |
 | UI | SwiftUI + NSPanel |
 | JS Runtime | QuickJS via [quickjs-ng](https://github.com/quickjs-ng/quickjs) (embedded C library, ~400KB) |
 | Package Manager | Swift Package Manager |
