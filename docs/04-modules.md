@@ -102,7 +102,7 @@ Host CSS defines system colors as variables: `--macotron-accent`, `--macotron-ac
 
 **Display modes:** `display.nightShift`, `trueTone`, and `grayscale` plus the matching `set*` calls.
 
-**URL routing:** `url.on("https", "example.com", callback)` matches the host and its subdomains. Pass a `RegExp` to match hosts by pattern. `url.onFallback` handles misses.
+**URL routing:** `url.on("https", "example.com", callback)` matches the host and its subdomains. Pass a `RegExp` to match hosts by pattern. `url.onFallback` handles misses; anything still unhandled goes to the next system handler for that scheme.
 
 **AX:** `ax.focused`, `selectedText` (a promise — reading it can poll a Chromium tree for up to 300ms), `children`, `parent`, `press`, `setValue`, `find`.
 

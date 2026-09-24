@@ -136,8 +136,10 @@ provenance is `sourceBundle` — the sender's bundle ID, when macOS can resolve 
 - `macotron://` events prompt (Allow / Cancel, showing the URL and sender) before any
   plugin handler runs, because those links dispatch straight into plugin code.
 - Web schemes (`http`, `https`, `mailto`) do not prompt on dispatch; they route links to
-  apps, and an unhandled URL ends in the fallback picker, which opens nothing without a
-  click.
+  apps. A URL no plugin routes is handed to the app that would have received it if
+  Macotron were not installed. Macotron is filtered out of that candidate list, so an
+  unrouted link cannot loop back into itself; if no other app handles the scheme, the
+  link raises a notification instead of vanishing.
 - In handlers, validate payload fields and call `macotron.confirm()` before any
   dangerous-tier action (`shell.run`, `fs.write`, `url.open` to an unexpected target)
   driven by the payload. Check `sourceBundle` when the sender matters.
