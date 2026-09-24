@@ -1,4 +1,4 @@
-// APIs: url.setDefaultHandler, url.on, url.onFallback, url.open, panel, command
+// APIs: url.setDefaultHandler, url.on, url.open, panel, command
 const BROWSERS = {
   chrome: { id: "com.google.Chrome", label: "Chrome" },
   safari: { id: "com.apple.Safari", label: "Safari" },
@@ -52,6 +52,10 @@ for (const scheme of ["http", "https"]) {
   for (const [pattern, id] of rules) {
     macotron.url.on(scheme, pattern, (event) => macotron.url.open(event.url, id));
   }
+  // Scoped to the schemes a browser can actually open. A global onFallback
+  // would also swallow mailto: and every other scheme Macotron registers,
+  // hand them to a browser, and strand them there.
+  macotron.url.on(scheme, "*", openDefault);
 }
 
 const ROW = 36;
@@ -90,8 +94,6 @@ function openDefault(event) {
     macotron.panel.close(panel);
   });
 }
-
-macotron.url.onFallback(openDefault);
 
 macotron.command("Open URL", "Open a link, optionally in a specific browser", (args) => {
   const raw = String(args.url || "").trim();
