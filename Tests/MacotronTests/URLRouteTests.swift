@@ -65,6 +65,16 @@ struct URLRouteTests {
     func missingExplicitOpener() {
         #expect(URLOpen.applicationURL(bundleID: "io.statico.macotron.missing-app") == nil)
     }
+
+    /// Macotron registers for mailto/http/https, so it appears in its own
+    /// candidate list. Handing an unrouted link back to itself would loop.
+    @Test("unrouted links never hand back to Macotron")
+    func systemDefaultExcludesSelf() {
+        for link in ["mailto:you@example.com", "https://example.com/", "http://example.com/"] {
+            let app = URLOpen.systemDefault(for: u(link))
+            #expect(app.flatMap { Bundle(url: $0)?.bundleIdentifier } != "io.statico.macotron")
+        }
+    }
 }
 
 @Suite("URLEventGate")
