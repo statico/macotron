@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.7.3</title>
+            <sparkle:version>0.7.3</sparkle:version>
+            <sparkle:shortVersionString>0.7.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Thu, 24 Sep 2026 20:34:43 +0000</pubDate>
+            <description><![CDATA[<ul><li>Stop browser-picker swallowing mailto: and every other scheme</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.7.3/Macotron-0.7.3.dmg" type="application/octet-stream" sparkle:edSignature="OAbPVQXuUkQQ+BnRU8P+SgYIcdpJ57pMolGHMkR6FyzDrdApD6OgUb8qtEtgRrFGMp9TS1N0VIyrWeELn150CA==" length="10295186" />
+        </item>
+        <item>
             <title>0.7.2</title>
             <sparkle:version>0.7.2</sparkle:version>
             <sparkle:shortVersionString>0.7.2</sparkle:shortVersionString>
