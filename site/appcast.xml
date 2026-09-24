@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.7.2</title>
+            <sparkle:version>0.7.2</sparkle:version>
+            <sparkle:shortVersionString>0.7.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Thu, 24 Sep 2026 18:20:37 +0000</pubDate>
+            <description><![CDATA[<ul><li>Document the whole host API, and drop the claims that were not true</li><li>Stop telling the website that shell commands are gated</li><li>Say the Swift version the package actually declares</li><li>Put the Apple TV and fs corrections on the site too</li><li>Hand unrouted links to the app that would have got them</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.7.2/Macotron-0.7.2.dmg" type="application/octet-stream" sparkle:edSignature="ZH1g5buzbDsC/RaxeKaeTiEj2RUamDnalZy5WkI0h0F+Bg9/8Yqmwe0gOWzmIdL3sVw1kmpybWqVWZ4MVnElAg==" length="10300405" />
+        </item>
+        <item>
             <title>0.7.1</title>
             <sparkle:version>0.7.1</sparkle:version>
             <sparkle:shortVersionString>0.7.1</sparkle:shortVersionString>
