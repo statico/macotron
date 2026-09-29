@@ -101,7 +101,11 @@ enum MediaCommand: Int32 {
 final class NowPlaying: @unchecked Sendable {
     static let shared = NowPlaying()
 
-    var onChange: (() -> Void)?
+    var onChange: (() -> Void)? {
+        get { lock.lock(); defer { lock.unlock() }; return _onChange }
+        set { lock.lock(); _onChange = newValue; lock.unlock() }
+    }
+    private var _onChange: (() -> Void)?
 
     private let lock = NSLock()
     private let queue = DispatchQueue(label: "macotron.media")
@@ -109,8 +113,14 @@ final class NowPlaying: @unchecked Sendable {
     private var lastArtKey = ""
     private var failedArtKey = ""
     private var artworkPath: String?
-    private var busy = false
     private var polledAt = Date.distantPast
+    private var watching = false
+    // Watcher state below is touched only on `queue`.
+    private var wantWatch = false
+    private var watcher: Process?
+    private var watcherInput: Pipe?
+    private var lineBuffer = Data()
+    private var backoff: TimeInterval = 5
     private let client = MediaRemoteClient()
 
     func snapshot() -> NowPlayingPayload {
@@ -121,6 +131,11 @@ final class NowPlaying: @unchecked Sendable {
 
     func send(_ command: MediaCommand) {
         _ = client.send(command)
+        lock.lock()
+        let watching = watching
+        lock.unlock()
+        // The watcher hears the change itself.
+        guard !watching else { return }
         queue.asyncAfter(deadline: .now() + 0.4) { [weak self] in
             self?.refresh()
         }
@@ -130,31 +145,107 @@ final class NowPlaying: @unchecked Sendable {
         queue.async { [weak self] in self?.poll() }
     }
 
-    /// The snapshot, re-read first if the poller has not run lately
-    /// (it idles while no plugin listens for media:changed).
+    /// The snapshot, re-read first unless the watcher is keeping it current
+    /// or a read landed in the last few seconds.
     func freshSnapshot() -> NowPlayingPayload {
         lock.lock()
-        let stale = Date().timeIntervalSince(polledAt) > 5
+        let stale = !watching && Date().timeIntervalSince(polledAt) > 5
+        let known = current
         lock.unlock()
-        if stale { queue.sync { poll() } }
-        return snapshot()
+        guard stale else { return snapshot() }
+        // Read here rather than on `queue`, which can be seconds deep in an
+        // artwork download; the cover follows in media:changed.
+        var payload = Self.readNowPlaying()
+        if payload.artKey == known.artKey { payload.artwork = known.artwork }
+        queue.async { [weak self] in self?.ingest(payload) }
+        return payload
+    }
+
+    /// Keep one long-lived osascript subscribed to MediaRemote's change
+    /// notifications. Spawning osascript per read cost an exec and a
+    /// malware-scan rule compile every time; this costs one process, asleep
+    /// until a track or play state changes.
+    func watch(_ on: Bool) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            wantWatch = on
+            if on { startWatcher() } else { stopWatcher() }
+        }
+    }
+
+    private func startWatcher() {
+        guard wantWatch, watcher == nil else { return }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-l", "JavaScript", "-e", Self.jxa, "watch"]
+        // The script exits when this pipe closes, so it cannot outlive us.
+        let input = Pipe()
+        let output = Pipe()
+        process.standardInput = input
+        process.standardOutput = output
+        process.standardError = FileHandle.nullDevice
+        output.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            let chunk = handle.availableData
+            if chunk.isEmpty {
+                handle.readabilityHandler = nil
+                return
+            }
+            self?.queue.async { self?.consume(chunk, from: process) }
+        }
+        let started = Date()
+        process.terminationHandler = { [weak self] _ in
+            self?.queue.async { self?.watcherExited(process, after: Date().timeIntervalSince(started)) }
+        }
+        do {
+            try process.run()
+        } catch {
+            watcherExited(nil, after: 0)
+            return
+        }
+        watcher = process
+        watcherInput = input
+        lock.lock()
+        watching = true
+        lock.unlock()
+    }
+
+    private func stopWatcher() {
+        let process = watcher
+        watcher = nil
+        watcherInput = nil
+        lineBuffer.removeAll()
+        lock.lock()
+        watching = false
+        lock.unlock()
+        process?.terminate()
+    }
+
+    private func consume(_ chunk: Data, from process: Process) {
+        guard process === watcher else { return }
+        lineBuffer.append(chunk)
+        while let newline = lineBuffer.firstIndex(of: 0x0A) {
+            let line = lineBuffer[lineBuffer.startIndex..<newline]
+            lineBuffer.removeSubrange(lineBuffer.startIndex...newline)
+            ingest(NowPlayingPayload.parse(Data(line)))
+        }
+    }
+
+    private func watcherExited(_ process: Process?, after lifetime: TimeInterval) {
+        guard process == nil || process === watcher else { return }
+        stopWatcher()
+        guard wantWatch else { return }
+        // Restart, but back off if it keeps dying so a broken script cannot
+        // turn back into a spawn every few seconds.
+        backoff = lifetime > 60 ? 5 : min(backoff * 2, 300)
+        queue.asyncAfter(deadline: .now() + backoff) { [weak self] in self?.startWatcher() }
     }
 
     private func poll() {
-        lock.lock()
-        if busy {
-            lock.unlock()
-            return
-        }
-        busy = true
-        lock.unlock()
-        defer {
-            lock.lock()
-            busy = false
-            lock.unlock()
-        }
+        ingest(Self.readNowPlaying())
+    }
 
-        var payload = Self.readNowPlaying()
+    private func ingest(_ payload: NowPlayingPayload) {
+        var payload = payload
         lock.lock()
         polledAt = Date()
         let artKey = payload.artKey
@@ -191,43 +282,44 @@ final class NowPlaying: @unchecked Sendable {
         lock.lock()
         let changed = payload != current
         current = payload
-        let cb = onChange
+        let cb = _onChange
         lock.unlock()
         if changed { cb?() }
     }
 
-    private static let jxa = """
-    function run() {
-      function str(v) {
-        if (v === undefined || v === null) return "";
-        try {
-          const u = ObjC.unwrap(v);
-          if (u === undefined || u === null) return "";
-          return String(u);
-        } catch (e) {
-          return "";
-        }
-      }
-      function payload(info, client) {
-        if (!info) return null;
-        const rate = Number(str(info.valueForKey("kMRMediaRemoteNowPlayingInfoPlaybackRate"))) || 0;
-        let app = "", bundle = "";
-        try {
-          app = str(client.displayName);
-          bundle = str(client.bundleIdentifier);
-        } catch (e) {}
-        return {
-          playing: rate > 0,
-          title: str(info.valueForKey("kMRMediaRemoteNowPlayingInfoTitle")),
-          artist: str(info.valueForKey("kMRMediaRemoteNowPlayingInfoArtist")),
-          album: str(info.valueForKey("kMRMediaRemoteNowPlayingInfoAlbum")),
-          app: app,
-          bundle: bundle
-        };
-      }
+    /// With no arguments the script prints one reading and exits. With
+    /// `watch` it prints a line per change until its stdin closes.
+    static let jxa = """
+    ObjC.import("stdlib");
+    function str(v) {
+      if (v === undefined || v === null) return "";
       try {
-        const MediaRemote = $.NSBundle.bundleWithPath("/System/Library/PrivateFrameworks/MediaRemote.framework/");
-        MediaRemote.load;
+        const u = ObjC.unwrap(v);
+        if (u === undefined || u === null) return "";
+        return String(u);
+      } catch (e) {
+        return "";
+      }
+    }
+    function payload(info, client) {
+      if (!info) return null;
+      const rate = Number(str(info.valueForKey("kMRMediaRemoteNowPlayingInfoPlaybackRate"))) || 0;
+      let app = "", bundle = "";
+      try {
+        app = str(client.displayName);
+        bundle = str(client.bundleIdentifier);
+      } catch (e) {}
+      return {
+        playing: rate > 0,
+        title: str(info.valueForKey("kMRMediaRemoteNowPlayingInfoTitle")),
+        artist: str(info.valueForKey("kMRMediaRemoteNowPlayingInfoArtist")),
+        album: str(info.valueForKey("kMRMediaRemoteNowPlayingInfoAlbum")),
+        app: app,
+        bundle: bundle
+      };
+    }
+    function read() {
+      try {
         const Req = $.NSClassFromString("MRNowPlayingRequest");
         const candidates = [];
         try {
@@ -242,6 +334,56 @@ final class NowPlaying: @unchecked Sendable {
       } catch (e) {
         return JSON.stringify({ playing: false });
       }
+    }
+    function watch() {
+      ObjC.bindFunction("MRMediaRemoteRegisterForNowPlayingNotifications", ["void", ["id"]]);
+      ObjC.bindFunction("dispatch_get_global_queue", ["id", ["long", "unsigned long"]]);
+      $.MRMediaRemoteRegisterForNowPlayingNotifications($.dispatch_get_global_queue(0, 0));
+      const out = $.NSFileHandle.fileHandleWithStandardOutput;
+      let last = "";
+      // Until MediaRemote proves it notifies this process, look every few
+      // seconds, backing off while nothing changes; after that, only as a
+      // safety net.
+      let heard = false;
+      let interval = 3;
+      function emit() {
+        const line = read();
+        if (line === last) {
+          interval = Math.min(interval * 2, 60);
+          return;
+        }
+        interval = 3;
+        last = line;
+        out.writeData($(line + "\\n").dataUsingEncoding($.NSUTF8StringEncoding));
+      }
+      let pending = false;
+      const center = $.NSNotificationCenter.defaultCenter;
+      const main = $.NSOperationQueue.mainQueue;
+      center.addObserverForNameObjectQueueUsingBlock($(), $(), main, function (note) {
+        if (!/^kMRMediaRemote/.test(ObjC.unwrap(note.name))) return;
+        heard = true;
+        // One track change fires several notifications; read once for all.
+        if (pending) return;
+        pending = true;
+        $.NSTimer.scheduledTimerWithTimeIntervalRepeatsBlock(0.3, false, function () {
+          pending = false;
+          emit();
+        });
+      });
+      const stdin = $.NSFileHandle.fileHandleWithStandardInput;
+      center.addObserverForNameObjectQueueUsingBlock(
+        $.NSFileHandleReadToEndOfFileCompletionNotification, stdin, main, function () { $.exit(0); });
+      stdin.readToEndOfFileInBackgroundAndNotify;
+      emit();
+      for (;;) {
+        $.NSRunLoop.currentRunLoop.runUntilDate($.NSDate.dateWithTimeIntervalSinceNow(heard ? 60 : interval));
+        emit();
+      }
+    }
+    function run(argv) {
+      $.NSBundle.bundleWithPath("/System/Library/PrivateFrameworks/MediaRemote.framework/").load;
+      if (argv[0] === "watch") watch();
+      return read();
     }
     """
 
