@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.7.4</title>
+            <sparkle:version>0.7.4</sparkle:version>
+            <sparkle:shortVersionString>0.7.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Tue, 29 Sep 2026 23:53:53 +0000</pubDate>
+            <description><![CDATA[<ul><li>Stop polling Now Playing when no plugin listens</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.7.4/Macotron-0.7.4.dmg" type="application/octet-stream" sparkle:edSignature="Fm68usX1Wr/Hd/NtYHdymLbB3RGxYY67aChMfVvSz7AGEp2zPNkI+O5q2fRY3P4tAGPZhvjFNwskLiZhHPewBA==" length="10297184" />
+        </item>
+        <item>
             <title>0.7.3</title>
             <sparkle:version>0.7.3</sparkle:version>
             <sparkle:shortVersionString>0.7.3</sparkle:shortVersionString>
