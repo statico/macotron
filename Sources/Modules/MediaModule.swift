@@ -23,7 +23,7 @@ public final class MediaModule: NativeModule {
 
         JSBridge.fn(ctx, media, "nowPlaying", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
-            return JSBridge.newObject(ctx, NowPlaying.shared.snapshot().js)
+            return JSBridge.newObject(ctx, NowPlaying.shared.freshSnapshot().js)
         }
 
         JSBridge.fn(ctx, media, "playPause", 0) { ctx, _, _, _ in
@@ -49,9 +49,11 @@ public final class MediaModule: NativeModule {
         NowPlaying.shared.onChange = { [weak self] in
             DispatchQueue.main.async { self?.publish() }
         }
-        NowPlaying.shared.refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { _ in
-            NowPlaying.shared.refresh()
+        // Each read spawns osascript, so poll only while a plugin listens.
+        timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                if self?.polling == true { NowPlaying.shared.refresh() }
+            }
         }
     }
 
@@ -60,6 +62,10 @@ public final class MediaModule: NativeModule {
         timer = nil
         NowPlaying.shared.onChange = nil
         engine = nil
+    }
+
+    private var polling: Bool {
+        engine?.eventBus.hasListeners("media:changed") == true
     }
 
     private func publish() {

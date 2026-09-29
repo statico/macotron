@@ -110,6 +110,7 @@ final class NowPlaying: @unchecked Sendable {
     private var failedArtKey = ""
     private var artworkPath: String?
     private var busy = false
+    private var polledAt = Date.distantPast
     private let client = MediaRemoteClient()
 
     func snapshot() -> NowPlayingPayload {
@@ -129,6 +130,16 @@ final class NowPlaying: @unchecked Sendable {
         queue.async { [weak self] in self?.poll() }
     }
 
+    /// The snapshot, re-read first if the poller has not run lately
+    /// (it idles while no plugin listens for media:changed).
+    func freshSnapshot() -> NowPlayingPayload {
+        lock.lock()
+        let stale = Date().timeIntervalSince(polledAt) > 5
+        lock.unlock()
+        if stale { queue.sync { poll() } }
+        return snapshot()
+    }
+
     private func poll() {
         lock.lock()
         if busy {
@@ -145,6 +156,7 @@ final class NowPlaying: @unchecked Sendable {
 
         var payload = Self.readNowPlaying()
         lock.lock()
+        polledAt = Date()
         let artKey = payload.artKey
         let artChanged = artKey != lastArtKey
         if artChanged {
