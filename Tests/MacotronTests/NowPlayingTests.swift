@@ -68,4 +68,25 @@ struct NowPlayingTests {
         #expect(info.bundle == "com.somafm.somafmmac")
         #expect(info.title == "Groove Salad")
     }
+
+    @Test("watcher prints a reading and exits when its stdin closes")
+    func watcherExitsWithParent() throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-l", "JavaScript", "-e", NowPlaying.jxa, "watch"]
+        let input = Pipe()
+        let output = Pipe()
+        process.standardInput = input
+        process.standardOutput = output
+        try process.run()
+        let line = output.fileHandleForReading.availableData
+        #expect(String(decoding: line, as: UTF8.self).hasSuffix("}\n"))
+        input.fileHandleForWriting.closeFile()
+        let exited = DispatchSemaphore(value: 0)
+        process.terminationHandler = { _ in exited.signal() }
+        if process.isRunning, exited.wait(timeout: .now() + 5) == .timedOut {
+            process.terminate()
+            Issue.record("watcher outlived its stdin")
+        }
+    }
 }

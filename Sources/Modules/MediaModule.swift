@@ -7,7 +7,6 @@ public final class MediaModule: NativeModule {
     public let name = "media"
 
     private weak var engine: Engine?
-    private var timer: Timer?
     private var lastFingerprint = ""
 
     public init() {}
@@ -49,23 +48,19 @@ public final class MediaModule: NativeModule {
         NowPlaying.shared.onChange = { [weak self] in
             DispatchQueue.main.async { self?.publish() }
         }
-        // Each read spawns osascript, so poll only while a plugin listens.
-        timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated {
-                if self?.polling == true { NowPlaying.shared.refresh() }
-            }
-        }
+    }
+
+    // Watch only while a plugin listens; nowPlaying() reads on demand otherwise.
+    // ponytail: a listener added after load (inside a timer, say) waits for the next reload.
+    public func didReload() {
+        guard let engine, !engine.dryRun else { return }
+        NowPlaying.shared.watch(engine.eventBus.hasListeners("media:changed"))
     }
 
     public func cleanup() {
-        timer?.invalidate()
-        timer = nil
+        NowPlaying.shared.watch(false)
         NowPlaying.shared.onChange = nil
         engine = nil
-    }
-
-    private var polling: Bool {
-        engine?.eventBus.hasListeners("media:changed") == true
     }
 
     private func publish() {
