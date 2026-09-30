@@ -3,6 +3,7 @@ import CQuickJS
 import Darwin
 import Foundation
 import MacotronEngine
+import SystemConfiguration
 
 @MainActor
 public final class NetworkModule: NativeModule {
@@ -10,7 +11,9 @@ public final class NetworkModule: NativeModule {
     public let moduleVersion = 2
 
     private weak var engine: Engine?
-    private var timer: Timer?
+    private var store: SCDynamicStore?
+    private var storeSource: CFRunLoopSource?
+    private var pendingSample: DispatchWorkItem?
     private var lastWifi: (on: Bool, ssid: String?)?
 
     public init() {}
@@ -109,22 +112,63 @@ public final class NetworkModule: NativeModule {
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
 
-        guard !engine.dryRun else { return }
-        poll()
-        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.poll() }
-        }
+    }
+
+    // Sampling costs three networksetup runs, so do it only while a plugin
+    // listens, and only when the system says Wi-Fi or the network changed.
+    // ponytail: a listener added after load (inside a timer, say) waits for the next reload.
+    public func didReload() {
+        guard let engine, !engine.dryRun else { return }
+        if engine.eventBus.hasListeners("wifi:changed") { observe() } else { stopObserving() }
     }
 
     public func cleanup() {
-        timer?.invalidate()
-        timer = nil
+        stopObserving()
         engine = nil
     }
 
-    private func poll() {
-        // Sampling costs three networksetup runs; on main that is a stutter
-        // every five seconds for a value that rarely changes.
+    private func observe() {
+        guard store == nil else { return }
+        var context = SCDynamicStoreContext(
+            version: 0, info: Unmanaged.passUnretained(self).toOpaque(),
+            retain: nil, release: nil, copyDescription: nil
+        )
+        let callback: SCDynamicStoreCallBack = { _, _, info in
+            guard let info else { return }
+            let module = Unmanaged<NetworkModule>.fromOpaque(info).takeUnretainedValue()
+            MainActor.assumeIsolated { module.scheduleSample() }
+        }
+        guard let store = SCDynamicStoreCreate(nil, "Macotron" as CFString, callback, &context) else { return }
+        SCDynamicStoreSetNotificationKeys(
+            store,
+            ["State:/Network/Global/IPv4"] as CFArray,
+            ["State:/Network/Interface/[^/]+/AirPort"] as CFArray
+        )
+        guard let source = SCDynamicStoreCreateRunLoopSource(nil, store, 0) else { return }
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        self.store = store
+        storeSource = source
+        sample()
+    }
+
+    private func stopObserving() {
+        if let storeSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), storeSource, .commonModes) }
+        storeSource = nil
+        store = nil
+        pendingSample?.cancel()
+        pendingSample = nil
+    }
+
+    /// A join touches several keys in a burst; sample once it settles.
+    private func scheduleSample() {
+        pendingSample?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.sample() }
+        pendingSample = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
+    }
+
+    private func sample() {
+        // Off main: three networksetup runs would stutter the menu.
         // Weak on the outer closure, not the inner one. The sampling block
         // holds the module for as long as three networksetup runs take, and
         // an inner weak capture cannot undo an outer strong one.
@@ -160,8 +204,8 @@ public final class NetworkModule: NativeModule {
     private static let noWifi: [String: Any] = ["available": false, "on": false]
     private static let noBluetooth: [String: Any] = ["on": false, "devices": [Any]()]
 
-    /// nonisolated: this only shells out to networksetup, and the 5s poll
-    /// samples it from a background queue.
+    /// nonisolated: this only shells out to networksetup, sampled from a
+    /// background queue.
     private nonisolated static func wifiKey() -> (on: Bool, ssid: String?) {
         let snap = NetworkControl.wifi()
         return (snap["on"] as? Bool ?? false, snap["ssid"] as? String)
