@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.7.5</title>
+            <sparkle:version>0.7.5</sparkle:version>
+            <sparkle:shortVersionString>0.7.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Wed, 30 Sep 2026 04:17:16 +0000</pubDate>
+            <description><![CDATA[<ul><li>Watch Now Playing with one osascript instead of spawning one per read</li><li>Sample Wi-Fi when the system says it changed, not every 5 seconds</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.7.5/Macotron-0.7.5.dmg" type="application/octet-stream" sparkle:edSignature="B+XFHELfCfFHkZn1P8dOjTNwOa2PYwZbi0nfZT+GYJgq2X/me5CLihqq3Pd/rerKWytxjraN12rEpCj+BldlAw==" length="10302499" />
+        </item>
+        <item>
             <title>0.7.4</title>
             <sparkle:version>0.7.4</sparkle:version>
             <sparkle:shortVersionString>0.7.4</sparkle:shortVersionString>
