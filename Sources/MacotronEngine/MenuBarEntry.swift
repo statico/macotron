@@ -11,6 +11,9 @@ public struct MenuBarEntry {
     /// when one is clicked, instead of as a submenu.
     public let inline: Bool
     public let size: (width: Double, height: Double)
+    /// Grey the title while keeping the row clickable, for rows that are
+    /// past or set aside rather than unavailable.
+    public let dimmed: Bool
 
     public init(
         title: String,
@@ -20,7 +23,8 @@ public struct MenuBarEntry {
         html: String? = nil,
         inline: Bool = false,
         width: Double = 260,
-        height: Double = 160
+        height: Double = 160,
+        dimmed: Bool = false
     ) {
         self.title = title
         self.icon = icon
@@ -29,6 +33,7 @@ public struct MenuBarEntry {
         self.html = html
         self.inline = inline
         self.size = (width, height)
+        self.dimmed = dimmed
     }
 
     public var isSeparator: Bool { title == "-" && children.isEmpty }

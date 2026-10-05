@@ -24,6 +24,7 @@ public final class CalendarModule: NativeModule {
             guard let ctx else { return QJS_Undefined() }
 
             var hours = 24.0
+            var from: Double?
             var titles: [String]?
             if let argv, argc > 0, !JS_IsUndefined(argv[0]), !JS_IsNull(argv[0]) {
                 let value = JSBridge.getProperty(ctx, argv[0], "hours")
@@ -31,6 +32,7 @@ public final class CalendarModule: NativeModule {
                     hours = JSBridge.toDouble(ctx, value)
                 }
                 JS_FreeValue(ctx, value)
+                from = JSBridge.double(ctx, argv[0], "from")
                 if let list = JSBridge.stringArray(ctx, argv[0], "calendars"), !list.isEmpty {
                     titles = list
                 }
@@ -43,9 +45,10 @@ public final class CalendarModule: NativeModule {
             }
             nonisolated(unsafe) let store = CalendarModule.store
             let window = hours
+            let since = from.map { Date(timeIntervalSince1970: $0 / 1000) }
             let wanted = titles
             return JSBridge.promise(ctx, dryRun: [Any]()) {
-                .value(CalendarModule.upcoming(store: store, hours: window, titles: wanted))
+                .value(CalendarModule.upcoming(store: store, from: since, hours: window, titles: wanted))
             }
         }
 
@@ -72,21 +75,26 @@ public final class CalendarModule: NativeModule {
 
     /// Apple's guidance for this synchronous fetch is to keep it off the main
     /// thread; the store is shared, so the granted access comes with it.
-    /// `titles` narrows the search to calendars with those names; nil is all
-    /// of them. Names, not identifiers: they read plainly in settings.json
-    /// and survive an account re-sync, which regenerates identifiers.
-    private nonisolated static func upcoming(store: EKEventStore, hours: Double, titles: [String]? = nil) -> [Any] {
+    /// `titles` narrows the search to calendars with those names (see
+    /// `namedEventCalendars`); nil is all of them. A bare title also matches
+    /// every calendar by that title, as settings saved before names carried
+    /// the account. The window opens at `from` (or now) and closes `hours`
+    /// from now.
+    private nonisolated static func upcoming(store: EKEventStore, from: Date? = nil, hours: Double, titles: [String]? = nil) -> [Any] {
         var calendars: [EKCalendar]?
         if let titles {
-            let picked = store.calendars(for: .event).filter { titles.contains($0.title) }
+            let picked = store.namedEventCalendars()
+                .filter { titles.contains($0.name) || titles.contains($0.calendar.title) }
+                .map(\.calendar)
             // Every picked calendar is gone (renamed, account removed): answer
             // with no events rather than handing EventKit an empty array,
             // whose behavior its docs leave undefined.
             guard !picked.isEmpty else { return [] }
             calendars = picked
         }
-        let start = Date()
-        let end = start.addingTimeInterval(max(0, hours) * 3600)
+        let now = Date()
+        let start = min(from ?? now, now)
+        let end = now.addingTimeInterval(max(0, hours) * 3600)
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: calendars)
 
         // EventKit documents the result order as undefined, and every consumer

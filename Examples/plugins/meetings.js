@@ -1,6 +1,6 @@
 const opts = macotron.plugin({
     title: "Meetings",
-    description: "Show your next calendar event in the menu bar, with an optional full-screen overlay when a meeting starts.",
+    description: "Show your next calendar event in the menu bar, with today's agenda, one-click join, and an optional full-screen overlay when a meeting starts.",
     permissions: ["calendar"],
     options: {
         calendars: {
@@ -17,8 +17,8 @@ const opts = macotron.plugin({
         },
         hide: {
             type: "text",
-            label: "Hide titles",
-            help: "One regular expression per line. Events whose title, location, or calendar matches are skipped.",
+            label: "Ignore titles",
+            help: "One regular expression per line. Events whose title, location, or calendar matches are shown dimmed and never take the menu bar or the overlay.",
             default: "ooo|vacation",
         },
         time: {
@@ -91,19 +91,53 @@ function hoursUntilTomorrow() {
     return Math.max((end - now) / 3600000, 0.25);
 }
 
+function startOfDay(at) {
+    const d = new Date(at);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+// Recurring events share one id across every occurrence, so the start time
+// is what tells today's standup from tomorrow's.
+function keyOf(event) {
+    return event.id + "@" + event.start;
+}
+
+// Event keys mapped to the end of their event, kept across reloads and
+// pruned once the event is over.
+function keySet(name) {
+    const map = new Map(Object.entries(JSON.parse(localStorage.getItem(name) || "{}")));
+    const save = () => {
+        const now = Date.now();
+        for (const [key, until] of map) {
+            if (until < now) map.delete(key);
+        }
+        localStorage.setItem(name, JSON.stringify(Object.fromEntries(map)));
+    };
+    return {
+        has: (event) => map.has(keyOf(event)),
+        add: (event) => { map.set(keyOf(event), event.end); save(); },
+        clear: () => { map.clear(); save(); },
+        any: () => [...map.values()].some((until) => until > Date.now()),
+    };
+}
+
+const dismissed = keySet("meetings.dismissed");
+
 async function upcoming() {
     const regs = patterns(opts.hide);
     const configured = Number(opts.hours);
     const hours = configured > 0 ? Math.max(configured, hoursUntilTomorrow()) : hoursUntilTomorrow();
-    const events = await macotron.calendar.upcoming({ hours, calendars: opts.calendars });
+    const events = await macotron.calendar.upcoming({ hours, calendars: opts.calendars, from: startOfDay(Date.now()) });
     // Sort defensively: an older host hands the list back in EventKit's
     // undefined order, and both the title and the menu assume soonest-first.
-    return events.filter((event) => !hidden(event, regs)).sort((a, b) => a.start - b.start);
+    return events.map((event) => ({ ...event, ignored: hidden(event, regs) })).sort((a, b) => a.start - b.start);
 }
 
+// The meeting the menu bar shows: the first timed one not over yet that the
+// user has neither filtered out nor dismissed.
 function nextTimed(events) {
     const now = Date.now();
-    return events.find((event) => !event.allDay && event.end > now) || null;
+    return events.find((event) => !event.allDay && event.end > now && !event.ignored && !dismissed.has(event)) || null;
 }
 
 function openCalendar() {
@@ -116,35 +150,50 @@ function joinOrOpen(event) {
     else openCalendar();
 }
 
+function dayLabel(at) {
+    const days = Math.round((startOfDay(at) - startOfDay(Date.now())) / 86400000);
+    if (days === 0) return "Today";
+    if (days === 1) return "Tomorrow";
+    const d = new Date(at);
+    return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()] + " " + (d.getMonth() + 1) + "/" + d.getDate();
+}
+
+function eventRow(event, next) {
+    const now = Date.now();
+    const mark = next && keyOf(event) === keyOf(next) ? "→ " : "";
+    const when = event.allDay ? "All day" : clockLabel(event.start);
+    return {
+        title: mark + when + "  " + (event.title || "Untitled"),
+        dimmed: event.end <= now || event.ignored || dismissed.has(event),
+        onClick: () => joinOrOpen(event),
+    };
+}
+
 function menu(events, next) {
-    if (!events.length) {
-        return [
-            { title: "No meetings" },
-            "-",
-            { title: "Refresh", onClick: paint },
-            { title: "Open Calendar", onClick: openCalendar },
-            { title: "Settings…", onClick: () => macotron.settings.open() },
-        ];
-    }
     const rows = [];
-    const timed = events.filter((event) => !event.allDay);
-    const allDay = events.filter((event) => event.allDay);
-    for (const event of timed) {
-        const mark = next && event.id === next.id ? "→ " : "";
-        rows.push({
-            title: mark + timeLabel(event.start) + "  " + (event.title || "Untitled"),
-            onClick: () => joinOrOpen(event),
-        });
+    if (next) {
+        const name = clip(next.title || "Untitled", 30);
+        rows.push(
+            { title: (next.url ? "Join " : "Open ") + name, onClick: () => joinOrOpen(next) },
+            { title: "Dismiss " + name, onClick: () => { dismissed.add(next); paint(); } },
+        );
     }
-    if (allDay.length) {
-        if (rows.length) rows.push("-");
-        rows.push({ title: "All day" });
-        for (const event of allDay) {
-            rows.push({
-                title: event.title || "Untitled",
-                onClick: () => joinOrOpen(event),
-            });
+    if (dismissed.any()) {
+        rows.push({ title: "Restore Dismissed Meetings", onClick: () => { dismissed.clear(); paint(); } });
+    }
+    if (rows.length) rows.push("-");
+    if (!events.length) rows.push({ title: "No meetings" });
+    let day = null;
+    // All-day events lead their day, as they do in Calendar.
+    const ordered = [...events].sort((a, b) => startOfDay(a.start) - startOfDay(b.start) || b.allDay - a.allDay || a.start - b.start);
+    for (const event of ordered) {
+        const label = dayLabel(Math.max(event.start, startOfDay(Date.now())));
+        if (label !== day) {
+            if (day !== null) rows.push("-");
+            rows.push({ title: label });
+            day = label;
         }
+        rows.push(eventRow(event, next));
     }
     rows.push("-", { title: "Refresh", onClick: paint }, { title: "Open Calendar", onClick: openCalendar }, { title: "Settings…", onClick: () => macotron.settings.open() });
     return rows;
@@ -152,21 +201,9 @@ function menu(events, next) {
 
 // ---- Overlay: full-screen "meeting starting" panel with a QR code to join.
 
-const KEY = "meetings.overlay-shown";
-
 // Dismissals outlive a reload: without this, editing any plugin while a
 // meeting is starting puts the overlay back up for one already waved away.
-// Events are keyed by their end time so the list prunes itself.
-const shown = new Map(Object.entries(JSON.parse(localStorage.getItem(KEY) || "{}")));
-
-function remember(id, until) {
-    shown.set(id, until);
-    const now = Date.now();
-    for (const [key, at] of shown) {
-        if (at < now) shown.delete(key);
-    }
-    localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(shown)));
-}
+const shown = keySet("meetings.overlay-shown");
 
 function esc(s) {
     return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -176,12 +213,12 @@ function overlayCheck(events) {
     if (!opts.overlay) return;
     const now = Date.now();
     for (const event of events) {
-        if (event.allDay || shown.has(event.id)) continue;
+        if (event.allDay || event.ignored || dismissed.has(event) || shown.has(event)) continue;
         const since = now - event.start;
         // A check can land late (asleep, reload); anything older than the
         // grace window has been missed, not started, so leave it alone.
         if (since < 0 || since > 5 * 60000) continue;
-        remember(event.id, event.end);
+        shown.add(event);
         const url = event.url || "";
         const html =
             `<style>
@@ -230,8 +267,8 @@ async function paint() {
     } catch (err) {
         // Keep the last fetch; the repaint below still advances the clock.
     }
-    // Even on a stale fetch, a meeting that has ended must drop out.
-    const events = lastEvents.filter((event) => event.end > Date.now());
+    // A stale fetch still repaints: the clock moves on, and ended meetings dim.
+    const events = lastEvents;
     const next = nextTimed(events);
     macotron.menubar.status("meetings", {
         title: next ? clip(next.title || "Untitled", 22) : "",
