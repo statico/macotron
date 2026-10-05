@@ -157,7 +157,7 @@ final class NowPlaying: @unchecked Sendable {
         // artwork download; the cover follows in media:changed.
         var payload = Self.readNowPlaying()
         if payload.artKey == known.artKey { payload.artwork = known.artwork }
-        queue.async { [weak self] in self?.ingest(payload) }
+        queue.async { [weak self, payload] in self?.ingest(payload) }
         return payload
     }
 
@@ -190,11 +190,11 @@ final class NowPlaying: @unchecked Sendable {
                 handle.readabilityHandler = nil
                 return
             }
-            self?.queue.async { self?.consume(chunk, from: process) }
+            self?.queue.async { [weak self] in self?.consume(chunk, from: process) }
         }
         let started = Date()
         process.terminationHandler = { [weak self] _ in
-            self?.queue.async { self?.watcherExited(process, after: Date().timeIntervalSince(started)) }
+            self?.queue.async { [weak self] in self?.watcherExited(process, after: Date().timeIntervalSince(started)) }
         }
         do {
             try process.run()
