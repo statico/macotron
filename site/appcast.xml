@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.7.6</title>
+            <sparkle:version>0.7.6</sparkle:version>
+            <sparkle:shortVersionString>0.7.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Mon, 05 Oct 2026 19:07:30 +0000</pubDate>
+            <description><![CDATA[<ul><li>Meetings: dimmed past and ignored events, dismiss, per-account calendars</li><li>Copy captures into Now Playing's queued closures</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.7.6/Macotron-0.7.6.dmg" type="application/octet-stream" sparkle:edSignature="G82FyHGI4fB9KquWjORFxnwzQsitvDNeJ7+78uxVjK0IwfyTxOU8g5O7NtTAC+ZB0HgIoZKAU9fg83NdOGpgAw==" length="10307570" />
+        </item>
+        <item>
             <title>0.7.5</title>
             <sparkle:version>0.7.5</sparkle:version>
             <sparkle:shortVersionString>0.7.5</sparkle:shortVersionString>
