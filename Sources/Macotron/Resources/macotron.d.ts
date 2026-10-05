@@ -13,6 +13,8 @@ interface MenuBarMenuItem {
      * Reloaded only when this markup changes.
      */
     html?: string;
+    /** Grey the title but keep the row clickable, e.g. for past events. */
+    dimmed?: boolean;
     /** Size of the `html` row in points. Defaults to 260 x 160. */
     width?: number;
     height?: number;
@@ -613,9 +615,12 @@ declare const macotron: {
     };
 
     calendar: {
-        /** `calendars` narrows the fetch to calendars with those titles; omit
-         *  it (or pass an empty array) to search every calendar. */
-        upcoming(opts?: { hours?: number; calendars?: string[] }): Promise<Array<{
+        /** `calendars` narrows the fetch to calendars with those names (the
+         *  title, plus the account in parentheses when two accounts share a
+         *  title); omit it (or pass an empty array) to search every calendar.
+         *  `from` (epoch ms, not after now) starts the window earlier so
+         *  events already over come back too; `hours` still counts from now. */
+        upcoming(opts?: { hours?: number; calendars?: string[]; from?: number }): Promise<Array<{
             id: string;
             title: string;
             start: number;

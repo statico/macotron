@@ -571,14 +571,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         return running.isEmpty ? header.permissions.compactMap(Permissions.parse) : running
     }
 
-    /// The user's calendars, for `calendars` plugin options. Values are titles:
-    /// they read plainly in settings.json and survive an account re-sync, which
-    /// regenerates identifiers. Two calendars sharing a title across accounts
-    /// collapse into one row — that checkbox selects both.
+    /// The user's calendars, for `calendars` plugin options.
     private static func calendarChoices() -> [ModuleOptionChoice] {
         guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { return [] }
-        let titles = Permissions.calendarStore.calendars(for: .event).map(\.title)
-        return Set(titles).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        let names = Permissions.calendarStore.namedEventCalendars().map(\.name)
+        return Set(names).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
             .map { ModuleOptionChoice(value: $0, label: $0) }
     }
 

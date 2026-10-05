@@ -611,9 +611,9 @@ enum PluginMenu {
         @objc func invoke(_ sender: Any?) { run() }
     }
 
-    static func item(title: String, icon: String?) -> NSMenuItem {
+    static func item(title: String, icon: String?, dimmed: Bool = false) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        apply(title: title, icon: icon, to: item)
+        apply(title: title, icon: icon, dimmed: dimmed, to: item)
         return item
     }
 
@@ -649,9 +649,19 @@ enum PluginMenu {
         return "\(icon) \(title)"
     }
 
-    static func apply(title: String, icon: String?, to item: NSMenuItem) {
+    static func apply(title: String, icon: String?, dimmed: Bool = false, to item: NSMenuItem) {
         let text = menuTitle(title: title, icon: icon)
         if item.title != text { item.title = text }
+        // A disabled item would grey out too, but would stop taking clicks.
+        if dimmed {
+            let styled = NSAttributedString(string: text, attributes: [
+                .font: NSFont.menuFont(ofSize: 0),
+                .foregroundColor: NSColor.secondaryLabelColor,
+            ])
+            if item.attributedTitle != styled { item.attributedTitle = styled }
+        } else if item.attributedTitle != nil {
+            item.attributedTitle = nil
+        }
         // Re-assigning the image of an item in an OPEN menu makes AppKit
         // re-measure the image column and nudge the text right, so a plugin
         // repainting every couple of seconds walks its row across the menu.
@@ -694,7 +704,7 @@ enum PluginMenu {
                 )
                 continue
             }
-            apply(title: entry.title, icon: entry.icon, to: item)
+            apply(title: entry.title, icon: entry.icon, dimmed: entry.dimmed, to: item)
             if !entry.children.isEmpty, let submenu = item.submenu {
                 write(entry.children, onto: submenu, retaining: &boxes)
             } else {
@@ -725,7 +735,7 @@ enum PluginMenu {
                 menu.addItem(row)
                 continue
             }
-            let row = item(title: entry.title, icon: entry.icon)
+            let row = item(title: entry.title, icon: entry.icon, dimmed: entry.dimmed)
             if !entry.children.isEmpty {
                 row.submenu = make(entry.children, retaining: &boxes)
             } else {

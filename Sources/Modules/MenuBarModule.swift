@@ -351,7 +351,8 @@ public final class MenuBarModule: NativeModule {
                     html: html,
                     inline: inline,
                     width: JSBridge.double(ctx, elem, "width") ?? 260,
-                    height: JSBridge.double(ctx, elem, "height") ?? 160
+                    height: JSBridge.double(ctx, elem, "height") ?? 160,
+                    dimmed: JSBridge.bool(ctx, elem, "dimmed") ?? false
                 ))
             }
             JS_FreeValue(ctx, elem)

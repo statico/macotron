@@ -71,11 +71,11 @@ struct MeetingsTests {
         #expect(result.contains("Sooner"))
     }
 
-    @Test("a failed fetch still repaints and drops ended meetings")
+    @Test("a failed fetch still repaints and moves past ended meetings")
     func failedFetchStillPaints() throws {
         let now = Int(Date().timeIntervalSince1970 * 1000)
         // First paint sees one meeting already over and one rejection later:
-        // the item must still paint, and the ended meeting must not linger.
+        // the item must still paint, and the ended meeting must not take the title.
         let engine = try PluginHarness.load(plugin: "meetings.js", mock: """
             var store = {};
             var localStorage = {
@@ -105,7 +105,7 @@ struct MeetingsTests {
         #expect(PluginHarness.run(engine, "statusConfig.title") == "")
         #expect(PluginHarness.run(engine, "paintCount") != "0")
         // A later tick after the calendar recovers, then breaks again: the
-        // cached events keep painting, minus anything that has since ended.
+        // cached events keep painting, with ended ones no longer the next.
         PluginHarness.run(engine, """
             macotron.calendar.upcoming = () => Promise.resolve([
                 { id: "gone", title: "Over", start: \(now - 3600000), end: \(now - 1000), allDay: false, location: "", calendar: "Work" },
@@ -119,6 +119,52 @@ struct MeetingsTests {
             tick();
             """)
         #expect(PluginHarness.run(engine, "statusConfig.title").contains("Planning"))
+        #expect(engine.lastUnhandledRejection == nil)
+    }
+
+    @Test("dims past and ignored events, and dismissing moves on to the next")
+    func dimsAndDismisses() throws {
+        let now = Int(Date().timeIntervalSince1970 * 1000)
+        let engine = try PluginHarness.load(plugin: "meetings.js", mock: """
+            var store = {};
+            var localStorage = {
+                getItem: (k) => (k in store ? store[k] : null),
+                setItem: (k, v) => { store[k] = String(v); },
+                removeItem: (k) => { delete store[k]; }
+            };
+            var statusConfig = null;
+            var tick = null;
+            var macotron = {
+                plugin: () => ({ hours: 12, hide: "lunch", time: "relative", overlay: false }),
+                system: { locale: () => ({ hour12: true }) },
+                calendar: {
+                    upcoming: () => Promise.resolve([
+                        { id: "r", title: "Standup", start: \(now - 3600000), end: \(now - 1800000), allDay: false, location: "", calendar: "Work" },
+                        { id: "l", title: "Lunch", start: \(now + 300000), end: \(now + 900000), allDay: false, location: "", calendar: "Work" },
+                        { id: "a", title: "Planning", start: \(now + 600000), end: \(now + 1200000), allDay: false, location: "", calendar: "Work", url: "https://meet.example/x" },
+                        { id: "b", title: "Review", start: \(now + 3600000), end: \(now + 5400000), allDay: false, location: "", calendar: "Home" }
+                    ])
+                },
+                menubar: { status: (id, cfg) => { statusConfig = cfg; } },
+                app: { launch: () => {} },
+                url: { open: () => {} },
+                every: (ms, fn) => { tick = fn; },
+                command: () => {},
+                notify: { toast: () => {} }
+            };
+            function row(text) { return statusConfig.menu.find((r) => r.title && r.title.includes(text) && !r.title.startsWith("Join") && !r.title.startsWith("Dismiss")); }
+            """)
+        #expect(PluginHarness.run(engine, "statusConfig.title") == "Planning")
+        #expect(PluginHarness.run(engine, "row('Standup').dimmed") == "true")
+        #expect(PluginHarness.run(engine, "row('Lunch').dimmed") == "true")
+        #expect(PluginHarness.run(engine, "row('Planning').dimmed") == "false")
+        PluginHarness.run(engine, "statusConfig.menu.find((r) => r.title === 'Dismiss Planning').onClick()")
+        PluginHarness.run(engine, "tick()")
+        #expect(PluginHarness.run(engine, "statusConfig.title") == "Review")
+        #expect(PluginHarness.run(engine, "row('Planning').dimmed") == "true")
+        PluginHarness.run(engine, "statusConfig.menu.find((r) => r.title === 'Restore Dismissed Meetings').onClick()")
+        PluginHarness.run(engine, "tick()")
+        #expect(PluginHarness.run(engine, "statusConfig.title") == "Planning")
         #expect(engine.lastUnhandledRejection == nil)
     }
 }

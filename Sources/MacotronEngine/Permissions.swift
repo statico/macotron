@@ -427,3 +427,22 @@ public enum Permissions {
         _ = request(kIOHIDRequestTypeListenEvent)
     }
 }
+
+public extension EKEventStore {
+    /// Event calendars under the names `calendars` plugin options store. A
+    /// title is the name unless another account has a calendar by the same
+    /// title -- two "Calendar"s, one in iCloud and one in Google -- in which
+    /// case each gets its account in parentheses so a checkbox picks just one.
+    /// Names, not identifiers: they read plainly in settings.json and survive
+    /// an account re-sync, which regenerates identifiers.
+    func namedEventCalendars() -> [(name: String, calendar: EKCalendar)] {
+        let calendars = calendars(for: .event)
+        let counts = Dictionary(calendars.map { ($0.title, 1) }, uniquingKeysWith: +)
+        return calendars.map { calendar in
+            guard counts[calendar.title, default: 0] > 1, let account = calendar.source?.title else {
+                return (calendar.title, calendar)
+            }
+            return ("\(calendar.title) (\(account))", calendar)
+        }
+    }
+}
