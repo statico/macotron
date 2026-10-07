@@ -281,7 +281,9 @@ async function paint() {
         subtitle: next ? timeLabel(next) : "",
         sfSymbol: next ? "calendar.badge.clock" : "calendar",
         secondary: true,
-        minWidth: next ? 72 : undefined,
+        // Fits "in 1h 55m", or "Now · 1h 48m left" once it starts, so the
+        // countdown doesn't nudge the items beside it every minute.
+        minWidth: next ? (next.start <= Date.now() ? 100 : 72) : undefined,
         menu: menu(events, next),
     });
     overlayCheck(events);
