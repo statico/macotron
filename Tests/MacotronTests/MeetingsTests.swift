@@ -167,4 +167,34 @@ struct MeetingsTests {
         #expect(PluginHarness.run(engine, "statusConfig.title") == "Planning")
         #expect(engine.lastUnhandledRejection == nil)
     }
+
+    @Test("a meeting in progress shows the time left")
+    func showsTimeLeft() throws {
+        let now = Int(Date().timeIntervalSince1970 * 1000)
+        let result = try PluginHarness.evalSettled(plugin: "meetings.js", mock: """
+            var store = {};
+            var localStorage = {
+                getItem: (k) => (k in store ? store[k] : null),
+                setItem: (k, v) => { store[k] = String(v); },
+                removeItem: (k) => { delete store[k]; }
+            };
+            var statusConfig = null;
+            var macotron = {
+                plugin: () => ({ hours: 12, hide: "", time: "relative", overlay: false }),
+                system: { locale: () => ({ hour12: true }) },
+                calendar: {
+                    upcoming: () => Promise.resolve([
+                        { id: "s", title: "Standup", start: \(now - 600000), end: \(now + 720000), allDay: false, location: "", calendar: "Work" }
+                    ])
+                },
+                menubar: { status: (id, cfg) => { statusConfig = cfg; } },
+                app: { launch: () => {} },
+                url: { open: () => {} },
+                every: () => {},
+                command: () => {},
+                notify: { toast: () => {} }
+            };
+            """, extra: "statusConfig.subtitle")
+        #expect(result == "Now · 12m left")
+    }
 }

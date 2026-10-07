@@ -71,18 +71,24 @@ function clockLabel(at) {
     return hours + (mins ? ":" + String(mins).padStart(2, "0") : "") + suffix;
 }
 
-function relativeLabel(start) {
-    const mins = Math.round((start - Date.now()) / 60000);
-    if (mins < 1) return "Now";
-    if (mins < 60) return "in " + mins + "m";
+function durationLabel(mins) {
+    if (mins < 60) return mins + "m";
     const rest = mins % 60;
-    return "in " + Math.floor(mins / 60) + "h" + (rest ? " " + rest + "m" : "");
+    return Math.floor(mins / 60) + "h" + (rest ? " " + rest + "m" : "");
 }
 
-function timeLabel(start) {
+function relativeLabel(start) {
+    const mins = Math.round((start - Date.now()) / 60000);
+    return mins < 1 ? "Now" : "in " + durationLabel(mins);
+}
+
+function timeLabel(event) {
     const now = Date.now();
-    if (start <= now) return "Now";
-    return opts.time === "start" ? clockLabel(start) : relativeLabel(start);
+    if (event.start <= now) {
+        const left = Math.ceil((event.end - now) / 60000);
+        return left > 0 ? "Now · " + durationLabel(left) + " left" : "Now";
+    }
+    return opts.time === "start" ? clockLabel(event.start) : relativeLabel(event.start);
 }
 
 function hoursUntilTomorrow() {
@@ -272,7 +278,7 @@ async function paint() {
     const next = nextTimed(events);
     macotron.menubar.status("meetings", {
         title: next ? clip(next.title || "Untitled", 22) : "",
-        subtitle: next ? timeLabel(next.start) : "",
+        subtitle: next ? timeLabel(next) : "",
         sfSymbol: next ? "calendar.badge.clock" : "calendar",
         secondary: true,
         minWidth: next ? 72 : undefined,
@@ -290,6 +296,6 @@ macotron.command("Next Meeting", "Open the next calendar event's meeting link", 
         macotron.notify.toast("No meetings", "Nothing in the next " + (opts.hours || 12) + " hours");
         return;
     }
-    macotron.notify.toast(next.title || "Untitled", timeLabel(next.start));
+    macotron.notify.toast(next.title || "Untitled", timeLabel(next));
     joinOrOpen(next);
 });
