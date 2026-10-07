@@ -199,7 +199,7 @@ public final class SettingsState: ObservableObject {
     @Published public var showHotkeysHotkey: String = "" { didSet { claimsCache = nil; conflictCache = nil } }
     @Published public var showMenuBarIcon: Bool = true
     @Published public var launchAtLogin: Bool = false
-    @Published public var automaticUpdates: Bool = true
+    @Published public var updateFrequency: UpdateFrequency = .daily
     @Published public var appearance: AppearanceSetting = .system
     @Published public var textScale: Double = 1.0
     @Published public var launcherBackground: LauncherBackground = .translucent
@@ -297,7 +297,7 @@ public final class SettingsState: ObservableObject {
         textScale = LauncherPrefs.snapTextScale(readUIValue?("textScale") as? Double ?? 1.0)
         launcherBackground = LauncherBackground.parse(readUIValue?("launcherBackground"))
         launchAtLogin = LaunchAtLogin.isEnabled
-        automaticUpdates = Updater.automaticallyChecks
+        updateFrequency = Updater.frequency
         catalogPlugins = PluginCatalog.load()
         refreshModules()
         refreshAppShortcuts()
@@ -369,9 +369,9 @@ public final class SettingsState: ObservableObject {
         }
     }
 
-    public func setAutomaticUpdates(_ value: Bool) {
-        Updater.automaticallyChecks = value
-        automaticUpdates = Updater.automaticallyChecks
+    public func selectUpdateFrequency(_ value: UpdateFrequency) {
+        Updater.frequency = value
+        updateFrequency = Updater.frequency
     }
 
     public func selectAppearance(_ value: AppearanceSetting) {
@@ -938,11 +938,17 @@ public struct SettingsView: View {
 
                 formRow("Updates") {
                     VStack(alignment: .leading, spacing: 8) {
-                        Toggle("Check for updates automatically", isOn: Binding(
-                            get: { state.automaticUpdates },
-                            set: { state.setAutomaticUpdates($0) }
-                        ))
-                        .toggleStyle(.checkbox)
+                        Picker("", selection: Binding(
+                            get: { state.updateFrequency },
+                            set: { state.selectUpdateFrequency($0) }
+                        )) {
+                            ForEach(UpdateFrequency.allCases) { option in
+                                Text(option.label).tag(option)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .frame(width: 280, alignment: .leading)
                         Button(Updater.pendingVersion.map { "Update to \($0)..." }
                             ?? "Check Now") {
                             Updater.checkForUpdates()

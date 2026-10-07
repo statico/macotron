@@ -76,9 +76,37 @@ public enum Updater {
         reminder.pendingVersion
     }
 
-    /// Sparkle keeps this in the app's UserDefaults itself.
-    public static var automaticallyChecks: Bool {
-        get { controller.updater.automaticallyChecksForUpdates }
-        set { controller.updater.automaticallyChecksForUpdates = newValue }
+    /// Sparkle keeps both settings in the app's UserDefaults itself.
+    public static var frequency: UpdateFrequency {
+        get {
+            let updater = controller.updater
+            guard updater.automaticallyChecksForUpdates else { return .never }
+            return updater.updateCheckInterval >= UpdateFrequency.weekly.interval ? .weekly : .daily
+        }
+        set {
+            let updater = controller.updater
+            updater.automaticallyChecksForUpdates = newValue != .never
+            if newValue != .never { updater.updateCheckInterval = newValue.interval }
+        }
+    }
+}
+
+public enum UpdateFrequency: String, CaseIterable, Identifiable, Sendable {
+    case daily
+    case weekly
+    case never
+
+    public var id: String { rawValue }
+
+    public var label: String {
+        switch self {
+        case .daily: return "Daily"
+        case .weekly: return "Weekly"
+        case .never: return "Never"
+        }
+    }
+
+    var interval: TimeInterval {
+        self == .weekly ? 7 * 86400 : 86400
     }
 }
