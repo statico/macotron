@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.7.7</title>
+            <sparkle:version>0.7.7</sparkle:version>
+            <sparkle:shortVersionString>0.7.7</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Wed, 07 Oct 2026 22:05:32 +0000</pubDate>
+            <description><![CDATA[<ul><li>Update checks: daily, weekly or never</li><li>Meetings: show time left while a meeting is on</li><li>Meetings: hold the width steady during the countdown</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.7.7/Macotron-0.7.7.dmg" type="application/octet-stream" sparkle:edSignature="GuAc100/Qpf9MWjRKnCDJCzHOp5bgwFmUxn7uLdSHZM2INBqziVbax9/CyGaxwCR4mccDDJP7mj4+58znbwBDw==" length="10310918" />
+        </item>
+        <item>
             <title>0.7.6</title>
             <sparkle:version>0.7.6</sparkle:version>
             <sparkle:shortVersionString>0.7.6</sparkle:shortVersionString>
