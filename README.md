@@ -27,7 +27,7 @@ Pick one:
 - [Download for macOS](https://github.com/statico/macotron/releases/latest)
 - `brew install statico/tap/macotron`
 
-Either way, Macotron updates itself after that. It checks daily and asks before installing anything; **Check for Updates...** in the menu checks right now, and Settings > General turns the automatic check off.
+Either way, Macotron updates itself after that. It checks daily and asks before installing anything; **Check for Updates...** in the menu checks right now, and Settings > General switches the check to weekly or off.
 
 Macotron runs on macOS 15 Sequoia and later. A few things need macOS 26 Tahoe: the Apple Intelligence chat and plugin scanner (Foundation Models), and the Liquid Glass chrome.
 

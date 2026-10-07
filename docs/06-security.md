@@ -36,7 +36,7 @@ The first check calls the system request API for each missing permission. That c
 
 ## Updates
 
-Macotron updates itself with Sparkle. It checks daily, the menu has **Check for Updates...**, and Settings > General has **Check for updates automatically**.
+Macotron updates itself with Sparkle. It checks daily, the menu has **Check for Updates...**, and Settings > General sets **Updates** to daily, weekly or never.
 
 The feed lives at `https://macotron.statico.io/appcast.xml` and is fetched over HTTPS, but that is not what makes it trustworthy. Every DMG in the feed carries an EdDSA signature, and the app only installs one that verifies against the public key baked into its own signed `Info.plist`. A hijacked feed or a swapped download cannot install anything. The private half never leaves the release Mac's login keychain; see `docs/releasing.md`.
 
