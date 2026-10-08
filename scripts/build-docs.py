@@ -118,8 +118,8 @@ def head(title, summary, url, crumbs):
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="{SITE}{url}">
   <link rel="icon" href="/icon.png">
-  <script src="/head.js"></script>
   <link rel="stylesheet" href="/site.css">
+  <script src="/head.js"></script>
   <script type="application/ld+json">
   {{
     "@context": "https://schema.org",

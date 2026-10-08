@@ -1,5 +1,5 @@
-// Runs in <head> before the stylesheet paints, so neither the color scheme nor
-// a preview look flashes in late.
+// Runs in <head> before first paint, so neither the color scheme nor a
+// preview look flashes in late. It comes after site.css so a look wins ties.
 (function () {
   var root = document.documentElement;
   var m = localStorage.getItem("theme") || "system";

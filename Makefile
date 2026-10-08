@@ -193,8 +193,9 @@ docs: ## Rebuild site/docs from site/docs/src and check every API has a page
 	@python3 scripts/build-docs.py
 	@python3 scripts/build-docs.py --check
 
-serve: site ## Serve site/ at http://localhost:8000 (try ?look=polar)
-	@cd site && python3 -m http.server 8000
+PORT ?= 8123
+serve: site ## Serve site/ at http://localhost:$(PORT) (try ?look=polar)
+	@cd site && python3 -m http.server $(PORT) --bind 127.0.0.1
 
 # Tees to $(TRACE_LOG) because `log` refuses to run inside a sandbox: an agent
 # working in one can read the file even though it cannot run the command.

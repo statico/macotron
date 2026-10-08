@@ -650,7 +650,7 @@ footer a:hover { color: var(--ink); }
 }
 .doc pre code { font-size: inherit; }
 .doc :not(pre) > code {
-  background: var(--bg-2);
+  background: color-mix(in srgb, currentColor 10%, transparent);
   padding: 0.08em 0.3em;
   border-radius: 4px;
 }
