@@ -16,13 +16,13 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Contacts:** `macotron.contacts.list()` and `.search(query)` resolve with `{ id, name, first, last, organization, emails, phones }[]`. macOS prompts for Contacts access on first use.
 
-**App:** `macotron.app.launch(bundleID)` and `.switch(bundleID)` both open via Launch Services (`activates: true`), so a running app comes forward. `.list()`, `.frontmost()`, `.hide(bundleID?)`, `.quit(bundleID?)`, `.menu(["File", "New"], bundleID?)`. Events: `app:activated`, `app:launched`, `app:terminated`.
+**App:** `macotron.app.launch(bundleID)` and `.switch(bundleID)` bring the app forward, launching it if needed, and return `false` when no app has that bundle ID. A running app with windows is activated directly; a menu bar app goes through Launch Services so it gets its reopen event. `.list()`, `.frontmost()`, `.hide(bundleID?)`, `.quit(bundleID?)`, `.menu(["File", "New"], bundleID?)`. Events: `app:activated`, `app:launched`, `app:terminated`.
 
 **Audio:** `devices()`, `input()`, `output()`, `setInput` / `setOutput` (id or name), `volume` / `setVolume` (0…1), `isMuted` / `setMuted`. No-id mute is the default output. Pass the input device id to mute that input. `audio:changed` is `{ flags: ["input"|"output"|"devices"] }`. System output volume is this same `volume` / `setVolume` / `setMuted` with no device id.
 
 **Network:** `wifi()` resolves with `{ available, on, ssid? }`. `setWifi(on)` uses `networksetup` and resolves with the new state. `wifiSSID()` resolves with the SSID or `null`. `bluetooth()` resolves with `{ on, devices: [{ name, address, connected, battery? }] }`. `battery` is 0–100 when known. `setBluetooth(on)` toggles the radio and returns directly — it is one in-process call, not a subprocess. `airDrop()` reads sharingd Discoverable Mode directly; `setAirDrop("off"|"contacts"|"everyone")` has to restart sharingd, so it resolves. `interfaces()` is IPv4 `{ name, ip }[]`. `counters()` is `{ name, ip?, bytesIn, bytesOut }[]` (no loopback). `ping(host?)` resolves with `{ ms, host, error? }` via `/sbin/ping` (default `1.1.1.1`). `wifi:changed` is `{ on, ssid }`.
 
-**HTTP:** `http.get(url, opts?)`, `.post(url, body, opts?)`, `.put`, `.delete`. All resolve with `{ status, body, headers }`; a request that fails resolves with `status: 0` and the reason in `body` instead of rejecting. `opts.timeout` is milliseconds and defaults to 30000 -- URLSession enforces it, so the request is really cancelled, which racing the promise against `setTimeout` in a plugin would not do. `opts.headers` carries Content-Type, Authorization, Accept, User-Agent, X-API-Key, X-Request-ID, and Cookie; others are dropped.
+**HTTP:** `http.get(url, opts?)`, `.post(url, body, opts?)`, `.put`, `.delete`. All resolve with `{ status, body, headers }`; a request that fails resolves with `status: 0` and the reason in `body` instead of rejecting. `opts.timeout` is milliseconds and defaults to 30000 -- URLSession enforces it, so the request is really cancelled, which racing the promise against `setTimeout` in a plugin would not do. An object or array `body` goes out as JSON; anything else as its string. `opts.headers` sets any header; a `Cookie` header replaces the system cookie jar for that request.
 
 **Bonjour:** `bonjour.browse(type, { timeout })` resolves with `{ name, type, host, port, txt }[]`. `type` is `_airplay._tcp` or `_companion-link._tcp` (with or without `local.`). `timeout` is seconds, default 1.5. Dry-run resolves with `[]`.
 
@@ -44,13 +44,23 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Keyboard:** `macotron.keyboard.on("Tile Left", "ctrl+opt+left", callback)` — the id is the Settings label and is unique per plugin; override the combo in Settings → Plugins. `keyboard.flags()` is `{ cmd, shift, ctrl, opt, caps, fn }`.
 
-**Event:** `macotron.event.post({ type: "click"|"key"|"unicode"|"scroll", ... })` posts HID. `event.tap(["flagsChanged","scroll"], cb)` listens; return `false` to swallow. Coords are Cocoa (same as `window.frame`). `macotron.mouse.location()`, `.warp(x, y)`, `.buttons()`.
+**Event:** `macotron.event.post({ type: "click"|"key"|"unicode"|"scroll", ... })` posts HID. `event.tap(["flagsChanged","scroll"], cb)` listens; return `false` to swallow. Event coords are top-left global points, the same space as `window.frame`; a click without `x`/`y` lands at the pointer. `mouse.location()` and `warp()` are the exception: Cocoa, bottom-left. `macotron.mouse.location()`, `.warp(x, y)`, `.buttons()`.
 
 **Display:** `list()` is `{ id, width, height, main, frame, visibleFrame, scale, rotation, builtin, mirrored, serial, mm }`. `display:changed` fires with `{ id, flags }` (`add`, `remove`, `move`, `main`, `mode`, `enable`, `disable`, `mirror`, `unmirror`, `shape`). `getBrightness` / `setBrightness`, `setXDREnabled`. `setGamma({ red, green, blue }, black?, id?)` writes the display LUT (omit `id` for every screen). Red-only night vision is `setGamma({ red: 1, green: 0, blue: 0 })`. Extra-dark (below hardware min) is a lowered white point with black at 0. Invert is swapped white and black. `restoreGamma()` puts ColorSync back. Plugin unload also restores ColorSync.
 
 **Shell:** `macotron.shell.run(cmd, args)` — first call to an unapproved command prompts Allow Once / Always Allow / Deny.
 
-**Files:** `read`, `readBytes` (base64), `write`, `exists`, `list`, `watch`, `rename(from, to)`. Paths expand `~`. `rename` fails if `to` already exists.
+**FS:** `macotron.fs.read`, `readBytes` (base64), `write`, `exists`, `list`, `watch(path, cb)` (returns a stop function), `rename(from, to)`. Paths expand `~`. `rename` fails if `to` already exists.
+
+**File search:** `macotron.files` keeps an in-memory index of file names under `roots`. `configure({ roots, ignore, hidden, ignoreFiles })`, `reindex()`, `search(query, { folder, kind, dirsOnly, limit })` resolves with `{ path, name, isDir, score, modified }[]`, and `status()` reports entries, indexing, watching, and memory.
+
+**Spotlight:** `spotlight.search(query, { folder, kind })` resolves with `{ path, name, kind }[]` from the Spotlight index. A query containing `/` (or just `~`) is path completion instead: each segment fuzzy-matches one folder level, so `~/dc/inv` reaches `~/Documents/Invoices`.
+
+**OCR:** `ocr.recognize({ path })` or `({ image })` (base64 PNG) resolves with the text from Vision's on-device recognizer.
+
+**Snippets:** `snippets.set(abbr, body)`, `remove(abbr)`, `list()`, `insert(abbr)`. `setExpansionEnabled(true)` installs a keyboard tap that watches typing; when the last characters match an abbreviation it backspaces it and pastes the body (longest match wins), then restores the clipboard text. Returns whether expansion is on, so `false` means Input Monitoring or Accessibility is missing.
+
+**Idle:** `idle.seconds()` is the time since the last input. `setThreshold(seconds)` (default 60, one value for all plugins) sets when `system:idle` fires; `system:active` fires when input resumes. Checked every 5 seconds.
 
 **Clipboard:** `text()`, `set(text)`, `setImage(base64)`, `clear()`, `types()`, `data(uti)` (base64 or `null`). `clipboard:changed` is `{ changeCount, types }`. History: `history()`, `paste(id)`, `remove(id)`, `clearHistory()`. Recording is off until a consumer opts in — a `clipboard:changed` listener, a `history()` call, or `modules.clipboard.history: true`. Items marked `org.nspasteboard.ConcealedType`, `TransientType`, or `AutoGeneratedType` (password managers) are never recorded. History keeps at most 50 items for at most 24 hours.
 
@@ -58,7 +68,7 @@ Each module conforms to `NativeModule`, declares a `name`, and registers C funct
 
 **Reminders:** `list({ days, completed })` resolves with `{ id, title, due, completed, list }[]`. `due` is epoch ms or `null`. Incomplete only unless `completed: true`. `add({ title, due?, list? })` and `complete(id, on?)` are local writes, so they return `{ ok, id?, error? }` directly. macOS prompts for Reminders access on first use.
 
-**HomeKit:** `available()` is true when `HMHomeManager` is present (including with no homes). On native macOS the public HomeKit framework is unavailable, so `homes()` is `[]` and `set` returns `{ ok: false, error }`. `accessories(homeId?)` is `{ id, name, room, type, on?, value?, reachable }[]`. Lights and switches include `on`; sensors may include `value`.
+**HomeKit:** HomeKit.framework reaches Mac apps only as Mac Catalyst with an App Store or development profile, and Macotron ships with Developer ID, so a scene is a shortcut the user builds with a Home action and keeps in one Shortcuts folder. `homekit.scenes({ folder? })` resolves with the shortcut names in that folder (default `Home`); `run(name)` runs one through `/usr/bin/shortcuts` and resolves with whether it succeeded.
 
 **Dock:** `badges()` is `{ app, bundleID?, badge }[]` for Dock tiles that show a badge. Needs Accessibility. Empty when untrusted.
 
@@ -108,8 +118,8 @@ Host CSS defines system colors as variables: `--macotron-accent`, `--macotron-ac
 
 **Camera / record / share:** `camera.preview`, `audio.record`, `share.airDrop`.
 
-**localStorage:** Standard web API backed by JSON under the workdir data store.
+**localStorage:** `getItem`, `setItem`, `removeItem`, `clear`, backed by `data/localStorage.json` in the workdir and shared by every plugin. No `length` or `key()`.
 
-**Keychain:** `macotron.keychain.get(key)`, `.set(key, value)`, `.delete(key)`, `.has(key)`
+**Keychain:** `macotron.keychain.get(key)`, `.set(key, value)`, `.delete(key)`, `.has(key)`. Keys are shared by every plugin, so prefix them.
 
 **AI:** See [05-ai-integration.md](05-ai-integration.md).
