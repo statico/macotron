@@ -83,10 +83,15 @@ enum GeminiAPI {
                 ]
             },
             "generationConfig": [
-                "temperature": options.temperature,
                 "maxOutputTokens": options.maxTokens,
             ] as [String: Any],
         ]
+        if let temperature = options.temperature {
+            payload["generationConfig"] = [
+                "temperature": temperature,
+                "maxOutputTokens": options.maxTokens,
+            ]
+        }
         if let system = options.systemPrompt, !system.isEmpty {
             payload["systemInstruction"] = ["parts": [["text": system]]]
         }

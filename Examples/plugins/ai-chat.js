@@ -64,10 +64,10 @@ function activeChat(state) {
 
 function client(model) {
     if (model === "opus") {
-        return macotron.ai.anthropic({ apiKey: opts.anthropicKey, model: "claude-opus-4-6" });
+        return macotron.ai.anthropic({ apiKey: opts.anthropicKey, model: "claude-opus-5-5" });
     }
     if (model === "sonnet") {
-        return macotron.ai.claude({ apiKey: opts.anthropicKey, model: "claude-sonnet-4-6" });
+        return macotron.ai.claude({ apiKey: opts.anthropicKey, model: "claude-sonnet-5-5" });
     }
     if (model === "gemini") {
         return macotron.ai.gemini({ apiKey: opts.geminiKey, model: "gemini-2.5-flash" });

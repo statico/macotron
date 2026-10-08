@@ -221,13 +221,13 @@ public final class AIModule: NativeModule {
 
         var model = storedModel
         var maxTokens = 4096
-        var temperature = 0.7
+        var temperature: Double?
         var systemPrompt: String?
         if let argv, argc >= 2, JS_IsObject(argv[1]) {
             let opts = argv[1]
             model = JSBridge.string(ctx, opts, "model") ?? storedModel
             maxTokens = JSBridge.int(ctx, opts, "maxTokens") ?? maxTokens
-            temperature = JSBridge.double(ctx, opts, "temperature") ?? temperature
+            temperature = JSBridge.double(ctx, opts, "temperature")
             systemPrompt = JSBridge.string(ctx, opts, "system")
         }
         return (provider, AIRequestOptions(
