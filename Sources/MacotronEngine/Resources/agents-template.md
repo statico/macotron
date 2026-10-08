@@ -215,8 +215,10 @@ const opts = macotron.plugin({
 ```
 
 Valid permission names: `accessibility`, `inputMonitoring`, `screenRecording`,
-`camera`, `helper`. Window control needs `accessibility`. Screen capture needs
-`screenRecording`. QR camera scan needs `camera`. Privileged work such as holding
+`camera`, `microphone`, `calendar`, `automation`, `menuBar`, `helper`. Window
+control needs `accessibility`. Screen capture needs `screenRecording`. QR camera
+scan needs `camera`. Calendar events need `calendar`. Driving another app with
+Apple Events needs `automation`. Privileged work such as holding
 a fan-speed floor needs `helper`, which the user installs as the background helper
 from this plugin's Settings page.
 
