@@ -58,7 +58,7 @@ Native macOS host for JavaScript plugins.
 - [macotron.files](/docs/api-files.html): Search file and folder names in Macotron's own fast index of the folders you choose.
 - [macotron.fs](/docs/api-fs.html): Read, write, list, rename, and watch files anywhere your user account can reach.
 - [macotron.hid](/docs/api-hid.html): List HID devices, open one, and send and read raw input, output, and feature reports.
-- [macotron.homekit](/docs/api-homekit.html): The HomeKit namespace. macOS gives native apps no HomeKit access, so it returns no homes today.
+- [macotron.homekit](/docs/api-homekit.html): Run Home scenes and accessory actions, kept as shortcuts in one Shortcuts folder.
 - [macotron.http](/docs/api-http.html): Make GET, POST, PUT, and DELETE requests and read the status, body, and headers.
 - [macotron.idle](/docs/api-idle.html): Read how long the user has been away, and get events when the Mac goes idle and comes back.
 - [macotron.keyboard](/docs/api-keyboard.html): Global hotkeys the user can rebind, the current modifier keys, and a Hyper key.

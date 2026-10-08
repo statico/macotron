@@ -645,19 +645,12 @@ declare const macotron: {
         complete(id: string, on?: boolean): { ok: boolean; error?: string };
     };
 
+    /** Home scenes: shortcuts kept in one Shortcuts folder ("Home" by default). */
     homekit: {
-        available(): boolean;
-        homes(): Array<{ id: string; name: string }>;
-        accessories(homeId?: string): Array<{
-            id: string;
-            name: string;
-            room: string;
-            type: string;
-            on?: boolean;
-            value?: number;
-            reachable: boolean;
-        }>;
-        set(id: string, state: { on?: boolean; value?: number }): { ok: boolean; error?: string };
+        /** Names of the shortcuts in the folder. */
+        scenes(opts?: { folder?: string }): Promise<string[]>;
+        /** Runs a shortcut by name and resolves when it finishes. */
+        run(name: string): Promise<boolean>;
     };
 
     dock: {

@@ -10,8 +10,11 @@ enum ShortcutsCLI {
             .filter { !$0.isEmpty }
     }
 
-    static func list() -> [String] {
-        parseList(Subprocess.run(binary, ["list"]).stdout)
+    /// Every shortcut, or only those in `folder`. A folder that does not exist
+    /// lists nothing.
+    static func list(folder: String? = nil) -> [String] {
+        let args = folder.map { ["list", "--folder-name", $0] } ?? ["list"]
+        return parseList(Subprocess.run(binary, args).stdout)
     }
 
     static func runShortcut(_ name: String) -> (ok: Bool, stdout: String, stderr: String) {
