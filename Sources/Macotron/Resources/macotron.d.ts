@@ -816,7 +816,7 @@ declare const macotron: {
     };
 
     menubar: {
-        add(id: string, opts: { title: string; icon?: string; shortcut?: string; onClick?: () => void; section?: string; refresh?: number; menu?: MenuBarMenuItem[] }): void;
+        add(id: string, opts: { title: string; icon?: string; onClick?: () => void; section?: string; menu?: MenuBarMenuItem[] }): void;
         update(id: string, opts: { title?: string; icon?: string }): void;
         remove(id: string): void;
         setIcon(sfSymbolName: string): void;
