@@ -1,7 +1,7 @@
 macotron.plugin({
     title: "Apple TV Controls",
     description: "Find Apple TVs on your network and open a remote.",
-    help: "Macotron finds Apple TVs over Bonjour, but sending a key needs Companion pairing, which is not implemented yet, so the remote reports \"not paired\". Discovery takes about a second, so it runs once per open and the result is reused for 30 seconds.",
+    help: "Run \"Pair Apple TV\" once per TV: the TV shows a PIN and Macotron asks for it. After that the remote sends keys over the same Companion protocol the iPhone remote uses. Discovery takes about a second, so it runs once per open and the result is reused for 30 seconds.",
 });
 
 function esc(s) {
@@ -111,14 +111,40 @@ function open() {
             // Say it once rather than swallowing every press.
             if (warned) return;
             warned = true;
-            macotron.notify.toast("Apple TV", result && result.error ? result.error : "Could not send", {
-                color: "error",
-            });
+            toast(result && result.error ? result.error : "Could not send", "error");
         });
     });
 }
 
+function toast(body, color) {
+    macotron.notify.toast("Apple TV", body, { color });
+}
+
+// The TV shows a PIN once pair(id) starts, so the prompt comes after it.
+async function pair() {
+    const tvs = [];
+    for (const t of await macotron.appletv.list()) {
+        if (!tvs.some((x) => x.name === t.name)) tvs.push(t);
+    }
+    if (!tvs.length) return toast("No Apple TV found", "error");
+    let tv = tvs[0];
+    if (tvs.length > 1) {
+        const names = tvs.map((t) => t.name).join(", ");
+        const name = macotron.prompt(`Pair which Apple TV? ${names}`, tv.name);
+        if (name === null) return;
+        tv = tvs.find((t) => t.name === name.trim());
+        if (!tv) return toast(`No Apple TV named ${name}`, "error");
+    }
+    const started = await macotron.appletv.pair(tv.id);
+    if (!started.ok) return toast(started.error, "error");
+    const pin = macotron.prompt(`Enter the PIN shown on ${tv.name}`);
+    if (pin === null) return;
+    const done = await macotron.appletv.pair(tv.id, pin);
+    toast(done.ok ? `Paired with ${tv.name}` : done.error, done.ok ? "success" : "error");
+}
+
 macotron.command("Apple TV Remote", "Remote for Apple TVs on the LAN", open);
+macotron.command("Pair Apple TV", "Pair this Mac with an Apple TV using the PIN it shows", pair);
 
 macotron.menubar.status("appletv", {
     title: "",
