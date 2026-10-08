@@ -274,7 +274,7 @@ declare const macotron: {
     };
 
     screen: {
-        capture(opts?: { windowID?: number; selection?: boolean }): Promise<string>;
+        capture(opts?: { selection?: boolean }): Promise<string>;
         /** System magnifier eyedropper. Resolves null if cancelled. Coords are Cocoa screen points. */
         pickColor(): Promise<{
             hex: string;

@@ -273,7 +273,8 @@ public final class DisplayModule: NativeModule {
 
     private func setXDREnabled(_ enabled: Bool) -> Bool {
         if !enabled {
-            cleanup()
+            xdrWindow?.close()
+            xdrWindow = nil
             return true
         }
         guard xdrWindow == nil else { return true }
