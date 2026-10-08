@@ -223,7 +223,7 @@ enum AppleTVRemote {
             return ["ok": false, "error": "The PIN is the 4 numbers on the TV"]
         }
         return queue.sync {
-            guard let (link, challenge) = Optional(pending.removeValue(forKey: target.name)) ?? nil else {
+            guard let (link, challenge) = pending.removeValue(forKey: target.name) else {
                 return ["ok": false, "error": "Call pair(id) first so the TV shows a PIN"]
             }
             defer { link.close() }
