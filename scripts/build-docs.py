@@ -103,7 +103,7 @@ def head(title, summary, url, crumbs):
         for i, (n, u) in enumerate(crumbs))
     t, s = html.escape(title), html.escape(summary)
     return f"""<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-look="glass">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
