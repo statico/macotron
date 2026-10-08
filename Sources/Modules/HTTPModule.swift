@@ -79,12 +79,16 @@ public final class HTTPModule: NativeModule {
         request.timeoutInterval = 30
 
         // Parse body for POST/PUT (second argument)
-        if hasBody, argc >= 2 {
-            if let bodyStr = JSBridge.toString(ctx, argv[1]) {
+        if hasBody, argc >= 2, !JSBridge.isUndefined(argv[1]) {
+            // Objects and arrays go as JSON; anything else as its string.
+            let body = JSBridge.jsToSwift(ctx, argv[1])
+            if JSONSerialization.isValidJSONObject(body) {
+                request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            } else if let bodyStr = JSBridge.toString(ctx, argv[1]) {
                 request.httpBody = bodyStr.data(using: .utf8)
-                // Default content type if not overridden by opts
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             }
+            // Default content type if not overridden by opts
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
 
         // Parse opts (last argument, if it's an object)
@@ -92,21 +96,15 @@ public final class HTTPModule: NativeModule {
         if argc > optsIndex {
             let opts = argv[Int(optsIndex)]
 
-            // Only the headers a plugin is likely to set: QuickJS property
-            // enumeration is not wired up here yet.
             let headersVal = JSBridge.getProperty(ctx, opts, "headers")
-            for header in [
-                "Content-Type", "Authorization", "Accept",
-                "User-Agent", "X-API-Key", "X-Request-ID", "Cookie",
-            ] {
-                if let str = JSBridge.string(ctx, headersVal, header) {
-                    request.setValue(str, forHTTPHeaderField: header)
-                    // A hand-set Cookie loses to the shared jar once the site
-                    // has set anything, so keep the jar out of this request.
-                    if header == "Cookie" { request.httpShouldHandleCookies = false }
-                }
-            }
+            let headers = JSBridge.jsToSwift(ctx, headersVal) as? [String: Any] ?? [:]
             JS_FreeValue(ctx, headersVal)
+            for (header, value) in headers {
+                request.setValue("\(value)", forHTTPHeaderField: header)
+                // A hand-set Cookie loses to the shared jar once the site
+                // has set anything, so keep the jar out of this request.
+                if header.lowercased() == "cookie" { request.httpShouldHandleCookies = false }
+            }
 
             if let timeoutMs = JSBridge.double(ctx, opts, "timeout"), timeoutMs > 0 {
                 request.timeoutInterval = timeoutMs / 1000.0

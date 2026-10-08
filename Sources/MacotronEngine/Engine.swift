@@ -842,7 +842,8 @@ public final class Engine {
 
         // Version info
         let versionObj = JS_NewObject(context)
-        JS_SetPropertyStr(context, versionObj, "app", JSBridge.newString(context, "1.0.0"))
+        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+        JS_SetPropertyStr(context, versionObj, "app", JSBridge.newString(context, appVersion))
         JS_SetPropertyStr(context, versionObj, "api", JSBridge.newString(context, Self.apiVersion))
 
         let modulesVersion = JS_NewObject(context)

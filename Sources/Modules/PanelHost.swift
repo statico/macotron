@@ -572,15 +572,13 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
     }
 
     func evaluateJSON(_ data: Any) {
+        // Wrapping in an array validates bare numbers, booleans and strings
+        // too; NaN and other unencodable values become null.
         let json: String
-        if JSONSerialization.isValidJSONObject(data),
-           let raw = try? JSONSerialization.data(withJSONObject: data),
+        if JSONSerialization.isValidJSONObject([data]),
+           let raw = try? JSONSerialization.data(withJSONObject: data, options: .fragmentsAllowed),
            let s = String(data: raw, encoding: .utf8) {
             json = s
-        } else if let s = data as? String {
-            json = PanelShell.jsonString(s)
-        } else if data is NSNull {
-            json = "null"
         } else {
             json = "null"
         }

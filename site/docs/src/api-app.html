@@ -18,11 +18,11 @@
 
 <h2>Launching and switching</h2>
 
-<h3>launch(bundleID: string): void</h3>
+<h3>launch(bundleID: string): boolean</h3>
 <p>Brings the app to the front, opening it first if it is not running. When the app is already running with windows, Macotron activates it directly, which is fast. A menu bar app goes through Launch Services instead, so it gets the reopen event it uses to show its window or panel.</p>
 <p>It returns <code>false</code> when no app with that bundle ID is installed, and <code>true</code> otherwise.</p>
 
-<h3>switch(bundleID: string): void</h3>
+<h3>switch(bundleID: string): boolean</h3>
 <p>The same as <code>launch()</code>.</p>
 
 <h2>Hiding and quitting</h2>

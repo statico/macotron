@@ -179,9 +179,8 @@ declare const macotron: {
         moveToFraction(id: number, frac: { x?: number; y?: number; w?: number; h?: number; display?: number; gap?: number }): boolean;
         /** Show or hide the snap destination overlay. Pass `null` to hide. */
         previewFraction(frac: { x?: number; y?: number; w?: number; h?: number; display?: number; gap?: number } | null): boolean;
-        /** Flash a brief outline around a window, to show where the focus went. */
-        /** Flash an outline around a window. With no id, the focused window. */
-    flash(id?: number): boolean;
+        /** Flash an outline around a window, to show where the focus went. With no id, the focused window. */
+        flash(id?: number): boolean;
         setSnapEnabled(enabled: boolean): boolean;
         isSnapEnabled(): boolean;
         /** Drag-to-edge tiling. Zones are fractions of the visible frame (same as moveToFraction). Omit a slot to disable it. `modifiers` swaps the map while those keys are held (`shift`, `cmd+shift`). */
@@ -541,8 +540,9 @@ declare const macotron: {
 
     app: {
         list(): Array<{ name: string; bundleID: string; pid: number }>;
-        launch(bundleID: string): void;
-        switch(bundleID: string): void;
+        /** False when no app has that bundle id. */
+        launch(bundleID: string): boolean;
+        switch(bundleID: string): boolean;
         frontmost(): { name: string; bundleID: string; pid: number } | null;
         hide(bundleID?: string): boolean;
         quit(bundleID?: string): boolean;
@@ -761,6 +761,9 @@ declare const macotron: {
         /** System appearance, not Macotron's own Settings theme. */
         darkMode(): boolean;
         setDarkMode(on: boolean): Promise<{ ok: boolean; darkMode: boolean; error?: string }>;
+        /** `auto` means macOS switches between light and dark with the time of day. */
+        appearance(): "light" | "dark" | "auto";
+        setAppearance(mode: "light" | "dark" | "auto"): Promise<{ ok: boolean; appearance: "light" | "dark" | "auto"; darkMode?: boolean; error?: string }>;
         /** Whether a Focus mode (Do Not Disturb, Sleep, Work, …) is on. */
         focus(): { focused: boolean };
         disk(): { total: number; free: number; used: number };
@@ -1015,7 +1018,7 @@ declare const macotron: {
         /** Extra explanation shown in Settings → Plugins. */
         help?: string;
         /** `helper` lists the background helper on this plugin's Settings page. */
-        permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "camera" | "microphone" | "helper">;
+        permissions?: MacotronPermission[];
         options?: Record<string, MacotronPluginOption>;
     }): Record<string, any>;
     /** @deprecated Use plugin() */
@@ -1023,11 +1026,11 @@ declare const macotron: {
         title?: string;
         description?: string;
         help?: string;
-        permissions?: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "camera" | "microphone">;
+        permissions?: MacotronPermission[];
         options?: Record<string, MacotronPluginOption>;
     }): Record<string, any>;
     /** @deprecated Pass `permissions` to plugin() */
-    requirePermissions(list: Array<"accessibility" | "inputMonitoring" | "screenRecording" | "camera" | "microphone">): void;
+    requirePermissions(list: MacotronPermission[]): void;
 };
 
 /**
@@ -1037,6 +1040,11 @@ declare const macotron: {
  * `help` is a sentence shown under the field. Put the explanation there and
  * keep `label` to a few words, rather than writing a sentence as the label.
  */
+/** `helper` lists the background helper on the plugin's Settings page; `menuBar` asks to keep its menu bar items visible. */
+type MacotronPermission =
+    | "accessibility" | "inputMonitoring" | "screenRecording" | "camera" | "microphone"
+    | "calendar" | "automation" | "menuBar" | "helper";
+
 type MacotronPluginOption =
     | { type: "string"; label: string; default?: string; required?: boolean; placeholder?: string; help?: string }
     | { type: "text"; label: string; default?: string; required?: boolean; placeholder?: string; help?: string }
@@ -1090,6 +1098,7 @@ declare const console: {
     warn(...args: any[]): void;
     error(...args: any[]): void;
     info(...args: any[]): void;
+    debug(...args: any[]): void;
 };
 
 declare function setTimeout(callback: () => void, ms?: number): number;
@@ -1102,6 +1111,4 @@ declare const localStorage: {
     setItem(key: string, value: string): void;
     removeItem(key: string): void;
     clear(): void;
-    readonly length: number;
-    key(index: number): string | null;
 };
