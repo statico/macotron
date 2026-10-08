@@ -41,13 +41,15 @@ public final class OpenAIProvider: AIProvider, @unchecked Sendable {
             ["role": $0.role, "content": $0.content]
         })
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": model,
             "max_tokens": options.maxTokens,
-            "temperature": options.temperature,
             "stream": true,
             "messages": apiMessages,
         ]
+        if let temperature = options.temperature {
+            body["temperature"] = temperature
+        }
 
         let jsonData = try JSONSerialization.data(withJSONObject: body)
 

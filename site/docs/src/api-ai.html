@@ -11,7 +11,7 @@
   },
 });
 
-const ai = macotron.ai.claude({ apiKey: opts.apiKey, model: "claude-sonnet-4-6" });
+const ai = macotron.ai.claude({ apiKey: opts.apiKey, model: "claude-sonnet-5-5" });
 const summary = await ai.chat(macotron.clipboard.text(), {
   system: "Summarize the text in one sentence.",
 });
@@ -23,7 +23,7 @@ macotron.notify.toast(summary);</code></pre>
 <table>
   <thead><tr><th>Factory</th><th>Service</th><th>Default model</th></tr></thead>
   <tbody>
-    <tr><td><code>claude()</code>, <code>anthropic()</code></td><td>Anthropic Messages API</td><td><code>claude-opus-4-6</code></td></tr>
+    <tr><td><code>claude()</code>, <code>anthropic()</code></td><td>Anthropic Messages API</td><td><code>claude-opus-5-5</code></td></tr>
     <tr><td><code>openai()</code></td><td>OpenAI Chat Completions API</td><td><code>gpt-4o</code></td></tr>
     <tr><td><code>gemini()</code></td><td>Google Gemini API</td><td><code>gemini-2.5-flash</code></td></tr>
     <tr><td><code>local()</code></td><td>Apple Foundation Models, on this Mac</td><td>The system language model</td></tr>
@@ -31,7 +31,7 @@ macotron.notify.toast(summary);</code></pre>
 </table>
 
 <h3>claude(opts?: { model?: string; apiKey?: string }): AIClient</h3>
-<p>A client for <code>api.anthropic.com</code>. <code>model</code> is any Anthropic model id. Omit it to use <code>claude-opus-4-6</code>.</p>
+<p>A client for <code>api.anthropic.com</code>. <code>model</code> is any Anthropic model id. Omit it to use <code>claude-opus-5-5</code>.</p>
 
 <h3>anthropic(opts?: { model?: string; apiKey?: string }): AIClient</h3>
 <p>The same function as <code>claude()</code>, under another name.</p>
@@ -60,7 +60,7 @@ macotron.notify.toast(summary);</code></pre>
     <tr><td><code>system</code></td><td>none</td><td>The system prompt.</td></tr>
     <tr><td><code>model</code></td><td>The client's model</td><td>Overrides the model for this one request.</td></tr>
     <tr><td><code>maxTokens</code></td><td><code>4096</code></td><td>The longest reply, in tokens.</td></tr>
-    <tr><td><code>temperature</code></td><td><code>0.7</code></td><td>Sampling temperature.</td></tr>
+    <tr><td><code>temperature</code></td><td>provider default</td><td>Sampling temperature. Leave it out for current Claude models, which reject it.</td></tr>
     <tr><td><code>onChunk</code></td><td>none</td><td><code>stream()</code> only. Called with each new piece of text.</td></tr>
   </tbody>
 </table>

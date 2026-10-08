@@ -14,7 +14,7 @@ public final class ClaudeProvider: AIProvider, @unchecked Sendable {
         baseURL: String? = nil
     ) {
         self.apiKey = apiKey
-        self.defaultModel = model ?? "claude-opus-4-6"
+        self.defaultModel = model ?? "claude-opus-5-5"
         self.baseURL = baseURL ?? "https://api.anthropic.com"
     }
 
@@ -44,8 +44,8 @@ public final class ClaudeProvider: AIProvider, @unchecked Sendable {
             "messages": apiMessages
         ]
 
-        if options.temperature >= 0 {
-            body["temperature"] = options.temperature
+        if let temperature = options.temperature {
+            body["temperature"] = temperature
         }
 
         if let systemPrompt = options.systemPrompt {

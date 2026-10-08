@@ -5,13 +5,14 @@ import Foundation
 public struct AIRequestOptions: Sendable {
     public let model: String?
     public let maxTokens: Int
-    public let temperature: Double
+    /// Nil leaves sampling to the provider. Newer Claude models reject it.
+    public let temperature: Double?
     public let systemPrompt: String?
 
     public init(
         model: String? = nil,
         maxTokens: Int = 4096,
-        temperature: Double = 0.7,
+        temperature: Double? = nil,
         systemPrompt: String? = nil
     ) {
         self.model = model
