@@ -681,23 +681,6 @@ footer a:hover { color: var(--ink); }
 .doc-index dt { margin-top: 0.8rem; font-weight: 600; }
 .doc-index dd { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.9rem; }
 
-.look-picker {
-  position: fixed;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 50;
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  padding: 0.45rem 0.7rem;
-  background: var(--card);
-  color: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font: 600 0.8rem var(--sans);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
-}
-.look-picker select { font: inherit; }
 
 @media (max-width: 800px) {
   .group { grid-template-columns: 1fr; gap: 0.8rem; }
@@ -718,3 +701,243 @@ footer a:hover { color: var(--ink); }
 }
 .api-grid h3 a { color: inherit; text-decoration: none; }
 .api-grid h3 a:hover { text-decoration: underline; }
+
+/* Glass: macOS 26 Tahoe. Liquid Glass panels float over a night-sky wallpaper.
+   Contrast is checked against glass composited over the darkest and the
+   lightest point of the wallpaper (fields stacked at full strength). */
+
+:root[data-look="glass"] {
+  color-scheme: dark;
+  --wall: #11151c;
+  --field-1: rgba(94, 129, 172, 0.22);  /* frost #5e81ac */
+  --field-2: rgba(180, 142, 173, 0.15); /* aurora #b48ead */
+  --field-3: rgba(136, 192, 208, 0.07); /* #88c0d0 */
+  --glass: rgba(30, 36, 46, 0.55);
+  --glass-solid: #1a1f28;
+  --glass-edge: rgba(255, 255, 255, 0.08);
+  --glass-hi: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  --h1: #ffffff;
+
+  --bg: var(--wall);
+  --bg-2: rgba(255, 255, 255, 0.06);
+  --ink: #eceff4;
+  --muted: #b4bdcc;
+  --line: rgba(255, 255, 255, 0.09);
+  --card: var(--glass);
+  --accent: #88c0d0;
+  --accent-2: #88c0d0;
+  --btn: #88c0d0;
+  --btn-ink: #11151c;
+  --finder: var(--glass);
+  --finder-bar: rgba(255, 255, 255, 0.04);
+  --finder-side: rgba(0, 0, 0, 0.14);
+  --finder-pane: transparent;
+  --scroll: rgba(255, 255, 255, 0.18);
+  --veil: var(--glass);
+  --tok-kw: #8fb0d0;
+  --tok-str: #a3be8c;
+  --tok-cmt: #939eb2;
+  --tok-fn: #88c0d0;
+  --tok-num: #c3a0bd;
+  --sans: system-ui, -apple-system, "SF Pro Text", sans-serif;
+  --top-h: 2.75rem;
+  --r-panel: 22px;
+  --r-inner: 12px;
+}
+
+/* Light: pale wallpaper, white glass. Same tokens in both light selectors. */
+:root[data-look="glass"][data-theme="light"] {
+  color-scheme: light;
+  --wall: #e6ebf2;
+  --field-1: rgba(94, 129, 172, 0.18);
+  --field-2: rgba(180, 142, 173, 0.16);
+  --field-3: rgba(136, 192, 208, 0.1);
+  --glass: rgba(255, 255, 255, 0.6);
+  --glass-solid: #f6f8fb;
+  --glass-edge: rgba(17, 21, 28, 0.08);
+  --glass-hi: rgba(255, 255, 255, 0.8);
+  --glass-shadow: 0 12px 40px rgba(46, 52, 64, 0.12);
+  --h1: #11151c;
+  --bg-2: rgba(255, 255, 255, 0.55);
+  --ink: #1d2330;
+  --muted: #434c5e;
+  --line: rgba(17, 21, 28, 0.1);
+  --accent: #36577f;
+  --accent-2: #36577f;
+  --btn: #36577f;
+  --btn-ink: #ffffff;
+  --finder-bar: rgba(255, 255, 255, 0.35);
+  --finder-side: rgba(255, 255, 255, 0.35);
+  --scroll: rgba(17, 21, 28, 0.2);
+  --tok-kw: #36577f;
+  --tok-str: #3c6634;
+  --tok-cmt: #535d72;
+  --tok-fn: #2a6275;
+  --tok-num: #764f71;
+}
+@media (prefers-color-scheme: light) {
+  :root[data-look="glass"]:not([data-theme="dark"]) {
+    color-scheme: light;
+    --wall: #e6ebf2;
+    --field-1: rgba(94, 129, 172, 0.18);
+    --field-2: rgba(180, 142, 173, 0.16);
+    --field-3: rgba(136, 192, 208, 0.1);
+    --glass: rgba(255, 255, 255, 0.6);
+    --glass-solid: #f6f8fb;
+    --glass-edge: rgba(17, 21, 28, 0.08);
+    --glass-hi: rgba(255, 255, 255, 0.8);
+    --glass-shadow: 0 12px 40px rgba(46, 52, 64, 0.12);
+    --h1: #11151c;
+    --bg-2: rgba(255, 255, 255, 0.55);
+    --ink: #1d2330;
+    --muted: #434c5e;
+    --line: rgba(17, 21, 28, 0.1);
+    --accent: #36577f;
+    --accent-2: #36577f;
+    --btn: #36577f;
+    --btn-ink: #ffffff;
+    --finder-bar: rgba(255, 255, 255, 0.35);
+    --finder-side: rgba(255, 255, 255, 0.35);
+    --scroll: rgba(17, 21, 28, 0.2);
+    --tok-kw: #36577f;
+    --tok-str: #3c6634;
+    --tok-cmt: #535d72;
+    --tok-fn: #2a6275;
+    --tok-num: #764f71;
+  }
+}
+
+/* --- wallpaper --- */
+
+[data-look="glass"] body { background: var(--wall); }
+[data-look="glass"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60vmax 45vmax at 12% 6%, var(--field-1), transparent 70%),
+    radial-gradient(55vmax 45vmax at 90% 34%, var(--field-2), transparent 70%),
+    radial-gradient(50vmax 38vmax at 38% 100%, var(--field-3), transparent 70%),
+    var(--wall);
+}
+
+/* --- glass surfaces --- */
+
+[data-look="glass"] :is(.top, .can-head, .group, .hero-code, .finder, .api-grid, .docs-nav, .doc) {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-hi), var(--glass-shadow);
+}
+
+/* Menu bar: full width, thin, no float shadow. */
+[data-look="glass"] .top {
+  max-width: none;
+  border-width: 0 0 1px;
+  box-shadow: inset 0 1px 0 var(--glass-hi);
+  padding-inline: max(var(--pad), calc((100% - var(--maxw)) / 2 + var(--pad)));
+}
+[data-look="glass"] .mark { font-size: 0.875rem; font-weight: 650; }
+[data-look="glass"] .top nav { font-size: 0.8125rem; }
+
+[data-look="glass"] .theme { border-color: var(--glass-edge); border-radius: 999px; }
+[data-look="glass"] .theme button { height: 1.5rem; }
+[data-look="glass"] .theme button + button { border-left-color: var(--glass-edge); }
+
+/* --- hero --- */
+
+[data-look="glass"] .hero { padding-top: 5rem; }
+[data-look="glass"] .hero-copy { max-width: 48rem; }
+[data-look="glass"] .hero h1 {
+  font-size: clamp(2.6rem, 9vw, 5rem);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  color: var(--h1);
+  margin-bottom: 1.2rem;
+}
+[data-look="glass"] .byline { font-size: 1.15rem; }
+[data-look="glass"] .btn { border-radius: 999px; padding: 0.7rem 1.5rem; }
+[data-look="glass"] .beta {
+  max-width: 33rem;
+  margin-inline: auto;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--r-inner);
+  text-align: left;
+}
+[data-look="glass"] .hero-code { border-radius: var(--r-panel); }
+[data-look="glass"] .hero-code figcaption { background: transparent; }
+
+/* --- capabilities --- */
+
+[data-look="glass"] .can-head {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.6rem 0.6rem 1.25rem;
+  top: calc(var(--top-h) + 0.75rem);
+  border-radius: var(--r-panel);
+}
+[data-look="glass"] .search input {
+  background: var(--bg-2);
+  border-color: var(--glass-edge);
+  border-radius: var(--r-inner);
+}
+[data-look="glass"] .group {
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 0.75rem;
+  border-radius: var(--r-panel);
+}
+[data-look="glass"] .cards.empty-msg::after { border-top: 0; }
+
+/* --- finder --- */
+
+[data-look="glass"] .finder { border-radius: var(--r-panel); }
+[data-look="glass"] .finder-chrome { height: 2.6rem; padding: 0 1.1rem; }
+[data-look="glass"] .sidebar { padding: 0.6rem; }
+[data-look="glass"] .side-btn { border-radius: 8px; }
+
+/* --- api --- */
+
+[data-look="glass"] .api-grid {
+  padding: 1.5rem 1.5rem 0.25rem;
+  border-radius: var(--r-panel);
+}
+
+/* --- footer --- */
+
+[data-look="glass"] footer { border-top-color: transparent; }
+
+/* --- docs --- */
+
+[data-look="glass"] .docs { gap: 1.5rem; }
+[data-look="glass"] .docs-nav {
+  padding: 0.4rem 1rem 1rem;
+  border-radius: var(--r-panel);
+}
+[data-look="glass"] .docs-nav a { border-radius: 8px; }
+[data-look="glass"] .doc {
+  padding: 2rem 2.25rem;
+  border-radius: var(--r-panel);
+}
+[data-look="glass"] .doc pre,
+[data-look="glass"] .note { border-radius: var(--r-inner); }
+[data-look="glass"] .doc pre { background: var(--finder-side); border-color: var(--glass-edge); }
+[data-look="glass"] .note { border: 1px solid var(--glass-edge); }
+
+@media (max-width: 800px) {
+  [data-look="glass"] .hero { padding-top: 3rem; }
+  [data-look="glass"] .group { padding: 1rem 1.1rem; }
+  [data-look="glass"] .api-grid { padding: 1.1rem 1.1rem 0; }
+  [data-look="glass"] .doc { padding: 1.25rem 1.1rem; }
+  [data-look="glass"] .can-head { padding: 0.6rem; }
+}
+
+/* No backdrop-filter: opaque panels so nothing reads through. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  [data-look="glass"] :is(.top, .can-head, .group, .hero-code, .finder, .api-grid, .docs-nav, .doc) {
+    background: var(--glass-solid);
+  }
+}
