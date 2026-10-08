@@ -30,7 +30,7 @@ macotron.command("Stand Up Now", "Show the reminder", () =&gt; {
     <tr><td><code>title</code></td><td>Name shown in Settings.</td></tr>
     <tr><td><code>description</code></td><td>One line shown under the name.</td></tr>
     <tr><td><code>help</code></td><td>Longer explanation shown on the plugin's Settings page.</td></tr>
-    <tr><td><code>permissions</code></td><td>macOS permissions the plugin needs: <code>"accessibility"</code>, <code>"inputMonitoring"</code>, <code>"screenRecording"</code>, <code>"camera"</code>, <code>"microphone"</code>, <code>"calendar"</code>, or <code>"helper"</code> (the background helper, installed from the plugin's Settings page). Macotron adds them to the permission list it asks the user for.</td></tr>
+    <tr><td><code>permissions</code></td><td>macOS permissions the plugin needs: <code>"accessibility"</code>, <code>"inputMonitoring"</code>, <code>"screenRecording"</code>, <code>"camera"</code>, <code>"microphone"</code>, <code>"calendar"</code>, <code>"automation"</code> (controlling other apps with Apple Events), <code>"menuBar"</code>, or <code>"helper"</code> (the background helper, installed from the plugin's Settings page). Macotron adds them to the permission list it asks the user for.</td></tr>
     <tr><td><code>options</code></td><td>An object of option definitions, keyed by the name you read back from the result.</td></tr>
   </tbody>
 </table>
@@ -66,7 +66,7 @@ macotron.command("Stand Up Now", "Show the reminder", () =&gt; {
 <p>Opens Settings → Plugins on this plugin, for example from a menu row that says "Settings…".</p>
 
 <h3>version: { app, api, modules }</h3>
-<p><code>api</code> is the semver of the plugin API, such as <code>"1.5.0"</code>. <code>modules</code> maps each native namespace (<code>window</code>, <code>panel</code>, and so on) to an integer version that goes up when that namespace changes. <code>app</code> is always <code>"1.0.0"</code> in this release, so do not use it to detect the app version.</p>
+<p><code>api</code> is the semver of the plugin API, such as <code>"1.5.0"</code>. <code>modules</code> maps each native namespace (<code>window</code>, <code>panel</code>, and so on) to an integer version that goes up when that namespace changes. <code>app</code> is the Macotron version, such as <code>"0.7.7"</code>, or <code>"dev"</code> in a build without one.</p>
 
 <h3>config(options: Record&lt;string, any&gt;): void</h3>
 <p>Legacy. Replaces Macotron's in-memory copy of <code>settings.json</code> until the next reload. Plugins should not call it. Use <code>plugin()</code> options.</p>

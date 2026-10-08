@@ -183,7 +183,7 @@
 <h2 id="messages">Messages</h2>
 
 <h3 id="postmessage-id-string-data-any-void">postMessage(id: string, data: any): void</h3>
-<p>Sends <code>data</code> to the page as JSON. Messages sent before the page finishes loading wait and arrive in order, so you can call this right after <code>open</code>. Send an object, an array or a string. Other values arrive as <code>null</code>.</p>
+<p>Sends <code>data</code> to the page as JSON. Messages sent before the page finishes loading wait and arrive in order, so you can call this right after <code>open</code>. Send any value JSON can hold: an object, an array, a string, a number, a boolean or <code>null</code>. Other values, such as a function, arrive as <code>null</code>.</p>
 
 <h3 id="onmessage-id-string-callback-data-any-gt-void-void">onMessage(id: string, callback: (data: any) =&gt; void): void</h3>
 <p>Runs <code>callback</code> for each message the page sends. You can add more than one handler. Handlers are dropped when the panel closes, so add them again after each <code>open</code>.</p>

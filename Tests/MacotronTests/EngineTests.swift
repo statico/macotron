@@ -1,4 +1,5 @@
 // EngineTests.swift — Tests for the QuickJS engine
+import Foundation
 import Testing
 import CQuickJS
 @testable import MacotronEngine
@@ -191,7 +192,8 @@ struct EngineTests {
         engine.registerAllModules()
         let (result, error) = engine.evaluate("macotron.version.app")
         #expect(error == nil)
-        #expect(result == "1.0.0")
+        let bundled = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        #expect(result == (bundled ?? "dev"))
     }
 
     @Test("registerAllModules registers custom module")
