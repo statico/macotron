@@ -154,7 +154,7 @@
   </tbody>
 </table>
 <p>Click coordinates are global screen points with the origin at the top-left of the main display and y going down. That is the same space as <code>macotron.window</code> frames, and not the space of <a href="/docs/api-mouse.html">macotron.mouse</a>.</p>
-<div class="note"><p>Always pass <code>x</code> and <code>y</code>. Without them, the click uses the pointer position in bottom-left coordinates, so it lands at the wrong height unless the pointer is near the vertical middle of the main display.</p></div>
+<p>Without <code>x</code> and <code>y</code>, the click lands where the pointer is.</p>
 
 <pre><code class="language-javascript"><span class="tok-cmt">// Paste after the launcher closes and focus returns to the app.</span>
 setTimeout(() =&gt; <span class="tok-fn">macotron</span>.event.post({ type: <span class="tok-str">"unicode"</span>, string: <span class="tok-str">"🎉"</span> }), <span class="tok-num">150</span>);

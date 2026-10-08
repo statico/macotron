@@ -222,11 +222,12 @@ public final class EventModule: NativeModule {
         event.setIntegerValueField(EventPost.userDataField, value: syntheticTag)
     }
 
-    private static func cocoaPoint(_ dict: [String: Any]) -> CGPoint {
+    /// Top-left global point, defaulting to where the pointer is now.
+    private static func clickPoint(_ dict: [String: Any]) -> CGPoint {
         if let x = Coerce.double(dict["x"]), let y = Coerce.double(dict["y"]) {
             return CGPoint(x: x, y: y)
         }
-        return NSEvent.mouseLocation
+        return CGEvent(source: nil)?.location ?? .zero
     }
 
     private static func stringArray(_ dict: [String: Any], _ key: String) -> [String] {
@@ -237,7 +238,7 @@ public final class EventModule: NativeModule {
 
     private static func postClick(_ dict: [String: Any]) -> Bool {
         let button = EventPost.mouseButton(dict["button"] as? String ?? "left")
-        let pt = cocoaPoint(dict)
+        let pt = clickPoint(dict)
         let downType: CGEventType
         let upType: CGEventType
         switch button {
