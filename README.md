@@ -102,7 +102,7 @@ Everything hangs off a `macotron` global. Plugins are plain JavaScript on QuickJ
 | `audio` / `media` | Devices, volume, mute, record; Now Playing and transport controls |
 | `calendar` / `reminders` | Upcoming events; list, add, and complete reminders |
 | `notes` / `contacts` | List and open Apple Notes; search contacts |
-| `homekit` / `dock` | HomeKit is a stub on native macOS (no public framework); Dock tile badges |
+| `homekit` / `dock` | Home scenes, run as shortcuts from a Shortcuts folder; Dock tile badges |
 | `shortcuts` / `url` | Run Shortcuts.app; route schemes and hosts, `setDefaultHandler`, `onFallback` |
 | `ax` | Focused element, selected text, tree walk, press, `setValue` |
 | `ai` | Apple Intelligence on-device, Claude, Gemini, OpenAI; chat and streaming |

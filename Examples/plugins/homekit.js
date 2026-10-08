@@ -1,27 +1,21 @@
 macotron.plugin({
-    title: "HomeKit Example",
-    description: "Control Home accessories from the menu bar.",
+    title: "Home Scenes",
+    description: "Run Home scenes from the menu bar. Each scene is a shortcut in the Shortcuts folder named Home.",
 });
 
-function paint() {
-    const homes = macotron.homekit.homes();
-    const accessories = macotron.homekit.accessories();
-    const sensor = accessories.find((a) => a.value != null);
-    const menu = homes.length
-        ? accessories.map((a) => {
-            const row = { title: a.name + (a.on != null ? (a.on ? " · On" : " · Off") : "") };
-            if (a.on != null) {
-                row.onClick = () => { macotron.homekit.set(a.id, { on: !a.on }); paint(); };
-            }
-            return row;
-        })
-        : [{ title: "No HomeKit homes" }];
-    macotron.menubar.status("homekit", {
-        title: sensor ? String(sensor.value) : "Home",
-        sfSymbol: "homekit",
-        menu,
-    });
+async function paint() {
+    const scenes = await macotron.homekit.scenes();
+    const menu = scenes.length
+        ? scenes.map((name) => ({
+            title: name,
+            onClick: async () => {
+                const ok = await macotron.homekit.run(name);
+                macotron.notify.toast(name, ok ? "Done" : "Failed", { color: ok ? "success" : "error" });
+            },
+        }))
+        : [{ title: "Add shortcuts to a Shortcuts folder named Home" }];
+    macotron.menubar.status("homekit", { title: "", sfSymbol: "homekit", menu });
 }
 
 paint();
-macotron.every(60_000, paint);
+macotron.every(5 * 60_000, paint);
