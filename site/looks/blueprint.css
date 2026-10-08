@@ -1,0 +1,241 @@
+/* Look: blueprint. Plugins are small machines you wire together, so the site
+   reads like an engineering drawing: navy sheet, hairlines, title blocks.
+   Dark is the default and what "system" resolves to; light only on request. */
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap");
+
+/* Contrast (WCAG, measured): ink 13.7:1, muted 8.2:1, accent 9.9:1 on #0f2340.
+   Light: ink 13.6:1, muted 5.8:1, accent 5.4:1 on #e9eef4. */
+:root[data-look] {
+  color-scheme: dark;
+  --bg: #0f2340;
+  --bg-2: #132b4e;
+  --ink: #e8f0fa;
+  --muted: #a8bdd8;
+  --line: #2b4a75;
+  --card: #0f2340;
+  --accent: #9fd3ff;
+  --accent-2: #9fd3ff;
+  --btn: #9fd3ff;
+  --btn-ink: #0f2340;
+  --finder: #0f2340;
+  --finder-bar: #0f2340;
+  --finder-side: #0d1f3a;
+  --finder-pane: #0b1c35;
+  --scroll: #2b4a75;
+  --veil: rgba(15, 35, 64, 0.9);
+  --grid: rgba(43, 74, 117, 0.4);
+  --tok-kw: #9fd3ff;
+  --tok-str: #a8e0c0;
+  --tok-cmt: #8aa3c4;
+  --tok-fn: #c9b8ff;
+  --tok-num: #ffc98a;
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+
+:root[data-look][data-theme="light"] {
+  color-scheme: light;
+  --bg: #e9eef4;
+  --bg-2: #dde5ee;
+  --ink: #142338;
+  --muted: #4a5d78;
+  --line: #c3cfdd;
+  --card: #f4f7fa;
+  --accent: #2f5fa7;
+  --accent-2: #2f5fa7;
+  --btn: #2f5fa7;
+  --btn-ink: #ffffff;
+  --finder: #f4f7fa;
+  --finder-bar: #f4f7fa;
+  --finder-side: #e9eef4;
+  --finder-pane: #f4f7fa;
+  --scroll: #c3cfdd;
+  --veil: rgba(233, 238, 244, 0.9);
+  --grid: rgba(195, 207, 221, 0.55);
+  --tok-kw: #2f5fa7;
+  --tok-str: #2f6b45;
+  --tok-cmt: #5a6b82;
+  --tok-fn: #6a3fa0;
+  --tok-num: #9a4f12;
+}
+
+/* The sheet: a faint 24px drafting grid. */
+[data-look] body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: -1px -1px;
+}
+
+[data-look] :focus-visible { border-radius: 0; }
+
+/* --- header --- */
+[data-look] .top { border-bottom: 1px solid var(--line); }
+[data-look] .mark {
+  font-family: var(--mono);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-look] .top nav { font-family: var(--mono); font-size: 0.78rem; }
+[data-look] .theme,
+[data-look] .theme button { border-radius: 0; }
+
+/* --- hero --- */
+[data-look] .hero h1 {
+  font-family: var(--cond);
+  font-weight: 700;
+  font-size: clamp(2.8rem, 9vw, 5.25rem);
+  letter-spacing: -0.015em;
+  line-height: 0.98;
+}
+[data-look] .btn {
+  border-radius: 0;
+  font-family: var(--mono);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--btn);
+}
+[data-look] .btn:hover {
+  filter: none;
+  background: transparent;
+  color: var(--accent);
+}
+[data-look] .ghost { font-family: var(--mono); font-size: 0.9rem; }
+[data-look] .beta {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--accent);
+  border-radius: 0;
+  text-align: left;
+}
+
+/* --- the frame: one style for every figure, with a title block in the
+   bottom-right corner, like a drawing sheet. --- */
+[data-look] .hero-code,
+[data-look] .finder {
+  border-radius: 0;
+  border: 1px solid var(--line);
+  outline: 1px solid var(--line);
+  outline-offset: 4px;
+}
+[data-look] .hero-code figcaption,
+[data-look] .finder::after {
+  align-self: flex-end;
+  width: max-content;
+  max-width: 100%;
+  margin-left: auto;
+  padding: 0.4rem 0.8rem;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  background: var(--bg);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+[data-look] .hero-code figcaption::before,
+[data-look] .finder::after {
+  display: block;
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[data-look] .hero-code figcaption::before { content: "Fig. 1 / tile.js"; }
+[data-look] .finder::after { content: "Fig. 2 / plugins/"; flex: none; }
+
+/* Finder chrome reads as a drawing, not a window: hollow dots, mono title. */
+[data-look] .traffic i { background: transparent; border: 1px solid var(--muted); }
+[data-look] .finder-title { font-family: var(--mono); letter-spacing: 0.04em; }
+[data-look] .side-label,
+[data-look] .group h3 {
+  font-family: var(--mono);
+  font-weight: 500;
+  color: var(--accent);
+}
+[data-look] .side-btn { border-radius: 0; }
+
+/* --- dimension lines: a hairline with tick ends between sections --- */
+[data-look] main > section + section::before,
+[data-look] footer::before,
+[data-look] .doc h2::before {
+  content: "";
+  display: block;
+  height: 9px;
+  border-left: 1px solid var(--muted);
+  border-right: 1px solid var(--muted);
+  background: linear-gradient(var(--muted), var(--muted)) center / 100% 1px no-repeat;
+}
+[data-look] main > section + section::before { margin: 0 0 2.25rem; }
+[data-look] footer { border-top: 0; }
+[data-look] footer::before { flex: 0 0 100%; margin-bottom: 0.4rem; }
+[data-look] footer { font-family: var(--mono); font-size: 0.75rem; }
+[data-look] .doc h2 { border-top: 0; padding-top: 0; }
+[data-look] .doc h2::before { margin-bottom: 1.1rem; }
+
+/* --- capabilities, API --- */
+[data-look] h2,
+[data-look] .glossary-page h1 {
+  font-family: var(--cond);
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: 0;
+}
+[data-look] .can-head { border-bottom: 1px solid var(--line); }
+[data-look] .search input {
+  border-radius: 0;
+  background: var(--bg);
+  font-family: var(--mono);
+}
+[data-look] .card b { font-weight: 600; }
+[data-look] .api-grid h3 { font-weight: 500; }
+
+/* --- docs --- */
+[data-look] .docs-nav a { border-radius: 0; border-left: 1px solid transparent; }
+[data-look] .docs-nav a[aria-current="page"] {
+  background: transparent;
+  border-left-color: var(--accent);
+  color: var(--ink);
+}
+[data-look] .docs-nav p {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+[data-look] .doc h1 { font-family: var(--cond); font-weight: 700; letter-spacing: -0.01em; }
+[data-look] .doc pre { border-radius: 0; }
+[data-look] .doc :not(pre) > code { border-radius: 0; }
+[data-look] .note {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--accent);
+  border-radius: 0;
+}
+
+/* --- look picker: a title block pinned to the sheet --- */
+[data-look] .look-picker {
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--bg);
+  font: 500 0.72rem var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[data-look] .look-picker select {
+  border-radius: 0;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  text-transform: none;
+}
+
+@media (max-width: 800px) {
+  [data-look] .hero-code,
+  [data-look] .finder { outline-offset: 2px; }
+}
