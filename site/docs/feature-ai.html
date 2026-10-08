@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI · Macotron</title>
+  <meta name="description" content="Chat with Apple Intelligence, Claude, or Gemini, translate selected text, and where API keys go.">
+  <meta property="og:title" content="AI · Macotron">
+  <meta property="og:description" content="Chat with Apple Intelligence, Claude, or Gemini, translate selected text, and where API keys go.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/feature-ai.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/feature-ai.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "AI", "item": "https://macotron.statico.io/docs/feature-ai.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html" aria-current="page">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>AI</h1>
+<p class="lede">Built-in plugins open a chat window, translate the text you selected, and describe a part of the screen. They use the on-device Apple Intelligence model or a cloud model with your own API key.</p>
+
+<h2 id="providers">Providers</h2>
+<table>
+  <thead><tr><th>Provider</th><th>Needs</th></tr></thead>
+  <tbody>
+    <tr><td>Apple Intelligence (on-device)</td><td>macOS 26 Tahoe, a Mac that supports Apple Intelligence, and Apple Intelligence turned on in System Settings. No key, and nothing leaves your Mac.</td></tr>
+    <tr><td>Claude (Anthropic)</td><td>An Anthropic API key.</td></tr>
+    <tr><td>Gemini (Google)</td><td>A Gemini API key.</td></tr>
+    <tr><td>OpenAI</td><td>An OpenAI API key. No built-in plugin uses it, but your own plugins can.</td></tr>
+  </tbody>
+</table>
+<p>When the on-device model cannot run, the plugin shows why: the Mac cannot run Apple Intelligence, Apple Intelligence is off, or the model is still downloading.</p>
+
+<h2 id="ai-chat-window">AI Chat Window</h2>
+<p><b>AI Chat Window</b> (<code>ai-chat.js</code>) adds the launcher command <b>AI Chat</b>. It opens a chat panel where replies stream in as the model writes them, with Markdown formatting. A menu at the top of the panel picks the model for the next message, and <b>+</b> starts a new chat. The plugin keeps your 50 most recent chats, so they are still there after a restart.</p>
+<p>Settings → Plugins → AI Chat Window has these settings:</p>
+<table>
+  <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Model</td><td>The default model: <b>On-device (Apple Intelligence)</b> (the default), <b>Claude Sonnet</b>, <b>Claude Opus</b>, or <b>Gemini Flash</b>.</td></tr>
+    <tr><td>Anthropic API key</td><td>Needed for the Claude models.</td></tr>
+    <tr><td>Gemini API key</td><td>Needed for Gemini Flash.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="translate-selected-text">Translate Selected Text</h2>
+<p><b>Translate Selected Text</b> (<code>translate.js</code>) adds the launcher command <b>Translate Selection</b>. Select text in any app, run the command, and a panel shows the translation above the original. It uses the on-device model only.</p>
+<p>The <b>Target locale</b> setting picks the language. Leave it empty to translate into your system language, which the field shows as a grey hint.</p>
+<div class="note"><p>Reading the selected text in another app needs the <b>Accessibility</b> permission.</p></div>
+
+<h2 id="screen-summary">Screen Summary</h2>
+<p><b>Screen Summary Example</b> (<code>screen-ai-summary.js</code>) shows how a plugin sends a screenshot to a model. Press ⌘⇧S, or run <b>Summarize Screen</b>, then drag a box. The plugin sends the image to Claude and shows a short description in a notification. It needs Screen Recording.</p>
+<div class="note"><p>As shipped, this example has no API key setting and passes no key, so the command fails with a missing-key error. Add a <code>password</code> option and pass it as <code>apiKey</code> to make it work. AI Chat Window shows how.</p></div>
+
+<h2 id="api-keys">API keys</h2>
+<p>Enter API keys in a plugin's settings, in Settings → Plugins. A key field stores the key in the macOS Keychain. <code>settings.json</code> keeps only a reference to the Keychain item, so the key never lands in your workdir or its git history.</p>
+<p>Each plugin has its own key fields. Entering an Anthropic key in AI Chat Window does not give it to other plugins. In your own plugins, declare a <code>password</code> option for each key:</p>
+<pre><code class="language-javascript"><span class="tok-kw">const</span> opts = <span class="tok-fn">macotron</span>.plugin({
+  title: <span class="tok-str">"Ask Claude"</span>,
+  description: <span class="tok-str">"Ask Claude about the clipboard."</span>,
+  options: {
+    apiKey: { type: <span class="tok-str">"password"</span>, label: <span class="tok-str">"Anthropic API key"</span>, required: <span class="tok-kw">true</span> },
+  },
+});
+
+<span class="tok-fn">macotron</span>.command(<span class="tok-str">"Ask Claude"</span>, <span class="tok-str">"Explain the clipboard"</span>, <span class="tok-kw">async</span> () =&gt; {
+  <span class="tok-kw">const</span> reply = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.ai.claude({ apiKey: opts.apiKey })
+    .chat(<span class="tok-str">"Explain this briefly:\n\n"</span> + <span class="tok-fn">macotron</span>.clipboard.text());
+  <span class="tok-fn">macotron</span>.notify.show(<span class="tok-str">"Claude"</span>, reply);
+});</code></pre>
+<p>See <a href="/docs/guide-plugin-settings.html">Plugin settings</a> for option types, and <a href="/docs/api-ai.html">macotron.ai</a> for chat, streaming, and models.</p>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-ai.html">macotron.ai</a></li>
+  <li><a href="/docs/api-keychain.html">macotron.keychain</a></li>
+  <li><a href="/docs/guide-security.html">Security</a></li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

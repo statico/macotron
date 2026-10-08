@@ -1,0 +1,30 @@
+<!-- title: macotron.usb
+     summary: List attached USB devices and react when one is plugged in or removed.
+     group: API -->
+<h1>macotron.usb</h1>
+<p class="lede">List the USB devices attached to the Mac and get an event when one is plugged in or removed.</p>
+
+<pre><code class="language-javascript">// Announce each USB device as it is plugged in.
+macotron.on("usb:changed", (info) =&gt; {
+  if (info.action === "add") macotron.notify.toast("USB attached", info.name);
+});</code></pre>
+
+<h2>Listing</h2>
+
+<h3>list(): Array&lt;{ name, vendor, vendorID, productID }&gt;</h3>
+<p>The attached USB devices, including hubs. <code>name</code> is the product name (or the IOKit class name when the device reports none), <code>vendor</code> the manufacturer name or <code>""</code>, and <code>vendorID</code> and <code>productID</code> the USB IDs as numbers.</p>
+<p>Devices with the same name, vendor ID, and product ID appear once, so two identical flash drives are one row.</p>
+
+<pre><code class="language-javascript">const names = macotron.usb.list().map((d) =&gt; d.name).join(", ") || "None";
+macotron.notify.toast("USB", names);</code></pre>
+
+<h2>Events</h2>
+
+<h3>usb:changed</h3>
+<p>Fires when a USB device is attached or removed. The payload is <code>{ action, name, vendor, vendorID, productID }</code>, where <code>action</code> is <code>"add"</code> or <code>"remove"</code>. Devices that are already attached when the plugin loads do not fire an event; call <code>list()</code> for those.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-hid.html">macotron.hid</a> to send and read reports from USB keyboards, pads, and lights.</li>
+  <li>The <code>usb.js</code> plugin.</li>
+</ul>

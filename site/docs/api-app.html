@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>macotron.app · Macotron</title>
+  <meta name="description" content="List, launch, switch to, hide, and quit apps, and pick items from their menus.">
+  <meta property="og:title" content="macotron.app · Macotron">
+  <meta property="og:description" content="List, launch, switch to, hide, and quit apps, and pick items from their menus.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-app.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-app.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "macotron.app", "item": "https://macotron.statico.io/docs/api-app.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html" aria-current="page">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>macotron.app</h1>
+<p class="lede">List running apps, launch or switch to an app by bundle ID, hide or quit it, and choose a command from its menu bar. Apps are named by bundle ID, such as <code>com.apple.Safari</code>.</p>
+
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.keyboard.on(<span class="tok-str">"Open Calendar"</span>, <span class="tok-str">"ctrl+opt+c"</span>, () =&gt; {
+  <span class="tok-fn">macotron</span>.app.launch(<span class="tok-str">"com.apple.iCal"</span>);
+});</code></pre>
+
+<h2 id="running-apps">Running apps</h2>
+
+<h3 id="list-array-lt-name-string-bundleid-string-pid-number-gt">list(): Array&lt;{ name: string; bundleID: string; pid: number }&gt;</h3>
+<p>Every running process that has a bundle ID, which includes background apps and menu bar apps. <code>name</code> is the app's display name.</p>
+
+<h3 id="frontmost-name-string-bundleid-string-pid-number-null">frontmost(): { name: string; bundleID: string; pid: number } | null</h3>
+<p>The app in front. Macotron itself is skipped: while a Macotron panel or the launcher has focus, this returns the app that was in front before it. Returns <code>null</code> when there is no such app yet.</p>
+
+<h2 id="launching-and-switching">Launching and switching</h2>
+
+<h3 id="launch-bundleid-string-void">launch(bundleID: string): void</h3>
+<p>Brings the app to the front, opening it first if it is not running. When the app is already running with windows, Macotron activates it directly, which is fast. A menu bar app goes through Launch Services instead, so it gets the reopen event it uses to show its window or panel.</p>
+<p>It returns <code>false</code> when no app with that bundle ID is installed, and <code>true</code> otherwise.</p>
+
+<h3 id="switch-bundleid-string-void">switch(bundleID: string): void</h3>
+<p>The same as <code>launch()</code>.</p>
+
+<h2 id="hiding-and-quitting">Hiding and quitting</h2>
+<p>Omit the bundle ID to act on the frontmost app. Macotron never counts itself as the frontmost app here.</p>
+
+<h3 id="hide-bundleid-string-boolean">hide(bundleID?: string): boolean</h3>
+<p>Hides the app, like Command-H. Returns <code>false</code> when the app is not running.</p>
+
+<h3 id="quit-bundleid-string-boolean">quit(bundleID?: string): boolean</h3>
+<p>Asks the app to quit, like Command-Q. The app can still show a save dialog or refuse. Returns <code>false</code> when the app is not running or does not accept the request.</p>
+
+<h2 id="menus">Menus</h2>
+
+<h3 id="menu-path-string-bundleid-string-boolean">menu(path: string[], bundleID?: string): boolean</h3>
+<p>Chooses a menu bar item, such as <code>["File", "New Window"]</code>. Omit the bundle ID to use the frontmost app.</p>
+<p>Each name must match the item's title exactly, in the app's language. A trailing <code>…</code> or <code>...</code> is optional, so <code>"Save As"</code> matches <code>Save As…</code>. Returns <code>true</code> when the item was pressed, and <code>false</code> when the app is not running or a name in the path does not match.</p>
+<div class="note"><p><code>menu()</code> needs Accessibility permission. Without it, every call returns <code>false</code>.</p></div>
+
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.app.menu([<span class="tok-str">"View"</span>, <span class="tok-str">"Enter Full Screen"</span>], <span class="tok-str">"com.apple.Safari"</span>);</code></pre>
+
+<h2 id="events">Events</h2>
+<p>All three events carry <code>{ name, bundleID, pid }</code>. None fires for Macotron itself.</p>
+
+<h3 id="app-activated">app:activated</h3>
+<p>Fires when an app comes to the front.</p>
+
+<h3 id="app-launched">app:launched</h3>
+<p>Fires when an app starts.</p>
+
+<h3 id="app-terminated">app:terminated</h3>
+<p>Fires when an app quits.</p>
+
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.on(<span class="tok-str">"app:activated"</span>, ({ bundleID }) =&gt; {
+  <span class="tok-kw">if</span> (bundleID === <span class="tok-str">"com.apple.dt.Xcode"</span>) <span class="tok-fn">macotron</span>.notify.toast(<span class="tok-str">"Focus time"</span>);
+});</code></pre>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-window.html">macotron.window</a> to move and focus windows.</li>
+  <li><a href="/docs/api-ax.html">macotron.ax</a> for other Accessibility work.</li>
+  <li>The <code>focus-idle.js</code> plugin, which reacts to <code>app:activated</code>.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

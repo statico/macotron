@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>macotron.event · Macotron</title>
+  <meta name="description" content="Post synthetic clicks, keys, text, and scrolls, and watch or swallow input from every app.">
+  <meta property="og:title" content="macotron.event · Macotron">
+  <meta property="og:description" content="Post synthetic clicks, keys, text, and scrolls, and watch or swallow input from every app.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-event.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-event.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "macotron.event", "item": "https://macotron.statico.io/docs/api-event.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html" aria-current="page">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>macotron.event</h1>
+<p class="lede">Send clicks, key presses, typed text, and scrolls as if they came from the hardware, and watch keyboard, mouse, and trackpad input from every app. A tap can also swallow an event so that no app sees it.</p>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// Option-Tab opens a window switcher instead of reaching the app.</span>
+<span class="tok-kw">const</span> TAB = <span class="tok-num">48</span>;
+<span class="tok-fn">macotron</span>.event.tap([<span class="tok-str">"keyDown"</span>, <span class="tok-str">"keyUp"</span>], (e) =&gt; {
+  <span class="tok-kw">if</span> (e.keyCode === TAB &amp;&amp; e.flags.includes(<span class="tok-str">"opt"</span>)) {
+    <span class="tok-kw">if</span> (e.type === <span class="tok-str">"keyDown"</span>) showSwitcher();
+    <span class="tok-kw">return</span> <span class="tok-kw">false</span>;
+  }
+});</code></pre>
+
+<h2 id="posting-events">Posting events</h2>
+
+<h3 id="post-event-boolean">post(event): boolean</h3>
+<p>Posts one event to the system, which sends it to the app under the pointer or the app with keyboard focus. Returns <code>false</code> for an unknown <code>type</code>, a key name that does not parse, or an empty string. Events you post are marked, so your own <code>tap()</code> listeners never see them.</p>
+
+<table>
+  <thead><tr><th>type</th><th>Fields</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>"click"</code></td><td><code>button?</code>: <code>"left"</code> (default), <code>"right"</code>, or <code>"middle"</code>. <code>x?</code>, <code>y?</code></td><td>A press and a release at that point.</td></tr>
+    <tr><td><code>"key"</code></td><td><code>key</code>: a key name from the <a href="/docs/api-keyboard.html">combo list</a>. <code>flags?</code>: any of <code>"cmd"</code>, <code>"shift"</code>, <code>"ctrl"</code>, <code>"opt"</code>, <code>"fn"</code>, <code>"caps"</code></td><td>A key down and a key up, with those modifiers held. <code>key</code> can also be a whole combo such as <code>"cmd+v"</code>; <code>flags</code>, when given, replaces its modifiers.</td></tr>
+    <tr><td><code>"unicode"</code></td><td><code>string</code></td><td>Types the string as one key press, whatever the keyboard layout. Use it for emoji and accented letters.</td></tr>
+    <tr><td><code>"scroll"</code></td><td><code>dy?</code>, <code>dx?</code>, <code>pixel?</code></td><td>One scroll. <code>dy</code> is vertical and <code>dx</code> is horizontal, in lines, or in pixels when <code>pixel</code> is <code>true</code>. Values are rounded to whole numbers.</td></tr>
+  </tbody>
+</table>
+<p>Click coordinates are global screen points with the origin at the top-left of the main display and y going down. That is the same space as <code>macotron.window</code> frames, and not the space of <a href="/docs/api-mouse.html">macotron.mouse</a>.</p>
+<div class="note"><p>Always pass <code>x</code> and <code>y</code>. Without them, the click uses the pointer position in bottom-left coordinates, so it lands at the wrong height unless the pointer is near the vertical middle of the main display.</p></div>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// Paste after the launcher closes and focus returns to the app.</span>
+setTimeout(() =&gt; <span class="tok-fn">macotron</span>.event.post({ type: <span class="tok-str">"unicode"</span>, string: <span class="tok-str">"🎉"</span> }), <span class="tok-num">150</span>);
+<span class="tok-fn">macotron</span>.event.post({ type: <span class="tok-str">"key"</span>, key: <span class="tok-str">"v"</span>, flags: [<span class="tok-str">"cmd"</span>] });</code></pre>
+
+<div class="note"><p>Posting events needs Accessibility permission. Declare <code>permissions: ["accessibility"]</code> in <code>macotron.plugin()</code>.</p></div>
+
+<h2 id="watching-input">Watching input</h2>
+
+<h3 id="tap-types-string-string-callback-e-gt-boolean-void-void">tap(types: string | string[], callback: (e) =&gt; boolean | void): void</h3>
+<p>Calls <code>callback</code> for each matching event from any app. Return <code>false</code> to swallow the event. Any other return value lets it through. Unknown type names are ignored, and if no name is valid the call does nothing. Taps last until plugins reload; there is no way to remove one sooner.</p>
+<table>
+  <thead><tr><th>Type names</th><th>Can swallow</th></tr></thead>
+  <tbody>
+    <tr><td><code>keyDown</code>, <code>keyUp</code>, <code>flagsChanged</code> (a modifier key goes down or up)</td><td>Yes</td></tr>
+    <tr><td><code>leftMouseDown</code>, <code>leftMouseUp</code>, <code>rightMouseDown</code>, <code>rightMouseUp</code>, <code>mouseMoved</code>, <code>leftMouseDragged</code></td><td>Yes</td></tr>
+    <tr><td><code>scroll</code> (or <code>scrollWheel</code>)</td><td>Yes</td></tr>
+    <tr><td><code>swipe</code>, <code>magnify</code>, <code>rotate</code> (trackpad gestures)</td><td>No. The return value is ignored</td></tr>
+  </tbody>
+</table>
+
+<p>The callback receives one object:</p>
+<table>
+  <thead><tr><th>Field</th><th>Present for</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>type</code></td><td>All</td><td>The type name. Scroll events report <code>"scroll"</code>.</td></tr>
+    <tr><td><code>flags</code></td><td>All</td><td>Modifiers held: any of <code>"cmd"</code>, <code>"shift"</code>, <code>"ctrl"</code>, <code>"opt"</code>, <code>"fn"</code>, <code>"caps"</code>.</td></tr>
+    <tr><td><code>x</code>, <code>y</code></td><td>Keyboard, mouse, scroll</td><td>Pointer position, with the origin at the top-left of the main display.</td></tr>
+    <tr><td><code>keyCode</code></td><td><code>keyDown</code>, <code>keyUp</code></td><td>The macOS virtual key code, for example 48 for Tab.</td></tr>
+    <tr><td><code>dx</code>, <code>dy</code></td><td><code>scroll</code></td><td>Scroll amount in lines.</td></tr>
+    <tr><td><code>button</code>, <code>down</code></td><td>Left and right mouse down and up</td><td><code>"left"</code> or <code>"right"</code>, and whether this is the press.</td></tr>
+    <tr><td><code>fingers</code></td><td>Gestures</td><td>The number of fingers.</td></tr>
+    <tr><td><code>direction</code></td><td><code>swipe</code></td><td><code>"left"</code>, <code>"right"</code>, <code>"up"</code>, or <code>"down"</code>.</td></tr>
+    <tr><td><code>delta</code></td><td><code>magnify</code>, <code>rotate</code></td><td>The zoom amount, or the rotation in degrees.</td></tr>
+  </tbody>
+</table>
+
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.event.tap(<span class="tok-str">"swipe"</span>, (e) =&gt; {
+  <span class="tok-kw">if</span> (e.fingers !== <span class="tok-num">3</span>) <span class="tok-kw">return</span>;
+  <span class="tok-kw">const</span> win = <span class="tok-fn">macotron</span>.window.focused();
+  <span class="tok-kw">if</span> (!win) <span class="tok-kw">return</span>;
+  <span class="tok-kw">const</span> x = e.direction === <span class="tok-str">"left"</span> ? <span class="tok-num">0</span> : <span class="tok-num">0.5</span>;
+  <span class="tok-fn">macotron</span>.window.moveToFraction(win.id, { x, y: <span class="tok-num">0</span>, w: <span class="tok-num">0.5</span>, h: <span class="tok-num">1</span> });
+});</code></pre>
+
+<div class="note"><p>Every key press and click on the Mac waits for your callback, so keep it short. A tap callback has 250 ms before Macotron interrupts it, and an interrupted callback lets the event through. Do slow work in a <code>setTimeout</code>.</p></div>
+<div class="note"><p>Taps need Accessibility and Input Monitoring permission. Declare <code>permissions: ["accessibility", "inputMonitoring"]</code> in <code>macotron.plugin()</code>.</p></div>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-keyboard.html">macotron.keyboard</a> for hotkeys and the Hyper key.</li>
+  <li><a href="/docs/api-mouse.html">macotron.mouse</a> to read and move the pointer.</li>
+  <li>The <code>window-switcher.js</code> and <code>gestures.js</code> example plugins.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

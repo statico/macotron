@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>macotron.menubar · Macotron</title>
+  <meta name="description" content="Put status items in the menu bar, give them menus, and add rows to the Macotron menu.">
+  <meta property="og:title" content="macotron.menubar · Macotron">
+  <meta property="og:description" content="Put status items in the menu bar, give them menus, and add rows to the Macotron menu.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-menubar.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-menubar.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "macotron.menubar", "item": "https://macotron.statico.io/docs/api-menubar.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html" aria-current="page">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>macotron.menubar</h1>
+<p class="lede">Add your own items to the menu bar next to the Macotron icon, give them menus with HTML rows and button rows, and add rows to the Macotron menu itself.</p>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// A countdown in the menu bar with a menu of actions.</span>
+<span class="tok-kw">let</span> until = <span class="tok-num">0</span>;
+
+<span class="tok-kw">function</span> paint() {
+  <span class="tok-kw">const</span> left = Math.max(<span class="tok-num">0</span>, until - Date.now());
+  <span class="tok-fn">macotron</span>.menubar.status(<span class="tok-str">"timer"</span>, {
+    title: left ? <span class="tok-kw">new</span> Date(left).toISOString().slice(<span class="tok-num">14</span>, <span class="tok-num">19</span>) : <span class="tok-str">""</span>,
+    sfSymbol: <span class="tok-str">"timer"</span>,
+    color: left ? <span class="tok-str">"green"</span> : <span class="tok-kw">null</span>,
+    minWidth: left ? <span class="tok-num">72</span> : <span class="tok-kw">undefined</span>,
+    menu: [
+      { title: left ? <span class="tok-str">"Running"</span> : <span class="tok-str">"Stopped"</span>, dimmed: <span class="tok-kw">true</span> },
+      <span class="tok-str">"-"</span>,
+      { title: <span class="tok-str">"Start 25 minutes"</span>, onClick: () =&gt; { until = Date.now() + <span class="tok-num">25</span> * <span class="tok-num">60000</span>; paint(); } },
+      { title: <span class="tok-str">"Stop"</span>, onClick: () =&gt; { until = <span class="tok-num">0</span>; paint(); } },
+    ],
+  });
+}
+
+paint();
+<span class="tok-fn">macotron</span>.every(<span class="tok-num">1000</span>, paint);</code></pre>
+
+<h2 id="status-items">Status items</h2>
+<p>A status item is a separate item in the menu bar, to the left of the Macotron icon. Each plugin can add as many as it likes, keyed by id.</p>
+
+<h3 id="status-id-string-opts-statusoptions-void">status(id: string, opts: StatusOptions): void</h3>
+<p>Creates the item, or repaints it when an item with that id exists. Call it again whenever the content changes; a call that changes nothing costs almost nothing, so painting on a timer is fine. macOS remembers each item's position by its id.</p>
+<p>A left-click runs <code>onClick</code>. With a <code>menu</code> as well, right-click or Control-click opens the menu. With a <code>menu</code> and no <code>onClick</code>, any click opens the menu. Clicks act on mouse-down, like the system items.</p>
+<p>The tooltip is the title, followed by the subtitle when there is one.</p>
+
+<table>
+  <thead><tr><th>Option</th><th>Type</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>title</code></td><td>string</td><td>The text. When you leave it out, the item shows its id, so pass <code>""</code> for an icon-only item.</td></tr>
+    <tr><td><code>subtitle</code></td><td>string</td><td>A second line under the title. Both lines then draw at a smaller size to fit the bar.</td></tr>
+    <tr><td><code>secondary</code></td><td>boolean</td><td>Draws the subtitle smaller and dimmer than the title. Off by default, so both lines share one size and color.</td></tr>
+    <tr><td><code>color</code></td><td>string</td><td>Text color: <code>red</code>, <code>orange</code>, <code>yellow</code>, <code>green</code>, <code>blue</code>, <code>purple</code>, <code>pink</code>, <code>gray</code>, <code>white</code>, <code>black</code>, or <code>#RGB</code> / <code>#RRGGBB</code>. In an icon-only item it tints the SF Symbol instead.</td></tr>
+    <tr><td><code>subtitleColor</code></td><td>string</td><td>Subtitle color, in the same forms. Defaults to <code>color</code>.</td></tr>
+    <tr><td><code>bold</code>, <code>italic</code></td><td>boolean</td><td>Font style. With <code>secondary</code>, the subtitle is never bold.</td></tr>
+    <tr><td><code>minWidth</code></td><td>number</td><td>Minimum width in points. Use it for a changing number, so proportional digits do not push the neighboring items around.</td></tr>
+    <tr><td><code>sfSymbol</code></td><td>string</td><td>An SF Symbol name, such as <code>"timer"</code>, drawn before the text. <code>icon</code> is an alias.</td></tr>
+    <tr><td><code>image</code></td><td>string</td><td>Path to an image file, scaled to 18 points high. It replaces <code>sfSymbol</code>. A file name that ends in <code>Template</code> (for example <code>meterTemplate.png</code>) is treated as a mask that the bar tints.</td></tr>
+    <tr><td><code>svg</code></td><td>string</td><td>SVG markup to draw as the icon. It replaces <code>image</code> and <code>sfSymbol</code>. Its own colors are kept unless <code>template</code> is true.</td></tr>
+    <tr><td><code>template</code></td><td>boolean</td><td>Treats <code>svg</code> as a mask that the menu bar tints to suit its background. Off by default.</td></tr>
+    <tr><td><code>sparkline</code></td><td>object</td><td><code>{ values, width?, height?, color? }</code>: a line graph of <code>values</code>, scaled between their minimum and maximum. Size defaults to 36 x 18 points. <code>color</code> is <code>#RRGGBB</code>; without it the line is a mask the bar tints. It replaces <code>svg</code>, <code>image</code> and <code>sfSymbol</code>.</td></tr>
+    <tr><td><code>onClick</code></td><td>() =&gt; void</td><td>Runs on a left-click.</td></tr>
+    <tr><td><code>onHover</code></td><td>(hovering: boolean) =&gt; void</td><td>Runs with <code>true</code> when the pointer enters the item and <code>false</code> when it leaves.</td></tr>
+    <tr><td><code>menu</code></td><td>MenuBarMenuItem[]</td><td>The item's menu. See <a href="#menus">Menus</a>.</td></tr>
+    <tr><td><code>required</code></td><td>boolean</td><td>Default <code>true</code>. When the user Command-drags a required item out of the menu bar, Settings warns and offers a Restore button. Pass <code>false</code> for an item that is fine to hide.</td></tr>
+  </tbody>
+</table>
+
+<div class="note"><p>Pick colors for a non-template <code>svg</code> with <code>isDark()</code>, not <code>macotron.system.darkMode()</code>. The menu bar follows the wallpaper, so it can draw light text while the system is in Light Mode. Repaint on the <code>menubar:appearance</code> event.</p></div>
+
+<h3 id="isvisible-id-string-boolean">isVisible(id: string): boolean</h3>
+<p>Whether a status item is on screen. It is <code>false</code> when the user dragged the item out of the menu bar, when the bar has no room to draw it (usually because of the notch), and for an unknown id. Settings already warns about both cases, so few plugins need to ask.</p>
+
+<h3 id="remove-id-string-void">remove(id: string): void</h3>
+<p>Removes the status item with this id, and the Macotron menu row with this id if there is one.</p>
+
+<p>Status items stay on screen while plugins reload. After the reload, Macotron removes every item that no plugin painted again.</p>
+
+<h2 id="menus">Menus</h2>
+<p>A <code>menu</code> is an array. Each element is a <code>MenuBarMenuItem</code> object, the string <code>"-"</code> for a separator, or any other string for a plain text row.</p>
+
+<table>
+  <thead><tr><th>Field</th><th>Type</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>title</code></td><td>string</td><td>The row's text.</td></tr>
+    <tr><td><code>icon</code></td><td>string</td><td>An SF Symbol name drawn before the title. A one- or two-character string, such as an emoji, goes in front of the title text instead.</td></tr>
+    <tr><td><code>onClick</code></td><td>() =&gt; void</td><td>Runs when the row is chosen. The menu closes. A row without <code>onClick</code> still draws in full color, so you can use it as a label.</td></tr>
+    <tr><td><code>dimmed</code></td><td>boolean</td><td>Draws the title in the secondary label color but keeps the row clickable. Use it for rows such as past events.</td></tr>
+    <tr><td><code>menu</code></td><td>MenuBarMenuItem[]</td><td>A submenu. A row with a submenu ignores its own <code>onClick</code>.</td></tr>
+    <tr><td><code>html</code></td><td>string</td><td>Shows a web page as the row instead of a title. See below.</td></tr>
+    <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>Size of an <code>html</code> row in points, 260 x 160 by default. Width is limited to 60–800 and height to 24–600. For a <code>buttons</code> row, <code>width</code> is the starting width.</td></tr>
+    <tr><td><code>buttons</code></td><td>MenuBarMenuItem[]</td><td>Draws these items as buttons across one row. See below.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="html-rows">HTML rows</h3>
+<p>An <code>html</code> row is a small web view. Your markup goes into a page with a transparent background, the 13px system font, and light and dark color schemes. The page keeps running while the menu is open, so CSS animations and images work. When the menu is wider than the row, the page is centered.</p>
+<p>The row reloads only when the markup changes, so repainting the menu every second does not restart the page.</p>
+<div class="note"><p>Menu tracking takes mouse events before the page sees them. Treat an HTML row as a display. Put clickable things in ordinary rows or a <code>buttons</code> row.</p></div>
+
+<h3 id="button-rows">Button rows</h3>
+<p>A row with <code>buttons</code> draws each item's <code>title</code> as a button, spread evenly across the menu width. Clicking a button runs its <code>onClick</code> and leaves the menu open, so you can page or step through content without closing the menu. Repaint the menu in the handler to show the new state. Button icons are not drawn.</p>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// From the mini-calendar plugin: page through months without closing the menu.</span>
+menu: [
+  { title: monthName },
+  { html: grid(cells), width: <span class="tok-num">220</span>, height: rows * <span class="tok-num">24</span> + <span class="tok-num">6</span> },
+  { buttons: [
+    { title: <span class="tok-str">"‹"</span>, onClick: () =&gt; move(-1) },
+    { title: <span class="tok-str">"Today"</span>, onClick: () =&gt; move(-offset) },
+    { title: <span class="tok-str">"›"</span>, onClick: () =&gt; move(<span class="tok-num">1</span>) },
+  ] },
+  <span class="tok-str">"-"</span>,
+  { title: <span class="tok-str">"Open Calendar…"</span>, onClick: () =&gt; <span class="tok-fn">macotron</span>.app.launch(<span class="tok-str">"com.apple.iCal"</span>) },
+]</code></pre>
+
+<h2 id="the-macotron-menu">The Macotron menu</h2>
+<p>These calls add rows to the menu under the Macotron icon, above the built-in rows.</p>
+
+<h3 id="add-id-string-opts-title-icon-section-onclick-menu-void">add(id: string, opts: { title, icon?, section?, onClick?, menu? }): void</h3>
+<p>Adds a row, or replaces the row with that id. <code>icon</code> works as in a menu item. <code>onClick</code> runs when the row is chosen. With a <code>menu</code>, the row opens that submenu instead.</p>
+<p>Rows without a <code>section</code> come first. Rows with a <code>section</code> are grouped under a header with that name, and the sections are sorted by name.</p>
+
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.menubar.add(<span class="tok-str">"system-metrics-menu"</span>, {
+  title: <span class="tok-str">"CPU "</span> + cpu + <span class="tok-str">"%"</span>,
+  icon: <span class="tok-str">"cpu"</span>,
+  section: <span class="tok-str">"System"</span>,
+});</code></pre>
+
+<h3 id="update-id-string-opts-title-icon-void">update(id: string, opts: { title?, icon? }): void</h3>
+<p>Changes the title or icon of an existing row and keeps everything else. Does nothing for an unknown id.</p>
+
+<h3 id="remove-id-string-void">remove(id: string): void</h3>
+<p>Removes the row. It also removes a status item with the same id.</p>
+
+<h2 id="the-macotron-icon">The Macotron icon</h2>
+
+<h3 id="seticon-sfsymbolname-string-void">setIcon(sfSymbolName: string): void</h3>
+<p>Replaces the Macotron glyph with an SF Symbol.</p>
+
+<h3 id="seticoncolor-color-string-null-void">setIconColor(color?: string | null): void</h3>
+<p>Tints the Macotron icon. Accepts the same color names and hex forms as <code>status</code>. Pass <code>null</code> to go back to the normal menu bar color. The tint is cleared on reload unless a plugin sets it again.</p>
+
+<h3 id="settitle-text-string-void">setTitle(text: string): void</h3>
+<p>Shows text next to the Macotron icon. Pass <code>""</code> to clear it.</p>
+
+<h3 id="isdark-boolean">isDark(): boolean</h3>
+<p>Whether the menu bar draws light text right now. It follows the wallpaper as well as the system theme.</p>
+
+<h2 id="events">Events</h2>
+
+<h3 id="menubar-appearance">menubar:appearance</h3>
+<p>Fires when the menu bar switches between light and dark text. There is no payload; call <code>isDark()</code>.</p>
+
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.on(<span class="tok-str">"menubar:appearance"</span>, paint);</code></pre>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-panel.html">macotron.panel</a> for a full window when a menu is not enough.</li>
+  <li><a href="/docs/api-notify.html">macotron.notify</a> for toasts and banners.</li>
+  <li>The <code>pomodoro.js</code>, <code>mini-calendar.js</code> and <code>system-metrics.js</code> plugins.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

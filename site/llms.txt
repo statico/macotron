@@ -5,6 +5,85 @@ Native macOS host for JavaScript plugins.
 ## Read these
 
 - [Home](/)
+- [Docs](/docs/)
 - [Glossary](/glossary.html)
 - [AGENTS.md](/AGENTS.md)
 - [Sitemap](/sitemap.xml)
+
+## Guide
+
+- [Getting started](/docs/guide-getting-started.html): Install Macotron, pick a workdir, add plugins from the catalog, and grant permissions.
+- [Writing plugins](/docs/guide-writing-plugins.html): The shape of a plugin file, how it loads and reloads, and how to log, handle errors, and save state.
+- [Plugin settings](/docs/guide-plugin-settings.html): Declare a plugin's title, permissions, and options so users can configure it in Settings → Plugins.
+- [Coding agents](/docs/guide-coding-agents.html): Use Claude Code, Codex, or another agent to write plugins. Macotron writes the AGENTS.md they read.
+- [Permissions](/docs/guide-permissions.html): Each macOS permission Macotron can ask for, what needs it, and how to grant it.
+- [Security](/docs/guide-security.html): How Macotron decides which plugin code may run, and what an enabled plugin can do.
+- [Community plugins](/docs/guide-community-plugins.html): Install plugins other people publish on GitHub, and publish your own with one repository topic.
+- [Updates](/docs/guide-updates.html): How Macotron updates itself, how to change how often it checks, and how built-in plugins update.
+- [Troubleshooting](/docs/guide-troubleshooting.html): Read Macotron's log, and fix plugins that do not load, hotkeys that do not fire, and missing menu bar items.
+
+## Features
+
+- [Launcher](/docs/feature-launcher.html): Open apps, run plugin commands, and search files from one keyboard-driven bar.
+- [Hotkeys](/docs/feature-hotkeys.html): Global keyboard shortcuts from plugins, apps, and launcher rows, all changeable in Settings.
+- [Window management](/docs/feature-windows.html): Tile windows with hotkeys, snap them by dragging, place them on a grid, and save layouts.
+- [File search](/docs/feature-file-search.html): Find files and folders by name in the launcher, from an index Macotron keeps in memory.
+- [Clipboard](/docs/feature-clipboard.html): Search recent copies from the launcher, bring back images, and paste as plain text.
+- [Snippets](/docs/feature-snippets.html): Type a short abbreviation anywhere and Macotron replaces it with longer text.
+- [Menu bar](/docs/feature-menu-bar.html): The Macotron menu, its warning dots, and the status items that plugins put in the menu bar.
+- [Meetings and calendar](/docs/feature-meetings.html): Your next meeting in the menu bar, a join overlay when it starts, a mini calendar, and reminders.
+- [Screen tools](/docs/feature-screen-tools.html): Copy text or a QR code off the screen, pick colors, and tint, dim, or brighten the display.
+- [AI](/docs/feature-ai.html): Chat with Apple Intelligence, Claude, or Gemini, translate selected text, and where API keys go.
+- [Browser picker](/docs/feature-browser-picker.html): Open each link in the right browser, by host, or pick one from a panel every time.
+- [Fan control](/docs/feature-fan-control.html): See fan speed in the menu bar and keep the fans at or above 50% or 100% with the background helper.
+- [Built-in plugins](/docs/feature-built-in-plugins.html): Every plugin that ships with Macotron, with one line on what it does and what it needs.
+
+## API
+
+- [Globals](/docs/api-globals.html): console, timers, localStorage, and dialogs, plus what a browser or Node has that Macotron does not.
+- [macotron (core)](/docs/api-core.html): Plugin metadata, launcher commands, host events, timers, dialogs, and logging.
+- [macotron.ai](/docs/api-ai.html): Send prompts to Claude, OpenAI, Gemini, or the on-device Apple Intelligence model.
+- [macotron.app](/docs/api-app.html): List, launch, switch to, hide, and quit apps, and pick items from their menus.
+- [macotron.appletv](/docs/api-appletv.html): Find Apple TVs on the local network. Sending remote keys is not available yet.
+- [macotron.audio](/docs/api-audio.html): List audio devices, switch input and output, set volume and mute, and record the microphone.
+- [macotron.ax](/docs/api-ax.html): Read the selected text, walk another app's UI elements, press buttons, and set field values.
+- [macotron.bonjour](/docs/api-bonjour.html): Find Bonjour services such as AirPlay receivers, printers, and other Macs on the local network.
+- [macotron.calendar](/docs/api-calendar.html): Read upcoming Calendar events, with the meeting join link pulled out for you.
+- [macotron.camera](/docs/api-camera.html): List cameras, show a live preview window, and take a PNG snapshot from it.
+- [macotron.clipboard](/docs/api-clipboard.html): Read and write the pasteboard, keep a short history, and force plain-text paste.
+- [macotron.contacts](/docs/api-contacts.html): List and search the people in Contacts, with their emails and phone numbers.
+- [macotron.display](/docs/api-display.html): List displays, set brightness and gamma, and switch Night Shift, True Tone, grayscale, XDR, and CRT.
+- [macotron.dock](/docs/api-dock.html): Read the badges on Dock icons, such as unread counts in Mail or Messages.
+- [macotron.event](/docs/api-event.html): Post synthetic clicks, keys, text, and scrolls, and watch or swallow input from every app.
+- [macotron.files](/docs/api-files.html): Search file and folder names in Macotron's own fast index of the folders you choose.
+- [macotron.fs](/docs/api-fs.html): Read, write, list, rename, and watch files anywhere your user account can reach.
+- [macotron.hid](/docs/api-hid.html): List HID devices, open one, and send and read raw input, output, and feature reports.
+- [macotron.homekit](/docs/api-homekit.html): The HomeKit namespace. macOS gives native apps no HomeKit access, so it returns no homes today.
+- [macotron.http](/docs/api-http.html): Make GET, POST, PUT, and DELETE requests and read the status, body, and headers.
+- [macotron.idle](/docs/api-idle.html): Read how long the user has been away, and get events when the Mac goes idle and comes back.
+- [macotron.keyboard](/docs/api-keyboard.html): Global hotkeys the user can rebind, the current modifier keys, and a Hyper key.
+- [macotron.keychain](/docs/api-keychain.html): Store API keys, tokens, and other secrets in the macOS Keychain.
+- [macotron.launcher](/docs/api-launcher.html): Add rows to the Macotron launcher, from a fixed list or computed from what the user types.
+- [macotron.media](/docs/api-media.html): Read what is playing in any app and send play, pause, next, and previous.
+- [macotron.menubar](/docs/api-menubar.html): Put status items in the menu bar, give them menus, and add rows to the Macotron menu.
+- [macotron.mouse](/docs/api-mouse.html): Read where the pointer is and which buttons are down, and move the pointer.
+- [macotron.network](/docs/api-network.html): Read and switch Wi-Fi, Bluetooth, and AirDrop, list interfaces and byte counters, and ping a host.
+- [macotron.notes](/docs/api-notes.html): List the notes in Apple Notes and open one.
+- [macotron.notify](/docs/api-notify.html): Post system notification banners and show short on-screen toasts.
+- [macotron.ocr](/docs/api-ocr.html): Read the text in an image file or a base64 PNG with Apple's on-device Vision OCR.
+- [macotron.panel](/docs/api-panel.html): Open floating web-view windows and exchange messages with the page inside them.
+- [macotron.power](/docs/api-power.html): Keep the Mac awake, lock, sleep, log out, restart, or shut down, and react to sleep and lock.
+- [macotron.qr](/docs/api-qr.html): Read QR codes from images, the screen, or the camera, and make QR code images.
+- [macotron.reminders](/docs/api-reminders.html): List, add, and complete reminders in the Reminders app.
+- [macotron.screen](/docs/api-screen.html): Capture the screen or a dragged region as a PNG, and pick a color with the system eyedropper.
+- [macotron.share](/docs/api-share.html): Open the macOS share menu for files, text or a link, or send files with AirDrop.
+- [macotron.shell](/docs/api-shell.html): Run a command-line tool and get back its output and exit code.
+- [macotron.shortcuts](/docs/api-shortcuts.html): List your Shortcuts and run one by name.
+- [macotron.snippets](/docs/api-snippets.html): Keep text snippets under short abbreviations that expand as you type in any app.
+- [macotron.spaces](/docs/api-spaces.html): List desktops on every display, switch to one, and move a window to another desktop.
+- [macotron.spotlight](/docs/api-spotlight.html): Find files and folders by name with Spotlight, and complete typed paths one folder at a time.
+- [macotron.system](/docs/api-system.html): CPU, GPU, memory, disk, processes, battery, fans, appearance, Focus, locale, and time zones.
+- [macotron.udp](/docs/api-udp.html): Send UDP datagrams and listen on a port for incoming messages.
+- [macotron.url](/docs/api-url.html): Route links to plugin handlers, open URLs in a chosen app, and act as the default browser.
+- [macotron.usb](/docs/api-usb.html): List attached USB devices and react when one is plugged in or removed.
+- [macotron.window](/docs/api-window.html): List, focus, move, tile, and snap the windows of every app, and restore saved layouts.

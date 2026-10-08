@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>macotron.audio · Macotron</title>
+  <meta name="description" content="List audio devices, switch input and output, set volume and mute, and record the microphone.">
+  <meta property="og:title" content="macotron.audio · Macotron">
+  <meta property="og:description" content="List audio devices, switch input and output, set volume and mute, and record the microphone.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-audio.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-audio.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "macotron.audio", "item": "https://macotron.statico.io/docs/api-audio.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html" aria-current="page">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>macotron.audio</h1>
+<p class="lede">List the Mac's audio devices, pick the default input and output, change volume and mute, and record the microphone to a file.</p>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// Cycle the default output through every device that can play sound.</span>
+<span class="tok-kw">const</span> outputs = <span class="tok-fn">macotron</span>.audio.devices().filter((d) =&gt; d.output);
+<span class="tok-kw">const</span> current = <span class="tok-fn">macotron</span>.audio.output();
+<span class="tok-kw">const</span> i = outputs.findIndex((d) =&gt; current &amp;&amp; d.id === current.id);
+<span class="tok-kw">const</span> next = outputs[(i + <span class="tok-num">1</span>) % outputs.length];
+<span class="tok-kw">if</span> (next) <span class="tok-fn">macotron</span>.audio.setOutput(next.id);</code></pre>
+
+<h2 id="devices">Devices</h2>
+<p>A device is <code>{ id, name, uid, input, output }</code>. <code>id</code> is the Core Audio device number, which can change after a restart or a reconnect. <code>uid</code> is a stable string. <code>input</code> and <code>output</code> say whether the device can record and play. A device that does both, such as a headset, shows up once with both set to <code>true</code>.</p>
+
+<h3 id="devices-array-lt-id-name-uid-input-output-gt">devices(): Array&lt;{ id, name, uid, input, output }&gt;</h3>
+<p>Every audio device macOS knows about, including virtual ones.</p>
+
+<h3 id="input-id-name-uid-input-output-null">input(): { id, name, uid, input, output } | null</h3>
+<p>The default input device, or <code>null</code> when there is none.</p>
+
+<h3 id="output-id-name-uid-input-output-null">output(): { id, name, uid, input, output } | null</h3>
+<p>The default output device, or <code>null</code> when there is none.</p>
+
+<h3 id="setinput-idorname-number-string-boolean">setInput(idOrName: number | string): boolean</h3>
+<p>Makes a device the default input. Pass its <code>id</code>, its exact <code>name</code>, or its <code>uid</code>. Returns <code>false</code> when no device matches or macOS refuses the change.</p>
+
+<h3 id="setoutput-idorname-number-string-boolean">setOutput(idOrName: number | string): boolean</h3>
+<p>Makes a device the default output. It takes the same arguments as <code>setInput</code>.</p>
+
+<h2 id="volume-and-mute">Volume and mute</h2>
+<p>Each call takes an optional device <code>id</code>, name, or <code>uid</code>. Without one, it acts on the default output, which is the system volume.</p>
+
+<h3 id="volume-id-number-string-number-null">volume(id?: number | string): number | null</h3>
+<p>The output volume from <code>0</code> to <code>1</code>. Returns <code>null</code> when the device has no volume control, which is common for HDMI and some USB devices.</p>
+
+<h3 id="setvolume-level-number-id-number-string-boolean">setVolume(level: number, id?: number | string): boolean</h3>
+<p>Sets the output volume. <code>level</code> is clamped to <code>0</code>…<code>1</code>. Returns <code>false</code> when the device has no volume control.</p>
+
+<h3 id="ismuted-id-number-string-boolean">isMuted(id?: number | string): boolean</h3>
+<p>Whether the device is muted. When you pass a device that can record, this reads the input mute, so <code>isMuted(macotron.audio.input().id)</code> tells you whether the microphone is muted. Returns <code>false</code> when the device has no mute control.</p>
+
+<h3 id="setmuted-on-boolean-id-number-string-boolean">setMuted(on: boolean, id?: number | string): boolean</h3>
+<p>Mutes or unmutes the device. Like <code>isMuted</code>, a device that can record has its input muted. Returns <code>false</code> when the device does not accept the change.</p>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// Toggle the microphone.</span>
+<span class="tok-kw">const</span> mic = <span class="tok-fn">macotron</span>.audio.input();
+<span class="tok-kw">if</span> (mic) <span class="tok-fn">macotron</span>.audio.setMuted(!<span class="tok-fn">macotron</span>.audio.isMuted(mic.id), mic.id);</code></pre>
+
+<h2 id="recording">Recording</h2>
+<p>Macotron records one file at a time from the default input, as AAC in an <code>.m4a</code> container: 44.1 kHz, mono.</p>
+
+<div class="note"><p>Recording needs Microphone permission. Add <code>"microphone"</code> to <code>permissions</code> in <code>macotron.plugin()</code> so the plugin's Settings page shows it.</p></div>
+
+<h3 id="record-opts-path-string-boolean">record(opts: { path: string }): boolean</h3>
+<p>Starts recording to <code>path</code>. A leading <code>~</code> expands to your home folder, and missing folders are created. A recording that is already running stops first. Returns <code>false</code> when <code>path</code> is empty or the recorder cannot start.</p>
+
+<h3 id="stoprecord-path-string-seconds-number-null">stopRecord(): { path: string; seconds: number } | null</h3>
+<p>Stops recording and returns the file path and its length in seconds. Returns <code>null</code> when nothing was recording.</p>
+
+<h3 id="isrecording-boolean">isRecording(): boolean</h3>
+<p>Whether a recording is running.</p>
+
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.command(<span class="tok-str">"Start Recording"</span>, <span class="tok-str">"Record the microphone"</span>, () =&gt; {
+  <span class="tok-kw">if</span> (!<span class="tok-fn">macotron</span>.audio.record({ path: <span class="tok-str">"~/Desktop/macotron.m4a"</span> })) {
+    <span class="tok-fn">macotron</span>.notify.toast(<span class="tok-str">"Record"</span>, <span class="tok-str">"Could not start"</span>, { color: <span class="tok-str">"error"</span> });
+  }
+});
+
+<span class="tok-fn">macotron</span>.command(<span class="tok-str">"Stop Recording"</span>, <span class="tok-str">"Stop the microphone recording"</span>, () =&gt; {
+  <span class="tok-kw">const</span> result = <span class="tok-fn">macotron</span>.audio.stopRecord();
+  <span class="tok-kw">if</span> (result) <span class="tok-fn">macotron</span>.notify.toast(<span class="tok-str">"Saved"</span>, result.path);
+});</code></pre>
+
+<h2 id="events">Events</h2>
+
+<h3 id="audio-changed">audio:changed</h3>
+<p>Fires when the default input or output changes, or when a device is added or removed. The payload is <code>{ flags }</code>, an array that holds one or more of <code>"input"</code>, <code>"output"</code>, and <code>"devices"</code>. Read the new state with <code>input()</code>, <code>output()</code>, or <code>devices()</code>.</p>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// Pause playback when headphones go away.</span>
+<span class="tok-kw">let</span> last = <span class="tok-fn">macotron</span>.audio.output();
+<span class="tok-fn">macotron</span>.on(<span class="tok-str">"audio:changed"</span>, ({ flags }) =&gt; {
+  <span class="tok-kw">if</span> (!flags.includes(<span class="tok-str">"output"</span>) &amp;&amp; !flags.includes(<span class="tok-str">"devices"</span>)) <span class="tok-kw">return</span>;
+  <span class="tok-kw">const</span> out = <span class="tok-fn">macotron</span>.audio.output();
+  <span class="tok-kw">if</span> (last &amp;&amp; out &amp;&amp; out.uid !== last.uid &amp;&amp; /headphone|airpods/i.test(last.name)) {
+    <span class="tok-kw">if</span> (<span class="tok-fn">macotron</span>.media.nowPlaying().playing) <span class="tok-fn">macotron</span>.media.playPause();
+  }
+  last = out;
+});</code></pre>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-media.html">macotron.media</a> to control what is playing.</li>
+  <li>The <code>audio.js</code>, <code>mic-mute.js</code>, <code>headphone-pause.js</code>, and <code>record.js</code> plugins.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

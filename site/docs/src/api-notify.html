@@ -1,0 +1,53 @@
+<!-- title: macotron.notify
+     summary: Post system notification banners and show short on-screen toasts.
+     group: API -->
+<h1>macotron.notify</h1>
+<p class="lede">Post a system notification banner, or flash a short toast on the screen under the pointer.</p>
+
+<pre><code class="language-javascript">macotron.keyboard.on("Copy date", "cmd+shift+d", () =&gt; {
+  const today = new Date().toLocaleDateString();
+  macotron.clipboard.set(today);
+  macotron.notify.toast("Copied", today, { color: "success" });
+});</code></pre>
+
+<h2>Toasts</h2>
+
+<h3>toast(title: string, body?: string, opts?: ToastOptions): void</h3>
+<p>Shows a small HUD centered near the bottom of the screen under the pointer, 48 points from the edge, then fades it out. The title and body show as one line, <code>"Title: body"</code>, and long text wraps. Only one toast shows at a time; a new toast replaces the current one. You can also call <code>toast(title, opts)</code> with no body.</p>
+
+<table>
+  <thead><tr><th>Option</th><th>Type</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>position</code></td><td><code>"top"</code> | <code>"bottom"</code></td><td>Which edge of the screen. Default <code>"bottom"</code>.</td></tr>
+    <tr><td><code>duration</code></td><td>number</td><td>How long it stays, in milliseconds. Default 3000.</td></tr>
+    <tr><td><code>color</code></td><td>string</td><td><code>"info"</code> (the default: plain text, no icon), <code>"success"</code> or <code>"green"</code> (green check), <code>"error"</code>, <code>"failure"</code> or <code>"red"</code> (red cross), <code>"warning"</code> or <code>"orange"</code> (orange triangle). <code>"blue"</code>, <code>"yellow"</code> and <code>#RRGGBB</code> tint only the <code>sfSymbol</code> icon and leave the text in the normal color.</td></tr>
+    <tr><td><code>sfSymbol</code></td><td>string</td><td>An SF Symbol to show before the text, in place of the color's default icon.</td></tr>
+  </tbody>
+</table>
+
+<p>Write the title as the feature name and the body as the message: <code>toast("Layouts", "Saved 3 windows")</code>. For a bare state, continue the title in lowercase: <code>toast("Night vision", "off")</code>.</p>
+
+<h2>Notifications</h2>
+
+<h3>show(title: string, body: string, opts?: { sound?, subtitle?, id?, url? }): void</h3>
+<p>Posts a banner through Notification Center. Banners show even while Macotron is the active app. Throws a <code>TypeError</code> when <code>title</code> or <code>body</code> is missing, or when <code>url</code> does not parse.</p>
+
+<table>
+  <thead><tr><th>Option</th><th>Type</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>sound</code></td><td>boolean</td><td>Play the default notification sound. Default <code>true</code>.</td></tr>
+    <tr><td><code>subtitle</code></td><td>string</td><td>A line between the title and the body.</td></tr>
+    <tr><td><code>id</code></td><td>string</td><td>Posting again with the same id replaces the earlier notification instead of adding another.</td></tr>
+    <tr><td><code>url</code></td><td>string</td><td>Opens when the user clicks the banner. The URL is stored in the notification, so the click works even after Macotron restarts.</td></tr>
+  </tbody>
+</table>
+
+<div class="note"><p>The first banner asks for notification permission. If the user denies it, banners are dropped without an error. The user can turn them back on in System Settings &gt; Notifications &gt; Macotron. Toasts need no permission.</p></div>
+
+<pre><code class="language-javascript">macotron.notify.show("Pomodoro", "Break — 5 minutes", { id: "pomodoro" });</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-menubar.html">macotron.menubar</a> for status that stays on screen.</li>
+  <li><a href="/docs/api-panel.html">macotron.panel</a> for anything the user needs to answer.</li>
+</ul>

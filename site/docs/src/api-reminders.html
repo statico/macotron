@@ -1,0 +1,42 @@
+<!-- title: macotron.reminders
+     summary: List, add, and complete reminders in the Reminders app.
+     group: API -->
+<h1>macotron.reminders</h1>
+<p class="lede">List, add, and check off reminders in the Reminders app, across every list and account on the Mac.</p>
+
+<pre><code class="language-javascript">const items = await macotron.reminders.list({ days: 1 });
+macotron.menubar.status("reminders", {
+  title: items.length ? items[0].title : "Reminders",
+  sfSymbol: "checklist",
+  menu: items.map((item) =&gt; ({
+    title: item.title,
+    onClick: () =&gt; macotron.reminders.complete(item.id),
+  })),
+});</code></pre>
+
+<h2>Reading</h2>
+
+<h3>list(opts?: { days?: number; completed?: boolean }): Promise&lt;Array&lt;{ id, title, due, completed, list }&gt;&gt;</h3>
+<p>Reminders from every list. The fetch runs off the main thread.</p>
+<p>By default the result holds only incomplete reminders. With <code>completed: true</code> it holds only completed ones.</p>
+<p><code>days</code> keeps reminders that are due within that many days from now, plus overdue ones, plus reminders with no due date. Omit it to get every reminder.</p>
+<p>Each row has <code>id</code>, <code>title</code>, <code>due</code> (milliseconds since 1970, or <code>null</code> when there is no due date), <code>completed</code>, and <code>list</code> (the name of the list it is in).</p>
+
+<h2>Writing</h2>
+<p>These calls return their result right away, not a promise.</p>
+
+<h3>add(row: { title: string; due?: number; list?: string }): { ok: boolean; id?: string; error?: string }</h3>
+<p>Creates a reminder and returns <code>{ ok: true, id }</code>. <code>due</code> is in milliseconds since 1970 and is kept to the minute. <code>list</code> is a list name, matched without regard to case. When it is omitted or matches no list, the reminder goes in your default list.</p>
+<p>Returns <code>{ ok: false, error }</code> when the title is empty (<code>"title required"</code>), when Macotron has no access (<code>"unauthorized"</code>), or when the save fails.</p>
+
+<h3>complete(id: string, on?: boolean): { ok: boolean; error?: string }</h3>
+<p>Marks the reminder done. Pass <code>false</code> for <code>on</code> to mark it not done again. Returns <code>{ ok: false, error: "not found" }</code> for an unknown id, and <code>"unauthorized"</code> without access.</p>
+
+<div class="note"><p>Macotron needs Reminders access. The first call asks macOS to show the permission prompt: <code>list()</code> resolves with <code>[]</code> and <code>add()</code> returns <code>"unauthorized"</code> while the user decides. If access is denied, turn it on in System Settings → Privacy &amp; Security → Reminders.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-calendar.html">macotron.calendar</a> for events.</li>
+  <li><a href="/docs/api-menubar.html">macotron.menubar</a> for the status item in the example.</li>
+  <li>The <code>reminders.js</code> plugin, which shows the next reminder in the menu bar.</li>
+</ul>

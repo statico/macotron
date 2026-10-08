@@ -1,0 +1,113 @@
+<!-- title: Plugin settings
+     summary: Declare a plugin's title, permissions, and options so users can configure it in Settings → Plugins.
+     group: Guide
+     order: 3 -->
+<h1>Plugin settings</h1>
+<p class="lede"><code>macotron.plugin()</code> describes a plugin to Settings: its name, what it does, the permissions it needs, and the options a user can change. It returns the current option values.</p>
+
+<pre><code class="language-javascript">const opts = macotron.plugin({
+  title: "Chat",
+  description: "Talk to a model",
+  help: "Set an API key below for cloud models.",
+  permissions: ["accessibility"],
+  options: {
+    model: {
+      type: "dropdown", label: "Model", default: "sonnet",
+      choices: [
+        { value: "sonnet", label: "Claude Sonnet" },
+        { value: "opus", label: "Claude Opus" },
+      ],
+    },
+    apiKey: { type: "password", label: "Anthropic API key", required: true },
+    openHotkey: { type: "keybinding", label: "Open chat", default: "cmd+shift+c" },
+  },
+});
+
+console.log("chat: model =", opts.model);</code></pre>
+
+<h2>Metadata</h2>
+<table>
+  <thead><tr><th>Field</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>title</code></td><td>The plugin's name in Settings → Plugins and the catalog.</td></tr>
+    <tr><td><code>description</code></td><td>One sentence under the title.</td></tr>
+    <tr><td><code>help</code></td><td>Extra explanation on the plugin's Settings page.</td></tr>
+    <tr><td><code>permissions</code></td><td>The macOS permissions the plugin needs. See below.</td></tr>
+    <tr><td><code>options</code></td><td>Settings the user can change. See below.</td></tr>
+  </tbody>
+</table>
+<p>Put the call at the top of the file and write <code>title</code> and <code>description</code> as plain string literals. Settings reads them from the first part of the file without running it, so it can show a plugin that is disabled or still waiting for approval.</p>
+
+<h2>Permissions</h2>
+<p>List what the plugin needs, and Macotron adds those permissions to the Permissions tab and to the plugin's own page:</p>
+<table>
+  <thead><tr><th>Name</th><th>Needed for</th></tr></thead>
+  <tbody>
+    <tr><td><code>accessibility</code></td><td>Moving and focusing windows, reading other apps' UI</td></tr>
+    <tr><td><code>inputMonitoring</code></td><td>Watching keys, mouse, and trackpad gestures</td></tr>
+    <tr><td><code>screenRecording</code></td><td>Capturing the screen</td></tr>
+    <tr><td><code>camera</code></td><td>The camera, such as scanning a QR code</td></tr>
+    <tr><td><code>microphone</code></td><td>Recording audio</td></tr>
+    <tr><td><code>calendar</code></td><td>Reading calendar events</td></tr>
+    <tr><td><code>helper</code></td><td>Privileged work through the background helper, such as fan control</td></tr>
+  </tbody>
+</table>
+<p>A declaration is a request, not a sandbox. Macotron cannot limit a plugin to what it declared. <a href="/docs/guide-permissions.html">Permissions</a> explains each one.</p>
+
+<h2>Options</h2>
+<p>Each key in <code>options</code> becomes a row on the plugin's page in Settings → Plugins. The user edits the value there, and <code>macotron.plugin()</code> returns it under the same key. Changing a value reloads plugins, so the plugin reads the new value at load.</p>
+<table>
+  <thead><tr><th>Type</th><th>Control in Settings</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td><code>string</code></td><td>Text field</td><td>String</td></tr>
+    <tr><td><code>text</code></td><td>Multi-line text area</td><td>String</td></tr>
+    <tr><td><code>boolean</code></td><td>Checkbox</td><td>Boolean</td></tr>
+    <tr><td><code>number</code></td><td>Number field, or a slider when <code>min</code> and <code>max</code> are both set</td><td>Number</td></tr>
+    <tr><td><code>dropdown</code></td><td>Pop-up menu from <code>choices: [{ value, label }]</code></td><td>The chosen <code>value</code></td></tr>
+    <tr><td><code>keybinding</code></td><td>Shortcut recorder</td><td>A combo such as <code>"cmd+shift+c"</code></td></tr>
+    <tr><td><code>password</code></td><td>Secure field with <strong>Set</strong> and <strong>Clear</strong></td><td>The secret, or <code>""</code></td></tr>
+    <tr><td><code>file</code></td><td><strong>Choose…</strong> button for a file</td><td>Absolute path</td></tr>
+    <tr><td><code>directory</code></td><td><strong>Choose…</strong> button for a folder</td><td>Absolute path</td></tr>
+    <tr><td><code>calendars</code></td><td>A checkbox for each of the user's calendars</td><td>Array of calendar names; needs Calendars access first</td></tr>
+  </tbody>
+</table>
+<p>Every option takes these fields:</p>
+<ul>
+  <li><code>label</code>: a few words. It is required.</li>
+  <li><code>default</code>: the value before the user changes it. <code>password</code> has no default.</li>
+  <li><code>required</code>: when <code>true</code>, Settings marks the field <strong>Required</strong> and lists it first.</li>
+  <li><code>help</code>: a sentence under the field. Put the explanation here and keep the label short.</li>
+</ul>
+<p>Text, number, password, file, and directory options also take <code>placeholder</code>, the grey hint shown while the field is empty. It is read at load, so it can show live state:</p>
+<pre><code class="language-javascript">locale: { type: "string", label: "Locale", placeholder: macotron.system.locale().language },</code></pre>
+<p>A <code>number</code> option with <code>min</code> and <code>max</code> also takes <code>step</code>.</p>
+
+<h2>Secrets</h2>
+<p>A <code>password</code> option keeps its value in the macOS Keychain. <code>settings.json</code> stores only a reference to the Keychain item, so the file is safe to commit. <code>macotron.plugin()</code> returns the secret itself. Never write a key into plugin source or <code>settings.json</code>.</p>
+
+<h2>Checks</h2>
+<p>A plugin can report a problem it found, such as a blocked system feature, with <code>macotron.checks()</code>. A failed check puts an orange warning on the plugin in Settings → Plugins and a row in its Checks section. Each call replaces the list, and <code>[]</code> clears it.</p>
+<pre><code class="language-javascript">macotron.checks([
+  { title: "Speed control", ok: false, message: "This Mac blocked fan-speed writes." },
+]);</code></pre>
+<p><code>macotron.settings.open()</code> opens the plugin's own page in Settings.</p>
+
+<h2>The plugin page</h2>
+<p>Each plugin's page in Settings → Plugins shows, where they apply:</p>
+<ul>
+  <li><strong>Enabled</strong>: a disabled plugin stays on disk but does not load.</li>
+  <li><strong>Permissions</strong>: what the header declared, and whether each is granted.</li>
+  <li><strong>Menu Bar</strong>: items macOS is not showing, with <strong>Restore</strong>.</li>
+  <li><strong>Checks</strong>: from <code>macotron.checks()</code>.</li>
+  <li><strong>Listens for</strong>: the events the plugin handles.</li>
+  <li><strong>Shortcuts</strong> and <strong>Commands</strong>: hotkeys and launcher commands, each with a recorder to change or assign a key.</li>
+  <li><strong>Settings</strong>: the options above.</li>
+  <li><strong>Open Source File</strong> and <strong>Delete…</strong>. Delete keeps a copy in the workdir's <code>backups/</code> folder.</li>
+</ul>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-core.html">macotron core</a> for <code>plugin()</code>, <code>checks()</code>, and <code>settings.open()</code></li>
+  <li><a href="/docs/api-keychain.html">macotron.keychain</a></li>
+  <li><a href="/docs/guide-writing-plugins.html">Writing plugins</a></li>
+</ul>

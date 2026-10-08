@@ -1,0 +1,41 @@
+<!-- title: Snippets
+     summary: Type a short abbreviation anywhere and Macotron replaces it with longer text.
+     group: Features
+     order: 60 -->
+<h1>Snippets</h1>
+<p class="lede">A snippet maps a short abbreviation to longer text. With expansion on, you type the abbreviation in any app and Macotron replaces it with the text. The Text Snippets plugin also puts snippets in the launcher.</p>
+
+<h2>The Text Snippets plugin</h2>
+<p>The built-in plugin defines one snippet, <code>omw</code>, which expands to "On my way!", and turns on expansion. It also adds two launcher rows:</p>
+<ul>
+  <li><b>omw</b> copies "On my way!" to the clipboard.</li>
+  <li><b>Insert Date</b> copies today's date to the clipboard.</li>
+</ul>
+<p>The <b>Insert OMW</b> command does the same as the <b>omw</b> row.</p>
+
+<h2>Adding your own</h2>
+<p>Snippets live in plugin code, not in Settings. Edit <code>plugins/snippets.js</code> in your workdir, or ask your coding agent to, and add a line for each one:</p>
+<pre><code class="language-javascript">macotron.snippets.set("omw", "On my way!");
+macotron.snippets.set(";addr", "1 Infinite Loop, Cupertino, CA 95014");
+macotron.snippets.set(";sig", "Thanks,\nIan");
+macotron.snippets.setExpansionEnabled(true);</code></pre>
+<p>Save the file and reload the plugin. See <a href="/docs/guide-writing-plugins.html">Writing plugins</a>.</p>
+
+<h2>How expansion works</h2>
+<ul>
+  <li>Expansion happens as soon as the text you typed ends with an abbreviation. You do not press Space or Tab after it.</li>
+  <li>Macotron deletes the abbreviation, pastes the text, then puts back what was on the clipboard before (if it was text).</li>
+  <li>Space, Return, Tab, Escape, and any Command, Control, or Option shortcut clear what Macotron has seen you type. The abbreviation must come after the last of those, but it can end a longer word: typing <code>xomw</code> also expands.</li>
+  <li>Abbreviations match plain ASCII characters only.</li>
+  <li>When two abbreviations both match, the longer one wins.</li>
+</ul>
+<p>Pick abbreviations that never occur in normal typing. A prefix such as <code>;</code> works well: <code>sig</code> would fire halfway through "signal", but <code>;sig</code> never shows up in a real word.</p>
+
+<div class="note"><p>Expansion watches the keyboard and types for you, so it needs Input Monitoring and Accessibility. Snippets are kept in memory, so the plugin sets them again each time it loads. See <a href="/docs/guide-permissions.html">Permissions</a>.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-snippets.html">macotron.snippets</a></li>
+  <li><a href="/docs/feature-clipboard.html">Clipboard</a></li>
+  <li><a href="/docs/feature-launcher.html">Launcher</a></li>
+</ul>

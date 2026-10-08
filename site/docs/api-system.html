@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>macotron.system · Macotron</title>
+  <meta name="description" content="CPU, GPU, memory, disk, processes, battery, fans, appearance, Focus, locale, and time zones.">
+  <meta property="og:title" content="macotron.system · Macotron">
+  <meta property="og:description" content="CPU, GPU, memory, disk, processes, battery, fans, appearance, Focus, locale, and time zones.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-system.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-system.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "macotron.system", "item": "https://macotron.statico.io/docs/api-system.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html" aria-current="page">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>macotron.system</h1>
+<p class="lede">Read the state of the Mac: CPU, GPU, memory, disk, network totals, processes, battery, and fans. Switch Dark Mode and Low Power Mode, and format the time in another zone.</p>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// CPU and memory pressure in the menu bar, every two seconds.</span>
+<span class="tok-kw">function</span> render() {
+  <span class="tok-kw">const</span> cpu = Math.round(<span class="tok-fn">macotron</span>.system.cpu().usage);
+  <span class="tok-kw">const</span> { pressure } = <span class="tok-fn">macotron</span>.system.memory();
+  <span class="tok-fn">macotron</span>.menubar.status(<span class="tok-str">"load"</span>, {
+    title: cpu + <span class="tok-str">"%"</span>,
+    color: pressure === <span class="tok-str">"normal"</span> ? <span class="tok-kw">undefined</span> : <span class="tok-str">"orange"</span>,
+  });
+}
+
+render();
+<span class="tok-fn">macotron</span>.every(<span class="tok-num">2000</span>, render);</code></pre>
+
+<h2 id="cpu-and-gpu">CPU and GPU</h2>
+
+<h3 id="cpu-usage-performance-efficiency-performancecores-efficiencycores">cpu(): { usage, performance, efficiency, performanceCores, efficiencyCores }</h3>
+<p><code>usage</code> is the busy percentage, <code>0</code>…<code>100</code>, of all cores together since the previous call. The counters are shared by all plugins, so the window runs from whichever plugin called last. Call it on a steady timer for a steady reading.</p>
+<p><code>performance</code> and <code>efficiency</code> are the busy percentages of each core cluster on Apple silicon. <code>performanceCores</code> and <code>efficiencyCores</code> are the logical core counts. An Intel Mac reports every core as a performance core and <code>efficiencyCores</code> as <code>0</code>.</p>
+
+<h3 id="gpu-name-usage-null">gpu(): { name, usage } | null</h3>
+<p>The GPU's name and its utilization in percent. <code>usage</code> is <code>0</code> when macOS does not report it. Returns <code>null</code> when the Mac has no Metal GPU.</p>
+
+<h3 id="processes-limit-number-promise-lt-array-lt-name-pid-cpu-gt-gt">processes(limit?: number): Promise&lt;Array&lt;{ name, pid, cpu }&gt;&gt;</h3>
+<p>The processes using the most CPU, highest first. <code>limit</code> defaults to 10. <code>cpu</code> is the percentage that <code>ps</code> reports, where 100 is one full core, so a busy process can go above 100. <code>name</code> is the executable path or name.</p>
+
+<h2 id="memory-disk-and-network">Memory, disk, and network</h2>
+
+<h3 id="memory-total-used-free-active-inactive-wired-compressed-pressure">memory(): { total, used, free, active, inactive, wired, compressed, pressure }</h3>
+<p>All sizes are bytes. <code>used</code> is active plus wired plus compressed memory, and <code>free</code> is <code>total</code> minus <code>used</code>, so free includes the file cache.</p>
+<p><code>pressure</code> is <code>"normal"</code>, <code>"warning"</code>, or <code>"critical"</code>: the same signal as Activity Monitor's memory pressure graph. Read <code>pressure</code> to warn about memory. Do not compare <code>used</code> to <code>total</code>: macOS fills free memory with cache on purpose, so a Mac that looks nearly full with normal pressure is healthy.</p>
+
+<h3 id="disk-total-free-used">disk(): { total, free, used }</h3>
+<p>Bytes on the startup volume. <code>free</code> is the space available for important use, which counts purgeable space that macOS can clear.</p>
+
+<h3 id="network-bytesin-bytesout">network(): { bytesIn, bytesOut }</h3>
+<p>Total bytes received and sent on every interface except loopback, since the interfaces came up. Take two readings and subtract to get a rate.</p>
+<div class="note"><p>The counters come from 32-bit fields, so each interface wraps at 4 GiB. A rate that goes negative means a counter wrapped; skip that sample. For per-interface counters, see <a href="/docs/api-network.html">macotron.network</a><code>.counters()</code>.</p></div>
+
+<h2 id="battery-and-low-power-mode">Battery and Low Power Mode</h2>
+
+<h3 id="battery-battery">battery(): Battery</h3>
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>level</code></td><td>Charge in percent, <code>0</code>…<code>100</code>. <code>-1</code> on a Mac with no battery.</td></tr>
+    <tr><td><code>charging</code></td><td><code>true</code> while on AC power, even when the battery is full. Read <code>charged</code> to tell the two apart.</td></tr>
+    <tr><td><code>charged</code></td><td><code>true</code> when the battery is full.</td></tr>
+    <tr><td><code>timeRemaining</code></td><td>Minutes until empty, or <code>-1</code> when unknown.</td></tr>
+    <tr><td><code>timeToFull</code></td><td>Minutes until full, or <code>-1</code> when unknown.</td></tr>
+    <tr><td><code>source</code></td><td><code>"ac"</code> or <code>"battery"</code>.</td></tr>
+    <tr><td><code>health</code></td><td>Maximum capacity as a percent of the design capacity. Only when known.</td></tr>
+    <tr><td><code>cycles</code></td><td>Charge cycle count. Only when known.</td></tr>
+    <tr><td><code>watts</code></td><td>The power adapter's wattage. Only when known.</td></tr>
+    <tr><td><code>lowPowerMode</code></td><td>Whether Low Power Mode is on.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="setlowpowermode-enabled-boolean-promise-lt-ok-lowpowermode-error-gt">setLowPowerMode(enabled: boolean): Promise&lt;{ ok, lowPowerMode, error? }&gt;</h3>
+<p>Turns Low Power Mode on or off for both battery and power adapter, with <code>pmset</code>. macOS asks the user for an administrator password, and the promise resolves after the user answers. If the user cancels, <code>ok</code> is <code>false</code>, <code>error</code> says why, and <code>lowPowerMode</code> is the current setting.</p>
+
+<h2 id="fans">Fans</h2>
+<p>Any plugin can read fan speeds. Setting a minimum speed, the fan floor, needs the Macotron background helper, because the fans are changed with root privileges. To offer the helper, put <code>"helper"</code> in the <code>permissions</code> of <code>macotron.plugin()</code>. The plugin's Settings page then shows an Install button.</p>
+
+<h3 id="fans-fanstate">fans(): FanState</h3>
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>available</code></td><td><code>true</code> when this Mac has fans that can be read.</td></tr>
+    <tr><td><code>controllable</code></td><td><code>true</code> when a floor can be set now: the Mac has fans and the helper is installed.</td></tr>
+    <tr><td><code>floor</code></td><td>The minimum in percent while Macotron holds one. Absent when the fans follow macOS.</td></tr>
+    <tr><td><code>error</code></td><td>Why the fans could not be read, when they could not.</td></tr>
+    <tr><td><code>fans</code></td><td><code>Array&lt;{ index, rpm, min, max }&gt;</code>: the current, minimum, and maximum speed of each fan in RPM.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="setfanfloor-percent-number-null-promise-lt-fanstate-gt">setFanFloor(percent: number | null): Promise&lt;FanState&gt;</h3>
+<p>Holds the fans at or above <code>percent</code> of the range from each fan's minimum to its maximum speed. Values above <code>100</code> count as <code>100</code>. <code>null</code>, or a value of <code>0</code> or less, gives control back to macOS. Resolves with the new <code>fans()</code> state. When the helper is not installed or cannot be reached, the state carries an <code>error</code>.</p>
+<p>The floor never lowers a fan below the speed macOS wants. A floor below 100% is released when the Mac's thermal state reaches serious, so that macOS can run the fans faster.</p>
+<div class="note"><p>A plugin reload keeps the floor only if a plugin sets it again while loading. If no plugin claims it, the fans go back to macOS. When Macotron quits, the helper gives the fans back too, so store the floor (for example in <code>localStorage</code>) and set it again at load.</p></div>
+<pre><code class="language-javascript"><span class="tok-kw">const</span> saved = Number(localStorage.getItem(<span class="tok-str">"fan.floor"</span>)) || <span class="tok-kw">null</span>;
+<span class="tok-kw">if</span> (saved) <span class="tok-fn">macotron</span>.system.setFanFloor(saved);</code></pre>
+
+<h2 id="appearance-and-focus">Appearance and Focus</h2>
+
+<h3 id="darkmode-boolean">darkMode(): boolean</h3>
+<p>Whether the system shows Dark Mode now. This is the macOS appearance, not Macotron's own Settings theme. To pick colors for the menu bar, read <a href="/docs/api-menubar.html">macotron.menubar</a><code>.isDark()</code> instead, because the menu bar follows the wallpaper.</p>
+
+<h3 id="setdarkmode-on-boolean-promise-lt-ok-darkmode-error-gt">setDarkMode(on: boolean): Promise&lt;{ ok, darkMode, error? }&gt;</h3>
+<p>Switches the system to Dark or Light Mode. If the direct switch is not available, Macotron asks System Events instead, and macOS can ask the user to allow that the first time.</p>
+
+<h3 id="appearance-light-dark-auto">appearance(): "light" | "dark" | "auto"</h3>
+<p>The appearance setting. <code>"auto"</code> means macOS switches with the time of day; it reads <code>"auto"</code> whichever theme shows now.</p>
+
+<h3 id="setappearance-mode-light-dark-auto-promise-lt-ok-appearance-error-gt">setAppearance(mode: "light" | "dark" | "auto"): Promise&lt;{ ok, appearance, error? }&gt;</h3>
+<p>Sets the appearance. <code>"light"</code> and <code>"dark"</code> turn off automatic switching first. Throws a <code>TypeError</code> for any other mode.</p>
+<pre><code class="language-javascript"><span class="tok-kw">const</span> next = { light: <span class="tok-str">"dark"</span>, dark: <span class="tok-str">"auto"</span>, auto: <span class="tok-str">"light"</span> }[<span class="tok-fn">macotron</span>.system.appearance()];
+<span class="tok-fn">macotron</span>.system.setAppearance(next);</code></pre>
+
+<h3 id="focus-focused-boolean">focus(): { focused: boolean }</h3>
+<p>Whether a Focus mode, such as Do Not Disturb, Sleep, or Work, is on. It reads <code>false</code> until macOS gives Macotron access to Focus status. You cannot change Focus from here.</p>
+
+<h2 id="locale-and-time-zones">Locale and time zones</h2>
+<p>The JavaScript runtime has no <code>Intl</code>, so use these calls to format for the user's locale or for another zone.</p>
+
+<h3 id="locale-language-region-measurement-hour12">locale(): { language, region, measurement, hour12 }</h3>
+<p><code>language</code> is a code such as <code>"en"</code> and <code>region</code> a code such as <code>"US"</code>; either can be <code>""</code>. <code>measurement</code> is <code>"metric"</code> or <code>"us"</code>. <code>hour12</code> is <code>true</code> when the user's clock shows AM and PM.</p>
+
+<h3 id="timein-zone-string-format-string-string">timeIn(zone: string, format?: string): string</h3>
+<p>The time now in an IANA zone such as <code>"Europe/London"</code>, or in a zone abbreviation such as <code>"PST"</code>. <code>format</code> is a Unicode date pattern and defaults to <code>"HH:mm"</code>. Returns <code>""</code> for a zone macOS does not know.</p>
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.system.timeIn(<span class="tok-str">"Asia/Tokyo"</span>);             <span class="tok-cmt">// "02:42"</span>
+<span class="tok-fn">macotron</span>.system.timeIn(<span class="tok-str">"Asia/Tokyo"</span>, <span class="tok-str">"EEE h:mm a"</span>); <span class="tok-cmt">// "Fri 2:42 AM"</span></code></pre>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-power.html">macotron.power</a> to keep the Mac awake, and for sleep and lock events.</li>
+  <li><a href="/docs/api-network.html">macotron.network</a> for Wi-Fi, Bluetooth, and per-interface counters.</li>
+  <li><a href="/docs/api-display.html">macotron.display</a> for Night Shift, True Tone, and grayscale.</li>
+  <li>The <code>system-metrics.js</code>, <code>battery.js</code>, <code>fan.js</code>, <code>appearance.js</code>, and <code>world-clock.js</code> plugins.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

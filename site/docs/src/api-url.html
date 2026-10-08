@@ -1,0 +1,71 @@
+<!-- title: macotron.url
+     summary: Route links to plugin handlers, open URLs in a chosen app, and act as the default browser.
+     group: API -->
+<h1>macotron.url</h1>
+<p class="lede">Open URLs in the app you choose, and route links that macOS hands to Macotron to your plugin's handlers. With this, a plugin can act as the default browser and send each link to the right one.</p>
+
+<pre><code class="language-javascript">// Send work links to Chrome and everything else to Safari.
+for (const scheme of ["http", "https"]) {
+  macotron.url.setDefaultHandler(scheme);
+  macotron.url.on(scheme, "github.com", (e) =&gt; macotron.url.open(e.url, "com.google.Chrome"));
+  macotron.url.on(scheme, "*", (e) =&gt; macotron.url.open(e.url, "com.apple.Safari"));
+}</code></pre>
+
+<h2>Opening</h2>
+
+<h3>open(url: string, bundleID?: string, profile?: string): boolean</h3>
+<p>Opens <code>url</code> in the app with this bundle ID, or in the system default app for the URL when you leave <code>bundleID</code> out. <code>profile</code> is passed to the app as <code>--profile-directory=&lt;profile&gt;</code>, which selects a profile in Chrome and other Chromium browsers. Returns <code>false</code> when the URL does not parse or no app has that bundle ID.</p>
+
+<h2>Routing</h2>
+<p>Macotron can receive <code>http</code>, <code>https</code>, <code>mailto</code> and <code>macotron</code> links. It receives the first three only when it is the default handler for them; see <code>setDefaultHandler</code>.</p>
+
+<h3>on(scheme: string, host: string | RegExp, callback: (event: URLEvent) =&gt; void): void</h3>
+<p>Calls <code>callback</code> for links with this scheme and host. A host string matches that host and its subdomains, so <code>"example.com"</code> also matches <code>docs.example.com</code>. <code>"*"</code> matches any host. A <code>RegExp</code> is tested against the host.</p>
+<p>For each link, Macotron picks one handler, in this order:</p>
+<ol>
+  <li>An exact host match.</li>
+  <li>The longest matching parent domain.</li>
+  <li>The first <code>RegExp</code> that matches, in the order you registered them.</li>
+  <li>A <code>"*"</code> handler for the scheme.</li>
+  <li>The <code>onFallback</code> handler.</li>
+</ol>
+<p>Scheme and host compare without regard to case. Links that arrive while plugins are loading wait and are delivered once loading finishes.</p>
+
+<p>The event has these fields:</p>
+<table>
+  <thead><tr><th>Field</th><th>What it holds</th></tr></thead>
+  <tbody>
+    <tr><td><code>url</code></td><td>The full URL.</td></tr>
+    <tr><td><code>scheme</code></td><td>For example <code>"https"</code>.</td></tr>
+    <tr><td><code>host</code></td><td>For example <code>"github.com"</code>, or <code>""</code>.</td></tr>
+    <tr><td><code>path</code></td><td>For example <code>"/apple/swift"</code>.</td></tr>
+    <tr><td><code>query</code></td><td>The text after <code>?</code>, or <code>""</code> when there is none.</td></tr>
+    <tr><td><code>sourceBundle</code></td><td>The bundle ID of the app that sent the link, when macOS reports it.</td></tr>
+  </tbody>
+</table>
+
+<h3>onFallback(callback: (event: URLEvent) =&gt; void): void</h3>
+<p>Calls <code>callback</code> for any link that no <code>on</code> handler matches, in every scheme. Only one fallback exists at a time; a later call replaces it, from any plugin.</p>
+<p>When nothing handles a link, Macotron passes it to the app that would open it if Macotron were not installed. If there is no such app, Macotron posts a notification so the link is not lost.</p>
+
+<div class="note"><p>Prefer <code>on(scheme, "*", …)</code> over <code>onFallback</code> in a browser picker. A fallback also catches <code>mailto:</code> links and would send them to a browser.</p></div>
+
+<h3>setDefaultHandler(scheme: string): boolean</h3>
+<p>Makes Macotron the system default app for <code>scheme</code>, for example <code>"https"</code>. Returns <code>false</code> for an empty scheme or when macOS refuses.</p>
+
+<h2>macotron:// links</h2>
+<p>Any web page or app can open a <code>macotron://</code> link, so these links can start plugin actions from outside. Before Macotron routes one, it shows an "Allow URL Event?" alert with the URL and the sending app. The handler runs only if the user clicks Allow.</p>
+
+<pre><code class="language-javascript">// open "macotron://timer/start?min=25"
+macotron.url.on("macotron", "timer", ({ path, query }) =&gt; {
+  if (path === "/start") {
+    const min = Number((query.match(/min=(\d+)/) || [])[1]) || 25;
+    startTimer(min);
+  }
+});</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-share.html">macotron.share</a> to share a link with the share menu.</li>
+  <li>The <code>browser-picker.js</code> plugin.</li>
+</ul>

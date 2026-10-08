@@ -1,0 +1,69 @@
+<!-- title: Permissions
+     summary: Each macOS permission Macotron can ask for, what needs it, and how to grant it.
+     group: Guide
+     order: 5 -->
+<h1>Permissions</h1>
+<p class="lede">macOS asks you before an app can watch the keyboard, move other apps' windows, or see the screen. Macotron asks for a permission only when it, or a plugin you enabled, needs it.</p>
+
+<h2>How to grant a permission</h2>
+<ol>
+  <li>Open Settings → Permissions, or select <strong>Permissions needed</strong> at the top of the Macotron menu.</li>
+  <li>Select <strong>Grant…</strong> on a row. macOS shows its own prompt, or System Settings opens at the right list.</li>
+  <li>Turn on the switch next to Macotron in System Settings.</li>
+  <li>Come back to Macotron. The row turns green by itself; <strong>Re-check</strong> checks at once.</li>
+</ol>
+<p>While anything is missing, the menu bar icon has a red dot, the Permissions tab is orange, and Macotron re-checks every 3 seconds. A plugin's own page in Settings → Plugins lists the permissions it declared, with the same buttons.</p>
+<p>macOS shows its prompt for each permission only once. After that, you can change your answer only in System Settings → Privacy &amp; Security.</p>
+
+<h2>Always required</h2>
+<table>
+  <thead><tr><th>Permission</th><th>What needs it</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Input Monitoring</strong></td><td>Snippet expansion, drag-to-snap for windows, and any plugin that watches keys, the mouse, or trackpad gestures.</td></tr>
+    <tr><td><strong>Accessibility</strong></td><td>Moving, resizing, and focusing other apps' windows; reading selected text; plain-text paste; posting key presses and clicks.</td></tr>
+    <tr><td><strong>Automation</strong></td><td>Sending Apple events to other apps through System Events, for example to lock the screen or toggle system settings.</td></tr>
+    <tr><td><strong>Menu Bar Items</strong></td><td>Shown only when a plugin adds a menu bar item that macOS is hiding. <strong>Show…</strong> puts back the items Macotron can restore, and opens the Menu Bar section of System Settings for the rest. See <a href="/docs/feature-menu-bar.html">Menu bar</a>.</td></tr>
+  </tbody>
+</table>
+
+<h2>Requested by plugins</h2>
+<p>These appear when an enabled plugin lists them in <code>permissions</code> in its <code>macotron.plugin()</code> header.</p>
+<table>
+  <thead><tr><th>Permission</th><th>Name in the header</th><th>Used by</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Screen Recording</strong></td><td><code>screenRecording</code></td><td>OCR, QR scan from the screen, Screen Summary, Color Blindness Simulator.</td></tr>
+    <tr><td><strong>Camera</strong></td><td><code>camera</code></td><td>QR scan with the camera, Camera &amp; Mic Tools. Not asked for on a Mac with no camera.</td></tr>
+    <tr><td><strong>Microphone</strong></td><td><code>microphone</code></td><td>Recording audio. Not asked for on a Mac with no microphone.</td></tr>
+    <tr><td><strong>Calendars</strong></td><td><code>calendar</code></td><td>Meetings and any plugin that reads events.</td></tr>
+    <tr><td><strong>Background Helper</strong></td><td><code>helper</code></td><td>Fan Control. See below.</td></tr>
+  </tbody>
+</table>
+
+<h2>Asked for when used</h2>
+<p>Some data has no row in the Permissions tab. macOS asks the first time a plugin reads it:</p>
+<ul>
+  <li><strong>Contacts</strong>, for Contacts Search.</li>
+  <li><strong>Reminders</strong>, for the Reminders plugin.</li>
+  <li><strong>Notifications</strong>, the first time a plugin shows a system banner.</li>
+  <li><strong>Local Network</strong>, for Apple TV discovery and other Bonjour browsing.</li>
+  <li><strong>Bluetooth</strong>, to read the radio and paired devices.</li>
+  <li><strong>Automation</strong> for a specific app, such as Notes, when a plugin drives that app.</li>
+</ul>
+
+<h2>The background helper</h2>
+<p>A few features need root, which an app cannot have. Macotron ships a small helper for those, currently fan-speed control. It is not a privacy permission: <strong>Install…</strong> registers the helper with macOS, and you then switch it on in System Settings → General → Login Items &amp; Extensions. macOS asks for an administrator password.</p>
+<p>Unlike the other rows, the helper row has <strong>Remove</strong>, and <strong>Reinstall…</strong> for when the helper stops working after an update. See <a href="/docs/feature-fan-control.html">Fan control</a>.</p>
+
+<h2>A permission that will not turn green</h2>
+<ul>
+  <li>Quit and reopen Macotron. Input Monitoring and Screen Recording often take effect only after a restart.</li>
+  <li>In System Settings, remove Macotron from the list with the minus button, then select <strong>Grant…</strong> again. This helps after you move or replace the app, because macOS ties the grant to the copy it first saw.</li>
+  <li>Check that you switched on the copy in Applications, not an older copy somewhere else.</li>
+</ul>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/guide-security.html">Security</a></li>
+  <li><a href="/docs/guide-plugin-settings.html#permissions">Declaring permissions in a plugin</a></li>
+  <li><a href="/docs/guide-troubleshooting.html">Troubleshooting</a></li>
+</ul>

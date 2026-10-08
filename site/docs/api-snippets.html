@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>macotron.snippets · Macotron</title>
+  <meta name="description" content="Keep text snippets under short abbreviations that expand as you type in any app.">
+  <meta property="og:title" content="macotron.snippets · Macotron">
+  <meta property="og:description" content="Keep text snippets under short abbreviations that expand as you type in any app.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-snippets.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-snippets.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "macotron.snippets", "item": "https://macotron.statico.io/docs/api-snippets.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html" aria-current="page">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>macotron.snippets</h1>
+<p class="lede">Keep text snippets under short abbreviations. With expansion on, typing an abbreviation in any app replaces it with the snippet.</p>
+
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.snippets.set(<span class="tok-str">";omw"</span>, <span class="tok-str">"On my way!"</span>);
+<span class="tok-fn">macotron</span>.snippets.set(<span class="tok-str">";sig"</span>, <span class="tok-str">"Best,\nAda"</span>);
+<span class="tok-fn">macotron</span>.snippets.setExpansionEnabled(<span class="tok-kw">true</span>);</code></pre>
+
+<h2 id="managing-snippets">Managing snippets</h2>
+<p>Snippets live in memory only. Set them when your plugin loads.</p>
+
+<h3 id="set-abbr-string-body-string-void">set(abbr: string, body: string): void</h3>
+<p>Adds a snippet, or replaces the body of an existing one.</p>
+
+<h3 id="remove-abbr-string-void">remove(abbr: string): void</h3>
+<p>Deletes a snippet. Does nothing for an unknown abbreviation.</p>
+
+<h3 id="list-array-lt-abbr-string-body-string-gt">list(): Array&lt;{ abbr: string; body: string }&gt;</h3>
+<p>Every snippet, sorted by abbreviation.</p>
+
+<h3 id="insert-abbr-string-boolean">insert(abbr: string): boolean</h3>
+<p>Puts the snippet's body on the clipboard, replacing what was there. It does not paste. Does nothing for an unknown abbreviation.</p>
+
+<div class="note"><p>The current build returns <code>undefined</code> from <code>insert</code>, not a boolean. Check that the abbreviation is in <code>list()</code> if you need to know.</p></div>
+
+<h2 id="expansion">Expansion</h2>
+
+<h3 id="setexpansionenabled-enabled-boolean-boolean">setExpansionEnabled(enabled: boolean): boolean</h3>
+<p>Turns expansion on or off. Returns whether expansion is on afterwards, so <code>false</code> after asking to turn it on means the keyboard tap cannot be installed. That usually means Macotron lacks Input Monitoring or Accessibility permission.</p>
+<p>While expansion is on, Macotron watches what you type. When the last characters typed match an abbreviation, it deletes the abbreviation with Backspace and pastes the body with Command-V. If more than one abbreviation matches, the longest wins. After a short pause it puts the previous clipboard text back; anything else that was on the clipboard, such as an image, is lost.</p>
+<p>Space, Return, Tab, Escape, and any key pressed with Command, Control or Option clear what has been typed so far. Only plain ASCII characters count, so an abbreviation that contains other characters never expands.</p>
+
+<div class="note"><p>An abbreviation expands as soon as it is typed, even in the middle of a word: <code>omw</code> would fire inside <code>nomwhere</code>. Start abbreviations with a character you do not otherwise type, such as <code>;</code>.</p></div>
+
+<h3 id="isexpansionenabled-boolean">isExpansionEnabled(): boolean</h3>
+<p>Whether expansion is on.</p>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-clipboard.html">macotron.clipboard</a> for the clipboard itself.</li>
+  <li><a href="/docs/api-launcher.html">macotron.launcher</a> to list snippets as launcher rows.</li>
+  <li>The <code>snippets.js</code> plugin.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>macotron.panel · Macotron</title>
+  <meta name="description" content="Open floating web-view windows and exchange messages with the page inside them.">
+  <meta property="og:title" content="macotron.panel · Macotron">
+  <meta property="og:description" content="Open floating web-view windows and exchange messages with the page inside them.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-panel.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-panel.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "macotron.panel", "item": "https://macotron.statico.io/docs/api-panel.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html" aria-current="page">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>macotron.panel</h1>
+<p class="lede">Open a floating window that shows your HTML or a web page, and pass messages between the page and your plugin.</p>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// Ask for a name, then greet it.</span>
+<span class="tok-kw">const</span> html = <span class="tok-str">`
+  &lt;h2&gt;Your name&lt;/h2&gt;
+  &lt;input id="input" placeholder="Ada"&gt;
+  &lt;button class="primary" onclick="send()"&gt;Greet&lt;/button&gt;
+  &lt;script&gt;
+    function send() {
+      webkit.messageHandlers.macotron.postMessage({ name: input.value });
+    }
+  &lt;/script&gt;`</span>;
+
+<span class="tok-kw">const</span> id = <span class="tok-fn">macotron</span>.panel.open({ title: <span class="tok-str">"Greet"</span>, width: <span class="tok-num">320</span>, height: <span class="tok-num">160</span>, html, closeOnBlur: <span class="tok-kw">true</span> });
+<span class="tok-fn">macotron</span>.panel.onMessage(id, ({ name }) =&gt; {
+  <span class="tok-fn">macotron</span>.notify.toast(<span class="tok-str">"Hello"</span>, name);
+  <span class="tok-fn">macotron</span>.panel.close(id);
+});</code></pre>
+
+<h2 id="opening-and-closing">Opening and closing</h2>
+
+<h3 id="open-opts-paneloptions-string">open(opts: PanelOptions): string</h3>
+<p>Opens a panel and returns its id. The panel floats above other windows, shows on every Space, and opens centered with keyboard focus. Throws a <code>TypeError</code> when <code>opts</code> is missing or <code>url</code> is not an http or https URL.</p>
+
+<table>
+  <thead><tr><th>Option</th><th>Type</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>title</code></td><td>string</td><td>Title bar text. Default <code>"Macotron"</code>.</td></tr>
+    <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>Content size in points. Default 420 x 520.</td></tr>
+    <tr><td><code>html</code></td><td>string</td><td>Body markup. Macotron wraps it in a page with the system font, padding, form styles and light and dark colors. See <a href="#host-page">The host page</a>.</td></tr>
+    <tr><td><code>rawHtml</code></td><td>string</td><td>A complete HTML document, used as is with no host styles. It takes priority over <code>html</code>.</td></tr>
+    <tr><td><code>url</code></td><td>string</td><td>An http or https page to load instead of <code>html</code> or <code>rawHtml</code>. It loads first-party, so its cookies and <code>localStorage</code> persist between opens, unlike an iframe.</td></tr>
+    <tr><td><code>glass</code></td><td>boolean | string</td><td><code>true</code> or <code>"regular"</code> for Liquid Glass, <code>"clear"</code> for the clearer Liquid Glass, <code>"translucent"</code> for a HUD blur. The host page background becomes transparent so the material shows through.</td></tr>
+    <tr><td><code>frameless</code></td><td>boolean</td><td>No title bar, with rounded corners. Escape closes it.</td></tr>
+    <tr><td><code>fullscreen</code></td><td>boolean</td><td>Covers the whole screen under the pointer, with no title bar. Escape closes it.</td></tr>
+    <tr><td><code>escapeCloses</code></td><td>boolean</td><td>Default <code>true</code>. Pass <code>false</code> so Escape does not close a frameless or fullscreen panel, and close it from your own button instead.</td></tr>
+    <tr><td><code>closeOnBlur</code></td><td>boolean</td><td>Closes the panel when it loses keyboard focus, for example when the user clicks another window.</td></tr>
+    <tr><td><code>id</code></td><td>string</td><td>Use this id instead of a random one. An open panel with the same id closes first, so calling <code>open</code> again replaces it.</td></tr>
+    <tr><td><code>qr</code></td><td>string</td><td>Text to encode as a QR code. Macotron appends the code as an <code>&lt;img&gt;</code> to the end of <code>html</code> or <code>rawHtml</code>.</td></tr>
+  </tbody>
+</table>
+
+<p>In every panel, Command-Plus and Command-Minus zoom the page and Command-0 resets the zoom.</p>
+
+<h3 id="close-id-string-void">close(id: string): void</h3>
+<p>Closes the panel. Does nothing for an unknown id.</p>
+
+<h3 id="focus-id-string-boolean">focus(id: string): boolean</h3>
+<p>Brings an open panel to the front and gives it keyboard focus without reloading the page. Returns <code>false</code> when no panel has that id. Use it to show a panel again instead of opening a second one.</p>
+
+<p>Every panel closes when plugins reload.</p>
+
+<h2 id="messages">Messages</h2>
+
+<h3 id="postmessage-id-string-data-any-void">postMessage(id: string, data: any): void</h3>
+<p>Sends <code>data</code> to the page as JSON. Messages sent before the page finishes loading wait and arrive in order, so you can call this right after <code>open</code>. Send an object, an array or a string. Other values arrive as <code>null</code>.</p>
+
+<h3 id="onmessage-id-string-callback-data-any-gt-void-void">onMessage(id: string, callback: (data: any) =&gt; void): void</h3>
+<p>Runs <code>callback</code> for each message the page sends. You can add more than one handler. Handlers are dropped when the panel closes, so add them again after each <code>open</code>.</p>
+<p>If you pass only a callback, <code>onMessage(callback)</code>, it receives messages from every panel the plugin opens and stays until plugins reload.</p>
+
+<h3 id="in-the-page">In the page</h3>
+<p>The page talks to the plugin with three functions that every panel provides:</p>
+<ul>
+  <li><code>webkit.messageHandlers.macotron.postMessage(data)</code> sends <code>data</code> to the <code>onMessage</code> handlers.</li>
+  <li><code>window.__macotronReceive = (data) =&gt; { … }</code> receives each <code>postMessage</code> from the plugin. A <code>message</code> event on <code>window</code> also fires, with the value in <code>event.data</code>.</li>
+  <li><code>window.close()</code> or <code>macotronClose()</code> closes the panel.</li>
+</ul>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// Page side: render whatever the plugin sends.</span>
+window.__macotronReceive = (d) =&gt; {
+  <span class="tok-kw">if</span> (d &amp;&amp; d.html) document.getElementById(<span class="tok-str">"list"</span>).innerHTML = d.html;
+};</code></pre>
+
+<h2 id="host-page">The host page</h2>
+<p>With <code>html</code>, the body is a flex column with 16px padding and a 12px gap, in the system font at 13px. Inputs, text areas, selects and buttons are styled to match macOS in light and dark mode. When the panel opens, or gets focus again, the first element with <code>autofocus</code>, then <code>#input</code>, then the first text area or input, gets the focus.</p>
+
+<table>
+  <thead><tr><th>Class</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>button.primary</code></td><td>A button in the accent color.</td></tr>
+    <tr><td><code>button.secondary</code></td><td>A quieter button.</td></tr>
+    <tr><td><code>button.block</code></td><td>A full-width, left-aligned button, for lists of choices.</td></tr>
+    <tr><td><code>.toolbar</code></td><td>A row of inputs, selects and buttons at one height. Inputs stretch to fill.</td></tr>
+    <tr><td><code>.grow</code>, <code>.scroll</code></td><td>Fill the leftover height, and scroll the overflow.</td></tr>
+    <tr><td><code>.muted</code>, <code>.ok</code>, <code>.bad</code></td><td>Secondary, green and red text.</td></tr>
+    <tr><td><code>.mono</code></td><td>The monospaced system font. <code>pre</code> and <code>code</code> use it too.</td></tr>
+    <tr><td><code>input.inline</code></td><td>An input at its natural width instead of full width.</td></tr>
+  </tbody>
+</table>
+
+<p>The page also defines CSS variables for the system colors: <code>--macotron-accent</code>, <code>--macotron-accent-text</code>, <code>--macotron-label</code>, <code>--macotron-secondary-label</code>, <code>--macotron-fill</code>, <code>--macotron-control</code>, <code>--macotron-control-text</code>, <code>--macotron-control-border</code>, <code>--macotron-field</code>, <code>--macotron-field-text</code>, <code>--macotron-selected</code>, <code>--macotron-selected-text</code> and <code>--macotron-link</code>.</p>
+
+<h2 id="events">Events</h2>
+
+<h3 id="panel-closed">panel:closed</h3>
+<p>Fires when a panel goes away for any reason: the close button, Escape, <code>closeOnBlur</code>, <code>close()</code>, or <code>open</code> with the same <code>id</code>. The payload is <code>{ id }</code>.</p>
+
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.on(<span class="tok-str">"panel:closed"</span>, ({ id }) =&gt; {
+  <span class="tok-kw">if</span> (id === <span class="tok-str">"chat"</span>) localStorage.removeItem(<span class="tok-str">"chat.draft"</span>);
+});</code></pre>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-menubar.html">macotron.menubar</a> for HTML rows inside a menu.</li>
+  <li><a href="/docs/api-launcher.html">macotron.launcher</a> for picking from a list without a window.</li>
+  <li>The <code>browser-picker.js</code>, <code>emoji.js</code> and <code>ai-chat.js</code> plugins.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

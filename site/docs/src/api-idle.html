@@ -1,0 +1,39 @@
+<!-- title: macotron.idle
+     summary: Read how long the user has been away, and get events when the Mac goes idle and comes back.
+     group: API -->
+<h1>macotron.idle</h1>
+<p class="lede">Read how many seconds have passed since the last keyboard, mouse, or trackpad input, and get an event when the user goes idle or comes back.</p>
+
+<pre><code class="language-javascript">// Pause music after five minutes away.
+macotron.idle.setThreshold(300);
+
+macotron.on("system:idle", () =&gt; {
+  if (macotron.media.nowPlaying().playing) macotron.media.playPause();
+});</code></pre>
+
+<h2>Idle time</h2>
+
+<h3>seconds(): number</h3>
+<p>Seconds since the last input event from any keyboard, mouse, or trackpad. The value has a fractional part.</p>
+
+<h3>setThreshold(seconds: number): void</h3>
+<p>Sets how many seconds without input count as idle. The default is 60. There is one threshold for all plugins, so the last plugin to call this sets it for everyone.</p>
+
+<h2>Events</h2>
+<p>Macotron checks the idle time every 5 seconds, so an event can arrive up to 5 seconds after the threshold is crossed. Neither event has a payload.</p>
+
+<h3>system:idle</h3>
+<p>Fires once when the idle time reaches the threshold.</p>
+
+<h3>system:active</h3>
+<p>Fires on the first check after input resumes. It means that idle ended, not that the Mac woke from sleep; listen for <code>system:wake</code> for that.</p>
+
+<pre><code class="language-javascript">macotron.on("system:active", () =&gt; {
+  macotron.notify.toast("Welcome back");
+});</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-power.html">macotron.power</a> for <code>system:sleep</code>, <code>system:wake</code>, <code>system:lock</code>, and <code>system:unlock</code>.</li>
+  <li>The <code>idle.js</code> and <code>focus-idle.js</code> plugins.</li>
+</ul>

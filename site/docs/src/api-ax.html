@@ -1,0 +1,65 @@
+<!-- title: macotron.ax
+     summary: Read the selected text, walk another app's UI elements, press buttons, and set field values.
+     group: API -->
+<h1>macotron.ax</h1>
+<p class="lede">Use the macOS accessibility API to read the selected text in any app, find buttons and fields in the front app, press them, and change their values.</p>
+
+<pre><code class="language-javascript">macotron.command("Shout selection", "Upper-case the selected text", async () =&gt; {
+  const text = await macotron.ax.selectedText();
+  if (!text) return macotron.notify.toast("Shout", "Nothing selected");
+  macotron.clipboard.set(text.toUpperCase());
+});</code></pre>
+
+<div class="note"><p>Every call needs Accessibility permission. Declare <code>permissions: ["accessibility"]</code> in <code>macotron.plugin()</code>. Without it, calls return <code>null</code>, <code>[]</code>, or <code>false</code>.</p></div>
+
+<h2>Elements</h2>
+<p>Calls that find elements return plain objects:</p>
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>A handle to pass to <code>children</code>, <code>parent</code>, <code>press</code>, and <code>setValue</code>.</td></tr>
+    <tr><td><code>role</code></td><td>The accessibility role, such as <code>"AXButton"</code> or <code>"AXTextField"</code>.</td></tr>
+    <tr><td><code>title</code></td><td>The element's title, or <code>""</code>.</td></tr>
+    <tr><td><code>value</code></td><td>The element's value as a string, or <code>""</code>. Numbers, such as a slider's position, are turned into strings.</td></tr>
+    <tr><td><code>frame</code></td><td><code>{ x, y, width, height }</code> in screen points, with the origin at the top-left of the main display.</td></tr>
+  </tbody>
+</table>
+<p>Each call hands out new ids, even for an element you have seen before. Ids stop working when plugins reload, so do not store them.</p>
+
+<h2>Reading</h2>
+
+<h3>selectedText(): Promise&lt;string | null&gt;</h3>
+<p>The text selected in the focused element of any app. Resolves to <code>null</code> when nothing is selected or the app does not expose its selection. It runs off the main thread, so other plugins keep running while it waits.</p>
+<p>Chrome, Edge, and Electron apps turn on accessibility for web pages only when asked. The first time it meets such an app, <code>selectedText()</code> asks, then waits up to 300 ms for the page to answer.</p>
+
+<h3>focused(): Element | null</h3>
+<p>The element with keyboard focus in any app, such as the text field you are typing in, or <code>null</code>.</p>
+
+<h3>children(id: number): Element[]</h3>
+<p>The element's children, in order. Returns <code>[]</code> for an unknown id.</p>
+
+<h3>parent(id: number): Element | null</h3>
+<p>The element that contains it, or <code>null</code> at the top or for an unknown id.</p>
+
+<h3>find(opts: { role?: string, title?: string }): Element | null</h3>
+<p>Searches the frontmost app, depth first, and returns the first element that matches every field you give. <code>role</code> ignores case and the <code>AX</code> prefix, so <code>"button"</code> matches <code>"AXButton"</code>. <code>title</code> must match the whole title, ignoring case. Returns <code>null</code> when nothing matches or when you give neither field.</p>
+<p>The search reads the whole tree until it finds a match, which can take a while in a large app.</p>
+
+<h2>Acting</h2>
+
+<h3>press(id: number): boolean</h3>
+<p>Presses the element, as a click would. Returns <code>false</code> for an unknown id or when the element cannot be pressed.</p>
+
+<h3>setValue(id: number, value: string): boolean</h3>
+<p>Sets the element's value, such as the text in a field. Returns <code>false</code> for an unknown id or when the app refuses.</p>
+
+<pre><code class="language-javascript">const ok = macotron.ax.find({ role: "button", title: "OK" });
+if (ok) macotron.ax.press(ok.id);</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-window.html">macotron.window</a> to move and focus windows.</li>
+  <li><a href="/docs/api-event.html">macotron.event</a> to type and click instead.</li>
+  <li><a href="/docs/api-dock.html">macotron.dock</a> for Dock badges.</li>
+  <li>The <code>translate.js</code> example plugin.</li>
+</ul>

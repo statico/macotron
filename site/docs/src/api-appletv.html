@@ -1,0 +1,28 @@
+<!-- title: macotron.appletv
+     summary: Find Apple TVs on the local network. Sending remote keys is not available yet.
+     group: API -->
+<h1>macotron.appletv</h1>
+<p class="lede">Find Apple TVs and other AirPlay devices on the local network. The <code>send</code> call is in place for remote keys, but it cannot control a TV yet.</p>
+
+<pre><code class="language-javascript">const tvs = await macotron.appletv.list();
+macotron.notify.toast("Apple TV", tvs.map((t) =&gt; t.name).join(", ") || "None found");</code></pre>
+
+<h2>Finding devices</h2>
+
+<h3>list(): Promise&lt;Array&lt;{ id, name, host, port, type }&gt;&gt;</h3>
+<p>Browses Bonjour for <code>_companion-link._tcp</code> and <code>_airplay._tcp</code> for 1.5 seconds and resolves with what it finds. <code>id</code> is <code>"host:port"</code>, <code>type</code> is the service type, and <code>name</code> is the name set on the device.</p>
+<p>Macotron reuses a result for 30 seconds, so repeated calls return at once. An empty result is not reused.</p>
+
+<div class="note"><p>Every device that offers either service shows up, so the list can include AirPlay speakers, smart TVs, and Macs as well as Apple TVs. One Apple TV usually appears twice, once per service, with a different port in each <code>id</code>. Group rows by <code>host</code> or <code>name</code> for a picker. macOS asks for Local Network permission the first time Macotron browses.</p></div>
+
+<h2>Remote keys</h2>
+
+<h3>send(id: string, command: "up" | "down" | "left" | "right" | "select" | "menu" | "home" | "play" | "pause" | "playpause"): Promise&lt;{ ok: boolean; error?: string }&gt;</h3>
+<p>Meant to press a key on the Apple TV's remote. Controlling an Apple TV needs Companion pairing, which Macotron does not implement yet, so this resolves <code>{ ok: false, error: "not paired" }</code> for a device from <code>list()</code>. For an <code>id</code> that is not in the list, it resolves <code>{ ok: false, error: "No Apple TV" }</code>.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-bonjour.html">macotron.bonjour</a> to browse for other service types.</li>
+  <li><a href="/docs/api-media.html">macotron.media</a> to control playback on the Mac itself.</li>
+  <li>The <code>apple-tv.js</code> plugin, which builds the remote panel.</li>
+</ul>

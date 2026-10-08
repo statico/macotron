@@ -1,0 +1,152 @@
+<!-- title: macotron.menubar
+     summary: Put status items in the menu bar, give them menus, and add rows to the Macotron menu.
+     group: API -->
+<h1>macotron.menubar</h1>
+<p class="lede">Add your own items to the menu bar next to the Macotron icon, give them menus with HTML rows and button rows, and add rows to the Macotron menu itself.</p>
+
+<pre><code class="language-javascript">// A countdown in the menu bar with a menu of actions.
+let until = 0;
+
+function paint() {
+  const left = Math.max(0, until - Date.now());
+  macotron.menubar.status("timer", {
+    title: left ? new Date(left).toISOString().slice(14, 19) : "",
+    sfSymbol: "timer",
+    color: left ? "green" : null,
+    minWidth: left ? 72 : undefined,
+    menu: [
+      { title: left ? "Running" : "Stopped", dimmed: true },
+      "-",
+      { title: "Start 25 minutes", onClick: () =&gt; { until = Date.now() + 25 * 60000; paint(); } },
+      { title: "Stop", onClick: () =&gt; { until = 0; paint(); } },
+    ],
+  });
+}
+
+paint();
+macotron.every(1000, paint);</code></pre>
+
+<h2>Status items</h2>
+<p>A status item is a separate item in the menu bar, to the left of the Macotron icon. Each plugin can add as many as it likes, keyed by id.</p>
+
+<h3>status(id: string, opts: StatusOptions): void</h3>
+<p>Creates the item, or repaints it when an item with that id exists. Call it again whenever the content changes; a call that changes nothing costs almost nothing, so painting on a timer is fine. macOS remembers each item's position by its id.</p>
+<p>A left-click runs <code>onClick</code>. With a <code>menu</code> as well, right-click or Control-click opens the menu. With a <code>menu</code> and no <code>onClick</code>, any click opens the menu. Clicks act on mouse-down, like the system items.</p>
+<p>The tooltip is the title, followed by the subtitle when there is one.</p>
+
+<table>
+  <thead><tr><th>Option</th><th>Type</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>title</code></td><td>string</td><td>The text. When you leave it out, the item shows its id, so pass <code>""</code> for an icon-only item.</td></tr>
+    <tr><td><code>subtitle</code></td><td>string</td><td>A second line under the title. Both lines then draw at a smaller size to fit the bar.</td></tr>
+    <tr><td><code>secondary</code></td><td>boolean</td><td>Draws the subtitle smaller and dimmer than the title. Off by default, so both lines share one size and color.</td></tr>
+    <tr><td><code>color</code></td><td>string</td><td>Text color: <code>red</code>, <code>orange</code>, <code>yellow</code>, <code>green</code>, <code>blue</code>, <code>purple</code>, <code>pink</code>, <code>gray</code>, <code>white</code>, <code>black</code>, or <code>#RGB</code> / <code>#RRGGBB</code>. In an icon-only item it tints the SF Symbol instead.</td></tr>
+    <tr><td><code>subtitleColor</code></td><td>string</td><td>Subtitle color, in the same forms. Defaults to <code>color</code>.</td></tr>
+    <tr><td><code>bold</code>, <code>italic</code></td><td>boolean</td><td>Font style. With <code>secondary</code>, the subtitle is never bold.</td></tr>
+    <tr><td><code>minWidth</code></td><td>number</td><td>Minimum width in points. Use it for a changing number, so proportional digits do not push the neighboring items around.</td></tr>
+    <tr><td><code>sfSymbol</code></td><td>string</td><td>An SF Symbol name, such as <code>"timer"</code>, drawn before the text. <code>icon</code> is an alias.</td></tr>
+    <tr><td><code>image</code></td><td>string</td><td>Path to an image file, scaled to 18 points high. It replaces <code>sfSymbol</code>. A file name that ends in <code>Template</code> (for example <code>meterTemplate.png</code>) is treated as a mask that the bar tints.</td></tr>
+    <tr><td><code>svg</code></td><td>string</td><td>SVG markup to draw as the icon. It replaces <code>image</code> and <code>sfSymbol</code>. Its own colors are kept unless <code>template</code> is true.</td></tr>
+    <tr><td><code>template</code></td><td>boolean</td><td>Treats <code>svg</code> as a mask that the menu bar tints to suit its background. Off by default.</td></tr>
+    <tr><td><code>sparkline</code></td><td>object</td><td><code>{ values, width?, height?, color? }</code>: a line graph of <code>values</code>, scaled between their minimum and maximum. Size defaults to 36 x 18 points. <code>color</code> is <code>#RRGGBB</code>; without it the line is a mask the bar tints. It replaces <code>svg</code>, <code>image</code> and <code>sfSymbol</code>.</td></tr>
+    <tr><td><code>onClick</code></td><td>() =&gt; void</td><td>Runs on a left-click.</td></tr>
+    <tr><td><code>onHover</code></td><td>(hovering: boolean) =&gt; void</td><td>Runs with <code>true</code> when the pointer enters the item and <code>false</code> when it leaves.</td></tr>
+    <tr><td><code>menu</code></td><td>MenuBarMenuItem[]</td><td>The item's menu. See <a href="#menus">Menus</a>.</td></tr>
+    <tr><td><code>required</code></td><td>boolean</td><td>Default <code>true</code>. When the user Command-drags a required item out of the menu bar, Settings warns and offers a Restore button. Pass <code>false</code> for an item that is fine to hide.</td></tr>
+  </tbody>
+</table>
+
+<div class="note"><p>Pick colors for a non-template <code>svg</code> with <code>isDark()</code>, not <code>macotron.system.darkMode()</code>. The menu bar follows the wallpaper, so it can draw light text while the system is in Light Mode. Repaint on the <code>menubar:appearance</code> event.</p></div>
+
+<h3>isVisible(id: string): boolean</h3>
+<p>Whether a status item is on screen. It is <code>false</code> when the user dragged the item out of the menu bar, when the bar has no room to draw it (usually because of the notch), and for an unknown id. Settings already warns about both cases, so few plugins need to ask.</p>
+
+<h3>remove(id: string): void</h3>
+<p>Removes the status item with this id, and the Macotron menu row with this id if there is one.</p>
+
+<p>Status items stay on screen while plugins reload. After the reload, Macotron removes every item that no plugin painted again.</p>
+
+<h2 id="menus">Menus</h2>
+<p>A <code>menu</code> is an array. Each element is a <code>MenuBarMenuItem</code> object, the string <code>"-"</code> for a separator, or any other string for a plain text row.</p>
+
+<table>
+  <thead><tr><th>Field</th><th>Type</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>title</code></td><td>string</td><td>The row's text.</td></tr>
+    <tr><td><code>icon</code></td><td>string</td><td>An SF Symbol name drawn before the title. A one- or two-character string, such as an emoji, goes in front of the title text instead.</td></tr>
+    <tr><td><code>onClick</code></td><td>() =&gt; void</td><td>Runs when the row is chosen. The menu closes. A row without <code>onClick</code> still draws in full color, so you can use it as a label.</td></tr>
+    <tr><td><code>dimmed</code></td><td>boolean</td><td>Draws the title in the secondary label color but keeps the row clickable. Use it for rows such as past events.</td></tr>
+    <tr><td><code>menu</code></td><td>MenuBarMenuItem[]</td><td>A submenu. A row with a submenu ignores its own <code>onClick</code>.</td></tr>
+    <tr><td><code>html</code></td><td>string</td><td>Shows a web page as the row instead of a title. See below.</td></tr>
+    <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>Size of an <code>html</code> row in points, 260 x 160 by default. Width is limited to 60–800 and height to 24–600. For a <code>buttons</code> row, <code>width</code> is the starting width.</td></tr>
+    <tr><td><code>buttons</code></td><td>MenuBarMenuItem[]</td><td>Draws these items as buttons across one row. See below.</td></tr>
+  </tbody>
+</table>
+
+<h3>HTML rows</h3>
+<p>An <code>html</code> row is a small web view. Your markup goes into a page with a transparent background, the 13px system font, and light and dark color schemes. The page keeps running while the menu is open, so CSS animations and images work. When the menu is wider than the row, the page is centered.</p>
+<p>The row reloads only when the markup changes, so repainting the menu every second does not restart the page.</p>
+<div class="note"><p>Menu tracking takes mouse events before the page sees them. Treat an HTML row as a display. Put clickable things in ordinary rows or a <code>buttons</code> row.</p></div>
+
+<h3>Button rows</h3>
+<p>A row with <code>buttons</code> draws each item's <code>title</code> as a button, spread evenly across the menu width. Clicking a button runs its <code>onClick</code> and leaves the menu open, so you can page or step through content without closing the menu. Repaint the menu in the handler to show the new state. Button icons are not drawn.</p>
+
+<pre><code class="language-javascript">// From the mini-calendar plugin: page through months without closing the menu.
+menu: [
+  { title: monthName },
+  { html: grid(cells), width: 220, height: rows * 24 + 6 },
+  { buttons: [
+    { title: "‹", onClick: () =&gt; move(-1) },
+    { title: "Today", onClick: () =&gt; move(-offset) },
+    { title: "›", onClick: () =&gt; move(1) },
+  ] },
+  "-",
+  { title: "Open Calendar…", onClick: () =&gt; macotron.app.launch("com.apple.iCal") },
+]</code></pre>
+
+<h2>The Macotron menu</h2>
+<p>These calls add rows to the menu under the Macotron icon, above the built-in rows.</p>
+
+<h3>add(id: string, opts: { title, icon?, section?, onClick?, menu? }): void</h3>
+<p>Adds a row, or replaces the row with that id. <code>icon</code> works as in a menu item. <code>onClick</code> runs when the row is chosen. With a <code>menu</code>, the row opens that submenu instead.</p>
+<p>Rows without a <code>section</code> come first. Rows with a <code>section</code> are grouped under a header with that name, and the sections are sorted by name.</p>
+
+<pre><code class="language-javascript">macotron.menubar.add("system-metrics-menu", {
+  title: "CPU " + cpu + "%",
+  icon: "cpu",
+  section: "System",
+});</code></pre>
+
+<h3>update(id: string, opts: { title?, icon? }): void</h3>
+<p>Changes the title or icon of an existing row and keeps everything else. Does nothing for an unknown id.</p>
+
+<h3>remove(id: string): void</h3>
+<p>Removes the row. It also removes a status item with the same id.</p>
+
+<h2>The Macotron icon</h2>
+
+<h3>setIcon(sfSymbolName: string): void</h3>
+<p>Replaces the Macotron glyph with an SF Symbol.</p>
+
+<h3>setIconColor(color?: string | null): void</h3>
+<p>Tints the Macotron icon. Accepts the same color names and hex forms as <code>status</code>. Pass <code>null</code> to go back to the normal menu bar color. The tint is cleared on reload unless a plugin sets it again.</p>
+
+<h3>setTitle(text: string): void</h3>
+<p>Shows text next to the Macotron icon. Pass <code>""</code> to clear it.</p>
+
+<h3>isDark(): boolean</h3>
+<p>Whether the menu bar draws light text right now. It follows the wallpaper as well as the system theme.</p>
+
+<h2>Events</h2>
+
+<h3>menubar:appearance</h3>
+<p>Fires when the menu bar switches between light and dark text. There is no payload; call <code>isDark()</code>.</p>
+
+<pre><code class="language-javascript">macotron.on("menubar:appearance", paint);</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-panel.html">macotron.panel</a> for a full window when a menu is not enough.</li>
+  <li><a href="/docs/api-notify.html">macotron.notify</a> for toasts and banners.</li>
+  <li>The <code>pomodoro.js</code>, <code>mini-calendar.js</code> and <code>system-metrics.js</code> plugins.</li>
+</ul>

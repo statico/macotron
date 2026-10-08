@@ -1,0 +1,41 @@
+<!-- title: macotron.screen
+     summary: Capture the screen or a dragged region as a PNG, and pick a color with the system eyedropper.
+     group: API -->
+<h1>macotron.screen</h1>
+<p class="lede">Capture the whole display or a region the user drags, as a base64 PNG, and pick a color from anywhere on screen.</p>
+
+<pre><code class="language-javascript">macotron.plugin({
+  title: "OCR",
+  description: "Drag a box on screen and copy the text inside it.",
+  permissions: ["screenRecording"],
+});
+
+macotron.command("OCR Selection", "Copy the text in a dragged box", async () =&gt; {
+  const image = await macotron.screen.capture({ selection: true });
+  if (!image) return; // the user pressed Escape
+  macotron.clipboard.set(await macotron.ocr.recognize({ image }));
+});</code></pre>
+
+<h2>Capture</h2>
+<div class="note"><p>Capture needs Screen Recording permission. Put <code>"screenRecording"</code> in the <code>permissions</code> of <code>macotron.plugin()</code> so the user can grant it from the plugin's Settings page.</p></div>
+
+<h3>capture(opts?: { selection?: boolean }): Promise&lt;string&gt;</h3>
+<p>Resolves with a base64 PNG at the display's full pixel resolution. Without options, it captures one whole display: the first display that macOS lists.</p>
+<p>With <code>selection: true</code>, the screen dims and the user drags a rectangle. The PNG holds only that rectangle. Escape, or a drag smaller than 8 points on a side, cancels, and the promise resolves with <code>""</code>.</p>
+<p>The promise rejects when the capture fails, for example when Screen Recording permission is missing.</p>
+
+<h2>Color picker</h2>
+
+<h3>pickColor(): Promise&lt;{ hex, r, g, b, x, y } | null&gt;</h3>
+<p>Opens the system magnifier eyedropper. When the user clicks, it resolves with the color in sRGB: <code>hex</code> is <code>"#RRGGBB"</code>, and <code>r</code>, <code>g</code>, <code>b</code> are <code>0</code>…<code>255</code>. <code>x</code> and <code>y</code> are where the pointer was, in Cocoa screen points (the origin is the bottom-left of the main display). Resolves with <code>null</code> when the user presses Escape.</p>
+<p>The eyedropper does not need Screen Recording permission.</p>
+<pre><code class="language-javascript">const color = await macotron.screen.pickColor();
+if (color) macotron.clipboard.set(color.hex);</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-ocr.html">macotron.ocr</a> to read the text in a capture.</li>
+  <li><a href="/docs/api-qr.html">macotron.qr</a> to scan a QR code on screen.</li>
+  <li><a href="/docs/api-clipboard.html">macotron.clipboard</a><code>.setImage()</code> to copy a capture.</li>
+  <li>The <code>ocr.js</code> and <code>color-picker.js</code> plugins.</li>
+</ul>

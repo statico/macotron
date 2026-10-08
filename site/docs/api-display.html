@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>macotron.display · Macotron</title>
+  <meta name="description" content="List displays, set brightness and gamma, and switch Night Shift, True Tone, grayscale, XDR, and CRT.">
+  <meta property="og:title" content="macotron.display · Macotron">
+  <meta property="og:description" content="List displays, set brightness and gamma, and switch Night Shift, True Tone, grayscale, XDR, and CRT.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-display.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-display.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "macotron.display", "item": "https://macotron.statico.io/docs/api-display.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html" aria-current="page">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>macotron.display</h1>
+<p class="lede">List the connected displays, change brightness and the color lookup table, and switch the system display modes: Night Shift, True Tone, and grayscale.</p>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// Nudge the built-in display's brightness from the keyboard.</span>
+<span class="tok-kw">function</span> nudge(delta) {
+  <span class="tok-kw">const</span> current = <span class="tok-fn">macotron</span>.display.getBrightness();
+  <span class="tok-kw">if</span> (current &gt;= <span class="tok-num">0</span>) <span class="tok-fn">macotron</span>.display.setBrightness(current + delta);
+}
+
+<span class="tok-fn">macotron</span>.keyboard.on(<span class="tok-str">"Dimmer"</span>, <span class="tok-str">"ctrl+opt+-"</span>, () =&gt; nudge(-0.<span class="tok-num">1</span>));
+<span class="tok-fn">macotron</span>.keyboard.on(<span class="tok-str">"Brighter"</span>, <span class="tok-str">"ctrl+opt+="</span>, () =&gt; nudge(<span class="tok-num">0.1</span>));</code></pre>
+
+<h2 id="listing-displays">Listing displays</h2>
+
+<h3 id="list-array-lt-display-gt">list(): Array&lt;Display&gt;</h3>
+<p>One entry per connected screen. The <code>id</code> is the Core Graphics display ID. Pass it to the other calls on this page, and to <code>display</code> in <a href="/docs/api-window.html">macotron.window</a><code>.moveToFraction()</code>.</p>
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>Display ID.</td></tr>
+    <tr><td><code>width</code>, <code>height</code></td><td>Size in points.</td></tr>
+    <tr><td><code>main</code></td><td><code>true</code> for the screen that holds the key window.</td></tr>
+    <tr><td><code>frame</code></td><td><code>{ x, y, width, height }</code> in Cocoa screen points. The origin is the bottom-left of the main display.</td></tr>
+    <tr><td><code>visibleFrame</code></td><td>The frame without the menu bar and the Dock.</td></tr>
+    <tr><td><code>scale</code></td><td>Pixels per point: <code>2</code> on a Retina display.</td></tr>
+    <tr><td><code>rotation</code></td><td>Rotation in degrees.</td></tr>
+    <tr><td><code>builtin</code></td><td><code>true</code> for a laptop's own screen.</td></tr>
+    <tr><td><code>mirrored</code></td><td><code>true</code> when the display is in a mirror set.</td></tr>
+    <tr><td><code>serial</code></td><td>The serial number the display reports, often <code>0</code>.</td></tr>
+    <tr><td><code>mm</code></td><td><code>{ width, height }</code>, the physical size in millimeters.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="brightness">Brightness</h2>
+
+<h3 id="getbrightness-id-number-number">getBrightness(id?: number): number</h3>
+<p>The brightness from <code>0</code> to <code>1</code>. Without <code>id</code>, it reads the main display. Returns <code>-1</code> when the display does not support software brightness, which is the case for most external monitors.</p>
+
+<h3 id="setbrightness-level-number-id-number-boolean">setBrightness(level: number, id?: number): boolean</h3>
+<p>Sets the brightness. <code>level</code> is clamped to <code>0</code>…<code>1</code>. Without <code>id</code>, it sets the main display. Returns <code>false</code> when the display does not accept the change.</p>
+
+<h2 id="gamma">Gamma</h2>
+<p>The gamma calls write the display's color lookup table. The table is a straight ramp from a <code>black</code> point to a <code>white</code> point, each an <code>{ red, green, blue }</code> object with channels from <code>0</code> to <code>1</code>. This affects every pixel on the screen, so it can tint, invert, or dim the display below its lowest hardware brightness.</p>
+
+<h3 id="setgamma-white-black-id-boolean">setGamma(white, black?, id?): boolean</h3>
+<p>Writes the table. A channel you leave out is <code>0</code>, so <code>setGamma({ red: 1 })</code> shows only red. <code>black</code> defaults to all zeros. You can pass a display ID as the second argument and skip <code>black</code>. Without an ID, the table goes to every active display. Returns <code>false</code> when <code>white</code> is missing or a display rejects the table.</p>
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.display.setGamma({ red: <span class="tok-num">1</span>, green: <span class="tok-num">0</span>, blue: <span class="tok-num">0</span> });   <span class="tok-cmt">// red only, for night vision</span>
+<span class="tok-fn">macotron</span>.display.setGamma({ red: <span class="tok-num">0.4</span>, green: <span class="tok-num">0.4</span>, blue: <span class="tok-num">0.4</span> }); <span class="tok-cmt">// darker than the minimum brightness</span>
+<span class="tok-fn">macotron</span>.display.setGamma({ red: <span class="tok-num">0</span>, green: <span class="tok-num">0</span>, blue: <span class="tok-num">0</span> }, { red: <span class="tok-num">1</span>, green: <span class="tok-num">1</span>, blue: <span class="tok-num">1</span> }); <span class="tok-cmt">// invert</span></code></pre>
+
+<h3 id="getgamma-id-number-white-black">getGamma(id?: number): { white, black }</h3>
+<p>The current end points of the table for one display, the main display by default. Each is <code>{ red, green, blue }</code>. When the table cannot be read, it returns white as all ones and black as all zeros.</p>
+
+<h3 id="restoregamma-boolean">restoreGamma(): boolean</h3>
+<p>Puts back the ColorSync settings on every display. Macotron also does this when plugins reload, if a plugin changed the gamma.</p>
+
+<h2 id="display-modes">Display modes</h2>
+<p>Each getter returns <code>available: false</code> when this Mac does not support the mode. Each setter returns <code>{ ok, on, available, error? }</code>. When <code>ok</code> is <code>false</code>, <code>error</code> says why.</p>
+
+<h3 id="nightshift-on-strength-available">nightShift(): { on, strength?, available }</h3>
+<p>Whether Night Shift is on. <code>strength</code> is the warmth from <code>0</code> to <code>1</code>, when macOS reports it.</p>
+
+<h3 id="setnightshift-on-boolean-on-strength">setNightShift(on: boolean | { on?, strength? })</h3>
+<p>Turns Night Shift on or off. Pass an object to set the warmth too: <code>strength</code> is clamped to <code>0</code>…<code>1</code>, and <code>on</code> defaults to <code>true</code>. The result also carries <code>strength</code>.</p>
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.display.setNightShift({ strength: <span class="tok-num">0.8</span> });</code></pre>
+
+<h3 id="truetone-on-available">trueTone(): { on, available }</h3>
+<p>Whether True Tone is on.</p>
+
+<h3 id="settruetone-on-boolean">setTrueTone(on: boolean)</h3>
+<p>Turns True Tone on or off.</p>
+
+<h3 id="grayscale-on-available">grayscale(): { on, available }</h3>
+<p>Whether the screen shows in grayscale.</p>
+
+<h3 id="setgrayscale-on-boolean">setGrayscale(on: boolean)</h3>
+<p>Turns grayscale on or off for every display.</p>
+
+<h2 id="overlays">Overlays</h2>
+
+<h3 id="setxdrenabled-enabled-boolean-boolean">setXDREnabled(enabled: boolean): boolean</h3>
+<p>Puts a transparent extended-dynamic-range layer over the main screen, which asks macOS for the display's HDR headroom. Returns <code>false</code> when the main screen has no HDR headroom. Turning it off always returns <code>true</code>.</p>
+
+<h3 id="isxdrenabled-boolean">isXDREnabled(): boolean</h3>
+<p>Whether the XDR layer is up.</p>
+
+<h3 id="setcrtenabled-enabled-boolean-boolean">setCRTEnabled(enabled: boolean): boolean</h3>
+<p>Draws a CRT effect over every screen: scanlines, a phosphor grille, a vignette, and a rolling bar. Clicks pass through it. It draws on top of the desktop, so it can darken and tint but cannot warp the pixels below. Returns <code>false</code> when Metal is unavailable.</p>
+<div class="note"><p>The effect covers the screens that are connected when you turn it on. After you connect a display, turn it off and on again.</p></div>
+
+<h3 id="iscrtenabled-boolean">isCRTEnabled(): boolean</h3>
+<p>Whether the CRT effect is on.</p>
+
+<h2 id="events">Events</h2>
+
+<h3 id="display-changed">display:changed</h3>
+<p>Fires when a display is added, removed, moved, or reconfigured. The payload is <code>{ id, flags }</code>, where <code>flags</code> is an array of <code>"add"</code>, <code>"remove"</code>, <code>"move"</code>, <code>"main"</code>, <code>"mode"</code>, <code>"enable"</code>, <code>"disable"</code>, <code>"mirror"</code>, <code>"unmirror"</code>, and <code>"shape"</code>. One change often fires once for each display it affects.</p>
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.on(<span class="tok-str">"display:changed"</span>, ({ flags }) =&gt; {
+  <span class="tok-kw">if</span> (flags.includes(<span class="tok-str">"add"</span>)) <span class="tok-fn">macotron</span>.notify.toast(<span class="tok-str">"Display connected"</span>);
+});</code></pre>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-screen.html">macotron.screen</a> to capture the screen or pick a color.</li>
+  <li><a href="/docs/api-window.html">macotron.window</a> to move windows between displays.</li>
+  <li>The <code>brightness.js</code> and <code>screen-effects.js</code> plugins.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

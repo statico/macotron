@@ -1,0 +1,37 @@
+<!-- title: macotron.keychain
+     summary: Store API keys, tokens, and other secrets in the macOS Keychain.
+     group: API -->
+<h1>macotron.keychain</h1>
+<p class="lede">Store API keys, tokens, and other secrets in the macOS login Keychain, so they stay out of plugin source and settings files.</p>
+
+<pre><code class="language-javascript">let token = macotron.keychain.get("github-token");
+if (!token) {
+  token = prompt("GitHub token");
+  if (token) macotron.keychain.set("github-token", token);
+}</code></pre>
+
+<h2>Secrets</h2>
+<p>Each value is a generic password item under the service <code>io.statico.macotron</code>, with your key as the account name. You can see and delete the items in Keychain Access.</p>
+
+<h3>get(key: string): string | null</h3>
+<p>The stored value, or <code>null</code> when there is none.</p>
+
+<h3>set(key: string, value: string): void</h3>
+<p>Stores <code>value</code>, replacing any value already stored under <code>key</code>. A Keychain error is written to the log and not thrown.</p>
+
+<h3>delete(key: string): void</h3>
+<p>Removes the item. Deleting a key that does not exist does nothing.</p>
+
+<h3>has(key: string): boolean</h3>
+<p>Whether a value is stored under <code>key</code>.</p>
+
+<h2>Sharing and scope</h2>
+<p>Keys are not separate per plugin. Every plugin reads and writes the same set, so <code>keychain.get("anthropic-api-key")</code> returns the same key to every plugin. Use this to share one key, and pick distinct names when you do not want to share.</p>
+<p>A <code>password</code> option declared in <code>macotron.plugin()</code> is stored in the same place, under the account <code>macotron.plugin.&lt;file&gt;.&lt;option&gt;</code>. For one plugin's own secret, a <code>password</code> option is usually simpler: the user enters it in Settings and the plugin gets the value from <code>macotron.plugin()</code>.</p>
+<div class="note"><p>Keys that start with <code>macotron.plugin.hash.</code> are reserved for Macotron. <code>get()</code> returns <code>null</code>, <code>has()</code> returns <code>false</code>, and <code>set()</code> and <code>delete()</code> do nothing for them.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-ai.html">macotron.ai</a>, whose cloud clients need an API key.</li>
+  <li><a href="/docs/api-http.html">macotron.http</a> to send a token in an <code>Authorization</code> header.</li>
+</ul>

@@ -1,0 +1,120 @@
+<!-- title: Writing plugins
+     summary: The shape of a plugin file, how it loads and reloads, and how to log, handle errors, and save state.
+     group: Guide
+     order: 2 -->
+<h1>Writing plugins</h1>
+<p class="lede">A plugin is one JavaScript file in <code>plugins/</code>. It runs once when it loads, and registers hotkeys, launcher commands, menu bar items, timers, and event handlers. Macotron calls those when something happens.</p>
+
+<pre><code class="language-javascript">macotron.plugin({
+  title: "Move Windows",
+  description: "Tile windows using hotkeys",
+  permissions: ["accessibility"],
+});
+
+macotron.keyboard.on("Tile Left", "ctrl+opt+left", () =&gt; {
+  const win = macotron.window.focused();
+  if (win) macotron.window.moveToFraction(win.id, { x: 0, y: 0, w: 0.5, h: 1 });
+});</code></pre>
+
+<h2>Anatomy of a plugin</h2>
+<p>Plugins are plain JavaScript on the QuickJS engine. There is no npm, no bundler, and no build step. Everything Macotron offers hangs off the <code>macotron</code> global. <code>console</code>, <code>localStorage</code>, <code>setTimeout</code>, <code>alert</code>, <code>confirm</code>, and <code>prompt</code> are globals too.</p>
+<p>A typical file has three parts:</p>
+<ol>
+  <li><strong>The header.</strong> One <code>macotron.plugin({ … })</code> call near the top, with a title, a description, the permissions the plugin needs, and its options. Settings → Plugins shows this. See <a href="/docs/guide-plugin-settings.html">Plugin settings</a>.</li>
+  <li><strong>Registrations.</strong> Calls such as <code>macotron.keyboard.on()</code>, <code>macotron.command()</code>, <code>macotron.menubar.status()</code>, <code>macotron.every()</code>, and <code>macotron.on()</code>. Make them at load time, at the top level of the file.</li>
+  <li><strong>The first paint.</strong> A call at the bottom that draws the initial state, such as a menu bar item's first reading.</li>
+</ol>
+<p>Macotron loads every <code>.js</code> file in <code>plugins/</code> in alphabetical order. Each file runs in its own function scope, so a <code>const opts</code> in two plugins does not collide.</p>
+
+<h2>Hotkeys and launcher commands</h2>
+<p>A global hotkey works in any app. The first argument is its label in Settings, and the user can change the combination there.</p>
+<pre><code class="language-javascript">macotron.keyboard.on("Hello", "cmd+shift+h", () =&gt; {
+  macotron.notify.toast("Hello", "From a Macotron plugin");
+});</code></pre>
+<p>A launcher command is a row in the <a href="/docs/feature-launcher.html">launcher</a>. It can ask for arguments before it runs. Do not also bind a launcher command with <code>keyboard.on</code>; the user can give any command its own shortcut in Settings or with <kbd>⌘K</kbd> in the launcher.</p>
+<pre><code class="language-javascript">macotron.command("Generate Lorem Ipsum", "Placeholder text", (args) =&gt; {
+  macotron.clipboard.set(args.count + " " + args.unit);
+}, {
+  id: "lorem-ipsum",
+  arguments: [
+    { name: "count", type: "number", placeholder: "Count", default: 3 },
+    { name: "unit", type: "dropdown", placeholder: "Unit", default: "paragraphs",
+      choices: [
+        { title: "Words", value: "words" },
+        { title: "Paragraphs", value: "paragraphs" },
+      ],
+    },
+  ],
+});</code></pre>
+<p>Timers are <code>macotron.every(ms, fn)</code> to repeat and <code>macotron.at("07:30", fn)</code> to run once a day at a clock time. See <a href="/docs/api-core.html">macotron core</a> for <code>command</code>, <code>on</code>, <code>every</code>, and <code>at</code>, and <a href="/docs/api-keyboard.html">macotron.keyboard</a> for hotkeys.</p>
+
+<h2>Save to reload</h2>
+<p>Macotron watches the workdir. What happens when you save a plugin depends on <strong>Hot Reload</strong>:</p>
+<ul>
+  <li><strong>Hot Reload off</strong> (the default). The new version does not run until you approve it with <strong>Review &amp; Reload</strong> in the Macotron menu. Until then, the copy already in memory keeps running. This is a security feature; see <a href="/docs/guide-security.html">Security</a>.</li>
+  <li><strong>Hot Reload on.</strong> Plugins reload as soon as you save, with no review. The menu bar icon shows an orange reload badge while it is on.</li>
+</ul>
+<p>Turn it on while you develop, with <strong>Enable Hot Reloading</strong> in the Macotron menu or Settings → General → Hot Reload. Turn it off again when you are done.</p>
+<p>A reload reloads every plugin, not only the one that changed. <strong>Reload Plugins</strong> (<kbd>⌘R</kbd> in the Macotron menu) does the same by hand. Editing <code>settings.json</code> does not reload plugins, but changing a plugin's option in Settings does.</p>
+
+<h2>Check a plugin before it loads</h2>
+<p>The app binary has a dry-run mode. It loads a file in a test engine and prints <code>OK</code> or <code>FAIL</code> with the error, without touching the running app. Run it from the workdir:</p>
+<pre><code>/Applications/Macotron.app/Contents/MacOS/Macotron --check plugins/my-plugin.js</code></pre>
+<p>With no file names, it checks every plugin in your workdir. It exits with status 1 when any file fails.</p>
+<p>For editor type checking, Macotron writes <code>.cache/macotron.d.ts</code> (the full typed API) and <code>.cache/jsconfig.json</code> into the workdir. Editors that use the TypeScript language service, such as VS Code, Cursor, and Zed, pick these up and flag wrong calls as you type.</p>
+
+<h2>Logging</h2>
+<p>A plugin runs with no console attached, so the log is the only record of what it did. Log the load, each command or hotkey and its result, and every caught error, with the values that decided the outcome.</p>
+<pre><code class="language-javascript">console.log("weather: loaded, city =", opts.city);</code></pre>
+<p><code>console.log</code>, <code>info</code>, and <code>debug</code> write at info level. <code>console.warn</code> writes at notice level and <code>console.error</code> at error level. <code>macotron.log()</code> is the same as <code>console.log</code>. Macotron tags each line with the plugin's file name. Do not log secrets, clipboard contents, or what the user typed.</p>
+<p>To read the log, see <a href="/docs/guide-troubleshooting.html">Troubleshooting</a>.</p>
+
+<h2>Async code and errors</h2>
+<p>Most host calls that wait on the system or the network return promises, so use <code>async</code> functions and <code>await</code>. A timer callback, an event handler, and the first call at the bottom of the file run unattended: if they throw, nobody sees it, and the menu bar keeps what it last drew. Wrap the body in <code>try</code>/<code>catch</code> and draw a final state on every path, failure included.</p>
+<p><code>macotron.http</code> does not reject when the network is down. It resolves with <code>status: 0</code> and the reason in <code>body</code>. Check the status as well as catching.</p>
+<pre><code class="language-javascript">async function refresh() {
+  try {
+    const res = await macotron.http.get(url, { timeout: 10000 });
+    if (res.status !== 200) throw new Error("HTTP " + res.status + ": " + res.body);
+    paint(JSON.parse(res.body));
+  } catch (e) {
+    console.error("weather: refresh failed", e);
+    macotron.menubar.status("weather", {
+      title: "--",
+      menu: [{ title: "Refresh failed: " + (e.message || e) }, "-", { title: "Refresh", onClick: refresh }],
+    });
+  }
+}
+
+macotron.every(15 * 60 * 1000, refresh);
+refresh();</code></pre>
+<p>Run independent requests together with <code>Promise.all</code>. A loop of <code>await</code> runs them one at a time.</p>
+<p>Macotron stops a plugin that runs for more than 5 seconds without returning, at load or in any callback. Long work belongs in <code>await</code>ed host calls, not in a busy loop.</p>
+
+<h2>Remembering state</h2>
+<p>Plugin variables do not survive a reload or a restart. Save what the user chose, such as a mode, a deadline, or a list they built, in <code>localStorage</code>: write it when it changes, and read it back at load. One store holds every plugin's keys, so prefix yours.</p>
+<pre><code class="language-javascript">const KEY = "pomodoro.session";
+let until = JSON.parse(localStorage.getItem(KEY) || "null");
+
+function start(ms) {
+  until = Date.now() + ms;
+  localStorage.setItem(KEY, JSON.stringify(until));
+}</code></pre>
+<p>Do not copy what is already saved elsewhere: option values from <code>macotron.plugin()</code>, or state you can ask the system for, such as volume or the current network. Host state a plugin held, such as a keep-awake assertion, is dropped on reload too, so claim it back at load from what you saved.</p>
+<p>Store API keys and other secrets with a <code>password</code> option or <a href="/docs/api-keychain.html">macotron.keychain</a>, never in <code>localStorage</code> or the source.</p>
+
+<h2>API version pragma</h2>
+<p>The plugin API has a version, <code>macotron.version.api</code> (currently <code>1.5.0</code>). If your plugin uses a call added in a later version, say so in a comment in the first 20 lines:</p>
+<pre><code class="language-javascript">// @macotron needs 1.5</code></pre>
+<p>Macotron loads the plugin only when its own API version is the same or higher. An older Macotron reports "Needs Macotron API 1.5" instead of failing partway. A file with no pragma counts as <code>needs 1.0</code>.</p>
+
+<h2>Built-in macOS only</h2>
+<p>A plugin must run on a stock Mac with only Macotron installed. Use <code>macotron.*</code> and tools that ship with macOS, such as <code>/usr/bin/open</code> and <code>/usr/bin/defaults</code>. Do not depend on Homebrew, npm, Python packages, or other installs.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-core.html">macotron core</a> and <a href="/docs/api-globals.html">Globals</a></li>
+  <li><a href="/docs/guide-plugin-settings.html">Plugin settings</a></li>
+  <li><a href="/docs/guide-coding-agents.html">Coding agents</a></li>
+  <li><a href="https://github.com/statico/macotron/tree/main/Examples/plugins">The built-in plugins on GitHub</a>, as working examples</li>
+</ul>

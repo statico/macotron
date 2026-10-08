@@ -1,0 +1,46 @@
+<!-- title: Clipboard
+     summary: Search recent copies from the launcher, bring back images, and paste as plain text.
+     group: Features
+     order: 50 -->
+<h1>Clipboard</h1>
+<p class="lede">Three built-in plugins work with the clipboard. Clipboard History lets you find and reuse recent copies. Clipboard Images brings back the last image. Plain Paste removes formatting when you press Command-V.</p>
+
+<h2>Clipboard History</h2>
+<p>Turn on <b>Clipboard History</b> and Macotron starts to record what you copy. Each copy becomes a launcher row. Type part of the text to find it, then press <kbd>Return</kbd>. Images show as rows named "Image".</p>
+<p>Run the <b>Clipboard History</b> command for a panel that lists every entry with its time and a filter field. Click an entry to use it.</p>
+<p>Picking an entry puts it back on the clipboard. It does not paste it. Press <kbd>⌘V</kbd> in the app where you want it.</p>
+
+<p>Macotron keeps:</p>
+<ul>
+  <li>The newest 50 entries from the last 24 hours.</li>
+  <li>Text and images.</li>
+  <li>In memory only. History is gone when Macotron quits.</li>
+</ul>
+<div class="note"><p>Password managers mark the secrets they copy. Macotron never records a copy with those marks (<code>org.nspasteboard.ConcealedType</code> or <code>TransientType</code>).</p></div>
+
+<h2>Clipboard Images</h2>
+<p>The <b>Clipboard Images</b> command finds the newest image in clipboard history and puts it back on the clipboard. Use it when you copied an image, then copied text over it. It uses the same history, so it only finds images copied after a plugin started recording.</p>
+
+<h2>Plain Paste</h2>
+<p>With <b>Plain Paste</b> on, <kbd>⌘V</kbd> in any app pastes only the plain text. Fonts, colors, and links are dropped. The plugin has one setting, <b>Paste as plain text</b>, which is on by default. Turn it off in Settings → Plugins → Plain Paste, or disable the plugin.</p>
+<div class="note"><p>Plain Paste needs Accessibility. Without it, Command-V keeps the formatting. See <a href="/docs/guide-permissions.html">Permissions</a>.</p></div>
+
+<h2>Related plugins</h2>
+<ul>
+  <li><b>Markdown Preview</b>: Markdown from Clipboard renders the clipboard as Markdown in a panel.</li>
+  <li><b>Dev Utils</b>: Encode Base64 and Decode JWT read the clipboard.</li>
+  <li><b>Share Commands</b>: share clipboard text with the share sheet or AirDrop.</li>
+</ul>
+
+<h2>Use it in a plugin</h2>
+<pre><code class="language-javascript">macotron.on("clipboard:changed", () =&gt; {
+  const text = macotron.clipboard.text();
+  if (text.startsWith("http")) console.log("clip: copied a link");
+});</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-clipboard.html">macotron.clipboard</a></li>
+  <li><a href="/docs/feature-snippets.html">Snippets</a></li>
+  <li><a href="/docs/feature-launcher.html">Launcher</a></li>
+</ul>

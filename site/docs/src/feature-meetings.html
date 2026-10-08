@@ -1,0 +1,51 @@
+<!-- title: Meetings and calendar
+     summary: Your next meeting in the menu bar, a join overlay when it starts, a mini calendar, and reminders.
+     group: Features
+     order: 80 -->
+<h1>Meetings and calendar</h1>
+<p class="lede">The Meetings plugin shows your next calendar event in the menu bar, counts down to it, and can cover the screen with a join card when it starts. Mini Calendar and Reminders put the date and your to-do list beside it.</p>
+
+<h2>Meetings</h2>
+<p><code>meetings.js</code> reads the calendars in the macOS Calendar app, so any account you added there (iCloud, Google, Exchange) works. It refreshes every 30 seconds.</p>
+<p>The menu bar item shows the title of the next timed event and, under it, how long until it starts, such as <b>in 1h 15m</b>. While the meeting runs, the second line reads <b>Now · 25m left</b>. With no meeting ahead, the item shows only a calendar icon. All-day events never take the menu bar.</p>
+<p>Click the item for today's agenda:</p>
+<ul>
+  <li><b>Join</b> opens the meeting link. Macotron looks for a link in the event's URL, location, and notes, and prefers Google Meet, Zoom, Teams, and Webex links over other links. An event with no link shows <b>Open</b>, which opens Calendar.</li>
+  <li><b>Dismiss</b> hides the next meeting from the menu bar and the overlay. <b>Restore Dismissed Meetings</b> brings dismissed meetings back.</li>
+  <li>Below that is every event, grouped by day. An arrow marks the next one. Past, ignored, and dismissed events are dimmed. Click any event to join or open it.</li>
+  <li><b>Refresh</b>, <b>Open Calendar</b>, and <b>Settings…</b> are at the bottom.</li>
+</ul>
+<p>The launcher command <b>Next Meeting</b> opens the next meeting's link.</p>
+
+<h2>The meeting overlay</h2>
+<p>When a meeting starts, Meetings shows a full-screen card with the event title, a <b>Join</b> button, a <b>Close</b> button, and a QR code of the join link, so you can join from your phone. The card counts the minutes since the start. It shows once per meeting, and only within the first five minutes, so a Mac that wakes from sleep late does not show it for a meeting that is already well under way.</p>
+<p>Turn the card off with the <b>Meeting overlay</b> setting.</p>
+
+<h2>Meetings settings</h2>
+<p>Change these in Settings → Plugins → Meetings.</p>
+<table>
+  <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Calendars</td><td>All</td><td>Shows events from the checked calendars only. Check none to show every calendar.</td></tr>
+    <tr><td>Look ahead</td><td>12</td><td>Hours of calendar to show. The rest of today is always included.</td></tr>
+    <tr><td>Ignore titles</td><td><code>ooo|vacation</code></td><td>One regular expression per line, matched without case against the title, location, and calendar name. Matching events are dimmed and never take the menu bar or the overlay.</td></tr>
+    <tr><td>Show time as</td><td>Relative</td><td><b>Relative (in 1h 15m)</b> or <b>Start time (1:15 PM)</b>.</td></tr>
+    <tr><td>Meeting overlay</td><td>On</td><td>Shows the full-screen card when a meeting starts.</td></tr>
+  </tbody>
+</table>
+<div class="note"><p>Meetings needs the <b>Calendars</b> permission. Grant it in Settings → Permissions. The Calendars setting stays empty until you do.</p></div>
+
+<h2>Mini Calendar</h2>
+<p><code>mini-calendar.js</code> shows today's weekday and date as a small calendar icon in the menu bar. Click it to see the month. The <b>‹</b>, <b>Today</b>, and <b>›</b> buttons page through months without closing the menu. <b>Open Calendar…</b> opens the Calendar app.</p>
+<p>The <b>World clocks</b> setting takes one IANA time zone per line, such as <code>Europe/London</code>. The menu shows each one under the month. To rename a clock, write <code>Europe/London = Home</code>. For a menu bar clock instead, use World Clock (<code>world-clock.js</code>).</p>
+
+<h2>Reminders</h2>
+<p><code>reminders.js</code> shows your next reminder in the menu bar, with its due date under it, or <b>Overdue</b>. Its menu lists up to eight open reminders. Click one to mark it complete. <b>Add…</b> asks for a title and adds a new reminder.</p>
+<p>macOS asks for access to Reminders the first time the plugin reads them. Until you allow it, the list is empty.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-calendar.html">macotron.calendar</a> and <a href="/docs/api-reminders.html">macotron.reminders</a></li>
+  <li><a href="/docs/feature-menu-bar.html">Menu bar</a></li>
+  <li><a href="/docs/guide-permissions.html">Permissions</a></li>
+</ul>

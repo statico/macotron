@@ -1,0 +1,60 @@
+<!-- title: Hotkeys
+     summary: Global keyboard shortcuts from plugins, apps, and launcher rows, all changeable in Settings.
+     group: Features
+     order: 20 -->
+<h1>Hotkeys</h1>
+<p class="lede">Plugins bind global hotkeys that work in any app. You can change every one of them in Settings, give a shortcut to any app or launcher command, and see the full list in one overlay.</p>
+
+<h2>Where hotkeys come from</h2>
+<ul>
+  <li><b>Plugin hotkeys.</b> A plugin binds a combo at load with <code>macotron.keyboard.on()</code>. Window Controls, for example, binds <kbd>⌃⌥←</kbd> to Left Half.</li>
+  <li><b>Command shortcuts.</b> Any launcher command, app, or plugin row can have a shortcut. Plugins do not set these; you do.</li>
+  <li><b>App shortcuts.</b> A combo that opens an app, set in Settings → Shortcuts.</li>
+  <li><b>Macotron's own.</b> The launcher hotkey (<kbd>⌥Space</kbd> by default) and the Show Hotkeys overlay.</li>
+</ul>
+
+<pre><code class="language-javascript">// The first argument is the label in Settings. The second is the default combo.
+macotron.keyboard.on("Hello", "cmd+shift+h", () =&gt; {
+  macotron.notify.toast("Hello", "From a Macotron plugin");
+});</code></pre>
+<p>Combos are written as modifiers and a key joined with <code>+</code>. Modifiers are <code>cmd</code>, <code>shift</code>, <code>ctrl</code>, <code>opt</code>, and <code>hyper</code>. Named keys include <code>space</code>, <code>return</code>, <code>tab</code>, <code>escape</code>, <code>delete</code>, the arrows <code>left</code> <code>right</code> <code>up</code> <code>down</code>, <code>home</code>, <code>end</code>, <code>pageup</code>, and <code>pagedown</code>.</p>
+
+<h2>Changing a hotkey</h2>
+<p>Open Settings → Plugins and select the plugin. Its page has two lists:</p>
+<ul>
+  <li><b>Shortcuts</b>: the hotkeys the plugin binds. Click a field and press a new combo to replace the default.</li>
+  <li><b>Commands</b>: the plugin's launcher commands. Record a combo to run a command without opening the launcher.</li>
+</ul>
+<p>You can also assign a shortcut from the launcher: select a row and press <kbd>⌘K</kbd>. See <a href="/docs/feature-launcher.html#shortcuts-for-any-row">Launcher</a>.</p>
+<p>Your choices are saved in <code>settings.json</code> in the workdir, so they survive reloads and updates to the plugin.</p>
+
+<h2>App shortcuts</h2>
+<p>Settings → Shortcuts holds shortcuts that open apps. Click <b>+</b>, choose an application (or <b>Other…</b> to pick one from disk), and record a combo. The same shortcut hides the app when it is already in front, so one key toggles it.</p>
+
+<h2>Launcher and Show Hotkeys</h2>
+<p>Settings → General has two recorders:</p>
+<ul>
+  <li><b>Launcher Hotkey</b>: opens the launcher. The default is <kbd>⌥Space</kbd>.</li>
+  <li><b>Show Hotkeys</b>: opens an overlay that lists every bound combo with its label. It has no default combo. You can always run <b>Show Hotkeys</b> from the launcher.</li>
+</ul>
+<p>Press <kbd>Esc</kbd>, click elsewhere, or press the hotkey again to close the overlay.</p>
+
+<h2>Conflicts</h2>
+<p>When two bindings use the same combo, Settings shows "Also used by" under the field, followed by the names of the others. A plugin with a conflict is marked in the Settings → Plugins list. Change one of the combos to fix it.</p>
+
+<h2>Hyper key</h2>
+<p>The built-in <b>Hyper Key</b> plugin turns Caps Lock into a Hyper key: Command, Shift, Control, and Option together. Combos that no app uses on its own are then easy to press. Bind them with the <code>hyper</code> modifier:</p>
+<pre><code class="language-javascript">macotron.keyboard.setHyperKey("caps");
+macotron.keyboard.on("Hyper H", "hyper+h", () =&gt; {
+  macotron.notify.toast("Hyper", "Hyper+H");
+});</code></pre>
+<p><code>setHyperKey</code> also accepts <code>"fn"</code> to use the Fn key instead.</p>
+
+<div class="note"><p>Hotkeys that watch the keyboard, such as the Hyper key and Option-Tab in the Window Switcher, need Input Monitoring and Accessibility. See <a href="/docs/guide-permissions.html">Permissions</a>.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-keyboard.html">macotron.keyboard</a></li>
+  <li><a href="/docs/feature-launcher.html">Launcher</a></li>
+  <li><a href="/docs/guide-plugin-settings.html">Plugin settings</a>: <code>keybinding</code> options.</li>
+</ul>

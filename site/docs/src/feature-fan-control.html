@@ -1,0 +1,51 @@
+<!-- title: Fan control
+     summary: See fan speed in the menu bar and keep the fans at or above 50% or 100% with the background helper.
+     group: Features
+     order: 120 -->
+<h1>Fan control</h1>
+<p class="lede">The Fan Control Menu plugin shows fan speed in the menu bar and can hold the fans at a minimum speed. Reading the speed needs nothing. Setting a minimum needs the Macotron background helper.</p>
+
+<h2>The fan menu</h2>
+<p><code>fan.js</code> puts a fan icon in the menu bar. The icon is filled while a minimum speed is held. It refreshes every two seconds.</p>
+<ul>
+  <li><b>Left-click</b> the icon to turn the minimum on or off. The <b>Menu bar click sets</b> setting picks 50% or 100% (the default).</li>
+  <li><b>Right-click</b> or Control-click for the menu. It shows the speed of each fan in RPM, then <b>50%</b>, <b>100%</b>, and <b>System default</b>. A check mark shows the current choice.</li>
+</ul>
+<p>The launcher commands <b>Toggle Fan 50%</b> and <b>Toggle Fan 100%</b> do the same thing. Run one again to give control back to macOS.</p>
+<p>On a Mac with no fans, such as a MacBook Air, the menu says <b>No fans on this Mac</b>.</p>
+
+<h2>What a minimum speed means</h2>
+<p>The setting is a floor. The fans do not run slower than the speed you chose, measured between the fan's own lowest and highest speed. Above that, macOS still controls them. When the Mac gets too hot, the helper gives the fans back to macOS, so a floor never holds a hot machine down.</p>
+<p>The plugin remembers your choice and puts it back after a plugin reload or a restart of Macotron.</p>
+<div class="note"><p>When Macotron quits or crashes, the helper gives the fans back to macOS at once. A Mac is never left with its fans pinned.</p></div>
+
+<h2>The background helper</h2>
+<p>Changing fan speed needs root access, which Macotron itself does not have. The background helper is a small system service, inside the Macotron app, that does only this job. Macotron talks to it while it runs.</p>
+<p>To install it:</p>
+<ol>
+  <li>Open Settings → Plugins → Fan Control Menu, or Settings → Permissions. Both show a <b>Background Helper</b> row.</li>
+  <li>Click <b>Install…</b>.</li>
+  <li>macOS adds the helper to System Settings → General → Login Items &amp; Extensions, switched off. Switch it on there. macOS asks for an administrator password.</li>
+</ol>
+<p>Until the helper is installed, the plugin page shows an orange <b>Speed control</b> check that says it can read speed only, and the fan menu has an <b>Install background helper…</b> row.</p>
+<p>After the helper is installed, its row shows an <b>Installed</b> menu:</p>
+<ul>
+  <li><b>Reinstall…</b> removes the helper and installs the copy in the current app. Use it after you update Macotron if fan control stops working.</li>
+  <li><b>Remove</b> uninstalls the helper. Speed still shows; setting a minimum does not work.</li>
+</ul>
+<p>If installation fails with a message that Macotron was replaced on disk, quit and reopen Macotron, then click <b>Install…</b> again.</p>
+
+<h2>Plugin settings</h2>
+<table>
+  <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Menu bar click sets</td><td>100%</td><td>The minimum that a left-click on the fan icon turns on: 50% or 100%.</td></tr>
+  </tbody>
+</table>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-system.html">macotron.system</a> (<code>fans()</code> and <code>setFanFloor()</code>)</li>
+  <li><a href="/docs/guide-permissions.html">Permissions</a></li>
+  <li><a href="/docs/guide-security.html">Security</a></li>
+</ul>

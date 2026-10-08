@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hotkeys · Macotron</title>
+  <meta name="description" content="Global keyboard shortcuts from plugins, apps, and launcher rows, all changeable in Settings.">
+  <meta property="og:title" content="Hotkeys · Macotron">
+  <meta property="og:description" content="Global keyboard shortcuts from plugins, apps, and launcher rows, all changeable in Settings.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/feature-hotkeys.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/feature-hotkeys.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "Hotkeys", "item": "https://macotron.statico.io/docs/feature-hotkeys.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html" aria-current="page">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>Hotkeys</h1>
+<p class="lede">Plugins bind global hotkeys that work in any app. You can change every one of them in Settings, give a shortcut to any app or launcher command, and see the full list in one overlay.</p>
+
+<h2 id="where-hotkeys-come-from">Where hotkeys come from</h2>
+<ul>
+  <li><b>Plugin hotkeys.</b> A plugin binds a combo at load with <code>macotron.keyboard.on()</code>. Window Controls, for example, binds <kbd>⌃⌥←</kbd> to Left Half.</li>
+  <li><b>Command shortcuts.</b> Any launcher command, app, or plugin row can have a shortcut. Plugins do not set these; you do.</li>
+  <li><b>App shortcuts.</b> A combo that opens an app, set in Settings → Shortcuts.</li>
+  <li><b>Macotron's own.</b> The launcher hotkey (<kbd>⌥Space</kbd> by default) and the Show Hotkeys overlay.</li>
+</ul>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// The first argument is the label in Settings. The second is the default combo.</span>
+<span class="tok-fn">macotron</span>.keyboard.on(<span class="tok-str">"Hello"</span>, <span class="tok-str">"cmd+shift+h"</span>, () =&gt; {
+  <span class="tok-fn">macotron</span>.notify.toast(<span class="tok-str">"Hello"</span>, <span class="tok-str">"From a Macotron plugin"</span>);
+});</code></pre>
+<p>Combos are written as modifiers and a key joined with <code>+</code>. Modifiers are <code>cmd</code>, <code>shift</code>, <code>ctrl</code>, <code>opt</code>, and <code>hyper</code>. Named keys include <code>space</code>, <code>return</code>, <code>tab</code>, <code>escape</code>, <code>delete</code>, the arrows <code>left</code> <code>right</code> <code>up</code> <code>down</code>, <code>home</code>, <code>end</code>, <code>pageup</code>, and <code>pagedown</code>.</p>
+
+<h2 id="changing-a-hotkey">Changing a hotkey</h2>
+<p>Open Settings → Plugins and select the plugin. Its page has two lists:</p>
+<ul>
+  <li><b>Shortcuts</b>: the hotkeys the plugin binds. Click a field and press a new combo to replace the default.</li>
+  <li><b>Commands</b>: the plugin's launcher commands. Record a combo to run a command without opening the launcher.</li>
+</ul>
+<p>You can also assign a shortcut from the launcher: select a row and press <kbd>⌘K</kbd>. See <a href="/docs/feature-launcher.html#shortcuts-for-any-row">Launcher</a>.</p>
+<p>Your choices are saved in <code>settings.json</code> in the workdir, so they survive reloads and updates to the plugin.</p>
+
+<h2 id="app-shortcuts">App shortcuts</h2>
+<p>Settings → Shortcuts holds shortcuts that open apps. Click <b>+</b>, choose an application (or <b>Other…</b> to pick one from disk), and record a combo. The same shortcut hides the app when it is already in front, so one key toggles it.</p>
+
+<h2 id="launcher-and-show-hotkeys">Launcher and Show Hotkeys</h2>
+<p>Settings → General has two recorders:</p>
+<ul>
+  <li><b>Launcher Hotkey</b>: opens the launcher. The default is <kbd>⌥Space</kbd>.</li>
+  <li><b>Show Hotkeys</b>: opens an overlay that lists every bound combo with its label. It has no default combo. You can always run <b>Show Hotkeys</b> from the launcher.</li>
+</ul>
+<p>Press <kbd>Esc</kbd>, click elsewhere, or press the hotkey again to close the overlay.</p>
+
+<h2 id="conflicts">Conflicts</h2>
+<p>When two bindings use the same combo, Settings shows "Also used by" under the field, followed by the names of the others. A plugin with a conflict is marked in the Settings → Plugins list. Change one of the combos to fix it.</p>
+
+<h2 id="hyper-key">Hyper key</h2>
+<p>The built-in <b>Hyper Key</b> plugin turns Caps Lock into a Hyper key: Command, Shift, Control, and Option together. Combos that no app uses on its own are then easy to press. Bind them with the <code>hyper</code> modifier:</p>
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.keyboard.setHyperKey(<span class="tok-str">"caps"</span>);
+<span class="tok-fn">macotron</span>.keyboard.on(<span class="tok-str">"Hyper H"</span>, <span class="tok-str">"hyper+h"</span>, () =&gt; {
+  <span class="tok-fn">macotron</span>.notify.toast(<span class="tok-str">"Hyper"</span>, <span class="tok-str">"Hyper+H"</span>);
+});</code></pre>
+<p><code>setHyperKey</code> also accepts <code>"fn"</code> to use the Fn key instead.</p>
+
+<div class="note"><p>Hotkeys that watch the keyboard, such as the Hyper key and Option-Tab in the Window Switcher, need Input Monitoring and Accessibility. See <a href="/docs/guide-permissions.html">Permissions</a>.</p></div>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-keyboard.html">macotron.keyboard</a></li>
+  <li><a href="/docs/feature-launcher.html">Launcher</a></li>
+  <li><a href="/docs/guide-plugin-settings.html">Plugin settings</a>: <code>keybinding</code> options.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

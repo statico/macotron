@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Community plugins · Macotron</title>
+  <meta name="description" content="Install plugins other people publish on GitHub, and publish your own with one repository topic.">
+  <meta property="og:title" content="Community plugins · Macotron">
+  <meta property="og:description" content="Install plugins other people publish on GitHub, and publish your own with one repository topic.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/guide-community-plugins.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/guide-community-plugins.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "Community plugins", "item": "https://macotron.statico.io/docs/guide-community-plugins.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html" aria-current="page">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>Community plugins</h1>
+<p class="lede">Anyone can publish a Macotron plugin. Macotron lists every GitHub repository with the <code>macotron-plugin</code> topic, and installs one only after you read it and approve it.</p>
+
+<h2 id="install-a-community-plugin">Install a community plugin</h2>
+<ol>
+  <li>Open Settings → Plugins, select <strong>Catalog</strong>, and switch to <strong>Community</strong>.</li>
+  <li>Browse or search the list. Each row shows the title, the owner, the star count, and when the repository last changed. <strong>GitHub</strong> opens the repository.</li>
+  <li>Select <strong>Add</strong>. Macotron downloads the source and runs nothing yet.</li>
+  <li>Read the install sheet. It names the repository and says who wrote the plugin, and that it runs with the same access Macotron has. The scan runs over the code, as it does for any changed plugin (see <a href="/docs/guide-security.html#the-review-sheet">Security</a>). <strong>View Source…</strong> opens the code.</li>
+  <li>Approve it. Only then does the file reach your <code>plugins/</code> folder.</li>
+</ol>
+<p>Stars sort the list, but stars are not a sign of trust: they can be bought. Read the code, or ask your coding agent to explain it, before you approve.</p>
+<p>If a plugin with the same file name is already installed, the sheet warns you before it replaces it.</p>
+
+<h2 id="updates">Updates</h2>
+<p>Nothing installs or updates by itself. When the published code of an installed community plugin differs from your copy, the Community list marks it <strong>Update</strong>, and the Macotron menu shows a plugin update row. An update opens the same sheet as a first install, so you read the new code before it runs.</p>
+<p><strong>Update All</strong> in Settings → Plugins opens one review sheet for each community plugin in turn.</p>
+
+<h2 id="publish-your-own">Publish your own</h2>
+<ol>
+  <li>Name the repository <code>macotron-plugin-&lt;name&gt;</code>.</li>
+  <li>Put one plugin in it. Put the script in the root as <code>&lt;name&gt;.js</code>; <code>plugin.js</code> and <code>index.js</code> also work.</li>
+  <li>Write <code>title</code> and <code>description</code> in <code>macotron.plugin({ … })</code>. Macotron shows those, not the GitHub description.</li>
+  <li>Add the <code>macotron-plugin</code> topic to the repository.</li>
+</ol>
+<p>That is all. There is no index to edit, no pull request, and no review queue. <code>macotron-plugin-weather</code> holding <code>weather.js</code> installs as <code>weather.js</code>. <a href="https://github.com/statico/macotron-plugin-cleanshot">macotron-plugin-cleanshot</a> is a working example.</p>
+<p>Macotron caches the GitHub search for an hour, so a new repository can take that long to show up.</p>
+
+<h2 id="what-macotron-does-not-check">What Macotron does not check</h2>
+<ul>
+  <li><strong>Names.</strong> Two repositories can use the same name. The sheet shows the owner so you can tell them apart.</li>
+  <li><strong>Permissions.</strong> A plugin declares permissions, but Macotron cannot hold it to them.</li>
+  <li><strong>Signatures.</strong> Plugins are not signed. The hash check and the review sheet catch every change before it runs.</li>
+</ul>
+<p>When a published plugin turns out to be harmful, its hash goes on the block list, and every Mac stops running those bytes at its next launch. See <a href="/docs/guide-security.html#the-block-list">The block list</a>.</p>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/guide-security.html">Security</a></li>
+  <li><a href="/docs/guide-writing-plugins.html">Writing plugins</a></li>
+  <li><a href="https://github.com/topics/macotron-plugin">The macotron-plugin topic on GitHub</a></li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

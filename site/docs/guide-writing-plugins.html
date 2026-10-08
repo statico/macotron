@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Writing plugins · Macotron</title>
+  <meta name="description" content="The shape of a plugin file, how it loads and reloads, and how to log, handle errors, and save state.">
+  <meta property="og:title" content="Writing plugins · Macotron">
+  <meta property="og:description" content="The shape of a plugin file, how it loads and reloads, and how to log, handle errors, and save state.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/guide-writing-plugins.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/guide-writing-plugins.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "Writing plugins", "item": "https://macotron.statico.io/docs/guide-writing-plugins.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html" aria-current="page">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>Writing plugins</h1>
+<p class="lede">A plugin is one JavaScript file in <code>plugins/</code>. It runs once when it loads, and registers hotkeys, launcher commands, menu bar items, timers, and event handlers. Macotron calls those when something happens.</p>
+
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.plugin({
+  title: <span class="tok-str">"Move Windows"</span>,
+  description: <span class="tok-str">"Tile windows using hotkeys"</span>,
+  permissions: [<span class="tok-str">"accessibility"</span>],
+});
+
+<span class="tok-fn">macotron</span>.keyboard.on(<span class="tok-str">"Tile Left"</span>, <span class="tok-str">"ctrl+opt+left"</span>, () =&gt; {
+  <span class="tok-kw">const</span> win = <span class="tok-fn">macotron</span>.window.focused();
+  <span class="tok-kw">if</span> (win) <span class="tok-fn">macotron</span>.window.moveToFraction(win.id, { x: <span class="tok-num">0</span>, y: <span class="tok-num">0</span>, w: <span class="tok-num">0.5</span>, h: <span class="tok-num">1</span> });
+});</code></pre>
+
+<h2 id="anatomy-of-a-plugin">Anatomy of a plugin</h2>
+<p>Plugins are plain JavaScript on the QuickJS engine. There is no npm, no bundler, and no build step. Everything Macotron offers hangs off the <code>macotron</code> global. <code>console</code>, <code>localStorage</code>, <code>setTimeout</code>, <code>alert</code>, <code>confirm</code>, and <code>prompt</code> are globals too.</p>
+<p>A typical file has three parts:</p>
+<ol>
+  <li><strong>The header.</strong> One <code>macotron.plugin({ … })</code> call near the top, with a title, a description, the permissions the plugin needs, and its options. Settings → Plugins shows this. See <a href="/docs/guide-plugin-settings.html">Plugin settings</a>.</li>
+  <li><strong>Registrations.</strong> Calls such as <code>macotron.keyboard.on()</code>, <code>macotron.command()</code>, <code>macotron.menubar.status()</code>, <code>macotron.every()</code>, and <code>macotron.on()</code>. Make them at load time, at the top level of the file.</li>
+  <li><strong>The first paint.</strong> A call at the bottom that draws the initial state, such as a menu bar item's first reading.</li>
+</ol>
+<p>Macotron loads every <code>.js</code> file in <code>plugins/</code> in alphabetical order. Each file runs in its own function scope, so a <code>const opts</code> in two plugins does not collide.</p>
+
+<h2 id="hotkeys-and-launcher-commands">Hotkeys and launcher commands</h2>
+<p>A global hotkey works in any app. The first argument is its label in Settings, and the user can change the combination there.</p>
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.keyboard.on(<span class="tok-str">"Hello"</span>, <span class="tok-str">"cmd+shift+h"</span>, () =&gt; {
+  <span class="tok-fn">macotron</span>.notify.toast(<span class="tok-str">"Hello"</span>, <span class="tok-str">"From a Macotron plugin"</span>);
+});</code></pre>
+<p>A launcher command is a row in the <a href="/docs/feature-launcher.html">launcher</a>. It can ask for arguments before it runs. Do not also bind a launcher command with <code>keyboard.on</code>; the user can give any command its own shortcut in Settings or with <kbd>⌘K</kbd> in the launcher.</p>
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.command(<span class="tok-str">"Generate Lorem Ipsum"</span>, <span class="tok-str">"Placeholder text"</span>, (args) =&gt; {
+  <span class="tok-fn">macotron</span>.clipboard.set(args.count + <span class="tok-str">" "</span> + args.unit);
+}, {
+  id: <span class="tok-str">"lorem-ipsum"</span>,
+  arguments: [
+    { name: <span class="tok-str">"count"</span>, type: <span class="tok-str">"number"</span>, placeholder: <span class="tok-str">"Count"</span>, default: <span class="tok-num">3</span> },
+    { name: <span class="tok-str">"unit"</span>, type: <span class="tok-str">"dropdown"</span>, placeholder: <span class="tok-str">"Unit"</span>, default: <span class="tok-str">"paragraphs"</span>,
+      choices: [
+        { title: <span class="tok-str">"Words"</span>, value: <span class="tok-str">"words"</span> },
+        { title: <span class="tok-str">"Paragraphs"</span>, value: <span class="tok-str">"paragraphs"</span> },
+      ],
+    },
+  ],
+});</code></pre>
+<p>Timers are <code>macotron.every(ms, fn)</code> to repeat and <code>macotron.at("07:30", fn)</code> to run once a day at a clock time. See <a href="/docs/api-core.html">macotron core</a> for <code>command</code>, <code>on</code>, <code>every</code>, and <code>at</code>, and <a href="/docs/api-keyboard.html">macotron.keyboard</a> for hotkeys.</p>
+
+<h2 id="save-to-reload">Save to reload</h2>
+<p>Macotron watches the workdir. What happens when you save a plugin depends on <strong>Hot Reload</strong>:</p>
+<ul>
+  <li><strong>Hot Reload off</strong> (the default). The new version does not run until you approve it with <strong>Review &amp; Reload</strong> in the Macotron menu. Until then, the copy already in memory keeps running. This is a security feature; see <a href="/docs/guide-security.html">Security</a>.</li>
+  <li><strong>Hot Reload on.</strong> Plugins reload as soon as you save, with no review. The menu bar icon shows an orange reload badge while it is on.</li>
+</ul>
+<p>Turn it on while you develop, with <strong>Enable Hot Reloading</strong> in the Macotron menu or Settings → General → Hot Reload. Turn it off again when you are done.</p>
+<p>A reload reloads every plugin, not only the one that changed. <strong>Reload Plugins</strong> (<kbd>⌘R</kbd> in the Macotron menu) does the same by hand. Editing <code>settings.json</code> does not reload plugins, but changing a plugin's option in Settings does.</p>
+
+<h2 id="check-a-plugin-before-it-loads">Check a plugin before it loads</h2>
+<p>The app binary has a dry-run mode. It loads a file in a test engine and prints <code>OK</code> or <code>FAIL</code> with the error, without touching the running app. Run it from the workdir:</p>
+<pre><code>/Applications/Macotron.app/Contents/MacOS/Macotron --check plugins/my-plugin.js</code></pre>
+<p>With no file names, it checks every plugin in your workdir. It exits with status 1 when any file fails.</p>
+<p>For editor type checking, Macotron writes <code>.cache/macotron.d.ts</code> (the full typed API) and <code>.cache/jsconfig.json</code> into the workdir. Editors that use the TypeScript language service, such as VS Code, Cursor, and Zed, pick these up and flag wrong calls as you type.</p>
+
+<h2 id="logging">Logging</h2>
+<p>A plugin runs with no console attached, so the log is the only record of what it did. Log the load, each command or hotkey and its result, and every caught error, with the values that decided the outcome.</p>
+<pre><code class="language-javascript">console.log(<span class="tok-str">"weather: loaded, city ="</span>, opts.city);</code></pre>
+<p><code>console.log</code>, <code>info</code>, and <code>debug</code> write at info level. <code>console.warn</code> writes at notice level and <code>console.error</code> at error level. <code>macotron.log()</code> is the same as <code>console.log</code>. Macotron tags each line with the plugin's file name. Do not log secrets, clipboard contents, or what the user typed.</p>
+<p>To read the log, see <a href="/docs/guide-troubleshooting.html">Troubleshooting</a>.</p>
+
+<h2 id="async-code-and-errors">Async code and errors</h2>
+<p>Most host calls that wait on the system or the network return promises, so use <code>async</code> functions and <code>await</code>. A timer callback, an event handler, and the first call at the bottom of the file run unattended: if they throw, nobody sees it, and the menu bar keeps what it last drew. Wrap the body in <code>try</code>/<code>catch</code> and draw a final state on every path, failure included.</p>
+<p><code>macotron.http</code> does not reject when the network is down. It resolves with <code>status: 0</code> and the reason in <code>body</code>. Check the status as well as catching.</p>
+<pre><code class="language-javascript"><span class="tok-kw">async</span> <span class="tok-kw">function</span> refresh() {
+  try {
+    <span class="tok-kw">const</span> res = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.http.get(url, { timeout: <span class="tok-num">10000</span> });
+    <span class="tok-kw">if</span> (res.status !== <span class="tok-num">200</span>) throw <span class="tok-kw">new</span> Error(<span class="tok-str">"HTTP "</span> + res.status + <span class="tok-str">": "</span> + res.body);
+    paint(JSON.parse(res.body));
+  } catch (e) {
+    console.error(<span class="tok-str">"weather: refresh failed"</span>, e);
+    <span class="tok-fn">macotron</span>.menubar.status(<span class="tok-str">"weather"</span>, {
+      title: <span class="tok-str">"--"</span>,
+      menu: [{ title: <span class="tok-str">"Refresh failed: "</span> + (e.message || e) }, <span class="tok-str">"-"</span>, { title: <span class="tok-str">"Refresh"</span>, onClick: refresh }],
+    });
+  }
+}
+
+<span class="tok-fn">macotron</span>.every(<span class="tok-num">15</span> * <span class="tok-num">60</span> * <span class="tok-num">1000</span>, refresh);
+refresh();</code></pre>
+<p>Run independent requests together with <code>Promise.all</code>. A loop of <code>await</code> runs them one at a time.</p>
+<p>Macotron stops a plugin that runs for more than 5 seconds without returning, at load or in any callback. Long work belongs in <code>await</code>ed host calls, not in a busy loop.</p>
+
+<h2 id="remembering-state">Remembering state</h2>
+<p>Plugin variables do not survive a reload or a restart. Save what the user chose, such as a mode, a deadline, or a list they built, in <code>localStorage</code>: write it when it changes, and read it back at load. One store holds every plugin's keys, so prefix yours.</p>
+<pre><code class="language-javascript"><span class="tok-kw">const</span> KEY = <span class="tok-str">"pomodoro.session"</span>;
+<span class="tok-kw">let</span> until = JSON.parse(localStorage.getItem(KEY) || <span class="tok-str">"null"</span>);
+
+<span class="tok-kw">function</span> start(ms) {
+  until = Date.now() + ms;
+  localStorage.setItem(KEY, JSON.stringify(until));
+}</code></pre>
+<p>Do not copy what is already saved elsewhere: option values from <code>macotron.plugin()</code>, or state you can ask the system for, such as volume or the current network. Host state a plugin held, such as a keep-awake assertion, is dropped on reload too, so claim it back at load from what you saved.</p>
+<p>Store API keys and other secrets with a <code>password</code> option or <a href="/docs/api-keychain.html">macotron.keychain</a>, never in <code>localStorage</code> or the source.</p>
+
+<h2 id="api-version-pragma">API version pragma</h2>
+<p>The plugin API has a version, <code>macotron.version.api</code> (currently <code>1.5.0</code>). If your plugin uses a call added in a later version, say so in a comment in the first 20 lines:</p>
+<pre><code class="language-javascript"><span class="tok-cmt">// @macotron needs 1.5</span></code></pre>
+<p>Macotron loads the plugin only when its own API version is the same or higher. An older Macotron reports "Needs Macotron API 1.5" instead of failing partway. A file with no pragma counts as <code>needs 1.0</code>.</p>
+
+<h2 id="built-in-macos-only">Built-in macOS only</h2>
+<p>A plugin must run on a stock Mac with only Macotron installed. Use <code>macotron.*</code> and tools that ship with macOS, such as <code>/usr/bin/open</code> and <code>/usr/bin/defaults</code>. Do not depend on Homebrew, npm, Python packages, or other installs.</p>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-core.html">macotron core</a> and <a href="/docs/api-globals.html">Globals</a></li>
+  <li><a href="/docs/guide-plugin-settings.html">Plugin settings</a></li>
+  <li><a href="/docs/guide-coding-agents.html">Coding agents</a></li>
+  <li><a href="https://github.com/statico/macotron/tree/main/Examples/plugins">The built-in plugins on GitHub</a>, as working examples</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

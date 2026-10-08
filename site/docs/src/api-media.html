@@ -1,0 +1,51 @@
+<!-- title: macotron.media
+     summary: Read what is playing in any app and send play, pause, next, and previous.
+     group: API -->
+<h1>macotron.media</h1>
+<p class="lede">Read the track that macOS shows in Now Playing, from Music, Spotify, a browser, or any other app, and send it play, pause, next, and previous.</p>
+
+<pre><code class="language-javascript">// Show the current track in the menu bar.
+function paint(info) {
+  info = info || macotron.media.nowPlaying();
+  macotron.menubar.status("now-playing", {
+    title: info.title || "Nothing playing",
+    sfSymbol: info.playing ? "play.fill" : "pause.fill",
+    onClick: () =&gt; macotron.media.playPause(),
+  });
+}
+paint();
+macotron.on("media:changed", paint);</code></pre>
+
+<h2>Reading</h2>
+
+<h3>nowPlaying(): { playing, title, artist, album, app, bundle, artwork? }</h3>
+<p>The current Now Playing item. <code>playing</code> is <code>true</code> while playback runs. <code>app</code> is the player's display name and <code>bundle</code> its bundle ID. When nothing is playing, <code>playing</code> is <code>false</code> and the strings are empty.</p>
+<p><code>artwork</code>, when present, is the path of a JPEG cover in the temporary folder. Macotron looks the track up in the iTunes Search API by artist and title, so the cover can be missing or wrong for tracks that are not in Apple's catalog.</p>
+<p>When several apps report media, a playing app wins over a paused one, and a music player wins over a browser or chat app.</p>
+
+<div class="note"><p>Each read starts <code>/usr/bin/osascript</code>, so a call can take a moment. Macotron reuses a reading for 5 seconds. While a plugin listens for <code>media:changed</code>, a watcher keeps the reading current and calls return at once. The first read of a new track can arrive without <code>artwork</code>; the cover follows in <code>media:changed</code>.</p></div>
+
+<h2>Controls</h2>
+<p>These send a command to the app that owns Now Playing. They return nothing; read <code>nowPlaying()</code> or wait for <code>media:changed</code> to see the result.</p>
+
+<h3>playPause(): void</h3>
+<p>Toggles between play and pause.</p>
+
+<h3>next(): void</h3>
+<p>Skips to the next track.</p>
+
+<h3>previous(): void</h3>
+<p>Goes to the previous track.</p>
+
+<h2>Events</h2>
+
+<h3>media:changed</h3>
+<p>Fires when the play state, track, player, or artwork changes. The payload has the same shape as <code>nowPlaying()</code>.</p>
+
+<div class="note"><p>Macotron starts the watcher only when a plugin registers a <code>media:changed</code> listener while it loads. A listener added later, for example inside a timer, gets no events until the next reload. Register it at the top level of your plugin.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-audio.html">macotron.audio</a> for devices and volume.</li>
+  <li>The <code>now-playing.js</code> and <code>headphone-pause.js</code> plugins.</li>
+</ul>

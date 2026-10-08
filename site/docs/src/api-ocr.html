@@ -1,0 +1,37 @@
+<!-- title: macotron.ocr
+     summary: Read the text in an image file or a base64 PNG with Apple's on-device Vision OCR.
+     group: API -->
+<h1>macotron.ocr</h1>
+<p class="lede">Read the text in an image with Apple's Vision framework. Recognition runs on the Mac; nothing leaves it.</p>
+
+<pre><code class="language-javascript">macotron.plugin({
+  title: "OCR",
+  description: "Drag a box on screen and copy the text inside it.",
+  permissions: ["screenRecording"],
+});
+
+macotron.command("OCR Selection", "Copy the text in a dragged box", async () =&gt; {
+  const image = await macotron.screen.capture({ selection: true });
+  if (!image) return;
+  const text = await macotron.ocr.recognize({ image });
+  if (!text) return macotron.notify.toast("No text found");
+  macotron.clipboard.set(text);
+});</code></pre>
+
+<h2>Recognition</h2>
+
+<h3>recognize(opts: { path?: string; image?: string }): Promise&lt;string&gt;</h3>
+<p>Resolves with the recognized text, one line per line of text found, joined with <code>"\n"</code>. Resolves with <code>""</code> when the image has no text. It uses Vision's accurate mode with language correction.</p>
+<p>Pass one of:</p>
+<ul>
+  <li><code>path</code>: an image file. A leading <code>~</code> expands to the home folder.</li>
+  <li><code>image</code>: image data as base64, or as a <code>data:image/…;base64,…</code> URL. The PNG from <a href="/docs/api-screen.html">macotron.screen</a><code>.capture()</code> works as is.</li>
+</ul>
+<p>When both are given, <code>path</code> wins. The call throws a <code>TypeError</code> right away when neither is usable, and the promise rejects when Vision cannot read the image.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-screen.html">macotron.screen</a> to capture the screen to read.</li>
+  <li><a href="/docs/api-qr.html">macotron.qr</a> to read QR codes instead of text.</li>
+  <li>The <code>ocr.js</code> plugin.</li>
+</ul>

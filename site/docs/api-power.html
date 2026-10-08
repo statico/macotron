@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>macotron.power · Macotron</title>
+  <meta name="description" content="Keep the Mac awake, lock, sleep, log out, restart, or shut down, and react to sleep and lock.">
+  <meta property="og:title" content="macotron.power · Macotron">
+  <meta property="og:description" content="Keep the Mac awake, lock, sleep, log out, restart, or shut down, and react to sleep and lock.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-power.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-power.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "macotron.power", "item": "https://macotron.statico.io/docs/api-power.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html" aria-current="page">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>macotron.power</h1>
+<p class="lede">Keep the Mac awake, run the power actions from the Apple menu, and react when the Mac sleeps, wakes, locks, or unlocks.</p>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// Stay awake, screen included, until the toggle is pressed again.</span>
+<span class="tok-fn">macotron</span>.command(<span class="tok-str">"Toggle Keep Awake"</span>, <span class="tok-str">"Stop the Mac and screen from sleeping"</span>, () =&gt; {
+  <span class="tok-kw">if</span> (<span class="tok-fn">macotron</span>.power.isPreventing()) {
+    <span class="tok-fn">macotron</span>.power.allowSleep();
+  } <span class="tok-kw">else</span> {
+    <span class="tok-fn">macotron</span>.power.preventSleep({ display: <span class="tok-kw">true</span>, reason: <span class="tok-str">"Macotron keep awake"</span> });
+  }
+});</code></pre>
+
+<h2 id="keeping-the-mac-awake">Keeping the Mac awake</h2>
+<p>Macotron holds at most one sleep assertion for all plugins. A plugin reload releases it, so a plugin that should stay awake across reloads calls <code>preventSleep()</code> again when it loads.</p>
+
+<h3 id="preventsleep-opts-display-boolean-reason-string-boolean">preventSleep(opts?: { display?: boolean; reason?: string }): boolean</h3>
+<p>Stops the Mac from going to sleep when it is idle. By default the screen can still dim and sleep, and the lock screen comes with it. With <code>display: true</code>, the screen stays on too. <code>reason</code> is the label that <code>pmset -g assertions</code> shows; it defaults to <code>"Macotron"</code>.</p>
+<p>A second call replaces the first. Returns <code>false</code> when macOS refuses the assertion.</p>
+
+<h3 id="allowsleep-void">allowSleep(): void</h3>
+<p>Releases the assertion. Does nothing when none is held.</p>
+
+<h3 id="ispreventing-boolean">isPreventing(): boolean</h3>
+<p>Whether Macotron holds an assertion now.</p>
+
+<h2 id="power-actions">Power actions</h2>
+<p>Each call returns <code>true</code> when the action started and <code>false</code> when it failed.</p>
+
+<h3 id="lock-boolean">lock(): boolean</h3>
+<p>Locks the screen at once.</p>
+
+<h3 id="sleep-boolean">sleep(): boolean</h3>
+<p>Puts the Mac to sleep.</p>
+
+<h3 id="displaysleep-boolean">displaySleep(): boolean</h3>
+<p>Turns the screens off and leaves the Mac running, like <code>pmset displaysleepnow</code>.</p>
+
+<h3 id="screensaver-boolean">screensaver(): boolean</h3>
+<p>Starts the screen saver.</p>
+
+<h3 id="logout-boolean">logOut(): boolean</h3>
+<p>Logs out the current user.</p>
+
+<h3 id="restart-boolean">restart(): boolean</h3>
+<p>Restarts the Mac.</p>
+
+<h3 id="shutdown-boolean">shutdown(): boolean</h3>
+<p>Shuts down the Mac.</p>
+
+<div class="note"><p><code>sleep()</code>, <code>logOut()</code>, <code>restart()</code>, and <code>shutdown()</code> send an Apple event to System Events. The first time, macOS asks the user to let Macotron control System Events. Until the user allows it, these calls return <code>false</code>.</p></div>
+
+<h2 id="events">Events</h2>
+<p>None of these events has a payload.</p>
+
+<h3 id="system-sleep">system:sleep</h3>
+<p>Fires when the Mac is about to sleep. The Mac is already on its way down, so keep the handler short and do not wait on a promise.</p>
+
+<h3 id="system-wake">system:wake</h3>
+<p>Fires when the Mac wakes from sleep.</p>
+
+<h3 id="system-lock">system:lock</h3>
+<p>Fires when the screen locks.</p>
+
+<h3 id="system-unlock">system:unlock</h3>
+<p>Fires when the user unlocks the screen.</p>
+
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.on(<span class="tok-str">"system:unlock"</span>, () =&gt; {
+  <span class="tok-fn">macotron</span>.notify.toast(<span class="tok-str">"Welcome back"</span>);
+});</code></pre>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-idle.html">macotron.idle</a> for <code>system:idle</code> and <code>system:active</code>.</li>
+  <li><a href="/docs/api-system.html">macotron.system</a> for battery state and Low Power Mode.</li>
+  <li>The <code>power.js</code> and <code>lock-screen.js</code> plugins.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

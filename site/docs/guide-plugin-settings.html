@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plugin settings · Macotron</title>
+  <meta name="description" content="Declare a plugin&#x27;s title, permissions, and options so users can configure it in Settings → Plugins.">
+  <meta property="og:title" content="Plugin settings · Macotron">
+  <meta property="og:description" content="Declare a plugin&#x27;s title, permissions, and options so users can configure it in Settings → Plugins.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/guide-plugin-settings.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/guide-plugin-settings.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "Plugin settings", "item": "https://macotron.statico.io/docs/guide-plugin-settings.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html" aria-current="page">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>Plugin settings</h1>
+<p class="lede"><code>macotron.plugin()</code> describes a plugin to Settings: its name, what it does, the permissions it needs, and the options a user can change. It returns the current option values.</p>
+
+<pre><code class="language-javascript"><span class="tok-kw">const</span> opts = <span class="tok-fn">macotron</span>.plugin({
+  title: <span class="tok-str">"Chat"</span>,
+  description: <span class="tok-str">"Talk to a model"</span>,
+  help: <span class="tok-str">"Set an API key below for cloud models."</span>,
+  permissions: [<span class="tok-str">"accessibility"</span>],
+  options: {
+    model: {
+      type: <span class="tok-str">"dropdown"</span>, label: <span class="tok-str">"Model"</span>, default: <span class="tok-str">"sonnet"</span>,
+      choices: [
+        { value: <span class="tok-str">"sonnet"</span>, label: <span class="tok-str">"Claude Sonnet"</span> },
+        { value: <span class="tok-str">"opus"</span>, label: <span class="tok-str">"Claude Opus"</span> },
+      ],
+    },
+    apiKey: { type: <span class="tok-str">"password"</span>, label: <span class="tok-str">"Anthropic API key"</span>, required: <span class="tok-kw">true</span> },
+    openHotkey: { type: <span class="tok-str">"keybinding"</span>, label: <span class="tok-str">"Open chat"</span>, default: <span class="tok-str">"cmd+shift+c"</span> },
+  },
+});
+
+console.log(<span class="tok-str">"chat: model ="</span>, opts.model);</code></pre>
+
+<h2 id="metadata">Metadata</h2>
+<table>
+  <thead><tr><th>Field</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>title</code></td><td>The plugin's name in Settings → Plugins and the catalog.</td></tr>
+    <tr><td><code>description</code></td><td>One sentence under the title.</td></tr>
+    <tr><td><code>help</code></td><td>Extra explanation on the plugin's Settings page.</td></tr>
+    <tr><td><code>permissions</code></td><td>The macOS permissions the plugin needs. See below.</td></tr>
+    <tr><td><code>options</code></td><td>Settings the user can change. See below.</td></tr>
+  </tbody>
+</table>
+<p>Put the call at the top of the file and write <code>title</code> and <code>description</code> as plain string literals. Settings reads them from the first part of the file without running it, so it can show a plugin that is disabled or still waiting for approval.</p>
+
+<h2 id="permissions">Permissions</h2>
+<p>List what the plugin needs, and Macotron adds those permissions to the Permissions tab and to the plugin's own page:</p>
+<table>
+  <thead><tr><th>Name</th><th>Needed for</th></tr></thead>
+  <tbody>
+    <tr><td><code>accessibility</code></td><td>Moving and focusing windows, reading other apps' UI</td></tr>
+    <tr><td><code>inputMonitoring</code></td><td>Watching keys, mouse, and trackpad gestures</td></tr>
+    <tr><td><code>screenRecording</code></td><td>Capturing the screen</td></tr>
+    <tr><td><code>camera</code></td><td>The camera, such as scanning a QR code</td></tr>
+    <tr><td><code>microphone</code></td><td>Recording audio</td></tr>
+    <tr><td><code>calendar</code></td><td>Reading calendar events</td></tr>
+    <tr><td><code>helper</code></td><td>Privileged work through the background helper, such as fan control</td></tr>
+  </tbody>
+</table>
+<p>A declaration is a request, not a sandbox. Macotron cannot limit a plugin to what it declared. <a href="/docs/guide-permissions.html">Permissions</a> explains each one.</p>
+
+<h2 id="options">Options</h2>
+<p>Each key in <code>options</code> becomes a row on the plugin's page in Settings → Plugins. The user edits the value there, and <code>macotron.plugin()</code> returns it under the same key. Changing a value reloads plugins, so the plugin reads the new value at load.</p>
+<table>
+  <thead><tr><th>Type</th><th>Control in Settings</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td><code>string</code></td><td>Text field</td><td>String</td></tr>
+    <tr><td><code>text</code></td><td>Multi-line text area</td><td>String</td></tr>
+    <tr><td><code>boolean</code></td><td>Checkbox</td><td>Boolean</td></tr>
+    <tr><td><code>number</code></td><td>Number field, or a slider when <code>min</code> and <code>max</code> are both set</td><td>Number</td></tr>
+    <tr><td><code>dropdown</code></td><td>Pop-up menu from <code>choices: [{ value, label }]</code></td><td>The chosen <code>value</code></td></tr>
+    <tr><td><code>keybinding</code></td><td>Shortcut recorder</td><td>A combo such as <code>"cmd+shift+c"</code></td></tr>
+    <tr><td><code>password</code></td><td>Secure field with <strong>Set</strong> and <strong>Clear</strong></td><td>The secret, or <code>""</code></td></tr>
+    <tr><td><code>file</code></td><td><strong>Choose…</strong> button for a file</td><td>Absolute path</td></tr>
+    <tr><td><code>directory</code></td><td><strong>Choose…</strong> button for a folder</td><td>Absolute path</td></tr>
+    <tr><td><code>calendars</code></td><td>A checkbox for each of the user's calendars</td><td>Array of calendar names; needs Calendars access first</td></tr>
+  </tbody>
+</table>
+<p>Every option takes these fields:</p>
+<ul>
+  <li><code>label</code>: a few words. It is required.</li>
+  <li><code>default</code>: the value before the user changes it. <code>password</code> has no default.</li>
+  <li><code>required</code>: when <code>true</code>, Settings marks the field <strong>Required</strong> and lists it first.</li>
+  <li><code>help</code>: a sentence under the field. Put the explanation here and keep the label short.</li>
+</ul>
+<p>Text, number, password, file, and directory options also take <code>placeholder</code>, the grey hint shown while the field is empty. It is read at load, so it can show live state:</p>
+<pre><code class="language-javascript">locale: { type: <span class="tok-str">"string"</span>, label: <span class="tok-str">"Locale"</span>, placeholder: <span class="tok-fn">macotron</span>.system.locale().language },</code></pre>
+<p>A <code>number</code> option with <code>min</code> and <code>max</code> also takes <code>step</code>.</p>
+
+<h2 id="secrets">Secrets</h2>
+<p>A <code>password</code> option keeps its value in the macOS Keychain. <code>settings.json</code> stores only a reference to the Keychain item, so the file is safe to commit. <code>macotron.plugin()</code> returns the secret itself. Never write a key into plugin source or <code>settings.json</code>.</p>
+
+<h2 id="checks">Checks</h2>
+<p>A plugin can report a problem it found, such as a blocked system feature, with <code>macotron.checks()</code>. A failed check puts an orange warning on the plugin in Settings → Plugins and a row in its Checks section. Each call replaces the list, and <code>[]</code> clears it.</p>
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.checks([
+  { title: <span class="tok-str">"Speed control"</span>, ok: <span class="tok-kw">false</span>, message: <span class="tok-str">"This Mac blocked fan-speed writes."</span> },
+]);</code></pre>
+<p><code>macotron.settings.open()</code> opens the plugin's own page in Settings.</p>
+
+<h2 id="the-plugin-page">The plugin page</h2>
+<p>Each plugin's page in Settings → Plugins shows, where they apply:</p>
+<ul>
+  <li><strong>Enabled</strong>: a disabled plugin stays on disk but does not load.</li>
+  <li><strong>Permissions</strong>: what the header declared, and whether each is granted.</li>
+  <li><strong>Menu Bar</strong>: items macOS is not showing, with <strong>Restore</strong>.</li>
+  <li><strong>Checks</strong>: from <code>macotron.checks()</code>.</li>
+  <li><strong>Listens for</strong>: the events the plugin handles.</li>
+  <li><strong>Shortcuts</strong> and <strong>Commands</strong>: hotkeys and launcher commands, each with a recorder to change or assign a key.</li>
+  <li><strong>Settings</strong>: the options above.</li>
+  <li><strong>Open Source File</strong> and <strong>Delete…</strong>. Delete keeps a copy in the workdir's <code>backups/</code> folder.</li>
+</ul>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-core.html">macotron core</a> for <code>plugin()</code>, <code>checks()</code>, and <code>settings.open()</code></li>
+  <li><a href="/docs/api-keychain.html">macotron.keychain</a></li>
+  <li><a href="/docs/guide-writing-plugins.html">Writing plugins</a></li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

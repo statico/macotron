@@ -1,0 +1,40 @@
+<!-- title: macotron.shell
+     summary: Run a command-line tool and get back its output and exit code.
+     group: API -->
+<h1>macotron.shell</h1>
+<p class="lede">Run a command-line tool and get back what it printed and its exit code.</p>
+
+<pre><code class="language-javascript">const r = await macotron.shell.run("/usr/bin/defaults", ["read", "-g", "AppleInterfaceStyle"]);
+const dark = r.exitCode === 0 &amp;&amp; r.stdout.trim() === "Dark";</code></pre>
+
+<h2>Running commands</h2>
+
+<h3>run(command: string, args?: string[]): Promise&lt;{ stdout: string; stderr: string; exitCode: number }&gt;</h3>
+<p>Runs the command with <code>/bin/zsh -c</code>, waits for it to exit, and resolves with its standard output, standard error, and exit status. The command runs off the main thread, so a slow tool does not freeze other plugins.</p>
+<p>The promise does not reject when the tool fails. Check <code>exitCode</code>: <code>0</code> means success. A tool that cannot start at all also resolves, with a non-zero <code>exitCode</code> and the shell's error in <code>stderr</code>.</p>
+
+<h2>How the command line is built</h2>
+<p>Macotron puts each item of <code>args</code> in single quotes and appends it to <code>command</code>. The shell then runs the result. This has three effects:</p>
+<ul>
+  <li><code>args</code> are always passed through literally. Spaces, quotes, <code>$</code>, and <code>*</code> in an argument are safe, so put file names and user input there.</li>
+  <li><code>command</code> is not quoted. The shell reads it as shell code, so pipes, redirects, globs, and <code>$VARIABLES</code> work in it. Never build <code>command</code> from text you did not write.</li>
+  <li><code>~</code> expands in <code>command</code> but not in <code>args</code>. Pass absolute paths in <code>args</code>.</li>
+</ul>
+
+<pre><code class="language-javascript">// One fixed pipeline, no user input:
+await macotron.shell.run("/usr/bin/pmset -g batt | /usr/bin/grep -o '[0-9]*%'");
+
+// User input goes in args:
+await macotron.shell.run("/usr/bin/mdfind", ["-name", query]);</code></pre>
+
+<h2>Environment</h2>
+<p>Macotron is not sandboxed, and <code>run()</code> has no path rules or allow list. A command runs as your user, with the same file access as Macotron, and with Macotron's environment. It runs in a non-interactive, non-login shell, so zsh reads <code>~/.zshenv</code> but not <code>~/.zshrc</code> or <code>~/.zprofile</code>. An app opened from the Finder gets only the system <code>PATH</code> (<code>/usr/bin:/bin:/usr/sbin:/sbin</code>), so call tools by full path.</p>
+<p>There is no timeout. A tool that never exits keeps running, and its promise never resolves.</p>
+<div class="note"><p>Plugins must work on a stock Mac. Call tools that ship with macOS, such as <code>/usr/bin/open</code>, <code>/usr/bin/defaults</code>, or <code>/usr/bin/osascript</code>, and not tools installed with Homebrew or npm.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-fs.html">macotron.fs</a> to read and write files without a subprocess.</li>
+  <li><a href="/docs/api-shortcuts.html">macotron.shortcuts</a> to run Shortcuts.</li>
+  <li>The <code>time-machine.js</code> and <code>disk-usage.js</code> plugins, which parse the output of <code>tmutil</code>, <code>df</code>, and <code>du</code>.</li>
+</ul>

@@ -1,0 +1,70 @@
+<!-- title: Troubleshooting
+     summary: Read Macotron's log, and fix plugins that do not load, hotkeys that do not fire, and missing menu bar items.
+     group: Guide
+     order: 9 -->
+<h1>Troubleshooting</h1>
+<p class="lede">Most problems come down to a plugin that is waiting for approval, a missing permission, or an error in the plugin's code. The log tells you which.</p>
+
+<h2>Read the log</h2>
+<p>Macotron writes to the macOS unified log under the subsystem <code>io.statico.macotron</code>. Plugin output has the category <code>plugin</code>, and each line carries the plugin's file name.</p>
+<p>Follow plugin output live in Terminal while you reproduce the problem:</p>
+<pre><code>log stream --level info --style compact --predicate 'subsystem == "io.statico.macotron" AND category == "plugin"'</code></pre>
+<p>Look at the last ten minutes, from the host as well as plugins:</p>
+<pre><code>log show --info --last 10m --style compact --predicate 'subsystem == "io.statico.macotron"'</code></pre>
+<p>Keep <code>--level info</code> and <code>--info</code>. Without them, <code>log</code> drops ordinary <code>console.log</code> lines and shows only warnings and errors.</p>
+<p>A coding agent can run these commands too. Ask it to read the log when a plugin it wrote misbehaves.</p>
+
+<h2>A plugin does nothing</h2>
+<p>If a plugin logs nothing at all, it never ran. Open its page in Settings → Plugins and look for one of these:</p>
+<ul>
+  <li><strong>"This plugin is new"</strong> or <strong>"The source file changed"</strong> (orange). It waits for your approval. Select <strong>Review &amp; Load</strong> or <strong>Review &amp; Reload</strong>. See <a href="/docs/guide-security.html">Security</a>.</li>
+  <li><strong>"This plugin is disabled"</strong>. Turn on <strong>Enabled</strong>.</li>
+  <li><strong>A red error box</strong>. The plugin failed to load, and the box shows the error. Fix the code, or ask your agent to.</li>
+  <li><strong>"Needs Macotron API …"</strong>. The plugin asks for a newer Macotron. Update the app; see <a href="/docs/guide-updates.html">Updates</a>.</li>
+</ul>
+<p>To see the load error from Terminal, check the file:</p>
+<pre><code>/Applications/Macotron.app/Contents/MacOS/Macotron --check plugins/my-plugin.js</code></pre>
+
+<h2>I saved a change and nothing happened</h2>
+<p>With Hot Reload off, a saved change does not run until you approve it. Select <strong>Review &amp; Reload</strong> in the Macotron menu, or turn on <strong>Enable Hot Reloading</strong> while you work on the plugin.</p>
+
+<h2>A hotkey does not fire</h2>
+<ul>
+  <li>Check Settings → Permissions. Hotkeys that watch the keyboard need Input Monitoring, and window hotkeys need Accessibility.</li>
+  <li>Look for a conflict warning under the shortcut in Settings. Two plugins, or a plugin and the launcher, can claim the same combination. Plugins with a conflict are marked in the Plugins list.</li>
+  <li>Another app may hold the combination already. Record a different one in Settings → Plugins.</li>
+</ul>
+<p><a href="/docs/feature-hotkeys.html">Hotkeys</a> has more.</p>
+
+<h2>A menu bar item is missing</h2>
+<p>macOS hides items it has no room for, which often happens on a Mac with a notch. It also hides an item you Command-dragged out of the menu bar. The plugin's page in Settings → Plugins → Menu Bar says which, and <strong>Restore</strong> puts back a removed item. Make room by removing other items, or by moving some into Control Center in System Settings. See <a href="/docs/feature-menu-bar.html">Menu bar</a>.</p>
+
+<h2>A menu bar item shows old or placeholder data</h2>
+<p>The plugin's refresh probably threw an error, and the item kept what it last drew. Read the log for the plugin. When you write plugins, catch errors and draw a failure state; see <a href="/docs/guide-writing-plugins.html#async-code-and-errors">Async code and errors</a>.</p>
+
+<h2>A permission will not turn green</h2>
+<p>Quit and reopen Macotron. If that does not help, remove Macotron from the list in System Settings → Privacy &amp; Security and grant it again. See <a href="/docs/guide-permissions.html#a-permission-that-will-not-turn-green">Permissions</a>.</p>
+
+<h2>Badges on the menu bar icon</h2>
+<table>
+  <thead><tr><th>Badge</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td>Red dot</td><td>A permission is missing. The top of the Macotron menu names it.</td></tr>
+    <tr><td>Orange dot</td><td>Plugin files changed and wait for review.</td></tr>
+    <tr><td>Orange reload arrows</td><td>Hot Reload is on.</td></tr>
+    <tr><td>Blue down arrow</td><td>Plugin updates are available.</td></tr>
+  </tbody>
+</table>
+<p>Hold the pointer over the icon to see the reason as a tooltip.</p>
+
+<h2>I deleted a plugin by mistake</h2>
+<p>Deleting a plugin from Settings keeps a copy in the workdir's <code>backups/</code> folder, with the date in its name. Move it back into <code>plugins/</code> and approve it.</p>
+
+<h2>Report a bug</h2>
+<p>File an issue at <a href="https://github.com/statico/macotron/issues">github.com/statico/macotron/issues</a>. Include your macOS version, the Macotron version from Settings → General, and the relevant lines from <code>log show</code>. Remove anything private from the log first.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/guide-writing-plugins.html">Writing plugins</a></li>
+  <li><a href="/docs/guide-permissions.html">Permissions</a></li>
+</ul>

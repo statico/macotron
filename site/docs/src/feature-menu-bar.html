@@ -1,0 +1,83 @@
+<!-- title: Menu bar
+     summary: The Macotron menu, its warning dots, and the status items that plugins put in the menu bar.
+     group: Features
+     order: 70 -->
+<h1>Menu bar</h1>
+<p class="lede">Macotron lives in the menu bar. Its own icon opens the Macotron menu, and plugins add their own items next to it: meters, clocks, the next meeting, the current track.</p>
+
+<h2>The Macotron menu</h2>
+<p>Click the Macotron icon to open its menu. Plugins can add rows at the top. The bottom of the menu always has these rows:</p>
+<table>
+  <thead><tr><th>Row</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Open Launcher</td><td>Opens the launcher. The shortcut shown is your launcher hotkey (⌥Space by default).</td></tr>
+    <tr><td>Reload Plugins</td><td>Loads every plugin again. Shortcut ⌘R while the menu is open.</td></tr>
+    <tr><td>Enable Hot Reloading / Disable Hot Reloading</td><td>Turns Hot Reload on or off. With it on, a saved plugin file reloads at once, without a review.</td></tr>
+    <tr><td>Review &amp; Reload (<i>n</i>)</td><td>Shows only when plugin files changed on disk. Opens the review for the changed files.</td></tr>
+    <tr><td>Open Config Folder</td><td>Opens your workdir in Finder. Shortcut ⌘, while the menu is open.</td></tr>
+    <tr><td>Check for Updates...</td><td>Checks for a new Macotron now. When a scheduled check already found one, the row reads <b>Update to <i>version</i>...</b> instead.</td></tr>
+    <tr><td>Settings...</td><td>Opens Settings.</td></tr>
+    <tr><td>Quit Macotron</td><td>Quits the app.</td></tr>
+  </tbody>
+</table>
+<p>To hide the Macotron icon, clear <b>Show in menu bar</b> in Settings → General. Plugin items stay in the menu bar.</p>
+
+<h2>Badges on the icon</h2>
+<p>A small badge on the Macotron icon tells you that something needs a look. When more than one thing applies, the icon shows the most important one, in this order:</p>
+<table>
+  <thead><tr><th>Badge</th><th>Meaning</th><th>Menu row</th></tr></thead>
+  <tbody>
+    <tr><td>Red dot</td><td>A permission that Macotron or a running plugin needs is missing.</td><td><b>Permissions needed</b>, with the names. Click it to open the Permissions tab.</td></tr>
+    <tr><td>Orange dot</td><td>Plugin files changed on disk and wait for your review.</td><td><b>Review &amp; Reload</b>.</td></tr>
+    <tr><td>Orange arrows</td><td>Hot Reload is on. Plugins load without a scan.</td><td><b>Hot Reload is on</b>. Click it to turn Hot Reload off.</td></tr>
+    <tr><td>Blue arrow</td><td>An update is available for an installed plugin.</td><td>A blue row that opens the plugin updates.</td></tr>
+  </tbody>
+</table>
+<p>See <a href="/docs/guide-permissions.html">Permissions</a> and <a href="/docs/guide-security.html">Security</a> for what each one asks of you.</p>
+
+<h2>Plugin status items</h2>
+<p>A plugin can put its own item in the menu bar. An item can show an SF Symbol, an image, or an SVG; a title with an optional second line; and a small graph. A click runs an action or opens a menu. Many built-in plugins work this way:</p>
+<ul>
+  <li><b>CPU, GPU and Memory Graph</b> (<code>cpu-graph.js</code>) and <b>System Metrics</b> (<code>system-metrics.js</code>): usage meters.</li>
+  <li><b>Battery Meter</b> (<code>battery.js</code>) and <b>Bluetooth Device Levels</b> (<code>bluetooth.js</code>): charge levels.</li>
+  <li><b>Network Stats</b> (<code>network-path.js</code>): network speed and ping.</li>
+  <li><b>Weather</b> (<code>weather.js</code>), <b>World Clock</b> (<code>world-clock.js</code>), and <b>Mini Calendar</b> (<code>mini-calendar.js</code>).</li>
+  <li><b>Now Playing</b> (<code>now-playing.js</code>): the current track, with play, pause, and skip.</li>
+  <li><b>Time Machine Progress</b> (<code>time-machine.js</code>), <b>Eject Disks</b> (<code>eject.js</code>), <b>Mic Mute</b> (<code>mic-mute.js</code>), <b>Audio</b> (<code>audio.js</code>), <b>Wi-Fi Toggles</b> (<code>wifi.js</code>), <b>Stay Awake</b> (<code>power.js</code>), <b>Pomodoro Timer</b> (<code>pomodoro.js</code>), and <b>Fan Control</b> (<code>fan.js</code>).</li>
+  <li><b>Meetings</b> and <b>Reminders</b>: see <a href="/docs/feature-meetings.html">Meetings and calendar</a>.</li>
+</ul>
+<p>This is the Reminders plugin, slightly shortened. It shows the next reminder with its due time on a second line, and lists the rest in its menu:</p>
+<pre><code class="language-javascript">async function paint() {
+  const items = (await macotron.reminders.list()).slice(0, 8);
+  const next = items[0];
+  macotron.menubar.status("reminders", {
+    title: next ? next.title : "Reminders",
+    subtitle: next ? "Next up" : "",
+    sfSymbol: "checklist",
+    secondary: true,
+    menu: items.map((item) =&gt; ({
+      title: item.title,
+      onClick: () =&gt; { macotron.reminders.complete(item.id); paint(); },
+    })),
+  });
+}
+
+paint();
+macotron.every(60_000, paint);</code></pre>
+<p>Call <code>status()</code> again with the same id to repaint the item. When a plugin is disabled or deleted, its items go away on the next reload. See <a href="/docs/api-menubar.html">macotron.menubar</a> for every option.</p>
+
+<h2>Hidden and crowded items</h2>
+<p>macOS can keep an item out of view in two ways, and Macotron tells you about both on the plugin's page in Settings → Plugins, under <b>Menu Bar</b>:</p>
+<ul>
+  <li><b>You removed it.</b> Command-dragging an item out of the menu bar hides it for good. The plugin page says the item was removed and has a <b>Restore</b> button.</li>
+  <li><b>There is no room.</b> On a Mac with a notch, the menu bar runs out of space, and macOS does not draw the items that do not fit. To make room, Command-drag other items out of the menu bar, or move some into Control Center in System Settings.</li>
+</ul>
+<p>Settings → Permissions also lists <b>Menu Bar Items</b> while an item that a plugin asked for is hidden, either dragged out or switched off for Macotron in System Settings → Menu Bar. <b>Show…</b> puts back the items it can and opens the System Settings pane for the rest.</p>
+<div class="note"><p>A plugin can mark an item as fine to hide (<code>required: false</code>). Macotron does not warn about those.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-menubar.html">macotron.menubar</a></li>
+  <li><a href="/docs/feature-built-in-plugins.html">Built-in plugins</a></li>
+  <li><a href="/docs/guide-writing-plugins.html">Writing plugins</a></li>
+</ul>

@@ -1,0 +1,79 @@
+<!-- title: File search
+     summary: Find files and folders by name in the launcher, from an index Macotron keeps in memory.
+     group: Features
+     order: 40 -->
+<h1>File search</h1>
+<p class="lede">The File Search plugin finds files and folders by name as you type in the launcher. It reads from Macotron's own file index, not Spotlight, so results appear in milliseconds even on a large disk.</p>
+
+<h2>Using it</h2>
+<p>Open the launcher and type two or more letters of a file name. Matching files appear below the apps and commands.</p>
+<table>
+  <thead><tr><th>Key</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>Return</kbd></td><td>Open the file.</td></tr>
+    <tr><td><kbd>⌘Return</kbd></td><td>Reveal it in Finder.</td></tr>
+    <tr><td><kbd>⌥Return</kbd></td><td>Quick Look preview.</td></tr>
+    <tr><td><kbd>⌘C</kbd></td><td>Copy the path.</td></tr>
+  </tbody>
+</table>
+<p>Type a query with a slash to complete a path. Each segment matches one folder level, <code>~</code> is your home folder, and a trailing slash lists a folder.</p>
+<p>Files you open from the launcher move up the list. <b>Reset File Ranking</b> forgets those counts, for one path or for every file.</p>
+
+<h2>How matching works</h2>
+<p>Matching ignores case. Better matches rank first:</p>
+<ol>
+  <li>The exact name.</li>
+  <li>The start of the name.</li>
+  <li>The start of a word in the name: <code>budget</code> finds <code>Q3 Budget.pdf</code>. Words split on spaces, <code>-</code>, <code>_</code>, <code>.</code>, and camelCase.</li>
+  <li>Anywhere in the name.</li>
+  <li>Letters in order inside the name: <code>ctrct</code> finds <code>contract</code>.</li>
+  <li>Letters in order inside the path: <code>docdad</code> finds <code>Documents/Dad</code>.</li>
+</ol>
+<p>The last two apply only to words of three or more letters. A query with spaces is a set of words that must all match. When two results tie, the one in a shallower folder wins.</p>
+
+<h2>What gets indexed</h2>
+<p>By default the index covers:</p>
+<ul>
+  <li>your home folder, <code>~</code></li>
+  <li><code>/Applications</code></li>
+  <li>iCloud Drive, <code>~/Library/Mobile Documents/com~apple~CloudDocs</code></li>
+  <li>cloud storage providers, <code>~/Library/CloudStorage</code></li>
+</ul>
+<p>It skips <code>node_modules</code>, <code>*.tmp</code>, <code>go/pkg</code>, and all of <code>~/Library</code>, which holds keychains, cookies, mail, and app state. iCloud Drive and cloud storage live under <code>~/Library</code>, so they are listed as scopes of their own. A scope inside an ignored folder is still indexed.</p>
+<p>It always skips the contents of bundles such as <code>.app</code>, <code>.framework</code>, and <code>.photoslibrary</code>. The bundle itself is one entry. Symlinks are listed but not followed. Names that start with a dot are left out unless you turn on hidden files.</p>
+<p>The index watches the disk. New, moved, and deleted files show up in a couple of seconds.</p>
+
+<h2>Settings</h2>
+<p>Open Settings → Plugins → File Search.</p>
+<table>
+  <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Search scopes</td><td>The four folders above</td><td>One folder per line. <code>~</code> is home.</td></tr>
+    <tr><td>Ignore patterns</td><td><code>node_modules</code>, <code>*.tmp</code>, <code>go/pkg</code>, <code>Library</code></td><td>One glob per line, in <code>.gitignore</code> style. A bare name skips every folder with that name; a path such as <code>Library/Caches</code> skips that one path inside a scope.</td></tr>
+    <tr><td>Include hidden files</td><td>Off</td><td>Index names that start with a dot.</td></tr>
+    <tr><td>Honour ignore files</td><td>On</td><td>Skip what <code>.gitignore</code>, <code>.ignore</code>, and <code>.macotronignore</code> files exclude.</td></tr>
+    <tr><td>Search file contents</td><td>Off</td><td>Add files whose text contains the query, from Spotlight, below the name matches. Only for queries of three or more letters.</td></tr>
+    <tr><td>Result count</td><td>8</td><td>How many files to show in the launcher.</td></tr>
+  </tbody>
+</table>
+<p>The <b>Checks</b> section of the plugin page shows the index state: "Indexing…" while it builds, then the number of files indexed. A bad ignore pattern shows its error there.</p>
+
+<h2>Commands</h2>
+<ul>
+  <li><b>Reindex Files</b>: drop the index and walk the scopes again.</li>
+  <li><b>Reset File Ranking</b>: forget how often files were opened. Give it a full path to reset one file, or leave it blank for all.</li>
+</ul>
+
+<h2>When the index is not available</h2>
+<p>The index runs as a small helper program inside the app bundle. If it cannot start, the plugin's check reads "Indexer unavailable, using Spotlight" and searches go through Spotlight until the index is back. Spotlight is slower and hides some folders, but it still finds files.</p>
+
+<h2>Search from your own plugin</h2>
+<pre><code class="language-javascript">const hits = await macotron.files.search("invoice", { kind: "pdf", limit: 10 });
+for (const h of hits) console.log(h.path);</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-files.html">macotron.files</a>: configure and query the index.</li>
+  <li><a href="/docs/api-spotlight.html">macotron.spotlight</a>: Spotlight search, including file contents.</li>
+  <li><a href="/docs/feature-launcher.html">Launcher</a></li>
+</ul>

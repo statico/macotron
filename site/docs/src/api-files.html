@@ -1,0 +1,72 @@
+<!-- title: macotron.files
+     summary: Search file and folder names in Macotron's own fast index of the folders you choose.
+     group: API -->
+<h1>macotron.files</h1>
+<p class="lede">Find files and folders by name in an index that Macotron keeps in memory. It answers in milliseconds, but knows only the folders you configure.</p>
+
+<pre><code class="language-javascript">await macotron.files.configure({ roots: ["~", "/Applications"], ignore: ["node_modules", "Library"] });
+
+const hits = await macotron.files.search("budget", { kind: "pdf", limit: 5 });
+for (const h of hits) console.log(h.path);</code></pre>
+
+<p>The index runs in a helper process that ships inside Macotron. It starts on the first call. If the helper is missing or crashes twice, <code>search</code> rejects with <code>"file indexer unavailable"</code>; fall back to <a href="/docs/api-spotlight.html">macotron.spotlight</a> then.</p>
+
+<h2>Configuring</h2>
+
+<h3>configure(opts: { roots?, ignore?, hidden?, ignoreFiles? }): Promise&lt;void&gt;</h3>
+<p>Sets the folders to index and the rules for skipping things. It replaces the whole previous configuration. A call with the same settings does nothing. Any change starts a rebuild in the background. While it runs, searches answer from the previous index, or return nothing on the first build.</p>
+
+<table>
+  <thead><tr><th>Option</th><th>Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>roots</code></td><td><code>["~", "/Applications"]</code></td><td>Folders to index. <code>~</code> expands to home. Roots can nest: a nested root is indexed with its own rules, so <code>~/Library/CloudStorage</code> can be a root while <code>Library</code> is ignored.</td></tr>
+    <tr><td><code>ignore</code></td><td><code>[]</code></td><td>Gitignore-style globs, matched against the path relative to its root and against the bare name. <code>"node_modules"</code> skips every folder with that name; <code>"Library/Caches"</code> skips that one path.</td></tr>
+    <tr><td><code>hidden</code></td><td><code>false</code></td><td>Index names that start with a dot.</td></tr>
+    <tr><td><code>ignoreFiles</code></td><td><code>true</code></td><td>Honor the <code>.gitignore</code>, <code>.ignore</code> and <code>.macotronignore</code> files found in the folders.</td></tr>
+  </tbody>
+</table>
+
+<p>The index never looks inside bundles such as <code>.app</code>, <code>.framework</code> or <code>.photoslibrary</code>; each bundle is one entry. Symbolic links are indexed but not followed.</p>
+<p>When the helper is unavailable, <code>configure</code> resolves and does nothing.</p>
+
+<h3>reindex(): Promise&lt;void&gt;</h3>
+<p>Drops the index and walks the roots again.</p>
+
+<h2>Searching</h2>
+
+<h3>search(query: string, opts?: { folder?, kind?, dirsOnly?, limit? }): Promise&lt;Array&lt;{ path, name, isDir, score, modified }&gt;&gt;</h3>
+<p>Returns matches, best first. Matching ignores case, and ranks matches in this order:</p>
+<ol>
+  <li>The exact name.</li>
+  <li>A prefix of the name.</li>
+  <li>A prefix of a word in the name: <code>budget</code> finds <code>Q3 Budget.pdf</code>. Words split on spaces, <code>-</code>, <code>_</code>, <code>.</code> and camelCase.</li>
+  <li>Text anywhere in the name.</li>
+  <li>The letters in order in the name: <code>ctrct</code> finds <code>contract</code>.</li>
+  <li>The letters in order in the path below the root: <code>docdad</code> finds <code>Documents/Dad</code>.</li>
+</ol>
+<p>The last two apply only to words of three or more letters. Spaces separate words that must all match. Ties go to the less deeply nested path, then the shorter name. An empty query returns <code>[]</code>.</p>
+
+<table>
+  <thead><tr><th>Option</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>folder</code></td><td>Only return results inside this folder. <code>~</code> expands.</td></tr>
+    <tr><td><code>kind</code></td><td>A file extension without the dot, such as <code>"pdf"</code>. Case does not matter.</td></tr>
+    <tr><td><code>dirsOnly</code></td><td>Only return folders.</td></tr>
+    <tr><td><code>limit</code></td><td>The most results to return. Default 50, maximum 500.</td></tr>
+  </tbody>
+</table>
+
+<p>Each result has the absolute <code>path</code>, the <code>name</code>, <code>isDir</code>, the match <code>score</code> (higher is better), and <code>modified</code> in seconds since 1970.</p>
+
+<h3>status(): Promise&lt;{ entries, indexing, watching, roots, lastIndexed, memoryBytes, available }&gt;</h3>
+<p>Reports on the index: how many <code>entries</code> it holds, whether a build is running (<code>indexing</code>), whether it is watching the folders for changes, the <code>roots</code> of the live index, when the last build finished (<code>lastIndexed</code>, seconds since 1970), and its memory use in bytes. <code>available</code> is <code>false</code> when the helper cannot start, and then every other field is zero or empty.</p>
+
+<pre><code class="language-javascript">const s = await macotron.files.status();
+if (!s.available) macotron.checks([{ title: "File index", ok: false, message: "Using Spotlight instead" }]);</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-spotlight.html">macotron.spotlight</a> to search the whole disk, slower, with path completion.</li>
+  <li><a href="/docs/api-launcher.html">macotron.launcher</a> to show results as the user types.</li>
+  <li>The <code>file-search.js</code> plugin.</li>
+</ul>

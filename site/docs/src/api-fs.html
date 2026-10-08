@@ -1,0 +1,61 @@
+<!-- title: macotron.fs
+     summary: Read, write, list, rename, and watch files anywhere your user account can reach.
+     group: API -->
+<h1>macotron.fs</h1>
+<p class="lede">Read, write, list, and rename files, and watch a file or folder for changes.</p>
+
+<pre><code class="language-javascript">// Give new screenshots on the Desktop a short name.
+for (const name of macotron.fs.list("~/Desktop")) {
+  const m = name.match(/^Screenshot (\d{4}-\d\d-\d\d) at (.+)\.png$/);
+  if (!m) continue;
+  const dest = "~/Desktop/shot-" + m[1] + ".png";
+  if (!macotron.fs.exists(dest)) macotron.fs.rename("~/Desktop/" + name, dest);
+}</code></pre>
+
+<h2>Paths</h2>
+<p>Every call expands a leading <code>~</code> to your home folder. Macotron is not sandboxed and applies no path rules of its own: a plugin can read and write anything your user account can, outside the workdir too. macOS privacy rules still apply. Folders such as Desktop, Documents, and Downloads can make macOS ask once whether Macotron may open them, and a refused folder makes the call throw.</p>
+<p>Use absolute paths or paths that start with <code>~</code>. Relative paths do not resolve against the plugin's folder.</p>
+<p>All calls are synchronous. When a call fails, it throws an error whose message starts with the call name, for example <code>fs.read failed: …</code>.</p>
+
+<h2>Reading</h2>
+
+<h3>read(path: string): string</h3>
+<p>The whole file as UTF-8 text. Throws when the file is missing or is not valid UTF-8.</p>
+
+<h3>readBytes(path: string): string</h3>
+<p>The whole file as a base64 string. Use this for images and other binary files.</p>
+
+<h3>exists(path: string): boolean</h3>
+<p>Whether a file or folder exists at <code>path</code>. Never throws.</p>
+
+<h3>list(path: string): string[]</h3>
+<p>The names of the entries in a folder, not full paths. Hidden files such as <code>.DS_Store</code> are included. The order is not sorted. Throws when <code>path</code> is not a folder.</p>
+
+<h2>Writing</h2>
+
+<h3>write(path: string, content: string): void</h3>
+<p>Writes <code>content</code> as UTF-8, replacing the file if it exists. Missing parent folders are created. The write is atomic: Macotron writes a temporary file and moves it into place, so a reader never sees half a file.</p>
+
+<h3>rename(from: string, to: string): void</h3>
+<p>Moves or renames a file or folder. Throws if <code>to</code> already exists, so check with <code>exists()</code> first.</p>
+
+<h2>Watching</h2>
+
+<h3>watch(path: string, callback: (event: { path: string; type: string }) =&gt; void): () =&gt; void</h3>
+<p>Calls <code>callback</code> when something changes, and returns a function that stops the watch. Throws when <code>path</code> does not exist. Changes are grouped and delivered about 0.3 seconds after they happen.</p>
+<p><code>event.path</code> is the full path of the item that changed. <code>event.type</code> is <code>"created"</code>, <code>"modified"</code>, or <code>"deleted"</code>. A rename reports <code>"created"</code>, for both the old and the new name.</p>
+<p>Watching a folder reports changes to everything inside it, subfolders included. Watching a file watches its parent folder, so the callback also gets events for the file's neighbors. Compare <code>event.path</code> when you only care about one file.</p>
+
+<pre><code class="language-javascript">const stop = macotron.fs.watch("~/Downloads", ({ path, type }) =&gt; {
+  if (type === "created" &amp;&amp; path.endsWith(".heic")) console.log("New photo:", path);
+});
+// later: stop();</code></pre>
+
+<p>Watches stop by themselves when Macotron reloads plugins.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-shell.html">macotron.shell</a> to run tools on files, such as <code>/usr/bin/sips</code>.</li>
+  <li><a href="/docs/api-files.html">macotron.files</a> to search for files by name.</li>
+  <li>The <code>batch-rename.js</code> and <code>screenshot-rename.js</code> plugins.</li>
+</ul>

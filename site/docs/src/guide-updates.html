@@ -1,0 +1,44 @@
+<!-- title: Updates
+     summary: How Macotron updates itself, how to change how often it checks, and how built-in plugins update.
+     group: Guide
+     order: 8 -->
+<h1>Updates</h1>
+<p class="lede">Macotron checks for new versions by itself and asks before it installs one. Plugins never update by themselves; you approve each one.</p>
+
+<h2>App updates</h2>
+<p>By default Macotron checks once a day. When it finds a new version, the Macotron menu shows <strong>Update to <var>version</var>...</strong> in place of <strong>Check for Updates...</strong>. Select it to see the release notes and install. Macotron does not install anything until you say yes.</p>
+<p>To check right now, select <strong>Check for Updates...</strong> in the Macotron menu.</p>
+<p>This works the same whether you installed from the DMG or with <code>brew install statico/tap/macotron</code>.</p>
+
+<h2>How often to check</h2>
+<p>Open Settings → General → Updates and pick one:</p>
+<table>
+  <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Daily</strong></td><td>Checks once a day. The default.</td></tr>
+    <tr><td><strong>Weekly</strong></td><td>Checks once a week.</td></tr>
+    <tr><td><strong>Never</strong></td><td>No automatic checks. <strong>Check for Updates...</strong> still works.</td></tr>
+  </tbody>
+</table>
+<p>The <strong>Check Now</strong> button next to the setting does the same as the menu item.</p>
+
+<h2>Signed updates</h2>
+<p>Every update carries a signature. Macotron installs it only when the signature matches the public key inside the copy you already have. A hijacked download or a tampered feed cannot install anything.</p>
+
+<h2>Built-in plugin updates</h2>
+<p>A new version of Macotron can ship newer copies of the built-in plugins. Your installed copies do not change on their own. When the app has a newer copy than the one in your <code>plugins/</code> folder:</p>
+<ul>
+  <li>The plugin shows an update badge in Settings → Plugins, with <strong>Update…</strong> on its page.</li>
+  <li>The Macotron menu shows a row such as <strong>2 plugin updates available</strong>.</li>
+  <li><strong>Update All</strong> in Settings → Plugins updates every built-in plugin at once.</li>
+</ul>
+<div class="note"><p>Updating a built-in plugin replaces your file with the copy that ships with Macotron. Any changes you made to that file are lost. To keep your changes, copy the plugin to a new file name first.</p></div>
+
+<h2>Community plugin updates</h2>
+<p>Community plugins update one at a time, through the same review sheet as a first install. See <a href="/docs/guide-community-plugins.html#updates">Community plugins</a>.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/guide-security.html">Security</a></li>
+  <li><a href="https://github.com/statico/macotron/releases">Release notes on GitHub</a></li>
+</ul>

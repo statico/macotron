@@ -1,0 +1,67 @@
+<!-- title: macotron.app
+     summary: List, launch, switch to, hide, and quit apps, and pick items from their menus.
+     group: API -->
+<h1>macotron.app</h1>
+<p class="lede">List running apps, launch or switch to an app by bundle ID, hide or quit it, and choose a command from its menu bar. Apps are named by bundle ID, such as <code>com.apple.Safari</code>.</p>
+
+<pre><code class="language-javascript">macotron.keyboard.on("Open Calendar", "ctrl+opt+c", () =&gt; {
+  macotron.app.launch("com.apple.iCal");
+});</code></pre>
+
+<h2>Running apps</h2>
+
+<h3>list(): Array&lt;{ name: string; bundleID: string; pid: number }&gt;</h3>
+<p>Every running process that has a bundle ID, which includes background apps and menu bar apps. <code>name</code> is the app's display name.</p>
+
+<h3>frontmost(): { name: string; bundleID: string; pid: number } | null</h3>
+<p>The app in front. Macotron itself is skipped: while a Macotron panel or the launcher has focus, this returns the app that was in front before it. Returns <code>null</code> when there is no such app yet.</p>
+
+<h2>Launching and switching</h2>
+
+<h3>launch(bundleID: string): void</h3>
+<p>Brings the app to the front, opening it first if it is not running. When the app is already running with windows, Macotron activates it directly, which is fast. A menu bar app goes through Launch Services instead, so it gets the reopen event it uses to show its window or panel.</p>
+<p>It returns <code>false</code> when no app with that bundle ID is installed, and <code>true</code> otherwise.</p>
+
+<h3>switch(bundleID: string): void</h3>
+<p>The same as <code>launch()</code>.</p>
+
+<h2>Hiding and quitting</h2>
+<p>Omit the bundle ID to act on the frontmost app. Macotron never counts itself as the frontmost app here.</p>
+
+<h3>hide(bundleID?: string): boolean</h3>
+<p>Hides the app, like Command-H. Returns <code>false</code> when the app is not running.</p>
+
+<h3>quit(bundleID?: string): boolean</h3>
+<p>Asks the app to quit, like Command-Q. The app can still show a save dialog or refuse. Returns <code>false</code> when the app is not running or does not accept the request.</p>
+
+<h2>Menus</h2>
+
+<h3>menu(path: string[], bundleID?: string): boolean</h3>
+<p>Chooses a menu bar item, such as <code>["File", "New Window"]</code>. Omit the bundle ID to use the frontmost app.</p>
+<p>Each name must match the item's title exactly, in the app's language. A trailing <code>…</code> or <code>...</code> is optional, so <code>"Save As"</code> matches <code>Save As…</code>. Returns <code>true</code> when the item was pressed, and <code>false</code> when the app is not running or a name in the path does not match.</p>
+<div class="note"><p><code>menu()</code> needs Accessibility permission. Without it, every call returns <code>false</code>.</p></div>
+
+<pre><code class="language-javascript">macotron.app.menu(["View", "Enter Full Screen"], "com.apple.Safari");</code></pre>
+
+<h2>Events</h2>
+<p>All three events carry <code>{ name, bundleID, pid }</code>. None fires for Macotron itself.</p>
+
+<h3>app:activated</h3>
+<p>Fires when an app comes to the front.</p>
+
+<h3>app:launched</h3>
+<p>Fires when an app starts.</p>
+
+<h3>app:terminated</h3>
+<p>Fires when an app quits.</p>
+
+<pre><code class="language-javascript">macotron.on("app:activated", ({ bundleID }) =&gt; {
+  if (bundleID === "com.apple.dt.Xcode") macotron.notify.toast("Focus time");
+});</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-window.html">macotron.window</a> to move and focus windows.</li>
+  <li><a href="/docs/api-ax.html">macotron.ax</a> for other Accessibility work.</li>
+  <li>The <code>focus-idle.js</code> plugin, which reacts to <code>app:activated</code>.</li>
+</ul>

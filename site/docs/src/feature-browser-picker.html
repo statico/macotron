@@ -1,0 +1,53 @@
+<!-- title: Browser picker
+     summary: Open each link in the right browser, by host, or pick one from a panel every time.
+     group: Features
+     order: 110 -->
+<h1>Browser picker</h1>
+<p class="lede">The Browser Picker plugin makes Macotron your default browser, then hands each link to a real browser: by rules you write for each host, and for everything else either one browser or a panel that asks.</p>
+
+<h2>How it works</h2>
+<p>When <code>browser-picker.js</code> loads, it asks macOS to make Macotron the handler for <code>http</code> and <code>https</code> links. macOS asks you to confirm the change. From then on, a link you click in Mail, Slack, or any other app goes to Macotron, and the plugin passes it on.</p>
+<p>For each link, the plugin checks your rules first. If no rule matches, it uses the <b>Unmatched links</b> setting. <b>Ask every time</b> (the default) shows a small <b>Open Link</b> panel with one button for each browser. Click one, or click elsewhere to close the panel.</p>
+<p>The plugin knows Chrome, Safari, Firefox, Edge, and Arc.</p>
+
+<h2>Rules</h2>
+<p>Write one rule per line in the <b>Rules</b> setting: a host, a space, and a browser.</p>
+<pre><code>youtube.com safari
+youtu.be safari
+docs.google.com chrome
+/^github\./i firefox</code></pre>
+<ul>
+  <li>A plain host matches that host and its subdomains, so <code>youtube.com</code> also matches <code>www.youtube.com</code>. When two hosts match, the longer one wins.</li>
+  <li>A host written as <code>/pattern/flags</code> is a JavaScript regular expression, tested against the link's host.</li>
+  <li>The browser is one of <code>chrome</code>, <code>safari</code>, <code>firefox</code>, <code>edge</code>, or <code>arc</code>, or the bundle ID of any other app, such as <code>com.brave.Browser</code>.</li>
+</ul>
+<p>The default rules send YouTube links to Safari.</p>
+
+<h2>Settings</h2>
+<table>
+  <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Unmatched links</td><td>Ask every time</td><td>What to do with a link that no rule matches: ask, or always use one browser.</td></tr>
+    <tr><td>Rules</td><td>YouTube to Safari</td><td>One rule per line, as above.</td></tr>
+  </tbody>
+</table>
+
+<h2>Open a URL from the launcher</h2>
+<p>The launcher command <b>Open URL</b> takes a URL and an optional browser. Without a browser, it follows the <b>Unmatched links</b> setting. A URL with no scheme gets <code>https://</code>.</p>
+
+<h2>Turning it off</h2>
+<p>If you disable or delete Browser Picker, macOS still sends links to Macotron. A link that no plugin handles goes to the app that would have opened it if Macotron were not installed, so links keep working. To stop the round trip, choose a different default browser in System Settings → Desktop &amp; Dock → Default web browser.</p>
+
+<h2>Write your own routing</h2>
+<p>Browser Picker is a short plugin built on <a href="/docs/api-url.html">macotron.url</a>. The core is a few lines:</p>
+<pre><code class="language-javascript">macotron.url.setDefaultHandler("https");
+macotron.url.on("https", "zoom.us", (event) =&gt; {
+  macotron.url.open(event.url, "us.zoom.xos");
+});</code></pre>
+<div class="note"><p>A <code>macotron://</code> link can come from any app or web page. Macotron asks you to allow each one before a plugin sees it. See <a href="/docs/guide-security.html">Security</a>.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-url.html">macotron.url</a></li>
+  <li><a href="/docs/feature-built-in-plugins.html">Built-in plugins</a></li>
+</ul>

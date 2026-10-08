@@ -1,0 +1,41 @@
+<!-- title: macotron.spotlight
+     summary: Find files and folders by name with Spotlight, and complete typed paths one folder at a time.
+     group: API -->
+<h1>macotron.spotlight</h1>
+<p class="lede">Find files and folders by name with the Spotlight index, and complete paths as the user types them. It needs no setup, but each search takes most of a second.</p>
+
+<pre><code class="language-javascript">const hits = await macotron.spotlight.search("invoice", { folder: "~/Documents", kind: "pdf" });
+if (hits.length) macotron.url.open("file://" + encodeURI(hits[0].path));</code></pre>
+
+<h2>Searching</h2>
+
+<h3>search(query: string, opts?: { folder?: string; kind?: string }): Promise&lt;Array&lt;{ path, name, kind }&gt;&gt;</h3>
+<p>Returns up to 50 matches, best first. Each result has the absolute <code>path</code>, the <code>name</code>, and <code>kind</code>, the file extension without the dot (<code>""</code> for most folders). An empty query returns <code>[]</code>.</p>
+<p>A plain query matches names that start with it, or that have a word starting with it: <code>budget</code> finds <code>Q3 Budget.pdf</code>. Case does not matter. Shallow paths rank first, so <code>downloads</code> finds <code>~/Downloads</code> before a <code>downloads</code> folder deep in a project. Paths under hidden folders such as <code>.git</code>, and paths outside home and <code>/Applications</code>, rank lower.</p>
+<p>When there is no <code>folder</code> and no <code>kind</code>, a query of three or more letters also matches folder paths in home up to three levels deep, so letters from a parent and a child folder find the child: <code>docpro</code> can find <code>~/Documents/Projects</code>. These matches come after the name matches. <code>~/Library</code> and <code>node_modules</code> are not searched this way.</p>
+
+<table>
+  <thead><tr><th>Option</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>folder</code></td><td>Only search inside this folder. <code>~</code> expands.</td></tr>
+    <tr><td><code>kind</code></td><td>A file extension, such as <code>"pdf"</code>, with or without the dot.</td></tr>
+  </tbody>
+</table>
+
+<h3>Path completion</h3>
+<p>A query that contains <code>/</code>, or is just <code>~</code>, is a path being typed. Each segment matches one folder level, with fuzzy matching, so a few letters per level are enough: <code>~/dc/inv</code> can reach <code>~/Documents/Invoices</code>.</p>
+<ul>
+  <li><code>~/</code> starts at home and <code>/</code> at the root of the disk. Any other start is relative to <code>folder</code>, or to home.</li>
+  <li>A trailing <code>/</code> lists the children of the folders matched so far.</li>
+  <li><code>.</code> and <code>..</code> work as in the shell.</li>
+  <li>Hidden names show only when the segment starts with a dot.</li>
+</ul>
+
+<div class="note"><p>Spotlight never returns the top level of home, such as <code>~/Desktop</code>. Macotron adds those top-level folders itself by reading home, <code>/Applications</code> and <code>/</code> directly. For faster results in folders you choose, use <a href="/docs/api-files.html">macotron.files</a>.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-files.html">macotron.files</a> for an in-memory index that answers in milliseconds.</li>
+  <li><a href="/docs/api-launcher.html">macotron.launcher</a> to show results as the user types.</li>
+  <li>The <code>file-search.js</code> plugin, which uses this module for path queries and when the file index is unavailable.</li>
+</ul>

@@ -1,0 +1,112 @@
+<!-- title: macotron.panel
+     summary: Open floating web-view windows and exchange messages with the page inside them.
+     group: API -->
+<h1>macotron.panel</h1>
+<p class="lede">Open a floating window that shows your HTML or a web page, and pass messages between the page and your plugin.</p>
+
+<pre><code class="language-javascript">// Ask for a name, then greet it.
+const html = `
+  &lt;h2&gt;Your name&lt;/h2&gt;
+  &lt;input id="input" placeholder="Ada"&gt;
+  &lt;button class="primary" onclick="send()"&gt;Greet&lt;/button&gt;
+  &lt;script&gt;
+    function send() {
+      webkit.messageHandlers.macotron.postMessage({ name: input.value });
+    }
+  &lt;/script&gt;`;
+
+const id = macotron.panel.open({ title: "Greet", width: 320, height: 160, html, closeOnBlur: true });
+macotron.panel.onMessage(id, ({ name }) =&gt; {
+  macotron.notify.toast("Hello", name);
+  macotron.panel.close(id);
+});</code></pre>
+
+<h2>Opening and closing</h2>
+
+<h3>open(opts: PanelOptions): string</h3>
+<p>Opens a panel and returns its id. The panel floats above other windows, shows on every Space, and opens centered with keyboard focus. Throws a <code>TypeError</code> when <code>opts</code> is missing or <code>url</code> is not an http or https URL.</p>
+
+<table>
+  <thead><tr><th>Option</th><th>Type</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>title</code></td><td>string</td><td>Title bar text. Default <code>"Macotron"</code>.</td></tr>
+    <tr><td><code>width</code>, <code>height</code></td><td>number</td><td>Content size in points. Default 420 x 520.</td></tr>
+    <tr><td><code>html</code></td><td>string</td><td>Body markup. Macotron wraps it in a page with the system font, padding, form styles and light and dark colors. See <a href="#host-page">The host page</a>.</td></tr>
+    <tr><td><code>rawHtml</code></td><td>string</td><td>A complete HTML document, used as is with no host styles. It takes priority over <code>html</code>.</td></tr>
+    <tr><td><code>url</code></td><td>string</td><td>An http or https page to load instead of <code>html</code> or <code>rawHtml</code>. It loads first-party, so its cookies and <code>localStorage</code> persist between opens, unlike an iframe.</td></tr>
+    <tr><td><code>glass</code></td><td>boolean | string</td><td><code>true</code> or <code>"regular"</code> for Liquid Glass, <code>"clear"</code> for the clearer Liquid Glass, <code>"translucent"</code> for a HUD blur. The host page background becomes transparent so the material shows through.</td></tr>
+    <tr><td><code>frameless</code></td><td>boolean</td><td>No title bar, with rounded corners. Escape closes it.</td></tr>
+    <tr><td><code>fullscreen</code></td><td>boolean</td><td>Covers the whole screen under the pointer, with no title bar. Escape closes it.</td></tr>
+    <tr><td><code>escapeCloses</code></td><td>boolean</td><td>Default <code>true</code>. Pass <code>false</code> so Escape does not close a frameless or fullscreen panel, and close it from your own button instead.</td></tr>
+    <tr><td><code>closeOnBlur</code></td><td>boolean</td><td>Closes the panel when it loses keyboard focus, for example when the user clicks another window.</td></tr>
+    <tr><td><code>id</code></td><td>string</td><td>Use this id instead of a random one. An open panel with the same id closes first, so calling <code>open</code> again replaces it.</td></tr>
+    <tr><td><code>qr</code></td><td>string</td><td>Text to encode as a QR code. Macotron appends the code as an <code>&lt;img&gt;</code> to the end of <code>html</code> or <code>rawHtml</code>.</td></tr>
+  </tbody>
+</table>
+
+<p>In every panel, Command-Plus and Command-Minus zoom the page and Command-0 resets the zoom.</p>
+
+<h3>close(id: string): void</h3>
+<p>Closes the panel. Does nothing for an unknown id.</p>
+
+<h3>focus(id: string): boolean</h3>
+<p>Brings an open panel to the front and gives it keyboard focus without reloading the page. Returns <code>false</code> when no panel has that id. Use it to show a panel again instead of opening a second one.</p>
+
+<p>Every panel closes when plugins reload.</p>
+
+<h2>Messages</h2>
+
+<h3>postMessage(id: string, data: any): void</h3>
+<p>Sends <code>data</code> to the page as JSON. Messages sent before the page finishes loading wait and arrive in order, so you can call this right after <code>open</code>. Send an object, an array or a string. Other values arrive as <code>null</code>.</p>
+
+<h3>onMessage(id: string, callback: (data: any) =&gt; void): void</h3>
+<p>Runs <code>callback</code> for each message the page sends. You can add more than one handler. Handlers are dropped when the panel closes, so add them again after each <code>open</code>.</p>
+<p>If you pass only a callback, <code>onMessage(callback)</code>, it receives messages from every panel the plugin opens and stays until plugins reload.</p>
+
+<h3>In the page</h3>
+<p>The page talks to the plugin with three functions that every panel provides:</p>
+<ul>
+  <li><code>webkit.messageHandlers.macotron.postMessage(data)</code> sends <code>data</code> to the <code>onMessage</code> handlers.</li>
+  <li><code>window.__macotronReceive = (data) =&gt; { … }</code> receives each <code>postMessage</code> from the plugin. A <code>message</code> event on <code>window</code> also fires, with the value in <code>event.data</code>.</li>
+  <li><code>window.close()</code> or <code>macotronClose()</code> closes the panel.</li>
+</ul>
+
+<pre><code class="language-javascript">// Page side: render whatever the plugin sends.
+window.__macotronReceive = (d) =&gt; {
+  if (d &amp;&amp; d.html) document.getElementById("list").innerHTML = d.html;
+};</code></pre>
+
+<h2 id="host-page">The host page</h2>
+<p>With <code>html</code>, the body is a flex column with 16px padding and a 12px gap, in the system font at 13px. Inputs, text areas, selects and buttons are styled to match macOS in light and dark mode. When the panel opens, or gets focus again, the first element with <code>autofocus</code>, then <code>#input</code>, then the first text area or input, gets the focus.</p>
+
+<table>
+  <thead><tr><th>Class</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>button.primary</code></td><td>A button in the accent color.</td></tr>
+    <tr><td><code>button.secondary</code></td><td>A quieter button.</td></tr>
+    <tr><td><code>button.block</code></td><td>A full-width, left-aligned button, for lists of choices.</td></tr>
+    <tr><td><code>.toolbar</code></td><td>A row of inputs, selects and buttons at one height. Inputs stretch to fill.</td></tr>
+    <tr><td><code>.grow</code>, <code>.scroll</code></td><td>Fill the leftover height, and scroll the overflow.</td></tr>
+    <tr><td><code>.muted</code>, <code>.ok</code>, <code>.bad</code></td><td>Secondary, green and red text.</td></tr>
+    <tr><td><code>.mono</code></td><td>The monospaced system font. <code>pre</code> and <code>code</code> use it too.</td></tr>
+    <tr><td><code>input.inline</code></td><td>An input at its natural width instead of full width.</td></tr>
+  </tbody>
+</table>
+
+<p>The page also defines CSS variables for the system colors: <code>--macotron-accent</code>, <code>--macotron-accent-text</code>, <code>--macotron-label</code>, <code>--macotron-secondary-label</code>, <code>--macotron-fill</code>, <code>--macotron-control</code>, <code>--macotron-control-text</code>, <code>--macotron-control-border</code>, <code>--macotron-field</code>, <code>--macotron-field-text</code>, <code>--macotron-selected</code>, <code>--macotron-selected-text</code> and <code>--macotron-link</code>.</p>
+
+<h2>Events</h2>
+
+<h3>panel:closed</h3>
+<p>Fires when a panel goes away for any reason: the close button, Escape, <code>closeOnBlur</code>, <code>close()</code>, or <code>open</code> with the same <code>id</code>. The payload is <code>{ id }</code>.</p>
+
+<pre><code class="language-javascript">macotron.on("panel:closed", ({ id }) =&gt; {
+  if (id === "chat") localStorage.removeItem("chat.draft");
+});</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-menubar.html">macotron.menubar</a> for HTML rows inside a menu.</li>
+  <li><a href="/docs/api-launcher.html">macotron.launcher</a> for picking from a list without a window.</li>
+  <li>The <code>browser-picker.js</code>, <code>emoji.js</code> and <code>ai-chat.js</code> plugins.</li>
+</ul>

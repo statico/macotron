@@ -1,0 +1,30 @@
+<!-- title: macotron.homekit
+     summary: The HomeKit namespace. macOS gives native apps no HomeKit access, so it returns no homes today.
+     group: API -->
+<h1>macotron.homekit</h1>
+<p class="lede">Calls for Home accessories. Apple offers the HomeKit framework to iPhone, iPad, and Mac Catalyst apps, but not to native Mac apps like Macotron, so today these calls return no homes and cannot change an accessory.</p>
+
+<pre><code class="language-javascript">const homes = macotron.homekit.homes();
+if (!homes.length) macotron.notify.toast("Home", "No HomeKit homes");</code></pre>
+
+<div class="note"><p>Write HomeKit plugins so they handle an empty list. For lights and scenes today, call a shortcut that uses the Home app with <a href="/docs/api-shortcuts.html">macotron.shortcuts</a>.</p></div>
+
+<h2>Calls</h2>
+
+<h3>available(): boolean</h3>
+<p>Whether the HomeKit classes are present in the process. It can be <code>true</code> while <code>homes()</code> is still empty, so do not use it to decide whether accessories exist.</p>
+
+<h3>homes(): Array&lt;{ id, name }&gt;</h3>
+<p>The HomeKit homes. This returns <code>[]</code> today.</p>
+
+<h3>accessories(homeId?: string): Array&lt;{ id, name, room, type, on?, value?, reachable }&gt;</h3>
+<p>The accessories in one home, or in every home when you omit <code>homeId</code>. A row has the accessory's <code>name</code>, its <code>room</code>, its <code>type</code>, and whether it is <code>reachable</code>. Lights and switches add <code>on</code>; sensors can add a numeric <code>value</code>. This returns <code>[]</code> today.</p>
+
+<h3>set(id: string, state: { on?: boolean; value?: number }): { ok: boolean; error?: string }</h3>
+<p>Turns an accessory on or off, or sets its value. This returns <code>{ ok: false, error: "unavailable" }</code> today.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-shortcuts.html">macotron.shortcuts</a> to run Home shortcuts.</li>
+  <li>The <code>homekit.js</code> plugin, which shows "No HomeKit homes" until homes are available.</li>
+</ul>

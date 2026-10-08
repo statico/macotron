@@ -1,0 +1,189 @@
+<!-- title: macotron (core)
+     summary: Plugin metadata, launcher commands, host events, timers, dialogs, and logging.
+     group: API -->
+<h1>macotron (core)</h1>
+<p class="lede">The top-level members of <code>macotron</code>: declare a plugin and its settings, add launcher commands, listen for host events, run code on a schedule, show simple dialogs, and write to the log.</p>
+
+<pre><code class="language-javascript">const opts = macotron.plugin({
+  title: "Stand Up",
+  description: "Reminds you to stand up on weekdays.",
+  options: {
+    message: { type: "string", label: "Message", default: "Time to stand up" },
+  },
+});
+
+macotron.at("10:30", { weekdays: [1, 2, 3, 4, 5] }, () =&gt; {
+  macotron.notify.toast("Stand Up", opts.message);
+});
+
+macotron.command("Stand Up Now", "Show the reminder", () =&gt; {
+  macotron.notify.toast("Stand Up", opts.message);
+});</code></pre>
+
+<h2>Plugin metadata</h2>
+
+<h3>plugin(metadata): Record&lt;string, any&gt;</h3>
+<p>Declares the plugin's title, description, permissions, and options for Settings → Plugins. Call it once, at the top of the file. It returns the resolved option values: the user's value from Settings when there is one, else the option's <code>default</code>. An option with neither is absent from the result.</p>
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>title</code></td><td>Name shown in Settings.</td></tr>
+    <tr><td><code>description</code></td><td>One line shown under the name.</td></tr>
+    <tr><td><code>help</code></td><td>Longer explanation shown on the plugin's Settings page.</td></tr>
+    <tr><td><code>permissions</code></td><td>macOS permissions the plugin needs: <code>"accessibility"</code>, <code>"inputMonitoring"</code>, <code>"screenRecording"</code>, <code>"camera"</code>, <code>"microphone"</code>, <code>"calendar"</code>, or <code>"helper"</code> (the background helper, installed from the plugin's Settings page). Macotron adds them to the permission list it asks the user for.</td></tr>
+    <tr><td><code>options</code></td><td>An object of option definitions, keyed by the name you read back from the result.</td></tr>
+  </tbody>
+</table>
+<p>Every option takes <code>label</code> (a few words), an optional <code>default</code>, an optional <code>help</code> sentence shown under the field, and an optional <code>required</code>. While a required option is unset, Settings shows a "Needs setup" hint; commands still run. Text-like options also take a <code>placeholder</code>, the grey hint in an empty field.</p>
+<table>
+  <thead><tr><th>type</th><th>Settings shows</th><th>The plugin gets</th></tr></thead>
+  <tbody>
+    <tr><td><code>"string"</code></td><td>Text field</td><td>A string</td></tr>
+    <tr><td><code>"text"</code></td><td>Multi-line text area</td><td>A string</td></tr>
+    <tr><td><code>"boolean"</code></td><td>Checkbox</td><td><code>true</code> or <code>false</code></td></tr>
+    <tr><td><code>"number"</code></td><td>Number field, or a slider when you give both <code>min</code> and <code>max</code> (and an optional <code>step</code>)</td><td>A number</td></tr>
+    <tr><td><code>"keybinding"</code></td><td>Shortcut recorder</td><td>A combo such as <code>"cmd+shift+c"</code></td></tr>
+    <tr><td><code>"dropdown"</code></td><td>Pop-up menu. Needs <code>choices: [{ value, label }]</code></td><td>The chosen <code>value</code></td></tr>
+    <tr><td><code>"password"</code></td><td>Secure field. The secret goes in the Keychain</td><td>The secret, or <code>""</code> when unset. <code>default</code> is ignored</td></tr>
+    <tr><td><code>"file"</code></td><td>File picker</td><td>An absolute path</td></tr>
+    <tr><td><code>"directory"</code></td><td>Folder picker</td><td>An absolute path</td></tr>
+    <tr><td><code>"calendars"</code></td><td>Checkbox list of the user's calendars</td><td>An array of calendar titles. Empty means every calendar</td></tr>
+  </tbody>
+</table>
+<div class="note"><p>Never put a real secret in plugin source or <code>settings.json</code>. Use a <code>"password"</code> option, so the user types it into Settings and it stays in the Keychain.</p></div>
+
+<h3>module(metadata): Record&lt;string, any&gt;</h3>
+<p>Deprecated. The same function as <code>plugin()</code>.</p>
+
+<h3>requirePermissions(list: string[]): void</h3>
+<p>Deprecated. Adds permissions to the list Macotron asks for. Pass <code>permissions</code> to <code>plugin()</code> instead, which also shows them on the plugin's Settings page.</p>
+
+<h3>checks(rows: Array&lt;{ title, ok, message? }&gt;): void</h3>
+<p>Replaces this plugin's Checks list in Settings → Plugins. A row with <code>ok: false</code> puts an orange warning on the plugin. Rows without a title are dropped, and a row without <code>ok</code> counts as failed. Pass <code>[]</code> to clear the list. Call it again whenever the status changes.</p>
+<pre><code class="language-javascript">macotron.checks([{ title: "File index", ok: available, message }]);</code></pre>
+
+<h3>settings.open(): void</h3>
+<p>Opens Settings → Plugins on this plugin, for example from a menu row that says "Settings…".</p>
+
+<h3>version: { app, api, modules }</h3>
+<p><code>api</code> is the semver of the plugin API, such as <code>"1.5.0"</code>. <code>modules</code> maps each native namespace (<code>window</code>, <code>panel</code>, and so on) to an integer version that goes up when that namespace changes. <code>app</code> is always <code>"1.0.0"</code> in this release, so do not use it to detect the app version.</p>
+
+<h3>config(options: Record&lt;string, any&gt;): void</h3>
+<p>Legacy. Replaces Macotron's in-memory copy of <code>settings.json</code> until the next reload. Plugins should not call it. Use <code>plugin()</code> options.</p>
+
+<h2>Commands</h2>
+
+<h3>command(name, description, handler, opts?): void</h3>
+<p>Adds a command to the launcher. <code>name</code> is the title the user searches for and <code>description</code> is the line under it. <code>handler</code> receives one object with the argument values, and may be <code>async</code>.</p>
+<p><code>opts.id</code> is a stable id for the command. The default is <code>"{filename}/{name}"</code>. Set it when users will bind a shortcut to the command, in Settings → Plugins or with Command-K in the launcher, so the binding survives a rename. Registering a second command with the same id replaces the first.</p>
+<p><code>opts.arguments</code> is a list of fields the launcher asks for before it runs the command. Each one has a <code>name</code> (the key in the handler's object), a <code>type</code>, and optional <code>placeholder</code> (defaults to the name), <code>required</code>, and <code>default</code>.</p>
+<table>
+  <thead><tr><th>type</th><th>Value the handler gets</th></tr></thead>
+  <tbody>
+    <tr><td><code>"text"</code></td><td>The trimmed string. An empty field gives <code>default</code>, or <code>""</code>.</td></tr>
+    <tr><td><code>"number"</code></td><td>A number. An empty field gives <code>default</code>, or the key is absent.</td></tr>
+    <tr><td><code>"dropdown"</code></td><td>The chosen <code>value</code>. Needs <code>choices: [{ title, value }]</code> (<code>label</code> works in place of <code>title</code>). A dropdown with no choices is dropped.</td></tr>
+  </tbody>
+</table>
+<p>An unknown type becomes <code>"text"</code>. The launcher refuses to run while a required field is empty, a number field holds text, or a dropdown value is not one of its choices, and it says which field is wrong. When a shortcut runs a command, the defaults fill the arguments. If a required argument has no default, the launcher opens and asks for it.</p>
+<pre><code class="language-javascript">macotron.command("Generate Lorem Ipsum", "Copy placeholder text to the clipboard", (args) =&gt; {
+  macotron.clipboard.set(generate(args.count, args.unit));
+}, {
+  id: "lorem-ipsum",
+  arguments: [
+    { name: "count", type: "number", placeholder: "Count", default: 3 },
+    {
+      name: "unit",
+      type: "dropdown",
+      default: "paragraphs",
+      choices: [
+        { title: "Words", value: "words" },
+        { title: "Paragraphs", value: "paragraphs" },
+      ],
+    },
+  ],
+});</code></pre>
+<p>For a global hotkey that runs without the launcher, use <a href="/docs/api-keyboard.html">macotron.keyboard.on</a>.</p>
+
+<h2>Events</h2>
+
+<h3>on(event: string, callback: (payload?) =&gt; void): void</h3>
+<p>Calls <code>callback</code> each time the host emits <code>event</code>. Most events pass one payload object; see the page for each event. The name is any string, so a plugin can listen for an event that this host does not emit yet. Macotron removes every listener when plugins reload.</p>
+
+<h3>off(event: string, callback): void</h3>
+<p>Removes a listener. Pass the same function you passed to <code>on</code>, so keep a reference to it. A listener can remove itself while it runs.</p>
+
+<p>The host emits these events:</p>
+<table>
+  <thead><tr><th>Event</th><th>Fires when</th><th>Documented on</th></tr></thead>
+  <tbody>
+    <tr><td><code>app:activated</code>, <code>app:launched</code>, <code>app:terminated</code></td><td>An app comes to the front, starts, or quits</td><td><a href="/docs/api-app.html">macotron.app</a></td></tr>
+    <tr><td><code>audio:changed</code></td><td>Audio devices change</td><td><a href="/docs/api-audio.html">macotron.audio</a></td></tr>
+    <tr><td><code>clipboard:changed</code></td><td>The pasteboard changes</td><td><a href="/docs/api-clipboard.html">macotron.clipboard</a></td></tr>
+    <tr><td><code>display:changed</code></td><td>Displays change</td><td><a href="/docs/api-display.html">macotron.display</a></td></tr>
+    <tr><td><code>hid:input</code></td><td>A HID device you listen to sends a report</td><td><a href="/docs/api-hid.html">macotron.hid</a></td></tr>
+    <tr><td><code>media:changed</code></td><td>Now Playing changes</td><td><a href="/docs/api-media.html">macotron.media</a></td></tr>
+    <tr><td><code>menubar:appearance</code></td><td>The menu bar switches between light and dark</td><td><a href="/docs/api-menubar.html">macotron.menubar</a></td></tr>
+    <tr><td><code>panel:closed</code></td><td>A panel closes</td><td><a href="/docs/api-panel.html">macotron.panel</a></td></tr>
+    <tr><td><code>space:changed</code></td><td>The current desktop changes</td><td><a href="/docs/api-spaces.html">macotron.spaces</a></td></tr>
+    <tr><td><code>system:idle</code>, <code>system:active</code></td><td>The user goes idle, and comes back</td><td><a href="/docs/api-idle.html">macotron.idle</a></td></tr>
+    <tr><td><code>system:sleep</code>, <code>system:wake</code>, <code>system:lock</code>, <code>system:unlock</code></td><td>The Mac sleeps or wakes, or the screen locks or unlocks</td><td><a href="/docs/api-power.html">macotron.power</a></td></tr>
+    <tr><td><code>udp:message</code></td><td>A UDP socket receives a packet</td><td><a href="/docs/api-udp.html">macotron.udp</a></td></tr>
+    <tr><td><code>usb:changed</code></td><td>A USB device connects or disconnects</td><td><a href="/docs/api-usb.html">macotron.usb</a></td></tr>
+    <tr><td><code>wifi:changed</code></td><td>The Wi-Fi network changes</td><td><a href="/docs/api-network.html">macotron.network</a></td></tr>
+    <tr><td><code>window:created</code>, <code>window:focused</code></td><td>A window opens, or gets focus</td><td><a href="/docs/api-window.html">macotron.window</a></td></tr>
+    <tr><td><code>keyboard:&lt;binding&gt;</code></td><td>A plugin hotkey is pressed. <code>keyboard.on</code> subscribes for you</td><td><a href="/docs/api-keyboard.html">macotron.keyboard</a></td></tr>
+    <tr><td><code>url:&lt;scheme&gt;:&lt;host&gt;</code></td><td>A URL arrives for a scheme a plugin handles. <code>url.on</code> subscribes for you</td><td><a href="/docs/api-url.html">macotron.url</a></td></tr>
+  </tbody>
+</table>
+<div class="note"><p><code>system:sleep</code> handlers run while the Mac is already going to sleep. Keep them short and do not wait for a promise. <code>system:active</code> means that idle time ended, not that the Mac woke.</p></div>
+
+<h2>Timers</h2>
+<p>Every callback, whether from a timer, an event, or a command, has 5 seconds to return. Macotron interrupts a callback that runs longer and logs the error.</p>
+
+<h3>every(msOrDuration: number | string, callback): () =&gt; void</h3>
+<p>Runs <code>callback</code> again and again, and returns a function that stops it. Calling the stop function from inside the callback is safe.</p>
+<p>A number is an interval in milliseconds and must be greater than 0. A string is a count and a unit: <code>"500ms"</code>, <code>"30s"</code>, <code>"5m"</code>, <code>"1h"</code>, <code>"2d"</code>. Long unit names such as <code>"10 minutes"</code> and <code>"2 hours"</code> also work. A string that does not parse throws a <code>TypeError</code>.</p>
+<p>Minute counts that divide 60 and hour counts that divide 24 line up with the clock: <code>"15m"</code> fires at :00, :15, :30, and :45, not 15 minutes after the call. Day counts run from the time of the call. When the Mac wakes or the clock changes, a string schedule that missed its time runs once at once, then continues on schedule.</p>
+<pre><code class="language-javascript">const stop = macotron.every("5m", refresh);
+// later
+stop();</code></pre>
+
+<h3>at(time: string, callback): () =&gt; void</h3>
+<h3>at(time: string, opts: { weekdays?: number[] }, callback): () =&gt; void</h3>
+<p>Runs <code>callback</code> every day at a clock time, in local time. <code>time</code> is 24-hour <code>"07:30"</code> or <code>"07:30:15"</code>, or 12-hour <code>"7am"</code>, <code>"7:30pm"</code>. <code>weekdays</code> limits it to some days, numbered like <code>Date.getDay()</code>: 0 is Sunday and 6 is Saturday. An invalid time or weekday throws a <code>TypeError</code>. If the Mac was asleep at that time, the callback runs once when it wakes.</p>
+<p>Returns a stop function, like <code>every</code>.</p>
+
+<h3>sleep(ms: number): Promise&lt;void&gt;</h3>
+<p>A promise that resolves after <code>ms</code> milliseconds. Use it with <code>await</code> in an async function.</p>
+
+<p>For one-shot delays, <code>setTimeout</code> and <code>setInterval</code> also work. See <a href="/docs/api-globals.html">Globals</a>.</p>
+
+<h2>Dialogs</h2>
+<p>These show a standard macOS alert and block every plugin until the user answers. Each one is the same function as the global with the same name.</p>
+<div class="note"><p>The 5-second callback limit keeps counting while a dialog is open. If the user takes longer to answer, Macotron interrupts the code that comes after the dialog. For anything slower than a quick yes or no, use a <a href="/docs/api-panel.html">panel</a>.</p></div>
+
+<h3>alert(message?: any): void</h3>
+<p>Shows <code>message</code> with an OK button.</p>
+
+<h3>confirm(message?: any): boolean</h3>
+<p>Shows <code>message</code> with OK and Cancel. Returns <code>true</code> for OK.</p>
+
+<h3>prompt(message?: any, defaultValue?: string): string | null</h3>
+<p>Shows <code>message</code> with a text field, filled with <code>defaultValue</code>. Returns the text for OK, or <code>null</code> for Cancel.</p>
+
+<h2>Logging</h2>
+
+<h3>log(...args: any[]): void</h3>
+<p>The same as <code>console.log</code>. Joins the arguments with spaces and writes one line to the macOS log, at info level, under subsystem <code>io.statico.macotron</code> and category <code>plugin</code>. Macotron puts the plugin's file name in front of the line. Objects go through <code>JSON.stringify</code>, so an <code>Error</code> prints as <code>{}</code>; log <code>e.message</code> instead.</p>
+<p>Info lines only show when you ask for them:</p>
+<pre><code class="language-javascript">// In Terminal:
+// log stream --level info --style compact --predicate 'subsystem == "io.statico.macotron" AND category == "plugin"'</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-globals.html">Globals</a> for <code>console</code>, timers, and <code>localStorage</code>.</li>
+  <li><a href="/docs/api-keyboard.html">macotron.keyboard</a> for global hotkeys.</li>
+  <li><a href="/docs/api-notify.html">macotron.notify</a> for toasts and notifications that do not block.</li>
+  <li><a href="/docs/api-launcher.html">macotron.launcher</a> for launcher results beyond commands.</li>
+</ul>

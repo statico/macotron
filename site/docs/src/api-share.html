@@ -1,0 +1,28 @@
+<!-- title: macotron.share
+     summary: Open the macOS share menu for files, text or a link, or send files with AirDrop.
+     group: API -->
+<h1>macotron.share</h1>
+<p class="lede">Open the macOS share menu for files, text or a link, or send files straight to AirDrop.</p>
+
+<pre><code class="language-javascript">macotron.command("Share Text", "Share the clipboard text", () =&gt; {
+  const text = macotron.clipboard.text();
+  if (!text) return macotron.notify.toast("Share", "Clipboard is empty");
+  macotron.share.open({ text });
+});</code></pre>
+
+<h2>Sharing</h2>
+
+<h3>open(opts: { files?: string[]; text?: string; url?: string }): boolean</h3>
+<p>Brings Macotron forward and opens the share menu at the pointer, with every item you pass: the files, the text and the URL. The user picks a service, such as Mail, Messages or AirDrop. File paths can start with <code>~</code>.</p>
+<p>Returns <code>false</code> when there is nothing to share: no files, empty text, and no URL that parses. Otherwise it returns <code>true</code> once the menu is open, whether or not the user picks a service.</p>
+
+<h3>airDrop(paths: string[]): boolean</h3>
+<p>Opens the AirDrop window with these files, skipping the share menu. Paths can start with <code>~</code>. Returns <code>false</code> when <code>paths</code> is empty or not an array, or when AirDrop is not available on this Mac.</p>
+
+<pre><code class="language-javascript">macotron.share.airDrop(["~/Desktop/photo.heic"]);</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-url.html">macotron.url</a> to open a link in a chosen app.</li>
+  <li>The <code>share.js</code> plugin.</li>
+</ul>

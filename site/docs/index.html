@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation · Macotron</title>
+  <meta name="description" content="Guides, features, and the full macotron.* plugin API.">
+  <meta property="og:title" content="Documentation · Macotron">
+  <meta property="og:description" content="Guides, features, and the full macotron.* plugin API.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/" aria-current="page">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>Documentation</h1>
+<p class="lede">How Macotron works, what it can do, and every <code>macotron.*</code> call a plugin can make.</p>
+<h2 id="guide">Guide</h2>
+<dl class="doc-index">
+<dt><a href="/docs/guide-getting-started.html">Getting started</a></dt><dd>Install Macotron, pick a workdir, add plugins from the catalog, and grant permissions.</dd>
+<dt><a href="/docs/guide-writing-plugins.html">Writing plugins</a></dt><dd>The shape of a plugin file, how it loads and reloads, and how to log, handle errors, and save state.</dd>
+<dt><a href="/docs/guide-plugin-settings.html">Plugin settings</a></dt><dd>Declare a plugin&#x27;s title, permissions, and options so users can configure it in Settings → Plugins.</dd>
+<dt><a href="/docs/guide-coding-agents.html">Coding agents</a></dt><dd>Use Claude Code, Codex, or another agent to write plugins. Macotron writes the AGENTS.md they read.</dd>
+<dt><a href="/docs/guide-permissions.html">Permissions</a></dt><dd>Each macOS permission Macotron can ask for, what needs it, and how to grant it.</dd>
+<dt><a href="/docs/guide-security.html">Security</a></dt><dd>How Macotron decides which plugin code may run, and what an enabled plugin can do.</dd>
+<dt><a href="/docs/guide-community-plugins.html">Community plugins</a></dt><dd>Install plugins other people publish on GitHub, and publish your own with one repository topic.</dd>
+<dt><a href="/docs/guide-updates.html">Updates</a></dt><dd>How Macotron updates itself, how to change how often it checks, and how built-in plugins update.</dd>
+<dt><a href="/docs/guide-troubleshooting.html">Troubleshooting</a></dt><dd>Read Macotron&#x27;s log, and fix plugins that do not load, hotkeys that do not fire, and missing menu bar items.</dd>
+</dl>
+<h2 id="features">Features</h2>
+<dl class="doc-index">
+<dt><a href="/docs/feature-launcher.html">Launcher</a></dt><dd>Open apps, run plugin commands, and search files from one keyboard-driven bar.</dd>
+<dt><a href="/docs/feature-hotkeys.html">Hotkeys</a></dt><dd>Global keyboard shortcuts from plugins, apps, and launcher rows, all changeable in Settings.</dd>
+<dt><a href="/docs/feature-windows.html">Window management</a></dt><dd>Tile windows with hotkeys, snap them by dragging, place them on a grid, and save layouts.</dd>
+<dt><a href="/docs/feature-file-search.html">File search</a></dt><dd>Find files and folders by name in the launcher, from an index Macotron keeps in memory.</dd>
+<dt><a href="/docs/feature-clipboard.html">Clipboard</a></dt><dd>Search recent copies from the launcher, bring back images, and paste as plain text.</dd>
+<dt><a href="/docs/feature-snippets.html">Snippets</a></dt><dd>Type a short abbreviation anywhere and Macotron replaces it with longer text.</dd>
+<dt><a href="/docs/feature-menu-bar.html">Menu bar</a></dt><dd>The Macotron menu, its warning dots, and the status items that plugins put in the menu bar.</dd>
+<dt><a href="/docs/feature-meetings.html">Meetings and calendar</a></dt><dd>Your next meeting in the menu bar, a join overlay when it starts, a mini calendar, and reminders.</dd>
+<dt><a href="/docs/feature-screen-tools.html">Screen tools</a></dt><dd>Copy text or a QR code off the screen, pick colors, and tint, dim, or brighten the display.</dd>
+<dt><a href="/docs/feature-ai.html">AI</a></dt><dd>Chat with Apple Intelligence, Claude, or Gemini, translate selected text, and where API keys go.</dd>
+<dt><a href="/docs/feature-browser-picker.html">Browser picker</a></dt><dd>Open each link in the right browser, by host, or pick one from a panel every time.</dd>
+<dt><a href="/docs/feature-fan-control.html">Fan control</a></dt><dd>See fan speed in the menu bar and keep the fans at or above 50% or 100% with the background helper.</dd>
+<dt><a href="/docs/feature-built-in-plugins.html">Built-in plugins</a></dt><dd>Every plugin that ships with Macotron, with one line on what it does and what it needs.</dd>
+</dl>
+<h2 id="api">API</h2>
+<dl class="doc-index">
+<dt><a href="/docs/api-globals.html">Globals</a></dt><dd>console, timers, localStorage, and dialogs, plus what a browser or Node has that Macotron does not.</dd>
+<dt><a href="/docs/api-core.html">macotron (core)</a></dt><dd>Plugin metadata, launcher commands, host events, timers, dialogs, and logging.</dd>
+<dt><a href="/docs/api-ai.html">macotron.ai</a></dt><dd>Send prompts to Claude, OpenAI, Gemini, or the on-device Apple Intelligence model.</dd>
+<dt><a href="/docs/api-app.html">macotron.app</a></dt><dd>List, launch, switch to, hide, and quit apps, and pick items from their menus.</dd>
+<dt><a href="/docs/api-appletv.html">macotron.appletv</a></dt><dd>Find Apple TVs on the local network. Sending remote keys is not available yet.</dd>
+<dt><a href="/docs/api-audio.html">macotron.audio</a></dt><dd>List audio devices, switch input and output, set volume and mute, and record the microphone.</dd>
+<dt><a href="/docs/api-ax.html">macotron.ax</a></dt><dd>Read the selected text, walk another app&#x27;s UI elements, press buttons, and set field values.</dd>
+<dt><a href="/docs/api-bonjour.html">macotron.bonjour</a></dt><dd>Find Bonjour services such as AirPlay receivers, printers, and other Macs on the local network.</dd>
+<dt><a href="/docs/api-calendar.html">macotron.calendar</a></dt><dd>Read upcoming Calendar events, with the meeting join link pulled out for you.</dd>
+<dt><a href="/docs/api-camera.html">macotron.camera</a></dt><dd>List cameras, show a live preview window, and take a PNG snapshot from it.</dd>
+<dt><a href="/docs/api-clipboard.html">macotron.clipboard</a></dt><dd>Read and write the pasteboard, keep a short history, and force plain-text paste.</dd>
+<dt><a href="/docs/api-contacts.html">macotron.contacts</a></dt><dd>List and search the people in Contacts, with their emails and phone numbers.</dd>
+<dt><a href="/docs/api-display.html">macotron.display</a></dt><dd>List displays, set brightness and gamma, and switch Night Shift, True Tone, grayscale, XDR, and CRT.</dd>
+<dt><a href="/docs/api-dock.html">macotron.dock</a></dt><dd>Read the badges on Dock icons, such as unread counts in Mail or Messages.</dd>
+<dt><a href="/docs/api-event.html">macotron.event</a></dt><dd>Post synthetic clicks, keys, text, and scrolls, and watch or swallow input from every app.</dd>
+<dt><a href="/docs/api-files.html">macotron.files</a></dt><dd>Search file and folder names in Macotron&#x27;s own fast index of the folders you choose.</dd>
+<dt><a href="/docs/api-fs.html">macotron.fs</a></dt><dd>Read, write, list, rename, and watch files anywhere your user account can reach.</dd>
+<dt><a href="/docs/api-hid.html">macotron.hid</a></dt><dd>List HID devices, open one, and send and read raw input, output, and feature reports.</dd>
+<dt><a href="/docs/api-homekit.html">macotron.homekit</a></dt><dd>The HomeKit namespace. macOS gives native apps no HomeKit access, so it returns no homes today.</dd>
+<dt><a href="/docs/api-http.html">macotron.http</a></dt><dd>Make GET, POST, PUT, and DELETE requests and read the status, body, and headers.</dd>
+<dt><a href="/docs/api-idle.html">macotron.idle</a></dt><dd>Read how long the user has been away, and get events when the Mac goes idle and comes back.</dd>
+<dt><a href="/docs/api-keyboard.html">macotron.keyboard</a></dt><dd>Global hotkeys the user can rebind, the current modifier keys, and a Hyper key.</dd>
+<dt><a href="/docs/api-keychain.html">macotron.keychain</a></dt><dd>Store API keys, tokens, and other secrets in the macOS Keychain.</dd>
+<dt><a href="/docs/api-launcher.html">macotron.launcher</a></dt><dd>Add rows to the Macotron launcher, from a fixed list or computed from what the user types.</dd>
+<dt><a href="/docs/api-media.html">macotron.media</a></dt><dd>Read what is playing in any app and send play, pause, next, and previous.</dd>
+<dt><a href="/docs/api-menubar.html">macotron.menubar</a></dt><dd>Put status items in the menu bar, give them menus, and add rows to the Macotron menu.</dd>
+<dt><a href="/docs/api-mouse.html">macotron.mouse</a></dt><dd>Read where the pointer is and which buttons are down, and move the pointer.</dd>
+<dt><a href="/docs/api-network.html">macotron.network</a></dt><dd>Read and switch Wi-Fi, Bluetooth, and AirDrop, list interfaces and byte counters, and ping a host.</dd>
+<dt><a href="/docs/api-notes.html">macotron.notes</a></dt><dd>List the notes in Apple Notes and open one.</dd>
+<dt><a href="/docs/api-notify.html">macotron.notify</a></dt><dd>Post system notification banners and show short on-screen toasts.</dd>
+<dt><a href="/docs/api-ocr.html">macotron.ocr</a></dt><dd>Read the text in an image file or a base64 PNG with Apple&#x27;s on-device Vision OCR.</dd>
+<dt><a href="/docs/api-panel.html">macotron.panel</a></dt><dd>Open floating web-view windows and exchange messages with the page inside them.</dd>
+<dt><a href="/docs/api-power.html">macotron.power</a></dt><dd>Keep the Mac awake, lock, sleep, log out, restart, or shut down, and react to sleep and lock.</dd>
+<dt><a href="/docs/api-qr.html">macotron.qr</a></dt><dd>Read QR codes from images, the screen, or the camera, and make QR code images.</dd>
+<dt><a href="/docs/api-reminders.html">macotron.reminders</a></dt><dd>List, add, and complete reminders in the Reminders app.</dd>
+<dt><a href="/docs/api-screen.html">macotron.screen</a></dt><dd>Capture the screen or a dragged region as a PNG, and pick a color with the system eyedropper.</dd>
+<dt><a href="/docs/api-share.html">macotron.share</a></dt><dd>Open the macOS share menu for files, text or a link, or send files with AirDrop.</dd>
+<dt><a href="/docs/api-shell.html">macotron.shell</a></dt><dd>Run a command-line tool and get back its output and exit code.</dd>
+<dt><a href="/docs/api-shortcuts.html">macotron.shortcuts</a></dt><dd>List your Shortcuts and run one by name.</dd>
+<dt><a href="/docs/api-snippets.html">macotron.snippets</a></dt><dd>Keep text snippets under short abbreviations that expand as you type in any app.</dd>
+<dt><a href="/docs/api-spaces.html">macotron.spaces</a></dt><dd>List desktops on every display, switch to one, and move a window to another desktop.</dd>
+<dt><a href="/docs/api-spotlight.html">macotron.spotlight</a></dt><dd>Find files and folders by name with Spotlight, and complete typed paths one folder at a time.</dd>
+<dt><a href="/docs/api-system.html">macotron.system</a></dt><dd>CPU, GPU, memory, disk, processes, battery, fans, appearance, Focus, locale, and time zones.</dd>
+<dt><a href="/docs/api-udp.html">macotron.udp</a></dt><dd>Send UDP datagrams and listen on a port for incoming messages.</dd>
+<dt><a href="/docs/api-url.html">macotron.url</a></dt><dd>Route links to plugin handlers, open URLs in a chosen app, and act as the default browser.</dd>
+<dt><a href="/docs/api-usb.html">macotron.usb</a></dt><dd>List attached USB devices and react when one is plugged in or removed.</dd>
+<dt><a href="/docs/api-window.html">macotron.window</a></dt><dd>List, focus, move, tile, and snap the windows of every app, and restore saved layouts.</dd>
+</dl>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

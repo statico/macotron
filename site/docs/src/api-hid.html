@@ -1,0 +1,111 @@
+<!-- title: macotron.hid
+     summary: List HID devices, open one, and send and read raw input, output, and feature reports.
+     group: API -->
+<h1>macotron.hid</h1>
+<p class="lede">Talk to keyboards, mice, macro pads, status lights, and other HID devices with raw reports, the way <code>hidapi</code> and <code>hidapitester</code> do.</p>
+
+<pre><code class="language-javascript">// Turn a blink(1) status light red: report 1, fade command "c", RGB, fade time.
+const dev = macotron.hid.open("27b8/1ed");
+if (dev) {
+  macotron.hid.sendFeature(dev.id, [1, 0x63, 255, 0, 0, 0, 10], { length: 9 });
+  macotron.hid.close(dev.id);
+}</code></pre>
+
+<h2>Finding devices</h2>
+<p>A device is described by <code>HIDDeviceInfo</code>:</p>
+<table>
+  <thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>name</code></td><td>string</td><td>Product name, or <code>"HID device"</code> when it reports none.</td></tr>
+    <tr><td><code>vendor</code></td><td>string</td><td>Manufacturer name, or <code>""</code>.</td></tr>
+    <tr><td><code>vendorID</code>, <code>productID</code></td><td>number</td><td>USB vendor and product IDs.</td></tr>
+    <tr><td><code>usagePage</code>, <code>usage</code></td><td>number</td><td>The primary HID usage, for example page 1, usage 6 for a keyboard.</td></tr>
+    <tr><td><code>serial</code></td><td>string</td><td>Serial number, or <code>""</code>.</td></tr>
+    <tr><td><code>path</code></td><td>string</td><td>The IORegistry path. It tells apart two interfaces of the same device.</td></tr>
+    <tr><td><code>maxInput</code>, <code>maxOutput</code>, <code>maxFeature</code></td><td>number</td><td>Largest report of each kind in bytes. 64 when the device does not say.</td></tr>
+    <tr><td><code>battery</code></td><td>number?</td><td>Charge from 0 to 100, only for the few devices that publish one. Bluetooth mice and keyboards report charge through <a href="/docs/api-network.html">network.bluetooth()</a> instead.</td></tr>
+  </tbody>
+</table>
+
+<p>A <code>HIDFilter</code> narrows the match. Every field is optional, and a device must match all the fields you give:</p>
+<table>
+  <thead><tr><th>Field</th><th>Type</th><th>Matches</th></tr></thead>
+  <tbody>
+    <tr><td><code>vendorID</code>, <code>productID</code></td><td>number</td><td>USB IDs.</td></tr>
+    <tr><td><code>usagePage</code>, <code>usage</code></td><td>number</td><td>Primary usage.</td></tr>
+    <tr><td><code>serial</code></td><td>string</td><td>Exact serial number.</td></tr>
+    <tr><td><code>path</code></td><td>string</td><td>Exact IORegistry path.</td></tr>
+    <tr><td><code>vidpid</code></td><td>string</td><td>Hex IDs like <code>"27b8/1ed"</code>. <code>vendorID</code> and <code>productID</code> override it.</td></tr>
+  </tbody>
+</table>
+<p>Anywhere a filter goes, you can pass the <code>vidpid</code> string by itself: <code>"27b8/1ed"</code>, <code>"27b8:01ed"</code>, or just a vendor such as <code>"05ac"</code>.</p>
+
+<h3>list(filter?: HIDFilter | string): HIDDeviceInfo[]</h3>
+<p>Every HID device that matches. With no filter, every HID device on the Mac, including the built-in keyboard and trackpad.</p>
+
+<h3>open(filter?: HIDFilter | string): (HIDDeviceInfo &amp; { id: string }) | null</h3>
+<p>Opens the first matching device and returns its info plus an <code>id</code> for the other calls. Returns <code>null</code> when nothing matches or macOS will not open the device. Each call opens a new session with a new <code>id</code>.</p>
+
+<div class="note"><p>macOS opens keyboards only for apps that have Input Monitoring permission. Many devices expose several interfaces under one vendor and product ID; add <code>usagePage</code> or <code>path</code> to the filter to pick the right one.</p></div>
+
+<h3>close(id: string): void</h3>
+<p>Closes the session. Pending <code>readInput</code> calls reject. Macotron closes every session when plugins reload.</p>
+
+<h2>Sending reports</h2>
+<p><code>data</code> is an array of bytes (0–255) or a string such as <code>"1,99,0,255"</code>. In a string, bytes are separated by commas, spaces, or colons, and a byte is hex when it starts with <code>0x</code> or holds a letter (<code>"ff"</code>), and decimal otherwise.</p>
+<p>The first byte is the report ID, as in hidapi. Use <code>0</code> when the device does not number its reports; Macotron does not send that leading <code>0</code>. A non-zero report ID stays in the data that is sent.</p>
+
+<h3>sendOutput(id: string, data: number[] | string, opts?: { length?: number }): { ok, written?, error? }</h3>
+<p>Sends an output report. <code>length</code> pads the data with zeros up to that many bytes, counting the report ID. On success, <code>written</code> is the number of bytes sent. On failure, <code>error</code> is <code>"not open"</code>, <code>"bad data"</code>, <code>"empty report"</code>, or an IOKit error code such as <code>"0xe00002ed"</code>.</p>
+
+<h3>sendFeature(id: string, data: number[] | string, opts?: { length?: number }): { ok, written?, error? }</h3>
+<p>Sends a feature report. It works the same as <code>sendOutput</code>.</p>
+
+<h2>Reading reports</h2>
+
+<h3>readInput(id: string, opts?: { timeout?: number }): Promise&lt;{ id, reportId, data } | null&gt;</h3>
+<p>Waits for the next input report from the device, like <code>hid_read</code>. This is how most devices answer a command. <code>timeout</code> is milliseconds and defaults to 1000. Resolves <code>null</code> when nothing arrives in time, and rejects when the session is not open.</p>
+<p>Reports queue from the moment <code>open</code> returns, so a reply that arrives before you call <code>readInput</code> is not lost. The queue holds the newest 64 reports.</p>
+
+<pre><code class="language-javascript">const dev = macotron.hid.open({ vendorID: 0x1234, productID: 0x5678, usagePage: 0xff00 });
+if (dev) {
+  macotron.hid.sendOutput(dev.id, [0, 0x01], { length: 65 });
+  const reply = await macotron.hid.readInput(dev.id, { timeout: 500 });
+  if (reply) console.log(reply.data);
+}</code></pre>
+
+<h3>readInputReport(id: string, opts?: { reportId?: number; length?: number }): number[] | null</h3>
+<p>Asks for an input report with a control transfer (GetReport). Most devices never answer it; use <code>readInput</code> unless you know the device does. Returns the bytes with the report ID first, or <code>null</code> on failure. <code>length</code> defaults to the device's largest input report plus one.</p>
+
+<h3>readFeature(id: string, reportId: number, opts?: { length?: number }): number[] | null</h3>
+<p>Reads a feature report. Returns the bytes with the report ID first, or <code>null</code> on failure. <code>length</code> defaults to the device's largest feature report plus one.</p>
+
+<h3>reportDescriptor(id: string): number[] | null</h3>
+<p>The device's raw HID report descriptor, which lists its reports and their sizes. Returns <code>null</code> when the session is not open or the device does not publish one.</p>
+
+<h2>Streaming input</h2>
+
+<h3>listen(id: string): { ok: boolean; error?: string }</h3>
+<p>Sends every input report from the device as a <code>hid:input</code> event. While a session listens, reports go to the event instead of the <code>readInput</code> queue, and the queue is emptied. A <code>readInput</code> call that is already waiting still gets the next report. Returns <code>{ ok: false, error: "not open" }</code> for an unknown id.</p>
+
+<h3>unlisten(id: string): void</h3>
+<p>Stops the events. Reports queue for <code>readInput</code> again.</p>
+
+<h2>Events</h2>
+
+<h3>hid:input</h3>
+<p>Fires for each input report from a session that is listening. The payload is <code>{ id, reportId, data }</code>, where <code>id</code> is the session and <code>data</code> is an array of bytes.</p>
+
+<pre><code class="language-javascript">const pad = macotron.hid.open({ vidpid: "1d50/615e" });
+if (pad) macotron.hid.listen(pad.id);
+
+macotron.on("hid:input", ({ id, data }) =&gt; {
+  if (pad &amp;&amp; id === pad.id) console.log("keys", data);
+});</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-usb.html">macotron.usb</a> to watch any USB device come and go.</li>
+  <li><a href="/docs/api-event.html">macotron.event</a> to read or post ordinary key and mouse events.</li>
+  <li>The <code>hid.js</code> plugin.</li>
+</ul>

@@ -1,0 +1,68 @@
+<!-- title: macotron.clipboard
+     summary: Read and write the pasteboard, keep a short history, and force plain-text paste.
+     group: API -->
+<h1>macotron.clipboard</h1>
+<p class="lede">Read and write the general pasteboard, keep a short history of what was copied, and make Command-V paste plain text.</p>
+
+<pre><code class="language-javascript">// Copy the frontmost window's title.
+const win = macotron.window.focused();
+if (win) macotron.clipboard.set(win.title);</code></pre>
+
+<h2>Reading and writing</h2>
+
+<h3>text(): string</h3>
+<p>The pasteboard's plain text, or <code>""</code> when it holds none.</p>
+
+<h3>set(text: string): void</h3>
+<p>Replaces the pasteboard contents with <code>text</code>.</p>
+
+<h3>setImage(base64: string): boolean</h3>
+<p>Puts a PNG on the pasteboard. Accepts raw base64 or a <code>data:image/png;base64,…</code> URL. Returns <code>false</code> when the data does not decode.</p>
+
+<h3>clear(): void</h3>
+<p>Empties the pasteboard.</p>
+
+<h3>types(): string[]</h3>
+<p>The type identifiers on the pasteboard right now, such as <code>public.utf8-plain-text</code> or <code>public.png</code>.</p>
+
+<h3>data(uti: string): string | null</h3>
+<p>The raw bytes for one type, base64-encoded, or <code>null</code> when that type is absent.</p>
+
+<h2>History</h2>
+<p>Macotron records history only while some plugin wants it: after the first call to <code>history()</code>, or while a plugin listens for <code>clipboard:changed</code>. It keeps the newest 50 entries from the last 24 hours, in memory only, so history is gone after a restart.</p>
+<p>Password managers mark secrets with <code>org.nspasteboard.ConcealedType</code> or <code>TransientType</code>. Copies that carry either type are never recorded.</p>
+
+<h3>history(): Array&lt;{ id, text, kind, ts }&gt;</h3>
+<p>Newest first. <code>kind</code> is <code>"text"</code> or <code>"image"</code>. For an image, <code>text</code> holds the PNG as base64. <code>ts</code> is milliseconds since 1970.</p>
+
+<h3>paste(id: string): boolean</h3>
+<p>Puts a history entry back on the pasteboard. It does not press Command-V; send that with <a href="/docs/api-event.html">macotron.event</a> if you need it. Returns <code>false</code> for an unknown id.</p>
+
+<h3>remove(id: string): boolean</h3>
+<p>Deletes one entry. Returns <code>false</code> when the id was not in the history.</p>
+
+<h3>clearHistory(): void</h3>
+<p>Deletes every entry.</p>
+
+<h2>Plain-text paste</h2>
+
+<h3>setPastePlain(on: boolean): boolean</h3>
+<p>While on, Command-V in any app pastes only the plain text, dropping fonts, colors, and links. Returns <code>false</code> when the keyboard tap cannot be installed, which usually means Macotron lacks Accessibility permission.</p>
+
+<h3>isPastePlain(): boolean</h3>
+<p>Whether plain-text paste is on.</p>
+
+<h2>Events</h2>
+
+<h3>clipboard:changed</h3>
+<p>Fires when the pasteboard changes, checked twice a second. The payload is <code>{ changeCount, types }</code>; read the contents with <code>text()</code> or <code>data()</code>.</p>
+
+<pre><code class="language-javascript">macotron.on("clipboard:changed", ({ types }) =&gt; {
+  if (types.includes("public.png")) macotron.notify.toast("Copied an image");
+});</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-snippets.html">macotron.snippets</a> for text that expands as you type.</li>
+  <li>The <code>clipboard-history.js</code> plugin, which builds a launcher picker on <code>history()</code>.</li>
+</ul>

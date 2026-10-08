@@ -1,0 +1,27 @@
+<!-- title: macotron.dock
+     summary: Read the badges on Dock icons, such as unread counts in Mail or Messages.
+     group: API -->
+<h1>macotron.dock</h1>
+<p class="lede">Read the badges that apps show on their Dock icons, such as the unread count on Mail or Messages.</p>
+
+<pre><code class="language-javascript">const mail = macotron.dock.badges().find((b) =&gt; b.bundleID === "com.apple.mail");
+console.log("unread mail:", mail ? mail.badge : "none");</code></pre>
+
+<h2>Badges</h2>
+
+<h3>badges(): Array&lt;{ app: string, bundleID?: string, badge: string }&gt;</h3>
+<p>One entry for each Dock icon that shows a badge. Icons without a badge are left out, and an empty Dock gives <code>[]</code>.</p>
+<ul>
+  <li><code>app</code> is the name under the icon.</li>
+  <li><code>bundleID</code> is the app's bundle id, when the icon points to an app.</li>
+  <li><code>badge</code> is the badge text as a string, such as <code>"3"</code>. Use <code>Number(badge)</code> for a count.</li>
+</ul>
+<p>Only apps in the Dock can be read. An app that is not running and not kept in the Dock has no icon, so it has no badge.</p>
+
+<div class="note"><p>Badges are read through the accessibility API. Declare <code>permissions: ["accessibility"]</code> in <code>macotron.plugin()</code>. Without it, <code>badges()</code> returns <code>[]</code>.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-app.html">macotron.app</a> for running apps.</li>
+  <li><a href="/docs/api-ax.html">macotron.ax</a> for other accessibility reads.</li>
+</ul>

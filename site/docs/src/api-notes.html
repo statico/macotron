@@ -1,0 +1,33 @@
+<!-- title: macotron.notes
+     summary: List the notes in Apple Notes and open one.
+     group: API -->
+<h1>macotron.notes</h1>
+<p class="lede">List the titles and folders of your Apple Notes, and open a note in the Notes app.</p>
+
+<pre><code class="language-javascript">const notes = await macotron.notes.list();
+macotron.launcher.set("notes", notes.map((n) =&gt; ({
+  id: n.id,
+  title: n.title || "Untitled",
+  subtitle: n.folder,
+  app: "com.apple.Notes",
+  onClick: () =&gt; macotron.notes.open(n.id),
+})));</code></pre>
+
+<h2>Notes</h2>
+<p>Both calls talk to the Notes app with AppleScript, run in a separate <code>osascript</code> process off the main thread. Notes opens if it is not running.</p>
+
+<h3>list(): Promise&lt;Array&lt;{ id: string; title: string; folder: string }&gt;&gt;</h3>
+<p>Every note in every account. <code>folder</code> is the name of the folder the note is directly in. Notes in Recently Deleted, and in folders inside it, are left out. Resolves with <code>[]</code> when the script fails, for example when access is denied.</p>
+<p>A large library takes a few seconds, so do not call this on every keystroke. The <code>notes.js</code> plugin refreshes every five minutes.</p>
+
+<h3>open(id: string): Promise&lt;void&gt;</h3>
+<p>Shows the note with that id and brings Notes to the front. An unknown id does nothing.</p>
+
+<div class="note"><p>macOS asks once whether Macotron may control Notes. If the user says no, turn it back on in System Settings → Privacy &amp; Security → Automation.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-launcher.html">macotron.launcher</a> for the launcher items in the example.</li>
+  <li><a href="/docs/api-contacts.html">macotron.contacts</a>, built the same way for people.</li>
+  <li>The <code>notes.js</code> plugin.</li>
+</ul>
