@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>macotron.appletv · Macotron</title>
-  <meta name="description" content="Find Apple TVs on the local network. Sending remote keys is not available yet.">
+  <meta name="description" content="Find Apple TVs on the local network, pair with the PIN they show, and send remote keys.">
   <meta property="og:title" content="macotron.appletv · Macotron">
-  <meta property="og:description" content="Find Apple TVs on the local network. Sending remote keys is not available yet.">
+  <meta property="og:description" content="Find Apple TVs on the local network, pair with the PIN they show, and send remote keys.">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Macotron">
   <meta property="og:url" content="https://macotron.statico.io/docs/api-appletv.html">
@@ -128,10 +128,16 @@
 </nav>
 <article class="doc">
 <h1>macotron.appletv</h1>
-<p class="lede">Find Apple TVs and other AirPlay devices on the local network. The <code>send</code> call is in place for remote keys, but it cannot control a TV yet.</p>
+<p class="lede">Find Apple TVs on the local network, pair with one using the PIN it shows, and press keys on its remote. Macotron uses the Companion protocol, the one the iPhone remote uses.</p>
 
-<pre><code class="language-javascript"><span class="tok-kw">const</span> tvs = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.appletv.list();
-<span class="tok-fn">macotron</span>.notify.toast(<span class="tok-str">"Apple TV"</span>, tvs.map((t) =&gt; t.name).join(<span class="tok-str">", "</span>) || <span class="tok-str">"None found"</span>);</code></pre>
+<pre><code class="language-javascript"><span class="tok-kw">const</span> [tv] = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.appletv.list();
+<span class="tok-kw">if</span> (!<span class="tok-fn">macotron</span>.appletv.paired(tv.id)) {
+  <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.appletv.pair(tv.id);                  <span class="tok-cmt">// the TV shows a PIN</span>
+  <span class="tok-kw">const</span> pin = <span class="tok-fn">macotron</span>.prompt(<span class="tok-str">`PIN shown on ${tv.name}`</span>);
+  <span class="tok-kw">const</span> result = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.appletv.pair(tv.id, pin);
+  <span class="tok-kw">if</span> (!result.ok) throw <span class="tok-kw">new</span> Error(result.error);
+}
+<span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.appletv.send(tv.id, <span class="tok-str">"select"</span>);</code></pre>
 
 <h2 id="finding-devices">Finding devices</h2>
 
@@ -139,18 +145,30 @@
 <p>Browses Bonjour for <code>_companion-link._tcp</code> and <code>_airplay._tcp</code> for 1.5 seconds and resolves with what it finds. <code>id</code> is <code>"host:port"</code>, <code>type</code> is the service type, and <code>name</code> is the name set on the device.</p>
 <p>Macotron reuses a result for 30 seconds, so repeated calls return at once. An empty result is not reused.</p>
 
-<div class="note"><p>Every device that offers either service shows up, so the list can include AirPlay speakers, smart TVs, and Macs as well as Apple TVs. One Apple TV usually appears twice, once per service, with a different port in each <code>id</code>. Group rows by <code>host</code> or <code>name</code> for a picker. macOS asks for Local Network permission the first time Macotron browses.</p></div>
+<div class="note"><p>Every device that offers either service shows up, so the list can include AirPlay speakers, smart TVs, and Macs as well as Apple TVs. One Apple TV usually appears twice, once per service, with a different port in each <code>id</code>. Either <code>id</code> works with the calls below. Group rows by <code>host</code> or <code>name</code> for a picker. macOS asks for Local Network permission the first time Macotron browses.</p></div>
+
+<h2 id="pairing">Pairing</h2>
+
+<h3 id="pair-id-string-pin-string-promise-lt-ok-boolean-error-string-gt">pair(id: string, pin?: string): Promise&lt;{ ok: boolean; error?: string }&gt;</h3>
+<p>Pairing takes two calls. <code>pair(id)</code> starts it, and the TV shows a 4-digit PIN. <code>pair(id, pin)</code> finishes it with that PIN and stores the pairing in the Keychain. The TV then lists Macotron under Settings &gt; Remotes and Devices.</p>
+<p>Errors include <code>"Wrong PIN"</code>, <code>"Call pair(id) first so the TV shows a PIN"</code>, <code>"The PIN is the 4 numbers on the TV"</code>, <code>"No Companion service"</code> (the TV does not offer <code>_companion-link._tcp</code>), and <code>"No Apple TV"</code>.</p>
+
+<h3 id="paired-id-string-boolean">paired(id: string): boolean</h3>
+<p>Whether this Mac has a pairing stored for the TV. Pairings are kept by the TV's name, so renaming the TV means pairing again.</p>
+
+<h3 id="unpair-id-string-void">unpair(id: string): void</h3>
+<p>Forgets the pairing on this Mac. The TV keeps its side until you remove Macotron in Settings &gt; Remotes and Devices.</p>
 
 <h2 id="remote-keys">Remote keys</h2>
 
 <h3 id="send-id-string-command-up-down-left-right-select-menu-home-play-pause-playpause-promise-lt-ok-boolean-error-string-gt">send(id: string, command: "up" | "down" | "left" | "right" | "select" | "menu" | "home" | "play" | "pause" | "playpause"): Promise&lt;{ ok: boolean; error?: string }&gt;</h3>
-<p>Meant to press a key on the Apple TV's remote. Controlling an Apple TV needs Companion pairing, which Macotron does not implement yet, so this resolves <code>{ ok: false, error: "not paired" }</code> for a device from <code>list()</code>. For an <code>id</code> that is not in the list, it resolves <code>{ ok: false, error: "No Apple TV" }</code>.</p>
+<p>Presses and releases a key on the paired TV. The first key opens a connection, and later keys reuse it. Without a pairing it resolves <code>{ ok: false, error: "not paired" }</code>. If you removed Macotron on the TV, it resolves an error that says to pair again.</p>
 
 <h2 id="see-also">See also</h2>
 <ul>
   <li><a href="/docs/api-bonjour.html">macotron.bonjour</a> to browse for other service types.</li>
   <li><a href="/docs/api-media.html">macotron.media</a> to control playback on the Mac itself.</li>
-  <li>The <code>apple-tv.js</code> plugin, which builds the remote panel.</li>
+  <li>The <code>apple-tv.js</code> plugin, which builds the remote panel and the Pair Apple TV command.</li>
 </ul>
 </article>
   </main>

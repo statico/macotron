@@ -158,7 +158,7 @@ const CARDS = [
   ["Devices", [
     ["Camera list", "Built-in and USB cameras."],
     ["Camera preview", "Live panel, then a JPEG snapshot."],
-    ["Apple TV", "Browse the LAN; keys need Companion pairing."],
+    ["Apple TV", "Pair with a PIN, then send remote keys."],
     ["Share sheet", "Text, files, or a URL."],
     ["AirDrop", "Push paths through sharingd."],
   ]],
@@ -217,7 +217,7 @@ const CARDS = [
     ["Windows", "Tile with the keyboard or snap by dragging."],
   ]],
   ["Built-in plugins", [
-    ["Apple TV", "Finds Apple TVs; keys need Companion pairing."],
+    ["Apple TV", "Pairs with Apple TVs and sends remote keys."],
     ["Bluetooth", "Paired device batteries in the menu bar."],
     ["Contacts", "Search contacts from the launcher."],
     ["HomeKit", "Menu bar shell; macOS exposes no accessories."],
@@ -340,7 +340,7 @@ const APIS = [
   ]],
   ["macotron.bonjour", ["Browse mDNS; timeout in seconds"]],
   ["macotron.udp", ["send, listen, unlisten; udp:message"]],
-  ["macotron.appletv", ["list on the LAN; send() awaits pairing"]],
+  ["macotron.appletv", ["list, pair with a PIN, send keys"]],
   ["macotron.app", [
     "List, launch, switch, hide, quit",
     "Choose an AX menu path",

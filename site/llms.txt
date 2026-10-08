@@ -44,7 +44,7 @@ Native macOS host for JavaScript plugins.
 - [macotron (core)](/docs/api-core.html): Plugin metadata, launcher commands, host events, timers, dialogs, and logging.
 - [macotron.ai](/docs/api-ai.html): Send prompts to Claude, OpenAI, Gemini, or the on-device Apple Intelligence model.
 - [macotron.app](/docs/api-app.html): List, launch, switch to, hide, and quit apps, and pick items from their menus.
-- [macotron.appletv](/docs/api-appletv.html): Find Apple TVs on the local network. Sending remote keys is not available yet.
+- [macotron.appletv](/docs/api-appletv.html): Find Apple TVs on the local network, pair with the PIN they show, and send remote keys.
 - [macotron.audio](/docs/api-audio.html): List audio devices, switch input and output, set volume and mute, and record the microphone.
 - [macotron.ax](/docs/api-ax.html): Read the selected text, walk another app's UI elements, press buttons, and set field values.
 - [macotron.bonjour](/docs/api-bonjour.html): Find Bonjour services such as AirPlay receivers, printers, and other Macs on the local network.

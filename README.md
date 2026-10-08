@@ -62,7 +62,7 @@ The 74 built-in plugins do things like:
 - Select a region on the screen and OCR it
 - Scan a QR code off the screen, or show one
 - Show Time Machine backup progress
-- Browse Apple TVs on your network
+- Pair with Apple TVs on your network and send remote keys
 
 ...but that's not all. Check [the home page](https://macotron.statico.io) for a longer list of examples.
 
@@ -89,7 +89,7 @@ Everything hangs off a `macotron` global. Plugins are plain JavaScript on QuickJ
 | `network` | Wi-Fi, Bluetooth and device batteries, AirDrop, interfaces, counters, ping |
 | `http` | `get`, `post`, `put`, `delete` |
 | `bonjour` / `udp` | Browse mDNS services; send and listen on IPv4 |
-| `appletv` | Discover Apple TVs; `send()` awaits Companion pairing, so keys report "not paired" |
+| `appletv` | Discover Apple TVs, pair with the PIN they show, and send remote keys over Companion |
 | `usb` / `hid` | Enumerate devices; open a HID device, read and write reports |
 | `fs` | `read`, `readBytes`, `write`, `exists`, `list`, `watch`, `rename` |
 | `files` | Millisecond name search over an in-memory file index you point at folders |

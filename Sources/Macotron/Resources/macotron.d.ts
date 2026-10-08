@@ -408,6 +408,11 @@ declare const macotron: {
             id: string,
             command: "up" | "down" | "left" | "right" | "select" | "menu" | "home" | "play" | "pause" | "playpause"
         ): Promise<{ ok: boolean; error?: string }>;
+        /** Without a PIN the TV shows one; call again with it to finish pairing. */
+        pair(id: string, pin?: string): Promise<{ ok: boolean; error?: string }>;
+        paired(id: string): boolean;
+        /** Forgets the pairing on this Mac only. */
+        unpair(id: string): void;
     };
 
     idle: {
