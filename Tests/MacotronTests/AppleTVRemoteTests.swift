@@ -40,12 +40,84 @@ struct AppleTVRemoteTests {
         #expect(result["error"] as? String == "No Apple TV")
     }
 
-    @Test("send to a found device does not pair")
+    /// An in-memory stand-in for the Keychain, which can hang under test.
+    private static func memoryStore() -> AppleTVRemote.CredentialStore {
+        final class Box: @unchecked Sendable { var items: [String: String] = [:] }
+        let box = Box()
+        return .init(read: { box.items[$0] }, write: { box.items[$0] = $1 }, delete: { box.items[$0] = nil })
+    }
+
+    private let companion = [
+        "name": "Living Room",
+        "type": "_companion-link._tcp",
+        "host": "10.0.0.5",
+        "port": 49153,
+    ] as [String: Any]
+
+    @Test("send to a TV with no stored pairing reports not paired")
     func notPaired() {
         let devices = AppleTVRemote.merge([living])
-        let result = AppleTVRemote.send(id: "10.0.0.5:7000", command: "select", devices: devices, dryRun: false)
+        let result = AppleTVRemote.send(id: "10.0.0.5:7000", command: "select", devices: devices,
+                                        dryRun: false, store: Self.memoryStore())
         #expect(result["ok"] as? Bool == false)
         #expect(result["error"] as? String == "not paired")
+    }
+
+    @Test("send rejects an unknown key before touching the network")
+    func unknownKey() {
+        let result = AppleTVRemote.send(id: "10.0.0.5:7000", command: "jump", devices: AppleTVRemote.merge([living]),
+                                        dryRun: false, store: Self.memoryStore())
+        #expect(result["error"] as? String == "Unknown command: jump")
+    }
+
+    @Test("an airplay row resolves to the same TV's companion service")
+    func target() {
+        let target = AppleTVRemote.target(id: "10.0.0.5:7000", devices: AppleTVRemote.merge([living, companion]))
+        #expect(target?.name == "Living Room")
+        #expect(target?.port == 49153)
+        #expect(AppleTVRemote.target(id: "10.0.0.5:7000", devices: AppleTVRemote.merge([living]))?.port == nil)
+    }
+
+    @Test("paired and unpair follow the stored pairing, keyed by name")
+    func pairedState() {
+        let store = Self.memoryStore()
+        let devices = AppleTVRemote.merge([living])
+        #expect(!AppleTVRemote.paired(id: "10.0.0.5:7000", devices: devices, store: store))
+        let creds = CompanionCredentials(deviceKey: Array(repeating: 1, count: 32), clientSecret: Array(repeating: 2, count: 32),
+                                         deviceID: [3], clientID: [4])
+        store.write("Living Room", creds.string)
+        #expect(AppleTVRemote.paired(id: "10.0.0.5:7000", devices: devices, store: store))
+        AppleTVRemote.unpair(id: "10.0.0.5:7000", devices: devices, store: store)
+        #expect(!AppleTVRemote.paired(id: "10.0.0.5:7000", devices: devices, store: store))
+    }
+
+    @Test("a PIN without a started pairing, or a bad PIN, fails cleanly")
+    func pairErrors() {
+        let devices = AppleTVRemote.merge([living, companion])
+        let store = Self.memoryStore()
+        #expect(AppleTVRemote.pair(id: "10.0.0.5:7000", pin: "12a4", devices: devices, store: store)["error"] as? String
+            == "The PIN is the 4 numbers on the TV")
+        #expect(AppleTVRemote.pair(id: "10.0.0.5:7000", pin: "1234", devices: devices, store: store)["error"] as? String
+            == "Call pair(id) first so the TV shows a PIN")
+        #expect(AppleTVRemote.pair(id: "10.0.0.5:7000", pin: nil, devices: AppleTVRemote.merge([living]), store: store)["error"]
+            as? String == "No Companion service")
+    }
+
+    @Test("PINs pad to four digits")
+    func pins() {
+        #expect(AppleTVRemote.normalizePIN(" 42 ") == "0042")
+        #expect(AppleTVRemote.normalizePIN("1234") == "1234")
+        #expect(AppleTVRemote.normalizePIN("12345") == nil)
+        #expect(AppleTVRemote.normalizePIN("") == nil)
+        #expect(AppleTVRemote.normalizePIN("١٢") == nil)
+    }
+
+    @Test("keys map to pyatv's HID codes and media commands")
+    func keys() {
+        #expect(AppleTVRemote.Key("select") == .hid(6))
+        #expect(AppleTVRemote.Key("playpause") == .hid(14))
+        #expect(AppleTVRemote.Key("pause") == .media(2))
+        #expect(AppleTVRemote.Key("jump") == nil)
     }
 
     @Test("dry-run send is ok")
