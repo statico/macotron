@@ -1,0 +1,62 @@
+<!-- title: Getting started
+     summary: Install Macotron, pick a workdir, add plugins from the catalog, and grant permissions.
+     group: Guide
+     order: 1 -->
+<h1>Getting started</h1>
+<p class="lede">Macotron is a menu bar app that runs small JavaScript plugins. This page takes you from the download to your first working hotkey.</p>
+
+<h2>Install</h2>
+<p>Pick one:</p>
+<ul>
+  <li><a href="https://github.com/statico/macotron/releases/latest">Download the DMG</a>, open it, and drag Macotron into Applications.</li>
+  <li>Run <code>brew install statico/tap/macotron</code>.</li>
+</ul>
+<p>Either way, Macotron updates itself after that. See <a href="/docs/guide-updates.html">Updates</a>.</p>
+<p>Macotron runs on macOS 15 Sequoia and later. Apple Intelligence features (the on-device chat model and the plugin scanner) and the Liquid Glass panels need macOS 26 Tahoe.</p>
+
+<h2>First launch</h2>
+<p>The first launch opens a short setup window. It has five steps.</p>
+<ol>
+  <li><strong>Welcome.</strong> A one-line summary of what Macotron is.</li>
+  <li><strong>Plugins Folder.</strong> Select <strong>Choose Folder…</strong> and pick a folder for your plugins and settings. This folder is your <em>workdir</em>. <code>~/Macotron</code> is a good choice.</li>
+  <li><strong>Add Some Plugins.</strong> Add built-in plugins from the catalog. Select <strong>Add</strong> on a row, or <strong>Details…</strong> to read what a plugin does and which permissions it needs. <strong>I Feel Lucky, Add Everything!</strong> adds all of them. You can skip this step and add plugins later.</li>
+  <li><strong>Grant Permissions.</strong> One row for each macOS permission that Macotron and your plugins need. Select the button on each row. The list updates by itself as you approve each one.</li>
+  <li><strong>You're All Set!</strong> Select <strong>Open Macotron</strong>.</li>
+</ol>
+
+<h2>What is in the workdir</h2>
+<p>Macotron fills the folder you picked with this layout:</p>
+<pre><code>~/Macotron/
+  plugins/        your plugins, one .js file each
+  settings.json   launcher hotkey, UI preferences, plugin options
+  data/           what plugins save with localStorage
+  backups/        a copy of each plugin you delete
+  README.md       yours to edit; written once
+  AGENTS.md       written by Macotron for coding agents
+  CLAUDE.md       points at AGENTS.md
+  .cache/         bytecode cache and the typed API file</code></pre>
+<p>When Apple's developer tools are installed, Macotron also runs <code>git init</code> in the folder. It never makes commits itself. To move the workdir later, open Settings → General → Plugins Folder and select <strong>Change…</strong>.</p>
+
+<h2>Try it</h2>
+<ul>
+  <li>Press <kbd>⌥Space</kbd> to open the <a href="/docs/feature-launcher.html">launcher</a>. Type to search apps and the commands your plugins added.</li>
+  <li>Look at the new items in the menu bar. Plugins such as Mini Calendar and Weather put their own items next to the Macotron icon.</li>
+  <li>Open <strong>Settings…</strong> from the Macotron menu. The Plugins tab lists every plugin, its hotkeys, its commands, and its options.</li>
+</ul>
+
+<h2>Add more plugins</h2>
+<p>Open Settings → Plugins and select <strong>Catalog</strong>. The <strong>Built-In</strong> tab lists every plugin that ships with Macotron. The <strong>Community</strong> tab lists plugins that other people publish on GitHub; see <a href="/docs/guide-community-plugins.html">Community plugins</a>. <a href="/docs/feature-built-in-plugins.html">Built-in plugins</a> has a one-line summary of each.</p>
+
+<h2>Grant permissions</h2>
+<p>Macotron asks for a permission only when it, or an enabled plugin, needs it. Input Monitoring, Accessibility, and Automation are always on the list. Others, such as Screen Recording or Calendars, show up when you add a plugin that declares them.</p>
+<p>A missing permission puts a red dot on the menu bar icon and a <strong>Permissions needed</strong> row at the top of the menu. Settings → Permissions lists each one with a <strong>Grant…</strong> button. <a href="/docs/guide-permissions.html">Permissions</a> explains each one.</p>
+
+<h2>Write your own</h2>
+<p>Open the workdir in a coding agent such as Claude Code or Codex and describe what you want. The agent reads <code>AGENTS.md</code> and writes the plugin. See <a href="/docs/guide-coding-agents.html">Coding agents</a> and <a href="/docs/guide-writing-plugins.html">Writing plugins</a>.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/guide-writing-plugins.html">Writing plugins</a></li>
+  <li><a href="/docs/guide-permissions.html">Permissions</a></li>
+  <li><a href="/docs/guide-security.html">Security</a></li>
+</ul>

@@ -1,0 +1,59 @@
+<!-- title: macotron.http
+     summary: Make GET, POST, PUT, and DELETE requests and read the status, body, and headers.
+     group: API -->
+<h1>macotron.http</h1>
+<p class="lede">Make HTTP requests from a plugin. Every call returns a promise that resolves with the status, the body as text, and the response headers.</p>
+
+<pre><code class="language-javascript">const res = await macotron.http.get("https://wttr.in/?format=%t", {
+  headers: { "User-Agent": "curl/8.0" },
+  timeout: 8000,
+});
+if (res.status === 200) macotron.menubar.setTitle(res.body.trim());</code></pre>
+
+<h2>Requests</h2>
+
+<h3>get(url: string, opts?: HTTPOptions): Promise&lt;HTTPResponse&gt;</h3>
+<p>Sends a GET request.</p>
+
+<h3>post(url: string, body: any, opts?: HTTPOptions): Promise&lt;HTTPResponse&gt;</h3>
+<p>Sends a POST request. <code>body</code> is sent as a UTF-8 string, and the <code>Content-Type</code> header defaults to <code>application/json</code>. Pass a string: an object is converted with <code>String()</code>, which gives <code>"[object Object]"</code>, so call <code>JSON.stringify()</code> first.</p>
+
+<h3>put(url: string, body: any, opts?: HTTPOptions): Promise&lt;HTTPResponse&gt;</h3>
+<p>Sends a PUT request. The body works the same as for <code>post()</code>.</p>
+
+<h3>delete(url: string, opts?: HTTPOptions): Promise&lt;HTTPResponse&gt;</h3>
+<p>Sends a DELETE request.</p>
+
+<pre><code class="language-javascript">const res = await macotron.http.post(
+  "https://api.example.com/items",
+  JSON.stringify({ name: "Milk" }),
+  { headers: { Authorization: "Bearer " + macotron.keychain.get("example-token") } }
+);</code></pre>
+
+<h2>Options</h2>
+
+<h3>HTTPOptions: { headers?, timeout? }</h3>
+<p><code>timeout</code> is in milliseconds. The default is 30000.</p>
+<p><code>headers</code> sets request headers. Only these names are read, spelled exactly as shown: <code>Content-Type</code>, <code>Authorization</code>, <code>Accept</code>, <code>User-Agent</code>, <code>X-API-Key</code>, <code>X-Request-ID</code>, and <code>Cookie</code>. Other headers are ignored.</p>
+<p>Requests share the system cookie store. When you set <code>Cookie</code> yourself, that request leaves the shared store out, so your value is the one sent.</p>
+
+<h2>Responses</h2>
+
+<h3>HTTPResponse: { status, body, headers }</h3>
+<p><code>status</code> is the HTTP status code. <code>body</code> is the response decoded as UTF-8 text, or <code>""</code> when it is not valid UTF-8. <code>headers</code> holds the response headers as strings.</p>
+<p>The promise never rejects. A 404 or 500 resolves like any other response. A request that never completes, because of a bad URL, a timeout, or no network, resolves with <code>status: 0</code> and the reason in <code>body</code>, such as <code>"Invalid URL"</code> or <code>"Request timed out"</code>. One check of <code>status</code> covers both cases.</p>
+
+<pre><code class="language-javascript">const res = await macotron.http.get(feed);
+if (res.status === 200) {
+  const data = JSON.parse(res.body);
+  // …
+} else {
+  console.log("Feed failed:", res.status || res.body);
+}</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-ai.html">macotron.ai</a> for model APIs, with streaming.</li>
+  <li><a href="/docs/api-keychain.html">macotron.keychain</a> to store tokens.</li>
+  <li>The <code>weather.js</code> plugin, which polls a weather service with <code>get()</code>.</li>
+</ul>

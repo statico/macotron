@@ -1,0 +1,61 @@
+<!-- title: macotron.keyboard
+     summary: Global hotkeys the user can rebind, the current modifier keys, and a Hyper key.
+     group: API -->
+<h1>macotron.keyboard</h1>
+<p class="lede">Register global hotkeys that the user can rebind in Settings, read which modifier keys are down, and turn Caps Lock or Fn into a Hyper key.</p>
+
+<pre><code class="language-javascript">macotron.keyboard.setHyperKey("caps");
+macotron.keyboard.on("Hyper H", "hyper+h", () =&gt; {
+  macotron.notify.toast("Hyper", "Hyper+H");
+});</code></pre>
+
+<h2>Hotkeys</h2>
+
+<h3>on(id: string, defaultCombo: string, callback: () =&gt; void): void</h3>
+<p>Calls <code>callback</code> when the user presses the combo, in any app. <code>id</code> is the label the user sees in Settings → Plugins, and it must be unique within the plugin. <code>defaultCombo</code> is the combo to use until the user picks another one in Settings. If the user clears the shortcut, it stays off.</p>
+<p>Register hotkeys when the plugin loads. Global hotkeys need no permission.</p>
+<p>For a command that should also show in the launcher, use <a href="/docs/api-core.html">macotron.command</a> with an <code>id</code> instead. The user can give it a shortcut in the same place.</p>
+
+<h3>Combo strings</h3>
+<p>A combo is modifiers and one key joined with <code>+</code>, in any case, such as <code>"cmd+shift+c"</code> or <code>"ctrl+opt+left"</code>.</p>
+<table>
+  <thead><tr><th>Part</th><th>Names</th></tr></thead>
+  <tbody>
+    <tr><td>Modifiers</td><td><code>cmd</code> (<code>command</code>, <code>meta</code>), <code>shift</code>, <code>ctrl</code> (<code>control</code>), <code>opt</code> (<code>option</code>, <code>alt</code>), and <code>hyper</code>, which means all four together</td></tr>
+    <tr><td>Letters and digits</td><td><code>a</code> to <code>z</code>, <code>0</code> to <code>9</code></td></tr>
+    <tr><td>Function keys</td><td><code>f1</code> to <code>f12</code></td></tr>
+    <tr><td>Named keys</td><td><code>left</code>, <code>right</code>, <code>up</code>, <code>down</code>, <code>return</code> (<code>enter</code>), <code>tab</code>, <code>space</code>, <code>delete</code> (<code>backspace</code>), <code>forwarddelete</code>, <code>escape</code> (<code>esc</code>), <code>home</code>, <code>end</code>, <code>pageup</code>, <code>pagedown</code></td></tr>
+    <tr><td>Punctuation</td><td><code>-</code> <code>=</code> <code>[</code> <code>]</code> <code>;</code> <code>'</code> <code>\</code> <code>,</code> <code>.</code> <code>/</code> <code>`</code>, or by name: <code>minus</code>, <code>equal</code>, <code>leftbracket</code>, <code>rightbracket</code>, <code>semicolon</code>, <code>quote</code>, <code>backslash</code>, <code>comma</code>, <code>period</code>, <code>slash</code>, <code>grave</code></td></tr>
+  </tbody>
+</table>
+<p>Keys are matched by their position on a US keyboard. A combo that does not parse is skipped and logged.</p>
+
+<h2>Modifier state</h2>
+
+<h3>flags(): { cmd, shift, ctrl, opt, caps, fn }</h3>
+<p>Which modifier keys are held right now, each a boolean. <code>caps</code> is <code>true</code> while Caps Lock is on.</p>
+<pre><code class="language-javascript">macotron.command("Open Notes", "Hold Shift for a new window", () =&gt; {
+  const { shift } = macotron.keyboard.flags();
+  // ...
+});</code></pre>
+
+<h2>Hyper key</h2>
+
+<h3>setHyperKey(key: "caps" | "fn" | null): boolean</h3>
+<p>While the key is held, every key you press also carries Command, Shift, Control, and Option. Bind combos to it with <code>hyper+</code>. The Caps Lock or Fn press itself is swallowed, so Caps Lock no longer toggles caps.</p>
+<p>Pass <code>null</code> to turn it off. Returns <code>false</code> for any other value, or when the keyboard tap cannot be installed, which usually means Macotron lacks Accessibility permission.</p>
+
+<h3>hyperKey(): "caps" | "fn" | null</h3>
+<p>The current Hyper key, or <code>null</code> when none is set.</p>
+
+<h2>Events</h2>
+
+<h3>keyboard:&lt;binding&gt;</h3>
+<p><code>on()</code> subscribes your callback to this event for you. The name is <code>keyboard:</code> followed by <code>{filename}/{id}</code>. It has no payload.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-event.html">macotron.event</a> to post key presses or watch every key.</li>
+  <li><a href="/docs/api-core.html">macotron.command</a> for launcher commands.</li>
+  <li>The <code>hyper.js</code> example plugin.</li>
+</ul>

@@ -1,0 +1,45 @@
+<!-- title: macotron.snippets
+     summary: Keep text snippets under short abbreviations that expand as you type in any app.
+     group: API -->
+<h1>macotron.snippets</h1>
+<p class="lede">Keep text snippets under short abbreviations. With expansion on, typing an abbreviation in any app replaces it with the snippet.</p>
+
+<pre><code class="language-javascript">macotron.snippets.set(";omw", "On my way!");
+macotron.snippets.set(";sig", "Best,\nAda");
+macotron.snippets.setExpansionEnabled(true);</code></pre>
+
+<h2>Managing snippets</h2>
+<p>Snippets live in memory only. Set them when your plugin loads.</p>
+
+<h3>set(abbr: string, body: string): void</h3>
+<p>Adds a snippet, or replaces the body of an existing one.</p>
+
+<h3>remove(abbr: string): void</h3>
+<p>Deletes a snippet. Does nothing for an unknown abbreviation.</p>
+
+<h3>list(): Array&lt;{ abbr: string; body: string }&gt;</h3>
+<p>Every snippet, sorted by abbreviation.</p>
+
+<h3>insert(abbr: string): boolean</h3>
+<p>Puts the snippet's body on the clipboard, replacing what was there. It does not paste. Does nothing for an unknown abbreviation.</p>
+
+<div class="note"><p>The current build returns <code>undefined</code> from <code>insert</code>, not a boolean. Check that the abbreviation is in <code>list()</code> if you need to know.</p></div>
+
+<h2>Expansion</h2>
+
+<h3>setExpansionEnabled(enabled: boolean): boolean</h3>
+<p>Turns expansion on or off. Returns whether expansion is on afterwards, so <code>false</code> after asking to turn it on means the keyboard tap cannot be installed. That usually means Macotron lacks Input Monitoring or Accessibility permission.</p>
+<p>While expansion is on, Macotron watches what you type. When the last characters typed match an abbreviation, it deletes the abbreviation with Backspace and pastes the body with Command-V. If more than one abbreviation matches, the longest wins. After a short pause it puts the previous clipboard text back; anything else that was on the clipboard, such as an image, is lost.</p>
+<p>Space, Return, Tab, Escape, and any key pressed with Command, Control or Option clear what has been typed so far. Only plain ASCII characters count, so an abbreviation that contains other characters never expands.</p>
+
+<div class="note"><p>An abbreviation expands as soon as it is typed, even in the middle of a word: <code>omw</code> would fire inside <code>nomwhere</code>. Start abbreviations with a character you do not otherwise type, such as <code>;</code>.</p></div>
+
+<h3>isExpansionEnabled(): boolean</h3>
+<p>Whether expansion is on.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-clipboard.html">macotron.clipboard</a> for the clipboard itself.</li>
+  <li><a href="/docs/api-launcher.html">macotron.launcher</a> to list snippets as launcher rows.</li>
+  <li>The <code>snippets.js</code> plugin.</li>
+</ul>

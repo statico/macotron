@@ -1,0 +1,55 @@
+<!-- title: Screen tools
+     summary: Copy text or a QR code off the screen, pick colors, and tint, dim, or brighten the display.
+     group: Features
+     order: 90 -->
+<h1>Screen tools</h1>
+<p class="lede">A group of built-in plugins that read the screen (text, QR codes, colors) or change how it looks (red tint, extra dark, CRT scanlines, Night Shift, brightness). Each one is a launcher command, and some also have a hotkey.</p>
+
+<h2>Copy text from the screen</h2>
+<p><b>OCR</b> (<code>ocr.js</code>) reads the text in a part of the screen and copies it. Press ⌘⇧O, or run <b>OCR Selection</b> from the launcher, then drag a box around the text. Press Escape to cancel. Text recognition runs on your Mac.</p>
+<p><b>Screenshot Rename</b> (<code>screenshot-rename.js</code>) adds the launcher command <b>Rename Last Screenshot</b>. It reads the text in the newest screenshot on your Desktop and renames the file after the first line, for example <code>invoice-march.png</code>. If the name is taken, it adds <code>-2</code>, <code>-3</code>, and so on.</p>
+<div class="note"><p>Selecting a part of the screen needs the <b>Screen Recording</b> permission. Grant it in Settings → Permissions.</p></div>
+
+<h2>QR codes</h2>
+<p><b>QR Code Tools</b> (<code>qr.js</code>) adds three launcher commands:</p>
+<ul>
+  <li><b>Scan QR from Screen</b>: drag a box around a QR code. Macotron copies what the code holds. This needs Screen Recording.</li>
+  <li><b>Scan QR from Camera</b>: opens a <b>Scan QR Code</b> window with a camera preview. Hold the code up to the camera. The window closes and copies the contents when it finds a code. <b>Cancel</b> stops the scan. This needs the Camera permission.</li>
+  <li><b>Show QR</b>: shows a QR code for the text on the clipboard. If the clipboard is empty, it asks for the text.</li>
+</ul>
+
+<h2>Pick a color</h2>
+<p><b>Color Picker</b> (<code>color-picker.js</code>) opens the macOS magnifier. Press ⌘⇧K, or run <b>Pick Color</b>, then click a pixel. Macotron copies its hex color value and shows the value and the screen coordinates.</p>
+
+<h2>Check colors for color blindness</h2>
+<p><b>Color Blindness Simulator</b> (<code>color-blindness.js</code>) takes one screenshot of the main display and shows it full screen, repainted the way a color-blind viewer sees it. Use it to check a design without changing your display. The launcher commands are <b>Simulate Deuteranopia</b>, <b>Simulate Protanopia</b>, <b>Simulate Tritanopia</b>, and <b>Simulate Achromatopsia</b>. In the overlay, press 1 to 4 to switch between them. Press Escape or click to close it. This needs Screen Recording.</p>
+
+<h2>Screen effects</h2>
+<p><b>Screen Effects</b> (<code>screen-effects.js</code>) changes how the display looks. Run a command again to turn the effect off.</p>
+<table>
+  <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Toggle Night Vision</td><td>Tints every display red, to keep your eyes adjusted to a dark room.</td></tr>
+    <tr><td>Toggle Extra Dark</td><td>Dims the display below the lowest brightness the hardware allows.</td></tr>
+    <tr><td>Toggle Invert Display</td><td>Swaps white and black.</td></tr>
+    <tr><td>Toggle CRT Effect</td><td>Lays scanlines and a phosphor grille over the desktop and darkens the picture. It does not curve the image.</td></tr>
+    <tr><td>Toggle Night Shift</td><td>Turns Night Shift on or off.</td></tr>
+    <tr><td>Night Shift 60%</td><td>Sets the Night Shift strength to 60%.</td></tr>
+    <tr><td>Toggle True Tone</td><td>Turns True Tone on or off, on displays that have it.</td></tr>
+    <tr><td>Toggle Grayscale</td><td>Shows the display in gray.</td></tr>
+  </tbody>
+</table>
+<p>Night Vision, Extra Dark, and Invert are one setting, so turning one on turns the others off. The plugin remembers which one is on and puts it back after a plugin reload or a restart.</p>
+<p>A command that this Mac cannot run shows <b>Unavailable</b>.</p>
+<div class="note"><p>The CRT overlay covers the displays that are connected when you turn it on. After you connect a display, turn the overlay off and on again.</p></div>
+
+<h2>Brightness and XDR</h2>
+<p><b>Brightness Commands</b> (<code>brightness.js</code>) adds two hotkeys: ⌃⌥- makes the display dimmer and ⌃⌥= makes it brighter, by 10% at a time. The launcher command <b>Toggle XDR</b> turns the extra-bright range of an XDR display on or off.</p>
+<p>All the hotkeys on this page can be changed in Settings → Plugins. See <a href="/docs/feature-hotkeys.html">Hotkeys</a>.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-screen.html">macotron.screen</a>, <a href="/docs/api-ocr.html">macotron.ocr</a>, <a href="/docs/api-qr.html">macotron.qr</a>, <a href="/docs/api-display.html">macotron.display</a></li>
+  <li><a href="/docs/guide-permissions.html">Permissions</a></li>
+  <li><a href="/docs/feature-built-in-plugins.html">Built-in plugins</a></li>
+</ul>

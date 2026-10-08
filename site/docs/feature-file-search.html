@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>File search · Macotron</title>
+  <meta name="description" content="Find files and folders by name in the launcher, from an index Macotron keeps in memory.">
+  <meta property="og:title" content="File search · Macotron">
+  <meta property="og:description" content="Find files and folders by name in the launcher, from an index Macotron keeps in memory.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/feature-file-search.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/feature-file-search.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "File search", "item": "https://macotron.statico.io/docs/feature-file-search.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html" aria-current="page">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>File search</h1>
+<p class="lede">The File Search plugin finds files and folders by name as you type in the launcher. It reads from Macotron's own file index, not Spotlight, so results appear in milliseconds even on a large disk.</p>
+
+<h2 id="using-it">Using it</h2>
+<p>Open the launcher and type two or more letters of a file name. Matching files appear below the apps and commands.</p>
+<table>
+  <thead><tr><th>Key</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>Return</kbd></td><td>Open the file.</td></tr>
+    <tr><td><kbd>⌘Return</kbd></td><td>Reveal it in Finder.</td></tr>
+    <tr><td><kbd>⌥Return</kbd></td><td>Quick Look preview.</td></tr>
+    <tr><td><kbd>⌘C</kbd></td><td>Copy the path.</td></tr>
+  </tbody>
+</table>
+<p>Type a query with a slash to complete a path. Each segment matches one folder level, <code>~</code> is your home folder, and a trailing slash lists a folder.</p>
+<p>Files you open from the launcher move up the list. <b>Reset File Ranking</b> forgets those counts, for one path or for every file.</p>
+
+<h2 id="how-matching-works">How matching works</h2>
+<p>Matching ignores case. Better matches rank first:</p>
+<ol>
+  <li>The exact name.</li>
+  <li>The start of the name.</li>
+  <li>The start of a word in the name: <code>budget</code> finds <code>Q3 Budget.pdf</code>. Words split on spaces, <code>-</code>, <code>_</code>, <code>.</code>, and camelCase.</li>
+  <li>Anywhere in the name.</li>
+  <li>Letters in order inside the name: <code>ctrct</code> finds <code>contract</code>.</li>
+  <li>Letters in order inside the path: <code>docdad</code> finds <code>Documents/Dad</code>.</li>
+</ol>
+<p>The last two apply only to words of three or more letters. A query with spaces is a set of words that must all match. When two results tie, the one in a shallower folder wins.</p>
+
+<h2 id="what-gets-indexed">What gets indexed</h2>
+<p>By default the index covers:</p>
+<ul>
+  <li>your home folder, <code>~</code></li>
+  <li><code>/Applications</code></li>
+  <li>iCloud Drive, <code>~/Library/Mobile Documents/com~apple~CloudDocs</code></li>
+  <li>cloud storage providers, <code>~/Library/CloudStorage</code></li>
+</ul>
+<p>It skips <code>node_modules</code>, <code>*.tmp</code>, <code>go/pkg</code>, and all of <code>~/Library</code>, which holds keychains, cookies, mail, and app state. iCloud Drive and cloud storage live under <code>~/Library</code>, so they are listed as scopes of their own. A scope inside an ignored folder is still indexed.</p>
+<p>It always skips the contents of bundles such as <code>.app</code>, <code>.framework</code>, and <code>.photoslibrary</code>. The bundle itself is one entry. Symlinks are listed but not followed. Names that start with a dot are left out unless you turn on hidden files.</p>
+<p>The index watches the disk. New, moved, and deleted files show up in a couple of seconds.</p>
+
+<h2 id="settings">Settings</h2>
+<p>Open Settings → Plugins → File Search.</p>
+<table>
+  <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Search scopes</td><td>The four folders above</td><td>One folder per line. <code>~</code> is home.</td></tr>
+    <tr><td>Ignore patterns</td><td><code>node_modules</code>, <code>*.tmp</code>, <code>go/pkg</code>, <code>Library</code></td><td>One glob per line, in <code>.gitignore</code> style. A bare name skips every folder with that name; a path such as <code>Library/Caches</code> skips that one path inside a scope.</td></tr>
+    <tr><td>Include hidden files</td><td>Off</td><td>Index names that start with a dot.</td></tr>
+    <tr><td>Honour ignore files</td><td>On</td><td>Skip what <code>.gitignore</code>, <code>.ignore</code>, and <code>.macotronignore</code> files exclude.</td></tr>
+    <tr><td>Search file contents</td><td>Off</td><td>Add files whose text contains the query, from Spotlight, below the name matches. Only for queries of three or more letters.</td></tr>
+    <tr><td>Result count</td><td>8</td><td>How many files to show in the launcher.</td></tr>
+  </tbody>
+</table>
+<p>The <b>Checks</b> section of the plugin page shows the index state: "Indexing…" while it builds, then the number of files indexed. A bad ignore pattern shows its error there.</p>
+
+<h2 id="commands">Commands</h2>
+<ul>
+  <li><b>Reindex Files</b>: drop the index and walk the scopes again.</li>
+  <li><b>Reset File Ranking</b>: forget how often files were opened. Give it a full path to reset one file, or leave it blank for all.</li>
+</ul>
+
+<h2 id="when-the-index-is-not-available">When the index is not available</h2>
+<p>The index runs as a small helper program inside the app bundle. If it cannot start, the plugin's check reads "Indexer unavailable, using Spotlight" and searches go through Spotlight until the index is back. Spotlight is slower and hides some folders, but it still finds files.</p>
+
+<h2 id="search-from-your-own-plugin">Search from your own plugin</h2>
+<pre><code class="language-javascript"><span class="tok-kw">const</span> hits = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.files.search(<span class="tok-str">"invoice"</span>, { kind: <span class="tok-str">"pdf"</span>, limit: <span class="tok-num">10</span> });
+<span class="tok-kw">for</span> (<span class="tok-kw">const</span> h <span class="tok-kw">of</span> hits) console.log(h.path);</code></pre>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-files.html">macotron.files</a>: configure and query the index.</li>
+  <li><a href="/docs/api-spotlight.html">macotron.spotlight</a>: Spotlight search, including file contents.</li>
+  <li><a href="/docs/feature-launcher.html">Launcher</a></li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

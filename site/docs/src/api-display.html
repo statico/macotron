@@ -1,0 +1,110 @@
+<!-- title: macotron.display
+     summary: List displays, set brightness and gamma, and switch Night Shift, True Tone, grayscale, XDR, and CRT.
+     group: API -->
+<h1>macotron.display</h1>
+<p class="lede">List the connected displays, change brightness and the color lookup table, and switch the system display modes: Night Shift, True Tone, and grayscale.</p>
+
+<pre><code class="language-javascript">// Nudge the built-in display's brightness from the keyboard.
+function nudge(delta) {
+  const current = macotron.display.getBrightness();
+  if (current &gt;= 0) macotron.display.setBrightness(current + delta);
+}
+
+macotron.keyboard.on("Dimmer", "ctrl+opt+-", () =&gt; nudge(-0.1));
+macotron.keyboard.on("Brighter", "ctrl+opt+=", () =&gt; nudge(0.1));</code></pre>
+
+<h2>Listing displays</h2>
+
+<h3>list(): Array&lt;Display&gt;</h3>
+<p>One entry per connected screen. The <code>id</code> is the Core Graphics display ID. Pass it to the other calls on this page, and to <code>display</code> in <a href="/docs/api-window.html">macotron.window</a><code>.moveToFraction()</code>.</p>
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>Display ID.</td></tr>
+    <tr><td><code>width</code>, <code>height</code></td><td>Size in points.</td></tr>
+    <tr><td><code>main</code></td><td><code>true</code> for the screen that holds the key window.</td></tr>
+    <tr><td><code>frame</code></td><td><code>{ x, y, width, height }</code> in Cocoa screen points. The origin is the bottom-left of the main display.</td></tr>
+    <tr><td><code>visibleFrame</code></td><td>The frame without the menu bar and the Dock.</td></tr>
+    <tr><td><code>scale</code></td><td>Pixels per point: <code>2</code> on a Retina display.</td></tr>
+    <tr><td><code>rotation</code></td><td>Rotation in degrees.</td></tr>
+    <tr><td><code>builtin</code></td><td><code>true</code> for a laptop's own screen.</td></tr>
+    <tr><td><code>mirrored</code></td><td><code>true</code> when the display is in a mirror set.</td></tr>
+    <tr><td><code>serial</code></td><td>The serial number the display reports, often <code>0</code>.</td></tr>
+    <tr><td><code>mm</code></td><td><code>{ width, height }</code>, the physical size in millimeters.</td></tr>
+  </tbody>
+</table>
+
+<h2>Brightness</h2>
+
+<h3>getBrightness(id?: number): number</h3>
+<p>The brightness from <code>0</code> to <code>1</code>. Without <code>id</code>, it reads the main display. Returns <code>-1</code> when the display does not support software brightness, which is the case for most external monitors.</p>
+
+<h3>setBrightness(level: number, id?: number): boolean</h3>
+<p>Sets the brightness. <code>level</code> is clamped to <code>0</code>…<code>1</code>. Without <code>id</code>, it sets the main display. Returns <code>false</code> when the display does not accept the change.</p>
+
+<h2>Gamma</h2>
+<p>The gamma calls write the display's color lookup table. The table is a straight ramp from a <code>black</code> point to a <code>white</code> point, each an <code>{ red, green, blue }</code> object with channels from <code>0</code> to <code>1</code>. This affects every pixel on the screen, so it can tint, invert, or dim the display below its lowest hardware brightness.</p>
+
+<h3>setGamma(white, black?, id?): boolean</h3>
+<p>Writes the table. A channel you leave out is <code>0</code>, so <code>setGamma({ red: 1 })</code> shows only red. <code>black</code> defaults to all zeros. You can pass a display ID as the second argument and skip <code>black</code>. Without an ID, the table goes to every active display. Returns <code>false</code> when <code>white</code> is missing or a display rejects the table.</p>
+<pre><code class="language-javascript">macotron.display.setGamma({ red: 1, green: 0, blue: 0 });   // red only, for night vision
+macotron.display.setGamma({ red: 0.4, green: 0.4, blue: 0.4 }); // darker than the minimum brightness
+macotron.display.setGamma({ red: 0, green: 0, blue: 0 }, { red: 1, green: 1, blue: 1 }); // invert</code></pre>
+
+<h3>getGamma(id?: number): { white, black }</h3>
+<p>The current end points of the table for one display, the main display by default. Each is <code>{ red, green, blue }</code>. When the table cannot be read, it returns white as all ones and black as all zeros.</p>
+
+<h3>restoreGamma(): boolean</h3>
+<p>Puts back the ColorSync settings on every display. Macotron also does this when plugins reload, if a plugin changed the gamma.</p>
+
+<h2>Display modes</h2>
+<p>Each getter returns <code>available: false</code> when this Mac does not support the mode. Each setter returns <code>{ ok, on, available, error? }</code>. When <code>ok</code> is <code>false</code>, <code>error</code> says why.</p>
+
+<h3>nightShift(): { on, strength?, available }</h3>
+<p>Whether Night Shift is on. <code>strength</code> is the warmth from <code>0</code> to <code>1</code>, when macOS reports it.</p>
+
+<h3>setNightShift(on: boolean | { on?, strength? })</h3>
+<p>Turns Night Shift on or off. Pass an object to set the warmth too: <code>strength</code> is clamped to <code>0</code>…<code>1</code>, and <code>on</code> defaults to <code>true</code>. The result also carries <code>strength</code>.</p>
+<pre><code class="language-javascript">macotron.display.setNightShift({ strength: 0.8 });</code></pre>
+
+<h3>trueTone(): { on, available }</h3>
+<p>Whether True Tone is on.</p>
+
+<h3>setTrueTone(on: boolean)</h3>
+<p>Turns True Tone on or off.</p>
+
+<h3>grayscale(): { on, available }</h3>
+<p>Whether the screen shows in grayscale.</p>
+
+<h3>setGrayscale(on: boolean)</h3>
+<p>Turns grayscale on or off for every display.</p>
+
+<h2>Overlays</h2>
+
+<h3>setXDREnabled(enabled: boolean): boolean</h3>
+<p>Puts a transparent extended-dynamic-range layer over the main screen, which asks macOS for the display's HDR headroom. Returns <code>false</code> when the main screen has no HDR headroom. Turning it off always returns <code>true</code>.</p>
+
+<h3>isXDREnabled(): boolean</h3>
+<p>Whether the XDR layer is up.</p>
+
+<h3>setCRTEnabled(enabled: boolean): boolean</h3>
+<p>Draws a CRT effect over every screen: scanlines, a phosphor grille, a vignette, and a rolling bar. Clicks pass through it. It draws on top of the desktop, so it can darken and tint but cannot warp the pixels below. Returns <code>false</code> when Metal is unavailable.</p>
+<div class="note"><p>The effect covers the screens that are connected when you turn it on. After you connect a display, turn it off and on again.</p></div>
+
+<h3>isCRTEnabled(): boolean</h3>
+<p>Whether the CRT effect is on.</p>
+
+<h2>Events</h2>
+
+<h3>display:changed</h3>
+<p>Fires when a display is added, removed, moved, or reconfigured. The payload is <code>{ id, flags }</code>, where <code>flags</code> is an array of <code>"add"</code>, <code>"remove"</code>, <code>"move"</code>, <code>"main"</code>, <code>"mode"</code>, <code>"enable"</code>, <code>"disable"</code>, <code>"mirror"</code>, <code>"unmirror"</code>, and <code>"shape"</code>. One change often fires once for each display it affects.</p>
+<pre><code class="language-javascript">macotron.on("display:changed", ({ flags }) =&gt; {
+  if (flags.includes("add")) macotron.notify.toast("Display connected");
+});</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-screen.html">macotron.screen</a> to capture the screen or pick a color.</li>
+  <li><a href="/docs/api-window.html">macotron.window</a> to move windows between displays.</li>
+  <li>The <code>brightness.js</code> and <code>screen-effects.js</code> plugins.</li>
+</ul>

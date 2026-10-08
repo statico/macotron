@@ -60,7 +60,7 @@ SPARKLE_FRAMEWORK = $(SPARKLE_DIR)/Sparkle.xcframework/macos-arm64_x86_64/Sparkl
 
 .DEFAULT_GOAL := help
 
-.PHONY: help version build run run/hot-reload bundle check site clean cleanprefs release dmg publish scan trace
+.PHONY: help version build run run/hot-reload bundle check site docs serve clean cleanprefs release dmg publish scan trace
 
 ##@ General
 
@@ -188,6 +188,13 @@ site: ## Re-sync site/workdir/plugins from Examples/plugins
 	@sed "s/{{API_VERSION}}/$$(sed -n 's/.*apiVersion = "\(.*\)"/\1/p' Sources/MacotronEngine/Engine.swift)/" \
 		Sources/MacotronEngine/Resources/agents-template.md > site/workdir/AGENTS.md
 	@echo "Synced $$(ls site/workdir/plugins/*.js | wc -l | tr -d ' ') plugins into site/workdir/plugins"
+
+docs: ## Rebuild site/docs from site/docs/src and check every API has a page
+	@python3 scripts/build-docs.py
+	@python3 scripts/build-docs.py --check
+
+serve: site ## Serve site/ at http://localhost:8000 (try ?look=polar)
+	@cd site && python3 -m http.server 8000
 
 # Tees to $(TRACE_LOG) because `log` refuses to run inside a sandbox: an agent
 # working in one can read the file even though it cannot run the command.

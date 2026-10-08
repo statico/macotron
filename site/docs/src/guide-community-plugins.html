@@ -1,0 +1,46 @@
+<!-- title: Community plugins
+     summary: Install plugins other people publish on GitHub, and publish your own with one repository topic.
+     group: Guide
+     order: 7 -->
+<h1>Community plugins</h1>
+<p class="lede">Anyone can publish a Macotron plugin. Macotron lists every GitHub repository with the <code>macotron-plugin</code> topic, and installs one only after you read it and approve it.</p>
+
+<h2>Install a community plugin</h2>
+<ol>
+  <li>Open Settings → Plugins, select <strong>Catalog</strong>, and switch to <strong>Community</strong>.</li>
+  <li>Browse or search the list. Each row shows the title, the owner, the star count, and when the repository last changed. <strong>GitHub</strong> opens the repository.</li>
+  <li>Select <strong>Add</strong>. Macotron downloads the source and runs nothing yet.</li>
+  <li>Read the install sheet. It names the repository and says who wrote the plugin, and that it runs with the same access Macotron has. The scan runs over the code, as it does for any changed plugin (see <a href="/docs/guide-security.html#the-review-sheet">Security</a>). <strong>View Source…</strong> opens the code.</li>
+  <li>Approve it. Only then does the file reach your <code>plugins/</code> folder.</li>
+</ol>
+<p>Stars sort the list, but stars are not a sign of trust: they can be bought. Read the code, or ask your coding agent to explain it, before you approve.</p>
+<p>If a plugin with the same file name is already installed, the sheet warns you before it replaces it.</p>
+
+<h2>Updates</h2>
+<p>Nothing installs or updates by itself. When the published code of an installed community plugin differs from your copy, the Community list marks it <strong>Update</strong>, and the Macotron menu shows a plugin update row. An update opens the same sheet as a first install, so you read the new code before it runs.</p>
+<p><strong>Update All</strong> in Settings → Plugins opens one review sheet for each community plugin in turn.</p>
+
+<h2>Publish your own</h2>
+<ol>
+  <li>Name the repository <code>macotron-plugin-&lt;name&gt;</code>.</li>
+  <li>Put one plugin in it. Put the script in the root as <code>&lt;name&gt;.js</code>; <code>plugin.js</code> and <code>index.js</code> also work.</li>
+  <li>Write <code>title</code> and <code>description</code> in <code>macotron.plugin({ … })</code>. Macotron shows those, not the GitHub description.</li>
+  <li>Add the <code>macotron-plugin</code> topic to the repository.</li>
+</ol>
+<p>That is all. There is no index to edit, no pull request, and no review queue. <code>macotron-plugin-weather</code> holding <code>weather.js</code> installs as <code>weather.js</code>. <a href="https://github.com/statico/macotron-plugin-cleanshot">macotron-plugin-cleanshot</a> is a working example.</p>
+<p>Macotron caches the GitHub search for an hour, so a new repository can take that long to show up.</p>
+
+<h2>What Macotron does not check</h2>
+<ul>
+  <li><strong>Names.</strong> Two repositories can use the same name. The sheet shows the owner so you can tell them apart.</li>
+  <li><strong>Permissions.</strong> A plugin declares permissions, but Macotron cannot hold it to them.</li>
+  <li><strong>Signatures.</strong> Plugins are not signed. The hash check and the review sheet catch every change before it runs.</li>
+</ul>
+<p>When a published plugin turns out to be harmful, its hash goes on the block list, and every Mac stops running those bytes at its next launch. See <a href="/docs/guide-security.html#the-block-list">The block list</a>.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/guide-security.html">Security</a></li>
+  <li><a href="/docs/guide-writing-plugins.html">Writing plugins</a></li>
+  <li><a href="https://github.com/topics/macotron-plugin">The macotron-plugin topic on GitHub</a></li>
+</ul>

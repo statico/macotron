@@ -1,0 +1,30 @@
+<!-- title: macotron.shortcuts
+     summary: List your Shortcuts and run one by name.
+     group: API -->
+<h1>macotron.shortcuts</h1>
+<p class="lede">List the shortcuts in the Shortcuts app and run one by name.</p>
+
+<pre><code class="language-javascript">// Put every shortcut in the launcher.
+const names = await macotron.shortcuts.list();
+macotron.launcher.set("shortcuts", names.map((name) =&gt; ({
+  id: name,
+  title: name,
+  sfSymbol: "square.stack.3d.up",
+  onClick: () =&gt; macotron.shortcuts.run(name),
+})));</code></pre>
+
+<h2>Shortcuts</h2>
+<p>Both calls use <code>/usr/bin/shortcuts</code>, the command-line tool that ships with macOS. They run off the main thread.</p>
+
+<h3>list(): Promise&lt;string[]&gt;</h3>
+<p>The names of all your shortcuts. Resolves with <code>[]</code> when there are none or the tool fails.</p>
+
+<h3>run(name: string): Promise&lt;boolean&gt;</h3>
+<p>Runs the shortcut with that name and resolves when it finishes, so a long shortcut keeps the promise pending until it is done. Resolves <code>true</code> when the shortcut succeeds and <code>false</code> when it fails or no shortcut has that name. The shortcut gets no input, and its output is not returned.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-shell.html">macotron.shell</a> to call <code>/usr/bin/shortcuts</code> yourself, for example with <code>--input-path</code>.</li>
+  <li><a href="/docs/api-launcher.html">macotron.launcher</a> for the launcher items in the example.</li>
+  <li>The <code>shortcuts.js</code> plugin.</li>
+</ul>

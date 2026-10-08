@@ -1,0 +1,57 @@
+<!-- title: Coding agents
+     summary: Use Claude Code, Codex, or another agent to write plugins. Macotron writes the AGENTS.md they read.
+     group: Guide
+     order: 4 -->
+<h1>Coding agents</h1>
+<p class="lede">Macotron has no plugin editor of its own. It is built for a coding agent to write plugins for you: open the workdir in Claude Code, Codex, or another agent, say what you want, and the agent writes a <code>.js</code> file that Macotron loads.</p>
+
+<pre><code>cd ~/Macotron
+claude
+&gt; Add a plugin that shows my battery percentage in the menu bar
+  and turns red under 20%.</code></pre>
+
+<h2>What Macotron writes for agents</h2>
+<p>Every time Macotron starts, it writes two files into the workdir:</p>
+<ul>
+  <li><code>AGENTS.md</code>: what the folder is, the plugin rules, the API in brief, the log commands, and how to check a plugin. Codex, Cursor, and most other agents read this file.</li>
+  <li><code>CLAUDE.md</code>: one line that points Claude Code at <code>AGENTS.md</code>.</li>
+</ul>
+<p>Both files start with <code>&lt;!-- DO NOT EDIT — Macotron overwrites this file. --&gt;</code>. Macotron rewrites them on every launch, so your edits would be lost. Put your own notes in <code>README.md</code> instead; Macotron writes that file once and then leaves it alone.</p>
+<p>Macotron also copies the full typed API to <code>.cache/macotron.d.ts</code>. <code>AGENTS.md</code> tells the agent to read it before it guesses at a call. The <code>.gitignore</code> Macotron writes keeps <code>AGENTS.md</code>, <code>CLAUDE.md</code>, and <code>.cache/</code> out of git.</p>
+
+<h2>Start an agent from Settings</h2>
+<p>Open Settings → Plugins and select <strong>Create</strong>. The menu lists:</p>
+<ul>
+  <li><strong>Agents</strong>: Claude Code, Codex, Cursor CLI, pi.dev, and Gemini CLI. Macotron opens a Terminal window in the workdir and starts the agent. You install the agent yourself; if it is missing, Terminal says so.</li>
+  <li><strong>Editors</strong>: Cursor, Visual Studio Code, Zed, Xcode, and Terminal, opened on the workdir.</li>
+  <li><strong>Empty Plugin…</strong>: type a title, and Macotron writes a starter file with a header and one launcher command, then opens it.</li>
+  <li><strong>Open Plugins Folder</strong>: shows the folder in Finder.</li>
+</ul>
+
+<h2>A good loop</h2>
+<ol>
+  <li>Turn on <strong>Enable Hot Reloading</strong> in the Macotron menu, so each save loads at once. Turn it off when you finish. See <a href="/docs/guide-security.html">Security</a> for why it is off by default.</li>
+  <li>Ask the agent for one feature at a time.</li>
+  <li>Have the agent check its work with <code>/Applications/Macotron.app/Contents/MacOS/Macotron --check plugins/name.js</code>. <code>AGENTS.md</code> tells it how.</li>
+  <li>If something does not work, ask the agent to read the log. <code>AGENTS.md</code> includes the <code>log stream</code> and <code>log show</code> commands. Plugins that log their steps are much easier to fix; see <a href="/docs/guide-writing-plugins.html#logging">Logging</a>.</li>
+  <li>Try the result. Open Settings → Plugins to see the new hotkeys, commands, and options.</li>
+</ol>
+
+<h2>Git</h2>
+<p>When Apple's developer tools are installed, Macotron runs <code>git init</code> in the workdir. It never commits. <code>AGENTS.md</code> tells agents to commit often on <code>main</code> and never to commit secrets, so you can undo a bad change with git. Git is optional; Macotron works without it.</p>
+
+<h2>Things to tell your agent</h2>
+<p><code>AGENTS.md</code> already covers these, but they are the most common mistakes:</p>
+<ul>
+  <li>Use only <code>macotron.*</code> and tools that ship with macOS. No Homebrew, npm, or pip.</li>
+  <li>API keys go in a <code>password</code> option or <code>macotron.keychain</code>, not in the source or <code>settings.json</code>.</li>
+  <li>Configure plugins through options in <code>macotron.plugin()</code>, not by editing <code>pluginSettings</code> in <code>settings.json</code>.</li>
+  <li>Save user choices in <code>localStorage</code>, because plugin variables reset on every reload.</li>
+</ul>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/guide-writing-plugins.html">Writing plugins</a></li>
+  <li><a href="/docs/guide-plugin-settings.html">Plugin settings</a></li>
+  <li><a href="/AGENTS.md">The AGENTS.md that Macotron writes</a></li>
+</ul>

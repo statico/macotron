@@ -41,12 +41,7 @@
     ]
   }
   </script>
-  <script>
-    (function () {
-      var m = localStorage.getItem("theme") || "system";
-      if (m === "light" || m === "dark") document.documentElement.dataset.theme = m;
-    })();
-  </script>
+  <script src="head.js"></script>
   <link rel="stylesheet" href="site.css">
 </head>
 <body>
@@ -56,6 +51,7 @@
       <a href="/#can">Capabilities</a>
       <a href="/#source">Plugins</a>
       <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
       <a href="https://github.com/statico/macotron">GitHub</a>
     </nav>
     <div class="theme" role="group" aria-label="Color scheme">
@@ -81,7 +77,7 @@
         <div class="group-items">
           <article class="card"><b>Plugin</b><span>A <code>.js</code> file in the workdir <code>plugins/</code> folder. Macotron loads it and runs it.</span></article>
           <article class="card"><b>Workdir</b><span>The folder you pick on first launch. Holds <code>plugins/</code>, <code>settings.json</code>, and an app-owned <code>AGENTS.md</code>.</span></article>
-          <article class="card"><b>Catalog</b><span>The 74 built-in plugins shipped in the app. First launch copies the ones you pick into the workdir.</span></article>
+          <article class="card"><b>Catalog</b><span>The built-in plugins shipped in the app. First launch copies the ones you pick into the workdir.</span></article>
           <article class="card"><b>Featured</b><span>Catalog plugins marked <code>highlighted</code> in <code>catalog.json</code>. They sort first in Settings and on this site.</span></article>
           <article class="card"><b>Stock Mac</b><span>Built-in plugins use only <code>macotron.*</code> and Apple-shipped tools. No Homebrew, npm, or extra binaries.</span></article>
         </div>
@@ -106,26 +102,8 @@
   </main>
   <footer>
     <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
-    <p><a href="/glossary.html">Glossary</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
   </footer>
-  <script>
-    (function () {
-      var mode = localStorage.getItem("theme") || "system";
-      function apply(next) {
-        mode = next;
-        if (next === "light" || next === "dark") document.documentElement.dataset.theme = next;
-        else delete document.documentElement.dataset.theme;
-        localStorage.setItem("theme", next);
-        document.querySelectorAll("[data-theme-set]").forEach(function (btn) {
-          btn.setAttribute("aria-pressed", btn.dataset.themeSet === next ? "true" : "false");
-        });
-      }
-      apply(mode);
-      document.querySelector(".theme").addEventListener("click", function (e) {
-        var btn = e.target.closest("[data-theme-set]");
-        if (btn) apply(btn.dataset.themeSet);
-      });
-    })();
-  </script>
+  <script src="common.js"></script>
 </body>
 </html>

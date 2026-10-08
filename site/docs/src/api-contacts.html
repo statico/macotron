@@ -1,0 +1,38 @@
+<!-- title: macotron.contacts
+     summary: List and search the people in Contacts, with their emails and phone numbers.
+     group: API -->
+<h1>macotron.contacts</h1>
+<p class="lede">List and search the people in the Contacts app, with their names, company, email addresses, and phone numbers.</p>
+
+<pre><code class="language-javascript">const [person] = await macotron.contacts.search("ada");
+if (person &amp;&amp; person.emails[0]) macotron.url.open("mailto:" + person.emails[0]);</code></pre>
+
+<h2>People</h2>
+<p>Both calls read every contact in every account and run off the main thread. Each row has the same fields:</p>
+
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>The contact's identifier.</td></tr>
+    <tr><td><code>name</code></td><td>The full name, formatted the way Contacts shows it. <code>""</code> for a contact with no name, such as a company card.</td></tr>
+    <tr><td><code>first</code>, <code>last</code></td><td>The given name and family name.</td></tr>
+    <tr><td><code>organization</code></td><td>The company name, or <code>""</code>.</td></tr>
+    <tr><td><code>emails</code></td><td>Every email address, in card order.</td></tr>
+    <tr><td><code>phones</code></td><td>Every phone number, as typed on the card.</td></tr>
+  </tbody>
+</table>
+
+<h3>list(): Promise&lt;Array&lt;{ id, name, first, last, organization, emails, phones }&gt;&gt;</h3>
+<p>Every contact.</p>
+
+<h3>search(query: string): Promise&lt;Array&lt;{ id, name, first, last, organization, emails, phones }&gt;&gt;</h3>
+<p>Contacts whose name, organization, email addresses, or phone numbers contain <code>query</code>. The match ignores case and accents, so <code>"jose"</code> finds José. An empty query returns every contact.</p>
+
+<div class="note"><p>Macotron needs Contacts access. The first call asks macOS to show the permission prompt and resolves with <code>[]</code> while the user decides. If access is denied, every call resolves with <code>[]</code>; turn it on in System Settings → Privacy &amp; Security → Contacts.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-url.html">macotron.url</a> to open <code>mailto:</code> and <code>tel:</code> links.</li>
+  <li><a href="/docs/api-launcher.html">macotron.launcher</a> to put people in the launcher.</li>
+  <li>The <code>contacts.js</code> plugin.</li>
+</ul>

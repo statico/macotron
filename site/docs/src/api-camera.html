@@ -1,0 +1,48 @@
+<!-- title: macotron.camera
+     summary: List cameras, show a live preview window, and take a PNG snapshot from it.
+     group: API -->
+<h1>macotron.camera</h1>
+<p class="lede">List the cameras, show a floating live preview, and take a still from that preview as a base64 PNG.</p>
+
+<pre><code class="language-javascript">macotron.plugin({
+  title: "Camera",
+  description: "Preview the camera and copy a still.",
+  permissions: ["camera"],
+});
+
+macotron.command("Camera Preview", "Show a live camera preview", () =&gt; {
+  if (!macotron.camera.preview()) macotron.notify.toast("Could not start the camera");
+});
+
+macotron.command("Camera Snapshot", "Copy a preview still", () =&gt; {
+  const png = macotron.camera.snapshot();
+  if (png) macotron.clipboard.setImage(png);
+  else macotron.notify.toast("Start the preview first");
+});</code></pre>
+
+<div class="note"><p>The camera needs Camera permission. Put <code>"camera"</code> in the <code>permissions</code> of <code>macotron.plugin()</code>. If macOS has not asked yet, the first <code>preview()</code> shows the prompt and returns <code>false</code>. Call it again after the user allows access.</p></div>
+
+<h2>Cameras</h2>
+
+<h3>list(): Array&lt;{ id, name }&gt;</h3>
+<p>The video cameras macOS can see: built-in, Continuity Camera, Desk View, and external. <code>id</code> is the device's unique ID and <code>name</code> is the name macOS shows.</p>
+
+<h2>Preview</h2>
+<p>There is one preview at a time. Starting a new one closes the old one.</p>
+
+<h3>preview(opts?: { id?, width?, height? }): boolean</h3>
+<p>Opens a floating window with a live feed, titled with the camera's name. <code>id</code> comes from <code>list()</code>. Without it, or when no camera has that ID, the first camera is used. <code>width</code> and <code>height</code> are the window size in points: 640 by 480 by default, and at least 160 by 120.</p>
+<p>Returns <code>false</code> when camera access is not granted, when there is no camera, or when the camera cannot start.</p>
+
+<h3>stopPreview(): void</h3>
+<p>Closes the preview window and stops the camera. Closing the window by hand does the same.</p>
+
+<h3>snapshot(): string | null</h3>
+<p>The newest frame from the running preview, as a base64 PNG at the camera's resolution. Returns <code>null</code> when no preview is running or no frame has arrived yet.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-qr.html">macotron.qr</a><code>.scan({ camera: true })</code> to read a QR code with the camera.</li>
+  <li><a href="/docs/api-clipboard.html">macotron.clipboard</a><code>.setImage()</code> to copy a snapshot.</li>
+  <li>The <code>record.js</code> plugin.</li>
+</ul>

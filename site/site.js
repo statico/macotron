@@ -30,7 +30,7 @@ const CARDS = [
   ]],
   ["Interface", [
     ["Menu bar extras", "Icons, two-line text, click menus beside Macotron."],
-    ["Sparklines", "CPU or any series as a tiny menu-bar graph."],
+    ["Sparklines", "Any series of numbers as a tiny menu-bar line graph."],
     ["Icon tint", "Recolor the Macotron glyph from a plugin."],
     ["Item visibility", "Know when the notch or a drag hid your item."],
     ["Bar appearance", "isDark() follows the wallpaper, not the theme."],
@@ -251,7 +251,7 @@ const CARDS = [
     ["Color Blindness Simulator", "Preview the screen with a CVD filter."],
     ["Color Picker", "System magnifier, hex plus RGB."],
     ["Emoji Picker", "Search emoji and paste one."],
-    ["CPU Graph", "Usage sparkline in the menu bar."],
+    ["CPU Graph", "CPU, GPU and memory gauges in the menu bar."],
     ["Date Stamp", "Copy the current ISO-8601 timestamp."],
     ["Dev Utils", "UUID, hashes, Base64, JWT peek."],
     ["Eject", "Eject volumes, or empty the Trash."],
@@ -458,6 +458,7 @@ const FILES = [
 async function loadFiles() {
   const res = await fetch("workdir/plugins/index.json");
   const names = res.ok ? await res.json() : FEATURED;
+  if (res.ok) document.getElementById("plugin-count").textContent = names.length;
   FILES.push(
     ...FEATURED.filter((n) => names.includes(n)).map((n) => pluginEntry(n, "featured")),
     ...names.filter((n) => !FEATURED.includes(n)).map((n) => pluginEntry(n, "plugins"))
@@ -495,12 +496,21 @@ function renderCards(query) {
   );
 }
 
+// Top-level calls share one page; every namespace has its own.
+const CORE = ["command", "plugin", "on", "every", "settings", "version", "config"];
+
+function docsPage(title) {
+  const name = title.split(/[. ]/)[1];
+  return `/docs/api-${CORE.includes(name) ? "core" : name}.html`;
+}
+
 function renderApis() {
   const root = document.getElementById("apis");
   root.replaceChildren(
     ...APIS.map(([title, items]) => {
       const el = document.createElement("article");
-      el.innerHTML = `<h3>${esc(title)}</h3><ul>${items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>`;
+      el.innerHTML = `<h3><a href="${docsPage(title)}">${esc(title)}</a></h3>` +
+        `<ul>${items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>`;
       return el;
     })
   );
@@ -579,30 +589,12 @@ async function openFile(id) {
   code.innerHTML = highlight(cache.get(id), file.label);
 }
 
-function currentTheme() {
-  return localStorage.getItem("theme") || "system";
-}
-
-function applyTheme(mode) {
-  if (mode === "light" || mode === "dark") document.documentElement.dataset.theme = mode;
-  else delete document.documentElement.dataset.theme;
-  localStorage.setItem("theme", mode);
-  document.querySelectorAll("[data-theme-set]").forEach((btn) => {
-    btn.setAttribute("aria-pressed", btn.dataset.themeSet === mode ? "true" : "false");
-  });
-}
-
 function refresh() {
   renderCards(document.getElementById("q").value);
 }
 
 async function boot() {
-  applyTheme(currentTheme());
   await loadFiles();
-  document.querySelector(".theme").addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-theme-set]");
-    if (btn) applyTheme(btn.dataset.themeSet);
-  });
   document.getElementById("q").addEventListener("input", refresh);
   refresh();
   renderApis();

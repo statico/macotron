@@ -1,0 +1,79 @@
+<!-- title: macotron.power
+     summary: Keep the Mac awake, lock, sleep, log out, restart, or shut down, and react to sleep and lock.
+     group: API -->
+<h1>macotron.power</h1>
+<p class="lede">Keep the Mac awake, run the power actions from the Apple menu, and react when the Mac sleeps, wakes, locks, or unlocks.</p>
+
+<pre><code class="language-javascript">// Stay awake, screen included, until the toggle is pressed again.
+macotron.command("Toggle Keep Awake", "Stop the Mac and screen from sleeping", () =&gt; {
+  if (macotron.power.isPreventing()) {
+    macotron.power.allowSleep();
+  } else {
+    macotron.power.preventSleep({ display: true, reason: "Macotron keep awake" });
+  }
+});</code></pre>
+
+<h2>Keeping the Mac awake</h2>
+<p>Macotron holds at most one sleep assertion for all plugins. A plugin reload releases it, so a plugin that should stay awake across reloads calls <code>preventSleep()</code> again when it loads.</p>
+
+<h3>preventSleep(opts?: { display?: boolean; reason?: string }): boolean</h3>
+<p>Stops the Mac from going to sleep when it is idle. By default the screen can still dim and sleep, and the lock screen comes with it. With <code>display: true</code>, the screen stays on too. <code>reason</code> is the label that <code>pmset -g assertions</code> shows; it defaults to <code>"Macotron"</code>.</p>
+<p>A second call replaces the first. Returns <code>false</code> when macOS refuses the assertion.</p>
+
+<h3>allowSleep(): void</h3>
+<p>Releases the assertion. Does nothing when none is held.</p>
+
+<h3>isPreventing(): boolean</h3>
+<p>Whether Macotron holds an assertion now.</p>
+
+<h2>Power actions</h2>
+<p>Each call returns <code>true</code> when the action started and <code>false</code> when it failed.</p>
+
+<h3>lock(): boolean</h3>
+<p>Locks the screen at once.</p>
+
+<h3>sleep(): boolean</h3>
+<p>Puts the Mac to sleep.</p>
+
+<h3>displaySleep(): boolean</h3>
+<p>Turns the screens off and leaves the Mac running, like <code>pmset displaysleepnow</code>.</p>
+
+<h3>screensaver(): boolean</h3>
+<p>Starts the screen saver.</p>
+
+<h3>logOut(): boolean</h3>
+<p>Logs out the current user.</p>
+
+<h3>restart(): boolean</h3>
+<p>Restarts the Mac.</p>
+
+<h3>shutdown(): boolean</h3>
+<p>Shuts down the Mac.</p>
+
+<div class="note"><p><code>sleep()</code>, <code>logOut()</code>, <code>restart()</code>, and <code>shutdown()</code> send an Apple event to System Events. The first time, macOS asks the user to let Macotron control System Events. Until the user allows it, these calls return <code>false</code>.</p></div>
+
+<h2>Events</h2>
+<p>None of these events has a payload.</p>
+
+<h3>system:sleep</h3>
+<p>Fires when the Mac is about to sleep. The Mac is already on its way down, so keep the handler short and do not wait on a promise.</p>
+
+<h3>system:wake</h3>
+<p>Fires when the Mac wakes from sleep.</p>
+
+<h3>system:lock</h3>
+<p>Fires when the screen locks.</p>
+
+<h3>system:unlock</h3>
+<p>Fires when the user unlocks the screen.</p>
+
+<pre><code class="language-javascript">macotron.on("system:unlock", () =&gt; {
+  macotron.notify.toast("Welcome back");
+});</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-idle.html">macotron.idle</a> for <code>system:idle</code> and <code>system:active</code>.</li>
+  <li><a href="/docs/api-system.html">macotron.system</a> for battery state and Low Power Mode.</li>
+  <li>The <code>power.js</code> and <code>lock-screen.js</code> plugins.</li>
+</ul>

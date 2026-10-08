@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Window management · Macotron</title>
+  <meta name="description" content="Tile windows with hotkeys, snap them by dragging, place them on a grid, and save layouts.">
+  <meta property="og:title" content="Window management · Macotron">
+  <meta property="og:description" content="Tile windows with hotkeys, snap them by dragging, place them on a grid, and save layouts.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/feature-windows.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/feature-windows.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "Window management", "item": "https://macotron.statico.io/docs/feature-windows.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html" aria-current="page">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>Window management</h1>
+<p class="lede">Built-in plugins tile the focused window with the keyboard, snap a window when you drag it to a screen edge, place it on a grid, switch windows with Option-Tab, and save and restore whole layouts.</p>
+
+<div class="note"><p>Every plugin on this page needs Accessibility. The Window Switcher and Gesture Examples also need Input Monitoring. See <a href="/docs/guide-permissions.html">Permissions</a>.</p></div>
+
+<h2 id="tiling-hotkeys">Tiling hotkeys</h2>
+<p>The <b>Window Controls</b> plugin binds these hotkeys. Change any of them in Settings → Plugins → Window Controls.</p>
+<table>
+  <thead><tr><th>Hotkey</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>⌃⌥←</kbd></td><td>Left half</td></tr>
+    <tr><td><kbd>⌃⌥→</kbd></td><td>Right half</td></tr>
+    <tr><td><kbd>⌃⌥↑</kbd></td><td>Top half</td></tr>
+    <tr><td><kbd>⌃⌥↓</kbd></td><td>Bottom half</td></tr>
+    <tr><td><kbd>⌃⌥Return</kbd></td><td>Fill the screen</td></tr>
+    <tr><td><kbd>⌃⌥C</kbd></td><td>Center, at 75% of the screen</td></tr>
+    <tr><td><kbd>⌃⌥U</kbd> <kbd>⌃⌥I</kbd> <kbd>⌃⌥J</kbd> <kbd>⌃⌥K</kbd></td><td>Top left, top right, bottom left, bottom right quarter</td></tr>
+    <tr><td><kbd>⌃⌥D</kbd> <kbd>⌃⌥E</kbd> <kbd>⌃⌥F</kbd></td><td>First, center, and last third</td></tr>
+    <tr><td><kbd>⌃⌥T</kbd> <kbd>⌃⌥Y</kbd></td><td>First and last two thirds</td></tr>
+    <tr><td><kbd>⌃⌥⌘→</kbd> <kbd>⌃⌥⌘←</kbd></td><td>Move to the next or previous display, filling it</td></tr>
+    <tr><td><kbd>⌃⌥Space</kbd></td><td>Radial menu: a wheel at the pointer. Click a wedge to tile there.</td></tr>
+  </tbody>
+</table>
+<p>Press a hotkey again to cycle. A second <kbd>⌃⌥←</kbd> moves the window to the right half, and the thirds keys step through all three thirds. Turn on <b>Cycle through displays</b> to move to the next display at the end of a cycle.</p>
+<p>The launcher has Tile Left Half, Tile Right Half, Tile Full Screen, and Radial Menu as commands.</p>
+
+<h2 id="drag-to-snap">Drag to snap</h2>
+<p>Drag a window by its title bar to a screen edge or corner. Macotron shows where the window will go, and tiles it when you let go. With the default <b>Halves</b> zones:</p>
+<ul>
+  <li>Left or right edge: that half of the screen.</li>
+  <li>Top edge: fill the screen.</li>
+  <li>Bottom edge: the bottom half.</li>
+  <li>A corner: that quarter.</li>
+</ul>
+<p>Hold Shift while you drag to use the alternate zones, which are <b>Thirds</b> by default. Run <b>Toggle Window Snap</b> from the launcher to turn snapping off or on.</p>
+
+<h2 id="window-controls-settings">Window Controls settings</h2>
+<table>
+  <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Snap edge (px)</td><td>20</td><td>How close to an edge the pointer must be to snap.</td></tr>
+    <tr><td>Snap corner (px)</td><td>80</td><td>How large each corner zone is.</td></tr>
+    <tr><td>Gap (px)</td><td>0</td><td>Space between a tiled window and the screen edge or its neighbor, 0 to 40.</td></tr>
+    <tr><td>Snap zones</td><td>Halves</td><td>Halves, Thirds, or Quarters.</td></tr>
+    <tr><td>Alternate snap key</td><td>Shift</td><td>The key that switches to the alternate zones. None turns it off.</td></tr>
+    <tr><td>Alternate snap zones</td><td>Thirds</td><td>Zones used while the alternate key is held.</td></tr>
+    <tr><td>Cycle through displays</td><td>Off</td><td>Move on to the next display when a tiling cycle ends.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="switch-windows">Switch windows</h2>
+<p>The <b>Window Switcher</b> plugin flips through windows, not apps. Hold Option and press Tab. A panel lists the open windows with the previous one selected. Press Tab again to move down, Shift-Tab to move up, and release Option to switch. You can also click a row.</p>
+<p>Window Controls adds <b>Switch Window</b> to the launcher. It opens a panel of every window with a filter field. Click a window to bring it forward.</p>
+
+<h2 id="place-on-a-grid">Place on a grid</h2>
+<p>The <b>Window Quick Grid</b> plugin opens a small panel with a grid that stands for the screen. Press <kbd>⌃⌥G</kbd> or run <b>Place Window</b>, then drag across the cells you want the window to cover. Macotron shows the destination while you drag. The grid is 6 by 6 by default; set <b>Columns</b>, <b>Rows</b>, and <b>Gap</b> in its settings, or change the counts in the panel. A grid can have up to 20 columns and 20 rows.</p>
+
+<h2 id="save-and-restore-layouts">Save and restore layouts</h2>
+<p>The <b>Window Layout Save &amp; Restore</b> plugin keeps one layout named Work.</p>
+<ul>
+  <li><b>Save Work</b> records the app, title, frame, and display of every window.</li>
+  <li><b>Restore Work</b> moves the windows back. A toast reports how many it restored and how many it could not find.</li>
+</ul>
+<p>The layout is saved in the plugin's <code>localStorage</code>, so it survives restarts. To keep more layouts, copy the plugin and change its key, or ask your coding agent to add more.</p>
+
+<h2 id="trackpad-gestures">Trackpad gestures</h2>
+<p>The <b>Gesture Examples</b> plugin tiles the focused window when you swipe with three fingers: left for the left half, right for the right half.</p>
+
+<h2 id="spaces">Spaces</h2>
+<p>The <b>Spaces Controls</b> plugin adds <b>Next Space</b>, which switches to the next Mission Control desktop. It shows a toast with the desktop number each time the space changes.</p>
+
+<h2 id="write-your-own">Write your own</h2>
+<p>All of these plugins use <a href="/docs/api-window.html">macotron.window</a>. A tile is a fraction of the screen:</p>
+<pre><code class="language-javascript"><span class="tok-fn">macotron</span>.keyboard.on(<span class="tok-str">"Left Two Thirds"</span>, <span class="tok-str">"ctrl+opt+shift+left"</span>, () =&gt; {
+  <span class="tok-kw">const</span> win = <span class="tok-fn">macotron</span>.window.focused();
+  <span class="tok-kw">if</span> (win) <span class="tok-fn">macotron</span>.window.moveToFraction(win.id, { x: <span class="tok-num">0</span>, y: <span class="tok-num">0</span>, w: <span class="tok-num">2</span> / <span class="tok-num">3</span>, h: <span class="tok-num">1</span>, gap: <span class="tok-num">8</span> });
+});</code></pre>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-window.html">macotron.window</a></li>
+  <li><a href="/docs/api-spaces.html">macotron.spaces</a></li>
+  <li><a href="/docs/api-display.html">macotron.display</a></li>
+  <li><a href="/docs/feature-hotkeys.html">Hotkeys</a></li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

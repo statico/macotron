@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Menu bar · Macotron</title>
+  <meta name="description" content="The Macotron menu, its warning dots, and the status items that plugins put in the menu bar.">
+  <meta property="og:title" content="Menu bar · Macotron">
+  <meta property="og:description" content="The Macotron menu, its warning dots, and the status items that plugins put in the menu bar.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/feature-menu-bar.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/feature-menu-bar.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "Menu bar", "item": "https://macotron.statico.io/docs/feature-menu-bar.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html" aria-current="page">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>Menu bar</h1>
+<p class="lede">Macotron lives in the menu bar. Its own icon opens the Macotron menu, and plugins add their own items next to it: meters, clocks, the next meeting, the current track.</p>
+
+<h2 id="the-macotron-menu">The Macotron menu</h2>
+<p>Click the Macotron icon to open its menu. Plugins can add rows at the top. The bottom of the menu always has these rows:</p>
+<table>
+  <thead><tr><th>Row</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Open Launcher</td><td>Opens the launcher. The shortcut shown is your launcher hotkey (⌥Space by default).</td></tr>
+    <tr><td>Reload Plugins</td><td>Loads every plugin again. Shortcut ⌘R while the menu is open.</td></tr>
+    <tr><td>Enable Hot Reloading / Disable Hot Reloading</td><td>Turns Hot Reload on or off. With it on, a saved plugin file reloads at once, without a review.</td></tr>
+    <tr><td>Review &amp; Reload (<i>n</i>)</td><td>Shows only when plugin files changed on disk. Opens the review for the changed files.</td></tr>
+    <tr><td>Open Config Folder</td><td>Opens your workdir in Finder. Shortcut ⌘, while the menu is open.</td></tr>
+    <tr><td>Check for Updates...</td><td>Checks for a new Macotron now. When a scheduled check already found one, the row reads <b>Update to <i>version</i>...</b> instead.</td></tr>
+    <tr><td>Settings...</td><td>Opens Settings.</td></tr>
+    <tr><td>Quit Macotron</td><td>Quits the app.</td></tr>
+  </tbody>
+</table>
+<p>To hide the Macotron icon, clear <b>Show in menu bar</b> in Settings → General. Plugin items stay in the menu bar.</p>
+
+<h2 id="badges-on-the-icon">Badges on the icon</h2>
+<p>A small badge on the Macotron icon tells you that something needs a look. When more than one thing applies, the icon shows the most important one, in this order:</p>
+<table>
+  <thead><tr><th>Badge</th><th>Meaning</th><th>Menu row</th></tr></thead>
+  <tbody>
+    <tr><td>Red dot</td><td>A permission that Macotron or a running plugin needs is missing.</td><td><b>Permissions needed</b>, with the names. Click it to open the Permissions tab.</td></tr>
+    <tr><td>Orange dot</td><td>Plugin files changed on disk and wait for your review.</td><td><b>Review &amp; Reload</b>.</td></tr>
+    <tr><td>Orange arrows</td><td>Hot Reload is on. Plugins load without a scan.</td><td><b>Hot Reload is on</b>. Click it to turn Hot Reload off.</td></tr>
+    <tr><td>Blue arrow</td><td>An update is available for an installed plugin.</td><td>A blue row that opens the plugin updates.</td></tr>
+  </tbody>
+</table>
+<p>See <a href="/docs/guide-permissions.html">Permissions</a> and <a href="/docs/guide-security.html">Security</a> for what each one asks of you.</p>
+
+<h2 id="plugin-status-items">Plugin status items</h2>
+<p>A plugin can put its own item in the menu bar. An item can show an SF Symbol, an image, or an SVG; a title with an optional second line; and a small graph. A click runs an action or opens a menu. Many built-in plugins work this way:</p>
+<ul>
+  <li><b>CPU, GPU and Memory Graph</b> (<code>cpu-graph.js</code>) and <b>System Metrics</b> (<code>system-metrics.js</code>): usage meters.</li>
+  <li><b>Battery Meter</b> (<code>battery.js</code>) and <b>Bluetooth Device Levels</b> (<code>bluetooth.js</code>): charge levels.</li>
+  <li><b>Network Stats</b> (<code>network-path.js</code>): network speed and ping.</li>
+  <li><b>Weather</b> (<code>weather.js</code>), <b>World Clock</b> (<code>world-clock.js</code>), and <b>Mini Calendar</b> (<code>mini-calendar.js</code>).</li>
+  <li><b>Now Playing</b> (<code>now-playing.js</code>): the current track, with play, pause, and skip.</li>
+  <li><b>Time Machine Progress</b> (<code>time-machine.js</code>), <b>Eject Disks</b> (<code>eject.js</code>), <b>Mic Mute</b> (<code>mic-mute.js</code>), <b>Audio</b> (<code>audio.js</code>), <b>Wi-Fi Toggles</b> (<code>wifi.js</code>), <b>Stay Awake</b> (<code>power.js</code>), <b>Pomodoro Timer</b> (<code>pomodoro.js</code>), and <b>Fan Control</b> (<code>fan.js</code>).</li>
+  <li><b>Meetings</b> and <b>Reminders</b>: see <a href="/docs/feature-meetings.html">Meetings and calendar</a>.</li>
+</ul>
+<p>This is the Reminders plugin, slightly shortened. It shows the next reminder with its due time on a second line, and lists the rest in its menu:</p>
+<pre><code class="language-javascript"><span class="tok-kw">async</span> <span class="tok-kw">function</span> paint() {
+  <span class="tok-kw">const</span> items = (<span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.reminders.list()).slice(<span class="tok-num">0</span>, <span class="tok-num">8</span>);
+  <span class="tok-kw">const</span> next = items[<span class="tok-num">0</span>];
+  <span class="tok-fn">macotron</span>.menubar.status(<span class="tok-str">"reminders"</span>, {
+    title: next ? next.title : <span class="tok-str">"Reminders"</span>,
+    subtitle: next ? <span class="tok-str">"Next up"</span> : <span class="tok-str">""</span>,
+    sfSymbol: <span class="tok-str">"checklist"</span>,
+    secondary: <span class="tok-kw">true</span>,
+    menu: items.map((item) =&gt; ({
+      title: item.title,
+      onClick: () =&gt; { <span class="tok-fn">macotron</span>.reminders.complete(item.id); paint(); },
+    })),
+  });
+}
+
+paint();
+<span class="tok-fn">macotron</span>.every(60_000, paint);</code></pre>
+<p>Call <code>status()</code> again with the same id to repaint the item. When a plugin is disabled or deleted, its items go away on the next reload. See <a href="/docs/api-menubar.html">macotron.menubar</a> for every option.</p>
+
+<h2 id="hidden-and-crowded-items">Hidden and crowded items</h2>
+<p>macOS can keep an item out of view in two ways, and Macotron tells you about both on the plugin's page in Settings → Plugins, under <b>Menu Bar</b>:</p>
+<ul>
+  <li><b>You removed it.</b> Command-dragging an item out of the menu bar hides it for good. The plugin page says the item was removed and has a <b>Restore</b> button.</li>
+  <li><b>There is no room.</b> On a Mac with a notch, the menu bar runs out of space, and macOS does not draw the items that do not fit. To make room, Command-drag other items out of the menu bar, or move some into Control Center in System Settings.</li>
+</ul>
+<p>Settings → Permissions also lists <b>Menu Bar Items</b> while an item that a plugin asked for is hidden, either dragged out or switched off for Macotron in System Settings → Menu Bar. <b>Show…</b> puts back the items it can and opens the System Settings pane for the rest.</p>
+<div class="note"><p>A plugin can mark an item as fine to hide (<code>required: false</code>). Macotron does not warn about those.</p></div>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-menubar.html">macotron.menubar</a></li>
+  <li><a href="/docs/feature-built-in-plugins.html">Built-in plugins</a></li>
+  <li><a href="/docs/guide-writing-plugins.html">Writing plugins</a></li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

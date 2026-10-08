@@ -1,0 +1,54 @@
+<!-- title: macotron.qr
+     summary: Read QR codes from images, the screen, or the camera, and make QR code images.
+     group: API -->
+<h1>macotron.qr</h1>
+<p class="lede">Read a QR code from an image, from part of the screen, or from the camera, and make a QR code as a PNG or in a floating window.</p>
+
+<pre><code class="language-javascript">macotron.plugin({
+  title: "QR Code Tools",
+  description: "Scan a QR code from the screen, or show one for the clipboard.",
+  permissions: ["screenRecording", "camera"],
+});
+
+macotron.command("Scan QR from Screen", "Drag a box around a QR code", async () =&gt; {
+  const text = await macotron.qr.scan();
+  if (text) macotron.clipboard.set(text);
+});
+
+macotron.command("Show QR", "Show a QR code for the clipboard", () =&gt; {
+  const text = macotron.clipboard.text();
+  if (text) macotron.qr.show(text);
+});</code></pre>
+
+<h2>Reading codes</h2>
+
+<h3>detect(opts: { path?: string; image?: string }): Promise&lt;string | null&gt;</h3>
+<p>Resolves with the payload of the first QR code in the image, or <code>null</code> when there is none. <code>path</code> is an image file (a leading <code>~</code> expands). <code>image</code> is base64 image data or a <code>data:</code> URL. When both are given, <code>path</code> wins. The call throws a <code>TypeError</code> when neither is usable.</p>
+<p>Images larger than 8192 pixels on a side, or larger than 8 MB, resolve with <code>null</code>.</p>
+
+<h3>scan(opts?: { camera?, screenshot?, selection? }): Promise&lt;string | null&gt;</h3>
+<p>Lets the user point at a code, then resolves with its payload. It resolves with <code>null</code> when the user cancels or no code is found. One scan runs at a time; a second call while one is open resolves with <code>null</code>.</p>
+<table>
+  <thead><tr><th>Option</th><th>Default</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>camera</code></td><td><code>false</code></td><td>Opens a camera preview window that closes when it sees a code. Cancel and Escape close it. This option overrides the other two.</td></tr>
+    <tr><td><code>screenshot</code></td><td><code>true</code></td><td>Reads the code from the screen.</td></tr>
+    <tr><td><code>selection</code></td><td><code>true</code></td><td>With <code>screenshot</code>, the user drags a box around the code. With <code>false</code>, it reads the whole display.</td></tr>
+  </tbody>
+</table>
+<div class="note"><p>A screen scan needs Screen Recording permission, and a camera scan needs Camera permission. Put <code>"screenRecording"</code> or <code>"camera"</code> in the <code>permissions</code> of <code>macotron.plugin()</code>. A camera scan without access resolves with <code>null</code>.</p></div>
+
+<h2>Making codes</h2>
+
+<h3>image(text: string, opts?: { size?: number }): string | null</h3>
+<p>A QR code for <code>text</code> as a base64 PNG, <code>size</code> pixels square. <code>size</code> defaults to 256 and is clamped to 32…2048. Returns <code>null</code> for empty text or text longer than 4096 characters.</p>
+
+<h3>show(text: string, opts?: { size?: number }): void</h3>
+<p>Shows a QR code for <code>text</code> in a floating window titled "QR Code". A second call reuses the same window. <code>size</code> sets the image resolution as in <code>image()</code>; the window stays 280 points square.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-panel.html">macotron.panel</a><code>.open({ qr })</code> to add a QR code to a panel.</li>
+  <li><a href="/docs/api-screen.html">macotron.screen</a> and <a href="/docs/api-camera.html">macotron.camera</a>.</li>
+  <li>The <code>qr.js</code> plugin.</li>
+</ul>

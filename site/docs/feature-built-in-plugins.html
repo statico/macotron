@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Built-in plugins · Macotron</title>
+  <meta name="description" content="Every plugin that ships with Macotron, with one line on what it does and what it needs.">
+  <meta property="og:title" content="Built-in plugins · Macotron">
+  <meta property="og:description" content="Every plugin that ships with Macotron, with one line on what it does and what it needs.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/feature-built-in-plugins.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/feature-built-in-plugins.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "Built-in plugins", "item": "https://macotron.statico.io/docs/feature-built-in-plugins.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html" aria-current="page">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>Built-in plugins</h1>
+<p class="lede">Macotron ships with 74 plugins. None run until you add them. Add them in the first-run wizard, or later from Settings → Plugins → Catalog. Each one is a single JavaScript file that you can read, change, or copy.</p>
+<p><b>Featured</b> plugins are highlighted in the catalog. A permission in the list means the plugin declares it, and Macotron asks for it when you add the plugin. See <a href="/docs/guide-permissions.html">Permissions</a>. Most plugins add launcher commands; the source for all of them is in <a href="https://github.com/statico/macotron/tree/main/Examples/plugins">Examples/plugins</a>.</p>
+
+<h2 id="launcher-and-search">Launcher and search</h2>
+<ul>
+  <li><b>Calculator</b> (<code>calculator.js</code>, Featured): do math and convert units in the launcher. See <a href="/docs/feature-launcher.html">Launcher</a>.</li>
+  <li><b>File Search</b> (<code>file-search.js</code>, Featured): find files and folders as you type, from Macotron's own index. See <a href="/docs/feature-file-search.html">File search</a>.</li>
+  <li><b>Contacts Search</b> (<code>contacts.js</code>): search your contacts.</li>
+  <li><b>Notes Search</b> (<code>notes.js</code>, Featured): search Apple Notes and open one.</li>
+  <li><b>System Settings Search</b> (<code>system-settings.js</code>, Featured): open System Settings panes.</li>
+  <li><b>Web Search</b> (<code>web-search.js</code>): search Google, Wikipedia, Maps, YouTube, or GitHub, or look up a word in Dictionary.</li>
+  <li><b>Shortcuts</b> (<code>shortcuts.js</code>): run your shortcuts from Shortcuts.app.</li>
+  <li><b>Emoji Picker</b> (<code>emoji.js</code>): search emoji by name, with the ones you use most at the top.</li>
+  <li><b>Lock Screen Command</b> (<code>lock-screen.js</code>, Featured): lock this Mac.</li>
+</ul>
+
+<h2 id="windows-and-spaces">Windows and spaces</h2>
+<ul>
+  <li><b>Window Controls</b> (<code>windows.js</code>, Featured, Accessibility): tile with hotkeys, snap by dragging to an edge, switch windows by name. See <a href="/docs/feature-windows.html">Window management</a>.</li>
+  <li><b>Window Quick Grid</b> (<code>window-grid.js</code>, Featured, Accessibility): place the focused window by dragging across a grid.</li>
+  <li><b>Window Switcher</b> (<code>window-switcher.js</code>, Accessibility, Input Monitoring): hold Option and press Tab to flip through windows.</li>
+  <li><b>Window Layout Save &amp; Restore</b> (<code>layouts.js</code>, Accessibility): save the window layout and restore it later.</li>
+  <li><b>Gesture Examples</b> (<code>gestures.js</code>, Input Monitoring, Accessibility): swipe three fingers left or right to tile the focused window.</li>
+  <li><b>Spaces Controls</b> (<code>spaces.js</code>, Accessibility): switch to the next Mission Control desktop.</li>
+</ul>
+
+<h2 id="keyboard-and-input">Keyboard and input</h2>
+<ul>
+  <li><b>Hyper Key</b> (<code>hyper.js</code>): use Caps Lock as Command, Shift, Control, and Option together. See <a href="/docs/feature-hotkeys.html">Hotkeys</a>.</li>
+  <li><b>HID (USB) Example</b> (<code>hid.js</code>): list keyboards, mice, and other input devices.</li>
+  <li><b>USB Watcher Example</b> (<code>usb.js</code>): announce when a USB device is plugged in, and list attached devices.</li>
+</ul>
+
+<h2 id="clipboard-and-text">Clipboard and text</h2>
+<ul>
+  <li><b>Clipboard History</b> (<code>clipboard-history.js</code>, Featured): search recent clipboard items and paste one. See <a href="/docs/feature-clipboard.html">Clipboard</a>.</li>
+  <li><b>Clipboard Images</b> (<code>clipboard-image.js</code>): paste the latest image from clipboard history.</li>
+  <li><b>Plain Paste</b> (<code>plain-paste.js</code>): paste as plain text when you press Command-V.</li>
+  <li><b>Text Snippets</b> (<code>snippets.js</code>, Featured): expand short abbreviations into longer text. See <a href="/docs/feature-snippets.html">Snippets</a>.</li>
+  <li><b>Markdown Preview</b> (<code>markdown.js</code>): preview Markdown from the clipboard in a panel.</li>
+  <li><b>Date and Time Stamps</b> (<code>datetime.js</code>): copy the current date and time in ISO-8601 format.</li>
+  <li><b>Dev Utils</b> (<code>devutils.js</code>): copy a UUID, Unix time, Base64 text, or a decoded JWT.</li>
+  <li><b>Lorem Ipsum Generator</b> (<code>lorem.js</code>): copy placeholder text.</li>
+  <li><b>Regex Workbench</b> (<code>regex.js</code>): test a regular expression against sample text.</li>
+  <li><b>Share Commands</b> (<code>share.js</code>): share clipboard text or a file with the share sheet or AirDrop.</li>
+</ul>
+
+<h2 id="screen-and-display">Screen and display</h2>
+<p>See <a href="/docs/feature-screen-tools.html">Screen tools</a>.</p>
+<ul>
+  <li><b>OCR</b> (<code>ocr.js</code>, Screen Recording): drag a box on screen and copy the text inside it.</li>
+  <li><b>QR Code Tools</b> (<code>qr.js</code>, Screen Recording, Camera): scan a QR code from the screen or camera, or show one for text.</li>
+  <li><b>Color Picker</b> (<code>color-picker.js</code>): click a pixel and copy its color.</li>
+  <li><b>Screenshot Rename</b> (<code>screenshot-rename.js</code>, Screen Recording): rename the latest screenshot from the text in it.</li>
+  <li><b>Color Blindness Simulator</b> (<code>color-blindness.js</code>, Screen Recording): show the screen the way a color-blind viewer sees it.</li>
+  <li><b>Screen Effects</b> (<code>screen-effects.js</code>): red tint, extra dark, invert, CRT overlay, Night Shift, True Tone, and grayscale.</li>
+  <li><b>Brightness Commands</b> (<code>brightness.js</code>): dim or brighten the display, and turn XDR on or off.</li>
+  <li><b>Appearance Toggle</b> (<code>appearance.js</code>): switch between light and dark appearance.</li>
+  <li><b>Presenter Mode</b> (<code>present-mode.js</code>): hide desktop icons while you present or share your screen.</li>
+</ul>
+
+<h2 id="menu-bar-meters">Menu bar meters</h2>
+<p>See <a href="/docs/feature-menu-bar.html">Menu bar</a>.</p>
+<ul>
+  <li><b>CPU, GPU and Memory Graph</b> (<code>cpu-graph.js</code>): CPU core, GPU, and memory gauges.</li>
+  <li><b>System Metrics Example</b> (<code>system-metrics.js</code>): CPU and GPU usage.</li>
+  <li><b>Battery Meter</b> (<code>battery.js</code>): charge level and time remaining.</li>
+  <li><b>Bluetooth Device Levels</b> (<code>bluetooth.js</code>): battery levels for paired Bluetooth and USB input devices.</li>
+  <li><b>Network Stats</b> (<code>network-path.js</code>): network speed and ping.</li>
+  <li><b>Storage</b> (<code>disk-usage.js</code>): see how much space the folders in your home folder use.</li>
+  <li><b>Time Machine Progress</b> (<code>time-machine.js</code>): backup progress.</li>
+  <li><b>Fan Control Menu</b> (<code>fan.js</code>, Background Helper): fan speed, and a minimum speed. See <a href="/docs/feature-fan-control.html">Fan control</a>.</li>
+  <li><b>Weather</b> (<code>weather.js</code>, Featured): the current weather.</li>
+  <li><b>World Clock</b> (<code>world-clock.js</code>): the time in several cities.</li>
+  <li><b>Park Webcam</b> (<code>park-webcam.js</code>): the Roosevelt Arch at Yellowstone, live.</li>
+  <li><b>Icon Rainbow Example</b> (<code>icon-rainbow.js</code>): cycle the Macotron icon through rainbow colors.</li>
+</ul>
+
+<h2 id="calendar-and-time">Calendar and time</h2>
+<p>See <a href="/docs/feature-meetings.html">Meetings and calendar</a>.</p>
+<ul>
+  <li><b>Meetings</b> (<code>meetings.js</code>, Featured, Calendars): the next event in the menu bar, today's agenda, one-click join, and a full-screen overlay when a meeting starts.</li>
+  <li><b>Mini Calendar</b> (<code>mini-calendar.js</code>, Featured): today's date in the menu bar, with the month in its menu.</li>
+  <li><b>Reminders</b> (<code>reminders.js</code>): your next reminder in the menu bar.</li>
+  <li><b>Upcoming Events Example</b> (<code>calendar.js</code>): show your upcoming calendar events.</li>
+  <li><b>Pomodoro Timer</b> (<code>pomodoro.js</code>): a 25-minute focus timer in the menu bar.</li>
+</ul>
+
+<h2 id="audio-and-media">Audio and media</h2>
+<ul>
+  <li><b>Audio Menu Bar Widgets</b> (<code>audio.js</code>): switch speakers and mute from the menu bar; ⌃⌥A cycles the output device.</li>
+  <li><b>Mic Mute</b> (<code>mic-mute.js</code>): mute or unmute the microphone from the menu bar.</li>
+  <li><b>Now Playing</b> (<code>now-playing.js</code>): the current track in the menu bar, with play, pause, and skip.</li>
+  <li><b>Headphone Pause</b> (<code>headphone-pause.js</code>): pause playback when you unplug headphones.</li>
+  <li><b>Camera &amp; Mic Tools</b> (<code>record.js</code>, Microphone, Camera): record the microphone, or preview and snapshot the camera.</li>
+  <li><b>Apple TV Controls</b> (<code>apple-tv.js</code>): find Apple TVs on your network and open a remote.</li>
+</ul>
+
+<h2 id="system-and-power">System and power</h2>
+<ul>
+  <li><b>Stay Awake Toggle</b> (<code>power.js</code>): keep this Mac awake and unlocked from the menu bar.</li>
+  <li><b>Wi-Fi Toggles</b> (<code>wifi.js</code>): turn Wi-Fi, Bluetooth, and AirDrop on or off from the menu bar.</li>
+  <li><b>Eject Disks from Menu Bar</b> (<code>eject.js</code>): eject disks, and empty the Trash.</li>
+  <li><b>Security Checklist Example</b> (<code>security-checklist.js</code>): check FileVault, the firewall, System Integrity Protection, and app updates.</li>
+  <li><b>Profiles Example</b> (<code>profiles.js</code>): light appearance on your home Wi-Fi, dark at work.</li>
+  <li><b>Idle Example</b> (<code>idle.js</code>): show how long this Mac has been idle, and notify when it goes idle or wakes.</li>
+  <li><b>Frontmost App Example</b> (<code>focus-idle.js</code>): show the app in front and the last app you switched to.</li>
+  <li><b>HomeKit Example</b> (<code>homekit.js</code>): control Home accessories from the menu bar. macOS has no public HomeKit framework for Mac apps, so this is a stub.</li>
+</ul>
+
+<h2 id="files">Files</h2>
+<ul>
+  <li><b>Batch Rename Downloads</b> (<code>batch-rename.js</code>): add today's date to the start of files you downloaded today.</li>
+  <li><b>HEIC to JPEG</b> (<code>heic-to-jpeg.js</code>): convert HEIC photos in Downloads to JPEG.</li>
+</ul>
+
+<h2 id="links-and-ai">Links and AI</h2>
+<ul>
+  <li><b>Browser Picker</b> (<code>browser-picker.js</code>): route links by host, then ask or use one browser for everything else. See <a href="/docs/feature-browser-picker.html">Browser picker</a>.</li>
+  <li><b>AI Chat Window</b> (<code>ai-chat.js</code>): chat with Apple Intelligence, Claude, or Gemini. See <a href="/docs/feature-ai.html">AI</a>.</li>
+  <li><b>Translate Selected Text</b> (<code>translate.js</code>, Accessibility): translate the selected text with Apple Intelligence.</li>
+  <li><b>Screen Summary Example</b> (<code>screen-ai-summary.js</code>, Screen Recording): drag a box on screen and ask Claude what is in it.</li>
+</ul>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/guide-writing-plugins.html">Writing plugins</a></li>
+  <li><a href="/docs/guide-plugin-settings.html">Plugin settings</a></li>
+  <li><a href="/docs/guide-security.html">Security</a></li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

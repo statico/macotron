@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>macotron.http · Macotron</title>
+  <meta name="description" content="Make GET, POST, PUT, and DELETE requests and read the status, body, and headers.">
+  <meta property="og:title" content="macotron.http · Macotron">
+  <meta property="og:description" content="Make GET, POST, PUT, and DELETE requests and read the status, body, and headers.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-http.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-http.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "macotron.http", "item": "https://macotron.statico.io/docs/api-http.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html" aria-current="page">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>macotron.http</h1>
+<p class="lede">Make HTTP requests from a plugin. Every call returns a promise that resolves with the status, the body as text, and the response headers.</p>
+
+<pre><code class="language-javascript"><span class="tok-kw">const</span> res = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.http.get(<span class="tok-str">"https://wttr.in/?format=%t"</span>, {
+  headers: { <span class="tok-str">"User-Agent"</span>: <span class="tok-str">"curl/8.0"</span> },
+  timeout: <span class="tok-num">8000</span>,
+});
+<span class="tok-kw">if</span> (res.status === <span class="tok-num">200</span>) <span class="tok-fn">macotron</span>.menubar.setTitle(res.body.trim());</code></pre>
+
+<h2 id="requests">Requests</h2>
+
+<h3 id="get-url-string-opts-httpoptions-promise-lt-httpresponse-gt">get(url: string, opts?: HTTPOptions): Promise&lt;HTTPResponse&gt;</h3>
+<p>Sends a GET request.</p>
+
+<h3 id="post-url-string-body-any-opts-httpoptions-promise-lt-httpresponse-gt">post(url: string, body: any, opts?: HTTPOptions): Promise&lt;HTTPResponse&gt;</h3>
+<p>Sends a POST request. <code>body</code> is sent as a UTF-8 string, and the <code>Content-Type</code> header defaults to <code>application/json</code>. Pass a string: an object is converted with <code>String()</code>, which gives <code>"[object Object]"</code>, so call <code>JSON.stringify()</code> first.</p>
+
+<h3 id="put-url-string-body-any-opts-httpoptions-promise-lt-httpresponse-gt">put(url: string, body: any, opts?: HTTPOptions): Promise&lt;HTTPResponse&gt;</h3>
+<p>Sends a PUT request. The body works the same as for <code>post()</code>.</p>
+
+<h3 id="delete-url-string-opts-httpoptions-promise-lt-httpresponse-gt">delete(url: string, opts?: HTTPOptions): Promise&lt;HTTPResponse&gt;</h3>
+<p>Sends a DELETE request.</p>
+
+<pre><code class="language-javascript"><span class="tok-kw">const</span> res = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.http.post(
+  <span class="tok-str">"https://api.example.com/items"</span>,
+  JSON.stringify({ name: <span class="tok-str">"Milk"</span> }),
+  { headers: { Authorization: <span class="tok-str">"Bearer "</span> + <span class="tok-fn">macotron</span>.keychain.get(<span class="tok-str">"example-token"</span>) } }
+);</code></pre>
+
+<h2 id="options">Options</h2>
+
+<h3 id="httpoptions-headers-timeout">HTTPOptions: { headers?, timeout? }</h3>
+<p><code>timeout</code> is in milliseconds. The default is 30000.</p>
+<p><code>headers</code> sets request headers. Only these names are read, spelled exactly as shown: <code>Content-Type</code>, <code>Authorization</code>, <code>Accept</code>, <code>User-Agent</code>, <code>X-API-Key</code>, <code>X-Request-ID</code>, and <code>Cookie</code>. Other headers are ignored.</p>
+<p>Requests share the system cookie store. When you set <code>Cookie</code> yourself, that request leaves the shared store out, so your value is the one sent.</p>
+
+<h2 id="responses">Responses</h2>
+
+<h3 id="httpresponse-status-body-headers">HTTPResponse: { status, body, headers }</h3>
+<p><code>status</code> is the HTTP status code. <code>body</code> is the response decoded as UTF-8 text, or <code>""</code> when it is not valid UTF-8. <code>headers</code> holds the response headers as strings.</p>
+<p>The promise never rejects. A 404 or 500 resolves like any other response. A request that never completes, because of a bad URL, a timeout, or no network, resolves with <code>status: 0</code> and the reason in <code>body</code>, such as <code>"Invalid URL"</code> or <code>"Request timed out"</code>. One check of <code>status</code> covers both cases.</p>
+
+<pre><code class="language-javascript"><span class="tok-kw">const</span> res = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.http.get(feed);
+<span class="tok-kw">if</span> (res.status === <span class="tok-num">200</span>) {
+  <span class="tok-kw">const</span> data = JSON.parse(res.body);
+  <span class="tok-cmt">// …</span>
+} <span class="tok-kw">else</span> {
+  console.log(<span class="tok-str">"Feed failed:"</span>, res.status || res.body);
+}</code></pre>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-ai.html">macotron.ai</a> for model APIs, with streaming.</li>
+  <li><a href="/docs/api-keychain.html">macotron.keychain</a> to store tokens.</li>
+  <li>The <code>weather.js</code> plugin, which polls a weather service with <code>get()</code>.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

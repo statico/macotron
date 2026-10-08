@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>macotron.calendar · Macotron</title>
+  <meta name="description" content="Read upcoming Calendar events, with the meeting join link pulled out for you.">
+  <meta property="og:title" content="macotron.calendar · Macotron">
+  <meta property="og:description" content="Read upcoming Calendar events, with the meeting join link pulled out for you.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-calendar.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-calendar.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "macotron.calendar", "item": "https://macotron.statico.io/docs/api-calendar.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html" aria-current="page">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>macotron.calendar</h1>
+<p class="lede">Read upcoming events from every calendar on the Mac, including iCloud, Google, and Exchange accounts added in System Settings. Each event comes with its video-call join link when it has one.</p>
+
+<pre><code class="language-javascript"><span class="tok-kw">const</span> events = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.calendar.upcoming({ hours: <span class="tok-num">8</span> });
+<span class="tok-kw">const</span> next = events.find((e) =&gt; !e.allDay &amp;&amp; e.start &gt; Date.now());
+<span class="tok-kw">if</span> (next) {
+  <span class="tok-fn">macotron</span>.menubar.status(<span class="tok-str">"next-meeting"</span>, {
+    title: next.title,
+    onClick: () =&gt; next.url &amp;&amp; <span class="tok-fn">macotron</span>.url.open(next.url),
+  });
+}</code></pre>
+
+<h2 id="events">Events</h2>
+
+<h3 id="upcoming-opts-hours-number-calendars-string-from-number-promise-lt-array-lt-id-title-start-end-allday-location-calendar-url-gt-gt">upcoming(opts?: { hours?: number; calendars?: string[]; from?: number }): Promise&lt;Array&lt;{ id, title, start, end, allDay, location, calendar, url }&gt;&gt;</h3>
+<p>Events that overlap a time window, soonest first. The fetch runs off the main thread.</p>
+
+<table>
+  <thead><tr><th>Option</th><th>Default</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>hours</code></td><td><code>24</code></td><td>The window ends this many hours from now.</td></tr>
+    <tr><td><code>from</code></td><td>now</td><td>Where the window starts, in milliseconds since 1970. Use it to also get events that are already over, such as earlier today. A time after now is treated as now.</td></tr>
+    <tr><td><code>calendars</code></td><td>all</td><td>Only search calendars with these names. Omit it, or pass <code>[]</code>, to search every calendar.</td></tr>
+  </tbody>
+</table>
+
+<p>A calendar's name is its title. When two accounts have a calendar with the same title, each name gets the account in parentheses, such as <code>"Work (Google)"</code>. A bare title matches every calendar with that title. When none of the names match a calendar, the result is <code>[]</code>.</p>
+<p>A <code>calendars</code> option in <code>macotron.plugin()</code> shows the user a checkbox list of their calendars in Settings. Pass its value straight to <code>upcoming()</code>; an empty selection means every calendar.</p>
+
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>The event's identifier.</td></tr>
+    <tr><td><code>title</code></td><td>The event title, or <code>""</code>.</td></tr>
+    <tr><td><code>start</code>, <code>end</code></td><td>Milliseconds since 1970.</td></tr>
+    <tr><td><code>allDay</code></td><td>Whether it is an all-day event.</td></tr>
+    <tr><td><code>location</code></td><td>The location text, or <code>""</code>.</td></tr>
+    <tr><td><code>calendar</code></td><td>The calendar's title, without the account.</td></tr>
+    <tr><td><code>url</code></td><td>The join link, or <code>""</code>.</td></tr>
+  </tbody>
+</table>
+
+<p>For <code>url</code>, Macotron collects every <code>https://</code> link in the event's URL field, location, and notes, in that order. A Google Meet, Zoom, Microsoft Teams, or Webex link wins. Otherwise it is the first link found.</p>
+
+<div class="note"><p>Macotron needs Calendars access. The first call asks macOS to show the permission prompt and resolves with <code>[]</code> while the user decides. Call again after access is granted. If access is denied, every call resolves with <code>[]</code>; turn it on in System Settings → Privacy &amp; Security → Calendars.</p></div>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// Everything today, including meetings that are over.</span>
+<span class="tok-kw">const</span> midnight = <span class="tok-kw">new</span> Date();
+midnight.setHours(<span class="tok-num">0</span>, <span class="tok-num">0</span>, <span class="tok-num">0</span>, <span class="tok-num">0</span>);
+<span class="tok-kw">const</span> today = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.calendar.upcoming({
+  from: midnight.getTime(),
+  hours: (midnight.getTime() + <span class="tok-num">86400000</span> - Date.now()) / <span class="tok-num">3600000</span>,
+});</code></pre>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-reminders.html">macotron.reminders</a> for to-dos.</li>
+  <li><a href="/docs/api-url.html">macotron.url</a> to open a join link.</li>
+  <li>The <code>meetings.js</code> and <code>calendar.js</code> plugins.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

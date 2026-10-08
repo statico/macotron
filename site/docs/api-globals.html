@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Globals · Macotron</title>
+  <meta name="description" content="console, timers, localStorage, and dialogs, plus what a browser or Node has that Macotron does not.">
+  <meta property="og:title" content="Globals · Macotron">
+  <meta property="og:description" content="console, timers, localStorage, and dialogs, plus what a browser or Node has that Macotron does not.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-globals.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-globals.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "Globals", "item": "https://macotron.statico.io/docs/api-globals.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html" aria-current="page">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>Globals</h1>
+<p class="lede">Plugins run in QuickJS, not in a browser or Node. A few web-style globals exist so that common code works. Everything else comes from <code>macotron.*</code>.</p>
+
+<pre><code class="language-javascript"><span class="tok-kw">const</span> last = localStorage.getItem(<span class="tok-str">"lastRun"</span>);
+console.log(<span class="tok-str">"loaded, last run"</span>, last);
+localStorage.setItem(<span class="tok-str">"lastRun"</span>, <span class="tok-kw">new</span> Date().toISOString());
+
+setTimeout(() =&gt; console.log(<span class="tok-str">"one second later"</span>), <span class="tok-num">1000</span>);</code></pre>
+
+<h2 id="console">console</h2>
+<p>Each call joins its arguments with spaces and writes one line to the macOS log under subsystem <code>io.statico.macotron</code> and category <code>plugin</code>, with the plugin's file name in front. Objects go through <code>JSON.stringify</code>, so an <code>Error</code> prints as <code>{}</code>; log <code>e.message</code> instead.</p>
+
+<h3 id="console-log-args-any-void">console.log(...args: any[]): void</h3>
+<p>Writes at info level. The same as <code>macotron.log</code>.</p>
+
+<h3 id="console-info-args-any-void">console.info(...args: any[]): void</h3>
+<p>Writes at info level, like <code>log</code>. <code>console.debug</code> does the same.</p>
+
+<h3 id="console-warn-args-any-void">console.warn(...args: any[]): void</h3>
+<p>Writes at notice level, which the system log keeps by default.</p>
+
+<h3 id="console-error-args-any-void">console.error(...args: any[]): void</h3>
+<p>Writes at error level.</p>
+
+<p>There is no <code>console.table</code>, <code>console.time</code>, or <code>console.assert</code>. Info lines only show when you ask for them:</p>
+<pre><code class="language-javascript"><span class="tok-cmt">// In Terminal:</span>
+<span class="tok-cmt">// log stream --level info --style compact --predicate 'subsystem == "io.statico.macotron" AND category == "plugin"'</span></code></pre>
+
+<h2 id="timers">Timers</h2>
+<p>Timers run on the main thread. Macotron cancels every timer when plugins reload. Each callback has 5 seconds to return before Macotron interrupts it.</p>
+
+<h3 id="settimeout-callback-gt-void-ms-number-number">setTimeout(callback: () =&gt; void, ms?: number): number</h3>
+<p>Runs <code>callback</code> once after <code>ms</code> milliseconds, and returns an id. The delay is rounded down to a whole number and is at least 1 ms. Extra arguments are not passed to the callback; use a closure.</p>
+
+<h3 id="setinterval-callback-gt-void-ms-number-number">setInterval(callback: () =&gt; void, ms: number): number</h3>
+<p>Runs <code>callback</code> every <code>ms</code> milliseconds, and returns an id. <code>ms</code> is required.</p>
+
+<h3 id="cleartimeout-id-number-void">clearTimeout(id: number): void</h3>
+<h3 id="clearinterval-id-number-void">clearInterval(id: number): void</h3>
+<p>Cancels a timer. The two are the same function, so either one cancels either kind of timer.</p>
+<p>For schedules such as "every 5 minutes on the clock" or "at 07:30 on weekdays", use <a href="/docs/api-core.html">macotron.every and macotron.at</a>. They also catch up after the Mac sleeps.</p>
+
+<h2 id="localstorage">localStorage</h2>
+<p>A string key-value store that survives restarts. It is saved to <code>data/localStorage.json</code> in the Macotron folder after every change. All plugins share one store, so put a prefix on your keys, such as <code>"layouts:work"</code>.</p>
+
+<h3 id="getitem-key-string-string-null">getItem(key: string): string | null</h3>
+<p>The stored string, or <code>null</code> when the key is absent.</p>
+
+<h3 id="setitem-key-string-value-string-void">setItem(key: string, value: string): void</h3>
+<p>Stores <code>value</code> as a string. Store objects with <code>JSON.stringify</code> and read them back with <code>JSON.parse</code>.</p>
+
+<h3 id="removeitem-key-string-void">removeItem(key: string): void</h3>
+<p>Deletes one key.</p>
+
+<h3 id="clear-void">clear(): void</h3>
+<p>Deletes every key, including the keys of other plugins.</p>
+
+<div class="note"><p>The type definitions list <code>length</code> and <code>key(index)</code>, but this release does not implement them. <code>localStorage.length</code> is <code>undefined</code> and calling <code>key()</code> throws.</p></div>
+
+<h2 id="dialogs">Dialogs</h2>
+
+<h3 id="alert-message-any-void">alert(message?: any): void</h3>
+<h3 id="confirm-message-any-boolean">confirm(message?: any): boolean</h3>
+<h3 id="prompt-message-any-defaultvalue-string-string-null">prompt(message?: any, defaultValue?: string): string | null</h3>
+<p>Browser-style dialogs, shown as a standard macOS alert. They block every plugin until the user answers. <code>confirm</code> returns <code>true</code> for OK. <code>prompt</code> returns the text for OK and <code>null</code> for Cancel. They are the same functions as <code>macotron.alert</code>, <code>macotron.confirm</code>, and <code>macotron.prompt</code>; see <a href="/docs/api-core.html">macotron (core)</a>.</p>
+
+<h2 id="built-into-the-javascript-engine">Built into the JavaScript engine</h2>
+<p>QuickJS supplies the standard language: <code>Promise</code> and <code>async</code>/<code>await</code>, <code>JSON</code>, <code>Map</code>, <code>Set</code>, <code>WeakRef</code>, typed arrays, <code>Proxy</code>, <code>RegExp</code>, and <code>Date</code>. It also adds <code>queueMicrotask</code>, <code>atob</code> and <code>btoa</code>, and <code>performance.now()</code>.</p>
+
+<h2 id="what-is-missing-and-what-to-use-instead">What is missing, and what to use instead</h2>
+<table>
+  <thead><tr><th>You might expect</th><th>Use instead</th></tr></thead>
+  <tbody>
+    <tr><td><code>fetch</code>, <code>XMLHttpRequest</code></td><td><a href="/docs/api-http.html">macotron.http</a> (<code>get</code>, <code>post</code>, <code>put</code>, <code>delete</code>, each a promise)</td></tr>
+    <tr><td>Node <code>fs</code>, <code>path</code></td><td><a href="/docs/api-fs.html">macotron.fs</a></td></tr>
+    <tr><td>Node <code>child_process</code></td><td><a href="/docs/api-shell.html">macotron.shell.run</a></td></tr>
+    <tr><td><code>require</code>, npm packages</td><td>Not available. Keep a plugin's code in its own file.</td></tr>
+    <tr><td><code>document</code>, <code>window</code>, the DOM</td><td><a href="/docs/api-panel.html">macotron.panel</a>, which hosts a real web page</td></tr>
+    <tr><td><code>Notification</code></td><td><a href="/docs/api-notify.html">macotron.notify</a></td></tr>
+    <tr><td>Clipboard API</td><td><a href="/docs/api-clipboard.html">macotron.clipboard</a></td></tr>
+    <tr><td>Secret storage</td><td><a href="/docs/api-keychain.html">macotron.keychain</a>, or a <code>"password"</code> option in <code>macotron.plugin()</code></td></tr>
+  </tbody>
+</table>
+<p>There is also no <code>process</code>, <code>Buffer</code>, <code>TextEncoder</code>, <code>TextDecoder</code>, <code>URL</code>, <code>crypto</code>, <code>structuredClone</code>, or <code>Intl</code>.</p>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-core.html">macotron (core)</a> for commands, events, and scheduling.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

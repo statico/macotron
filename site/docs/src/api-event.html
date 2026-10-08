@@ -1,0 +1,85 @@
+<!-- title: macotron.event
+     summary: Post synthetic clicks, keys, text, and scrolls, and watch or swallow input from every app.
+     group: API -->
+<h1>macotron.event</h1>
+<p class="lede">Send clicks, key presses, typed text, and scrolls as if they came from the hardware, and watch keyboard, mouse, and trackpad input from every app. A tap can also swallow an event so that no app sees it.</p>
+
+<pre><code class="language-javascript">// Option-Tab opens a window switcher instead of reaching the app.
+const TAB = 48;
+macotron.event.tap(["keyDown", "keyUp"], (e) =&gt; {
+  if (e.keyCode === TAB &amp;&amp; e.flags.includes("opt")) {
+    if (e.type === "keyDown") showSwitcher();
+    return false;
+  }
+});</code></pre>
+
+<h2>Posting events</h2>
+
+<h3>post(event): boolean</h3>
+<p>Posts one event to the system, which sends it to the app under the pointer or the app with keyboard focus. Returns <code>false</code> for an unknown <code>type</code>, a key name that does not parse, or an empty string. Events you post are marked, so your own <code>tap()</code> listeners never see them.</p>
+
+<table>
+  <thead><tr><th>type</th><th>Fields</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>"click"</code></td><td><code>button?</code>: <code>"left"</code> (default), <code>"right"</code>, or <code>"middle"</code>. <code>x?</code>, <code>y?</code></td><td>A press and a release at that point.</td></tr>
+    <tr><td><code>"key"</code></td><td><code>key</code>: a key name from the <a href="/docs/api-keyboard.html">combo list</a>. <code>flags?</code>: any of <code>"cmd"</code>, <code>"shift"</code>, <code>"ctrl"</code>, <code>"opt"</code>, <code>"fn"</code>, <code>"caps"</code></td><td>A key down and a key up, with those modifiers held. <code>key</code> can also be a whole combo such as <code>"cmd+v"</code>; <code>flags</code>, when given, replaces its modifiers.</td></tr>
+    <tr><td><code>"unicode"</code></td><td><code>string</code></td><td>Types the string as one key press, whatever the keyboard layout. Use it for emoji and accented letters.</td></tr>
+    <tr><td><code>"scroll"</code></td><td><code>dy?</code>, <code>dx?</code>, <code>pixel?</code></td><td>One scroll. <code>dy</code> is vertical and <code>dx</code> is horizontal, in lines, or in pixels when <code>pixel</code> is <code>true</code>. Values are rounded to whole numbers.</td></tr>
+  </tbody>
+</table>
+<p>Click coordinates are global screen points with the origin at the top-left of the main display and y going down. That is the same space as <code>macotron.window</code> frames, and not the space of <a href="/docs/api-mouse.html">macotron.mouse</a>.</p>
+<div class="note"><p>Always pass <code>x</code> and <code>y</code>. Without them, the click uses the pointer position in bottom-left coordinates, so it lands at the wrong height unless the pointer is near the vertical middle of the main display.</p></div>
+
+<pre><code class="language-javascript">// Paste after the launcher closes and focus returns to the app.
+setTimeout(() =&gt; macotron.event.post({ type: "unicode", string: "🎉" }), 150);
+macotron.event.post({ type: "key", key: "v", flags: ["cmd"] });</code></pre>
+
+<div class="note"><p>Posting events needs Accessibility permission. Declare <code>permissions: ["accessibility"]</code> in <code>macotron.plugin()</code>.</p></div>
+
+<h2>Watching input</h2>
+
+<h3>tap(types: string | string[], callback: (e) =&gt; boolean | void): void</h3>
+<p>Calls <code>callback</code> for each matching event from any app. Return <code>false</code> to swallow the event. Any other return value lets it through. Unknown type names are ignored, and if no name is valid the call does nothing. Taps last until plugins reload; there is no way to remove one sooner.</p>
+<table>
+  <thead><tr><th>Type names</th><th>Can swallow</th></tr></thead>
+  <tbody>
+    <tr><td><code>keyDown</code>, <code>keyUp</code>, <code>flagsChanged</code> (a modifier key goes down or up)</td><td>Yes</td></tr>
+    <tr><td><code>leftMouseDown</code>, <code>leftMouseUp</code>, <code>rightMouseDown</code>, <code>rightMouseUp</code>, <code>mouseMoved</code>, <code>leftMouseDragged</code></td><td>Yes</td></tr>
+    <tr><td><code>scroll</code> (or <code>scrollWheel</code>)</td><td>Yes</td></tr>
+    <tr><td><code>swipe</code>, <code>magnify</code>, <code>rotate</code> (trackpad gestures)</td><td>No. The return value is ignored</td></tr>
+  </tbody>
+</table>
+
+<p>The callback receives one object:</p>
+<table>
+  <thead><tr><th>Field</th><th>Present for</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>type</code></td><td>All</td><td>The type name. Scroll events report <code>"scroll"</code>.</td></tr>
+    <tr><td><code>flags</code></td><td>All</td><td>Modifiers held: any of <code>"cmd"</code>, <code>"shift"</code>, <code>"ctrl"</code>, <code>"opt"</code>, <code>"fn"</code>, <code>"caps"</code>.</td></tr>
+    <tr><td><code>x</code>, <code>y</code></td><td>Keyboard, mouse, scroll</td><td>Pointer position, with the origin at the top-left of the main display.</td></tr>
+    <tr><td><code>keyCode</code></td><td><code>keyDown</code>, <code>keyUp</code></td><td>The macOS virtual key code, for example 48 for Tab.</td></tr>
+    <tr><td><code>dx</code>, <code>dy</code></td><td><code>scroll</code></td><td>Scroll amount in lines.</td></tr>
+    <tr><td><code>button</code>, <code>down</code></td><td>Left and right mouse down and up</td><td><code>"left"</code> or <code>"right"</code>, and whether this is the press.</td></tr>
+    <tr><td><code>fingers</code></td><td>Gestures</td><td>The number of fingers.</td></tr>
+    <tr><td><code>direction</code></td><td><code>swipe</code></td><td><code>"left"</code>, <code>"right"</code>, <code>"up"</code>, or <code>"down"</code>.</td></tr>
+    <tr><td><code>delta</code></td><td><code>magnify</code>, <code>rotate</code></td><td>The zoom amount, or the rotation in degrees.</td></tr>
+  </tbody>
+</table>
+
+<pre><code class="language-javascript">macotron.event.tap("swipe", (e) =&gt; {
+  if (e.fingers !== 3) return;
+  const win = macotron.window.focused();
+  if (!win) return;
+  const x = e.direction === "left" ? 0 : 0.5;
+  macotron.window.moveToFraction(win.id, { x, y: 0, w: 0.5, h: 1 });
+});</code></pre>
+
+<div class="note"><p>Every key press and click on the Mac waits for your callback, so keep it short. A tap callback has 250 ms before Macotron interrupts it, and an interrupted callback lets the event through. Do slow work in a <code>setTimeout</code>.</p></div>
+<div class="note"><p>Taps need Accessibility and Input Monitoring permission. Declare <code>permissions: ["accessibility", "inputMonitoring"]</code> in <code>macotron.plugin()</code>.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-keyboard.html">macotron.keyboard</a> for hotkeys and the Hyper key.</li>
+  <li><a href="/docs/api-mouse.html">macotron.mouse</a> to read and move the pointer.</li>
+  <li>The <code>window-switcher.js</code> and <code>gestures.js</code> example plugins.</li>
+</ul>

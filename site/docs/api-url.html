@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>macotron.url · Macotron</title>
+  <meta name="description" content="Route links to plugin handlers, open URLs in a chosen app, and act as the default browser.">
+  <meta property="og:title" content="macotron.url · Macotron">
+  <meta property="og:description" content="Route links to plugin handlers, open URLs in a chosen app, and act as the default browser.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-url.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-url.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "macotron.url", "item": "https://macotron.statico.io/docs/api-url.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html" aria-current="page">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>macotron.url</h1>
+<p class="lede">Open URLs in the app you choose, and route links that macOS hands to Macotron to your plugin's handlers. With this, a plugin can act as the default browser and send each link to the right one.</p>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// Send work links to Chrome and everything else to Safari.</span>
+<span class="tok-kw">for</span> (<span class="tok-kw">const</span> scheme <span class="tok-kw">of</span> [<span class="tok-str">"http"</span>, <span class="tok-str">"https"</span>]) {
+  <span class="tok-fn">macotron</span>.url.setDefaultHandler(scheme);
+  <span class="tok-fn">macotron</span>.url.on(scheme, <span class="tok-str">"github.com"</span>, (e) =&gt; <span class="tok-fn">macotron</span>.url.open(e.url, <span class="tok-str">"com.google.Chrome"</span>));
+  <span class="tok-fn">macotron</span>.url.on(scheme, <span class="tok-str">"*"</span>, (e) =&gt; <span class="tok-fn">macotron</span>.url.open(e.url, <span class="tok-str">"com.apple.Safari"</span>));
+}</code></pre>
+
+<h2 id="opening">Opening</h2>
+
+<h3 id="open-url-string-bundleid-string-profile-string-boolean">open(url: string, bundleID?: string, profile?: string): boolean</h3>
+<p>Opens <code>url</code> in the app with this bundle ID, or in the system default app for the URL when you leave <code>bundleID</code> out. <code>profile</code> is passed to the app as <code>--profile-directory=&lt;profile&gt;</code>, which selects a profile in Chrome and other Chromium browsers. Returns <code>false</code> when the URL does not parse or no app has that bundle ID.</p>
+
+<h2 id="routing">Routing</h2>
+<p>Macotron can receive <code>http</code>, <code>https</code>, <code>mailto</code> and <code>macotron</code> links. It receives the first three only when it is the default handler for them; see <code>setDefaultHandler</code>.</p>
+
+<h3 id="on-scheme-string-host-string-regexp-callback-event-urlevent-gt-void-void">on(scheme: string, host: string | RegExp, callback: (event: URLEvent) =&gt; void): void</h3>
+<p>Calls <code>callback</code> for links with this scheme and host. A host string matches that host and its subdomains, so <code>"example.com"</code> also matches <code>docs.example.com</code>. <code>"*"</code> matches any host. A <code>RegExp</code> is tested against the host.</p>
+<p>For each link, Macotron picks one handler, in this order:</p>
+<ol>
+  <li>An exact host match.</li>
+  <li>The longest matching parent domain.</li>
+  <li>The first <code>RegExp</code> that matches, in the order you registered them.</li>
+  <li>A <code>"*"</code> handler for the scheme.</li>
+  <li>The <code>onFallback</code> handler.</li>
+</ol>
+<p>Scheme and host compare without regard to case. Links that arrive while plugins are loading wait and are delivered once loading finishes.</p>
+
+<p>The event has these fields:</p>
+<table>
+  <thead><tr><th>Field</th><th>What it holds</th></tr></thead>
+  <tbody>
+    <tr><td><code>url</code></td><td>The full URL.</td></tr>
+    <tr><td><code>scheme</code></td><td>For example <code>"https"</code>.</td></tr>
+    <tr><td><code>host</code></td><td>For example <code>"github.com"</code>, or <code>""</code>.</td></tr>
+    <tr><td><code>path</code></td><td>For example <code>"/apple/swift"</code>.</td></tr>
+    <tr><td><code>query</code></td><td>The text after <code>?</code>, or <code>""</code> when there is none.</td></tr>
+    <tr><td><code>sourceBundle</code></td><td>The bundle ID of the app that sent the link, when macOS reports it.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="onfallback-callback-event-urlevent-gt-void-void">onFallback(callback: (event: URLEvent) =&gt; void): void</h3>
+<p>Calls <code>callback</code> for any link that no <code>on</code> handler matches, in every scheme. Only one fallback exists at a time; a later call replaces it, from any plugin.</p>
+<p>When nothing handles a link, Macotron passes it to the app that would open it if Macotron were not installed. If there is no such app, Macotron posts a notification so the link is not lost.</p>
+
+<div class="note"><p>Prefer <code>on(scheme, "*", …)</code> over <code>onFallback</code> in a browser picker. A fallback also catches <code>mailto:</code> links and would send them to a browser.</p></div>
+
+<h3 id="setdefaulthandler-scheme-string-boolean">setDefaultHandler(scheme: string): boolean</h3>
+<p>Makes Macotron the system default app for <code>scheme</code>, for example <code>"https"</code>. Returns <code>false</code> for an empty scheme or when macOS refuses.</p>
+
+<h2 id="macotron-links">macotron:// links</h2>
+<p>Any web page or app can open a <code>macotron://</code> link, so these links can start plugin actions from outside. Before Macotron routes one, it shows an "Allow URL Event?" alert with the URL and the sending app. The handler runs only if the user clicks Allow.</p>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// open "macotron://timer/start?min=25"</span>
+<span class="tok-fn">macotron</span>.url.on(<span class="tok-str">"macotron"</span>, <span class="tok-str">"timer"</span>, ({ path, query }) =&gt; {
+  <span class="tok-kw">if</span> (path === <span class="tok-str">"/start"</span>) {
+    <span class="tok-kw">const</span> min = Number((query.match(/min=(\d+)/) || [])[<span class="tok-num">1</span>]) || <span class="tok-num">25</span>;
+    startTimer(min);
+  }
+});</code></pre>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-share.html">macotron.share</a> to share a link with the share menu.</li>
+  <li>The <code>browser-picker.js</code> plugin.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!-- title: macotron.bonjour
+     summary: Find Bonjour services such as AirPlay receivers, printers, and other Macs on the local network.
+     group: API -->
+<h1>macotron.bonjour</h1>
+<p class="lede">Browse the local network for Bonjour services, such as AirPlay receivers, printers, and file shares, and get each one's host, port, and TXT record.</p>
+
+<pre><code class="language-javascript">// List AirPlay receivers on the network.
+const found = await macotron.bonjour.browse("_airplay._tcp", { timeout: 2 });
+macotron.notify.toast("AirPlay", found.map((s) =&gt; s.name).join(", ") || "None found");</code></pre>
+
+<h2>Browsing</h2>
+
+<h3>browse(type: string, opts?: { timeout?: number }): Promise&lt;Array&lt;{ name, type, host, port, txt }&gt;&gt;</h3>
+<p>Searches the <code>local.</code> domain for services of one type, such as <code>"_airplay._tcp"</code>, <code>"_ipp._tcp"</code>, or <code>"_smb._tcp"</code>. A trailing <code>.local.</code> on the type is allowed and removed.</p>
+<p>The search runs for the whole <code>timeout</code>, in seconds (default 1.5), then resolves with every service that resolved in that time. Each row has:</p>
+<ul>
+  <li><code>name</code>: the service name people see, such as <code>"Living Room"</code>.</li>
+  <li><code>type</code>: the service type, without <code>.local.</code>.</li>
+  <li><code>host</code>: the host name, such as <code>"Living-Room.local."</code>.</li>
+  <li><code>port</code>: the port number.</li>
+  <li><code>txt</code>: the TXT record as an object of strings. A value that is not UTF-8 text is base64.</li>
+</ul>
+<p>A service that does not resolve to a host and port before the timeout is left out, so a longer timeout finds slower devices. Nothing found resolves to an empty array.</p>
+
+<div class="note"><p>macOS asks for Local Network permission the first time Macotron browses. Without it, <code>browse</code> finds nothing.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-appletv.html">macotron.appletv</a>, which uses Bonjour to find Apple TVs.</li>
+  <li><a href="/docs/api-udp.html">macotron.udp</a> to talk to a device once you know its host and port.</li>
+  <li><a href="/docs/api-network.html">macotron.network</a> for Wi-Fi and interfaces.</li>
+</ul>

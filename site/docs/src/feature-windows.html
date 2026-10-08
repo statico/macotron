@@ -1,0 +1,89 @@
+<!-- title: Window management
+     summary: Tile windows with hotkeys, snap them by dragging, place them on a grid, and save layouts.
+     group: Features
+     order: 30 -->
+<h1>Window management</h1>
+<p class="lede">Built-in plugins tile the focused window with the keyboard, snap a window when you drag it to a screen edge, place it on a grid, switch windows with Option-Tab, and save and restore whole layouts.</p>
+
+<div class="note"><p>Every plugin on this page needs Accessibility. The Window Switcher and Gesture Examples also need Input Monitoring. See <a href="/docs/guide-permissions.html">Permissions</a>.</p></div>
+
+<h2>Tiling hotkeys</h2>
+<p>The <b>Window Controls</b> plugin binds these hotkeys. Change any of them in Settings → Plugins → Window Controls.</p>
+<table>
+  <thead><tr><th>Hotkey</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>⌃⌥←</kbd></td><td>Left half</td></tr>
+    <tr><td><kbd>⌃⌥→</kbd></td><td>Right half</td></tr>
+    <tr><td><kbd>⌃⌥↑</kbd></td><td>Top half</td></tr>
+    <tr><td><kbd>⌃⌥↓</kbd></td><td>Bottom half</td></tr>
+    <tr><td><kbd>⌃⌥Return</kbd></td><td>Fill the screen</td></tr>
+    <tr><td><kbd>⌃⌥C</kbd></td><td>Center, at 75% of the screen</td></tr>
+    <tr><td><kbd>⌃⌥U</kbd> <kbd>⌃⌥I</kbd> <kbd>⌃⌥J</kbd> <kbd>⌃⌥K</kbd></td><td>Top left, top right, bottom left, bottom right quarter</td></tr>
+    <tr><td><kbd>⌃⌥D</kbd> <kbd>⌃⌥E</kbd> <kbd>⌃⌥F</kbd></td><td>First, center, and last third</td></tr>
+    <tr><td><kbd>⌃⌥T</kbd> <kbd>⌃⌥Y</kbd></td><td>First and last two thirds</td></tr>
+    <tr><td><kbd>⌃⌥⌘→</kbd> <kbd>⌃⌥⌘←</kbd></td><td>Move to the next or previous display, filling it</td></tr>
+    <tr><td><kbd>⌃⌥Space</kbd></td><td>Radial menu: a wheel at the pointer. Click a wedge to tile there.</td></tr>
+  </tbody>
+</table>
+<p>Press a hotkey again to cycle. A second <kbd>⌃⌥←</kbd> moves the window to the right half, and the thirds keys step through all three thirds. Turn on <b>Cycle through displays</b> to move to the next display at the end of a cycle.</p>
+<p>The launcher has Tile Left Half, Tile Right Half, Tile Full Screen, and Radial Menu as commands.</p>
+
+<h2>Drag to snap</h2>
+<p>Drag a window by its title bar to a screen edge or corner. Macotron shows where the window will go, and tiles it when you let go. With the default <b>Halves</b> zones:</p>
+<ul>
+  <li>Left or right edge: that half of the screen.</li>
+  <li>Top edge: fill the screen.</li>
+  <li>Bottom edge: the bottom half.</li>
+  <li>A corner: that quarter.</li>
+</ul>
+<p>Hold Shift while you drag to use the alternate zones, which are <b>Thirds</b> by default. Run <b>Toggle Window Snap</b> from the launcher to turn snapping off or on.</p>
+
+<h2>Window Controls settings</h2>
+<table>
+  <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Snap edge (px)</td><td>20</td><td>How close to an edge the pointer must be to snap.</td></tr>
+    <tr><td>Snap corner (px)</td><td>80</td><td>How large each corner zone is.</td></tr>
+    <tr><td>Gap (px)</td><td>0</td><td>Space between a tiled window and the screen edge or its neighbor, 0 to 40.</td></tr>
+    <tr><td>Snap zones</td><td>Halves</td><td>Halves, Thirds, or Quarters.</td></tr>
+    <tr><td>Alternate snap key</td><td>Shift</td><td>The key that switches to the alternate zones. None turns it off.</td></tr>
+    <tr><td>Alternate snap zones</td><td>Thirds</td><td>Zones used while the alternate key is held.</td></tr>
+    <tr><td>Cycle through displays</td><td>Off</td><td>Move on to the next display when a tiling cycle ends.</td></tr>
+  </tbody>
+</table>
+
+<h2>Switch windows</h2>
+<p>The <b>Window Switcher</b> plugin flips through windows, not apps. Hold Option and press Tab. A panel lists the open windows with the previous one selected. Press Tab again to move down, Shift-Tab to move up, and release Option to switch. You can also click a row.</p>
+<p>Window Controls adds <b>Switch Window</b> to the launcher. It opens a panel of every window with a filter field. Click a window to bring it forward.</p>
+
+<h2>Place on a grid</h2>
+<p>The <b>Window Quick Grid</b> plugin opens a small panel with a grid that stands for the screen. Press <kbd>⌃⌥G</kbd> or run <b>Place Window</b>, then drag across the cells you want the window to cover. Macotron shows the destination while you drag. The grid is 6 by 6 by default; set <b>Columns</b>, <b>Rows</b>, and <b>Gap</b> in its settings, or change the counts in the panel. A grid can have up to 20 columns and 20 rows.</p>
+
+<h2>Save and restore layouts</h2>
+<p>The <b>Window Layout Save &amp; Restore</b> plugin keeps one layout named Work.</p>
+<ul>
+  <li><b>Save Work</b> records the app, title, frame, and display of every window.</li>
+  <li><b>Restore Work</b> moves the windows back. A toast reports how many it restored and how many it could not find.</li>
+</ul>
+<p>The layout is saved in the plugin's <code>localStorage</code>, so it survives restarts. To keep more layouts, copy the plugin and change its key, or ask your coding agent to add more.</p>
+
+<h2>Trackpad gestures</h2>
+<p>The <b>Gesture Examples</b> plugin tiles the focused window when you swipe with three fingers: left for the left half, right for the right half.</p>
+
+<h2>Spaces</h2>
+<p>The <b>Spaces Controls</b> plugin adds <b>Next Space</b>, which switches to the next Mission Control desktop. It shows a toast with the desktop number each time the space changes.</p>
+
+<h2>Write your own</h2>
+<p>All of these plugins use <a href="/docs/api-window.html">macotron.window</a>. A tile is a fraction of the screen:</p>
+<pre><code class="language-javascript">macotron.keyboard.on("Left Two Thirds", "ctrl+opt+shift+left", () =&gt; {
+  const win = macotron.window.focused();
+  if (win) macotron.window.moveToFraction(win.id, { x: 0, y: 0, w: 2 / 3, h: 1, gap: 8 });
+});</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-window.html">macotron.window</a></li>
+  <li><a href="/docs/api-spaces.html">macotron.spaces</a></li>
+  <li><a href="/docs/api-display.html">macotron.display</a></li>
+  <li><a href="/docs/feature-hotkeys.html">Hotkeys</a></li>
+</ul>

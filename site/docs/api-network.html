@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>macotron.network · Macotron</title>
+  <meta name="description" content="Read and switch Wi-Fi, Bluetooth, and AirDrop, list interfaces and byte counters, and ping a host.">
+  <meta property="og:title" content="macotron.network · Macotron">
+  <meta property="og:description" content="Read and switch Wi-Fi, Bluetooth, and AirDrop, list interfaces and byte counters, and ping a host.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/api-network.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/api-network.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "macotron.network", "item": "https://macotron.statico.io/docs/api-network.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html" aria-current="page">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>macotron.network</h1>
+<p class="lede">Check and switch Wi-Fi, Bluetooth, and AirDrop, list paired Bluetooth devices with their battery, read interface addresses and traffic counters, and ping a host.</p>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// Toggle Wi-Fi and say what happened.</span>
+<span class="tok-kw">const</span> wifi = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.network.wifi();
+<span class="tok-kw">const</span> r = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.network.setWifi(!wifi.on);
+<span class="tok-fn">macotron</span>.notify.toast(<span class="tok-str">"Wi-Fi"</span>, r.ok ? (r.on ? r.ssid || <span class="tok-str">"On"</span> : <span class="tok-str">"Off"</span>) : r.error);</code></pre>
+
+<h2 id="wi-fi">Wi-Fi</h2>
+<p>The Wi-Fi calls run <code>/usr/sbin/networksetup</code>, which takes a moment, so they return promises.</p>
+
+<h3 id="wifissid-promise-lt-string-null-gt">wifiSSID(): Promise&lt;string | null&gt;</h3>
+<p>The name of the joined network, or <code>null</code> when Wi-Fi is off, not joined, or missing.</p>
+
+<h3 id="wifi-promise-lt-available-on-ssid-gt">wifi(): Promise&lt;{ available, on, ssid? }&gt;</h3>
+<p><code>available</code> is <code>false</code> on a Mac with no Wi-Fi hardware. <code>on</code> is whether the radio is on. <code>ssid</code> is present only while joined to a network.</p>
+
+<h3 id="setwifi-on-boolean-promise-lt-ok-available-on-ssid-error-gt">setWifi(on: boolean): Promise&lt;{ ok, available, on, ssid?, error? }&gt;</h3>
+<p>Turns the radio on or off and resolves with the new state, read back after the change. <code>ok</code> is <code>false</code> with an <code>error</code> when there is no Wi-Fi hardware or <code>networksetup</code> fails.</p>
+
+<h2 id="bluetooth">Bluetooth</h2>
+
+<h3 id="bluetooth-promise-lt-on-devices-gt">bluetooth(): Promise&lt;{ on, devices }&gt;</h3>
+<p><code>on</code> is whether the Bluetooth radio is on. <code>devices</code> lists paired devices as <code>{ name, address, connected, battery? }</code>. <code>battery</code> is a charge from 0 to 100. For devices that report several levels, such as AirPods, it is the lowest one. When the charge is unknown, <code>battery</code> is <code>null</code>.</p>
+<p>Battery levels come from <code>system_profiler</code>, which takes over a second, so Macotron reuses them for 30 seconds.</p>
+
+<h3 id="setbluetooth-on-boolean-ok-on-error">setBluetooth(on: boolean): { ok, on, error? }</h3>
+<p>Turns the Bluetooth radio on or off. Unlike the other setters, this call returns at once instead of a promise. <code>on</code> is the state you asked for. <code>ok</code> is <code>false</code> only when macOS does not offer the power switch.</p>
+
+<h2 id="airdrop">AirDrop</h2>
+<p>A mode is <code>"off"</code>, <code>"contacts"</code> (Contacts Only), or <code>"everyone"</code>.</p>
+
+<h3 id="airdrop-mode">airDrop(): { mode }</h3>
+<p>Who can find this Mac over AirDrop right now.</p>
+
+<h3 id="setairdrop-mode-off-contacts-everyone-promise-lt-ok-mode-error-gt">setAirDrop(mode: "off" | "contacts" | "everyone"): Promise&lt;{ ok, mode, error? }&gt;</h3>
+<p>Changes the AirDrop mode. Macotron writes the setting and restarts the AirDrop service so it takes effect, which is why this returns a promise. An unknown mode resolves <code>{ ok: false }</code> with the current mode and an <code>error</code>.</p>
+
+<h2 id="interfaces">Interfaces</h2>
+
+<h3 id="interfaces-array-lt-name-ip-gt">interfaces(): Array&lt;{ name, ip }&gt;</h3>
+<p>Every IPv4 address on the Mac, one row per address, such as <code>{ name: "en0", ip: "192.168.1.20" }</code>. The loopback interface is left out.</p>
+
+<h3 id="counters-array-lt-name-ip-bytesin-bytesout-gt">counters(): Array&lt;{ name, ip?, bytesIn, bytesOut }&gt;</h3>
+<p>Bytes received and sent on each interface since it came up, sorted by name. <code>ip</code> is the interface's first IPv4 address, when it has one. The loopback interface is left out.</p>
+<p>To get a rate, call <code>counters()</code> twice and divide the difference by the time between the calls.</p>
+
+<div class="note"><p>The counters are 32-bit and wrap to zero after 4 GiB. When a new reading is smaller than the last one, skip that sample.</p></div>
+
+<h3 id="ping-host-string-promise-lt-ms-host-error-gt">ping(host?: string): Promise&lt;{ ms, host, error? }&gt;</h3>
+<p>Sends one ping with <code>/sbin/ping</code> and resolves with the round-trip time in milliseconds. <code>host</code> defaults to <code>1.1.1.1</code>. The ping waits at most 2 seconds. On failure, <code>ms</code> is <code>null</code> and <code>error</code> holds the first line of ping's output.</p>
+
+<pre><code class="language-javascript"><span class="tok-kw">const</span> r = <span class="tok-kw">await</span> <span class="tok-fn">macotron</span>.network.ping();
+<span class="tok-fn">macotron</span>.menubar.status(<span class="tok-str">"ping"</span>, { title: r.ms == <span class="tok-kw">null</span> ? <span class="tok-str">"offline"</span> : Math.round(r.ms) + <span class="tok-str">" ms"</span> });</code></pre>
+
+<h2 id="events">Events</h2>
+
+<h3 id="wifi-changed">wifi:changed</h3>
+<p>Fires when Wi-Fi turns on or off, or the joined network changes. The payload is <code>{ on, ssid }</code>, where <code>ssid</code> is <code>null</code> when not joined. Macotron checks about one second after macOS reports a network change, and fires only when <code>on</code> or <code>ssid</code> differs from the last check.</p>
+
+<div class="note"><p>Macotron watches Wi-Fi only when a plugin registers a <code>wifi:changed</code> listener while it loads. A listener added later, for example inside a timer, gets no events until the next reload.</p></div>
+
+<pre><code class="language-javascript"><span class="tok-cmt">// Switch settings by network.</span>
+<span class="tok-fn">macotron</span>.on(<span class="tok-str">"wifi:changed"</span>, ({ ssid }) =&gt; {
+  <span class="tok-kw">if</span> (ssid === <span class="tok-str">"Office"</span>) <span class="tok-fn">macotron</span>.audio.setMuted(<span class="tok-kw">true</span>);
+});</code></pre>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-bonjour.html">macotron.bonjour</a> to find services on the local network.</li>
+  <li><a href="/docs/api-http.html">macotron.http</a> for web requests.</li>
+  <li>The <code>wifi.js</code>, <code>bluetooth.js</code>, <code>network-path.js</code>, and <code>profiles.js</code> plugins.</li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

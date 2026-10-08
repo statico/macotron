@@ -1,0 +1,65 @@
+<!-- title: macotron.spaces
+     summary: List desktops on every display, switch to one, and move a window to another desktop.
+     group: API -->
+<h1>macotron.spaces</h1>
+<p class="lede">List the desktops (Spaces) on each display, find the one you are on, switch to another, and send a window to a different desktop.</p>
+
+<pre><code class="language-javascript">macotron.keyboard.on("Next desktop", "ctrl+opt+right", () =&gt; {
+  const desktops = macotron.spaces.list().filter((s) =&gt; s.type === "user");
+  const i = desktops.findIndex((s) =&gt; s.current);
+  const next = desktops[(i + 1) % desktops.length];
+  macotron.spaces.go(next.desktop);
+});</code></pre>
+
+<div class="note"><p>macOS has no public API for Spaces. This module uses private system functions, which a macOS update can change or remove. When they are missing, <code>list()</code> returns <code>[]</code> and the other calls return <code>null</code> or <code>false</code>.</p></div>
+
+<h2>Space objects</h2>
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>The system's id for the space.</td></tr>
+    <tr><td><code>index</code></td><td>Its position on its display, counting from 1.</td></tr>
+    <tr><td><code>desktop</code></td><td>Its position across all displays, counting from 1. Full-screen apps count too.</td></tr>
+    <tr><td><code>display</code></td><td>The UUID string of the display it belongs to.</td></tr>
+    <tr><td><code>current</code></td><td><code>true</code> for the space showing on its display. With several displays, more than one space can be current.</td></tr>
+    <tr><td><code>type</code></td><td><code>"user"</code> for a normal desktop, <code>"fullscreen"</code> for a full-screen app, <code>"other"</code> for anything else.</td></tr>
+  </tbody>
+</table>
+
+<h2>Reading spaces</h2>
+
+<h3>list(): Space[]</h3>
+<p>Every space on every display, in the order Mission Control shows them.</p>
+
+<h3>current(): Space | null</h3>
+<p>The current space. With several displays, it is the first current space in the list.</p>
+
+<h2>Switching and moving</h2>
+<p><code>go()</code> and <code>moveWindow()</code> take the same <code>spec</code>:</p>
+<ul>
+  <li>A number. It matches a space <code>id</code> first, then a <code>desktop</code> number.</li>
+  <li><code>{ id }</code> for one space.</li>
+  <li><code>{ index, display }</code> for a position on a display. Give one or both; the first space that matches wins.</li>
+</ul>
+
+<h3>go(spec): boolean</h3>
+<p>Switches to the space. Returns <code>false</code> when no space matches. A <code>true</code> result means the request was sent, not that the switch happened.</p>
+
+<h3>moveWindow(windowID: number, spec): boolean</h3>
+<p>Moves a window to the space. <code>windowID</code> is the <code>id</code> from <a href="/docs/api-window.html">macotron.window</a>. Returns <code>false</code> when the window or the space is not found.</p>
+<div class="note"><p>Recent macOS versions may refuse to move another app's window while System Integrity Protection is on. The call returns <code>true</code> even then, so check the window afterward if it matters.</p></div>
+
+<h2>Events</h2>
+
+<h3>space:changed</h3>
+<p>Fires when the current space changes on any display. The payload is the new current space object, the same as <code>current()</code>, or <code>{}</code> when there is none.</p>
+<pre><code class="language-javascript">macotron.on("space:changed", (space) =&gt; {
+  macotron.notify.toast("Desktop", String(space.desktop));
+});</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-window.html">macotron.window</a> for window ids.</li>
+  <li><a href="/docs/api-display.html">macotron.display</a> for the displays themselves.</li>
+  <li>The <code>spaces.js</code> example plugin.</li>
+</ul>

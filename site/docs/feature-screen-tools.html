@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Screen tools · Macotron</title>
+  <meta name="description" content="Copy text or a QR code off the screen, pick colors, and tint, dim, or brighten the display.">
+  <meta property="og:title" content="Screen tools · Macotron">
+  <meta property="og:description" content="Copy text or a QR code off the screen, pick colors, and tint, dim, or brighten the display.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Macotron">
+  <meta property="og:url" content="https://macotron.statico.io/docs/feature-screen-tools.html">
+  <meta property="og:image" content="https://macotron.statico.io/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://macotron.statico.io/docs/feature-screen-tools.html">
+  <link rel="icon" href="/icon.png">
+  <script src="/head.js"></script>
+  <link rel="stylesheet" href="/site.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://macotron.statico.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://macotron.statico.io/docs/" },
+      { "@type": "ListItem", "position": 3, "name": "Screen tools", "item": "https://macotron.statico.io/docs/feature-screen-tools.html" }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">Macotron</a>
+    <nav>
+      <a href="/#can">Capabilities</a>
+      <a href="/#source">Plugins</a>
+      <a href="/#api">API</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/statico/macotron">GitHub</a>
+    </nav>
+    <div class="theme" role="group" aria-label="Color scheme">
+      <button type="button" data-theme-set="system" aria-label="System">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M8 2.2A5.8 5.8 0 0 1 8 13.8V2.2z"/></svg>
+      </button>
+      <button type="button" data-theme-set="light" aria-label="Light">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path fill="currentColor" d="M7.3 1.2h1.4v2.2H7.3zm0 11.4h1.4v2.2H7.3zM1.2 7.3h2.2v1.4H1.2zm11.4 0h2.2v1.4h-2.2zM3.1 3.1l1.6 1.6-.99.99-1.6-1.6zm8.2 8.2 1.6 1.6-.99.99-1.6-1.6zm1.6-9.8.99.99-1.6 1.6-.99-.99zM4.7 11.3l.99.99-1.6 1.6-.99-.99z"/></svg>
+      </button>
+      <button type="button" data-theme-set="dark" aria-label="Dark">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M9.6 1.8a6.2 6.2 0 1 0 4.6 9.1 5.1 5.1 0 0 1-4.6-9.1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="docs">
+<nav class="docs-nav" aria-label="Documentation">
+<a href="/docs/">Overview</a>
+<p>Guide</p>
+<a href="/docs/guide-getting-started.html">Getting started</a>
+<a href="/docs/guide-writing-plugins.html">Writing plugins</a>
+<a href="/docs/guide-plugin-settings.html">Plugin settings</a>
+<a href="/docs/guide-coding-agents.html">Coding agents</a>
+<a href="/docs/guide-permissions.html">Permissions</a>
+<a href="/docs/guide-security.html">Security</a>
+<a href="/docs/guide-community-plugins.html">Community plugins</a>
+<a href="/docs/guide-updates.html">Updates</a>
+<a href="/docs/guide-troubleshooting.html">Troubleshooting</a>
+<p>Features</p>
+<a href="/docs/feature-launcher.html">Launcher</a>
+<a href="/docs/feature-hotkeys.html">Hotkeys</a>
+<a href="/docs/feature-windows.html">Window management</a>
+<a href="/docs/feature-file-search.html">File search</a>
+<a href="/docs/feature-clipboard.html">Clipboard</a>
+<a href="/docs/feature-snippets.html">Snippets</a>
+<a href="/docs/feature-menu-bar.html">Menu bar</a>
+<a href="/docs/feature-meetings.html">Meetings and calendar</a>
+<a href="/docs/feature-screen-tools.html" aria-current="page">Screen tools</a>
+<a href="/docs/feature-ai.html">AI</a>
+<a href="/docs/feature-browser-picker.html">Browser picker</a>
+<a href="/docs/feature-fan-control.html">Fan control</a>
+<a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>
+<p>API</p>
+<a href="/docs/api-globals.html">Globals</a>
+<a href="/docs/api-core.html">macotron (core)</a>
+<a href="/docs/api-ai.html">macotron.ai</a>
+<a href="/docs/api-app.html">macotron.app</a>
+<a href="/docs/api-appletv.html">macotron.appletv</a>
+<a href="/docs/api-audio.html">macotron.audio</a>
+<a href="/docs/api-ax.html">macotron.ax</a>
+<a href="/docs/api-bonjour.html">macotron.bonjour</a>
+<a href="/docs/api-calendar.html">macotron.calendar</a>
+<a href="/docs/api-camera.html">macotron.camera</a>
+<a href="/docs/api-clipboard.html">macotron.clipboard</a>
+<a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-display.html">macotron.display</a>
+<a href="/docs/api-dock.html">macotron.dock</a>
+<a href="/docs/api-event.html">macotron.event</a>
+<a href="/docs/api-files.html">macotron.files</a>
+<a href="/docs/api-fs.html">macotron.fs</a>
+<a href="/docs/api-hid.html">macotron.hid</a>
+<a href="/docs/api-homekit.html">macotron.homekit</a>
+<a href="/docs/api-http.html">macotron.http</a>
+<a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-keyboard.html">macotron.keyboard</a>
+<a href="/docs/api-keychain.html">macotron.keychain</a>
+<a href="/docs/api-launcher.html">macotron.launcher</a>
+<a href="/docs/api-media.html">macotron.media</a>
+<a href="/docs/api-menubar.html">macotron.menubar</a>
+<a href="/docs/api-mouse.html">macotron.mouse</a>
+<a href="/docs/api-network.html">macotron.network</a>
+<a href="/docs/api-notes.html">macotron.notes</a>
+<a href="/docs/api-notify.html">macotron.notify</a>
+<a href="/docs/api-ocr.html">macotron.ocr</a>
+<a href="/docs/api-panel.html">macotron.panel</a>
+<a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-qr.html">macotron.qr</a>
+<a href="/docs/api-reminders.html">macotron.reminders</a>
+<a href="/docs/api-screen.html">macotron.screen</a>
+<a href="/docs/api-share.html">macotron.share</a>
+<a href="/docs/api-shell.html">macotron.shell</a>
+<a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
+<a href="/docs/api-snippets.html">macotron.snippets</a>
+<a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-spotlight.html">macotron.spotlight</a>
+<a href="/docs/api-system.html">macotron.system</a>
+<a href="/docs/api-udp.html">macotron.udp</a>
+<a href="/docs/api-url.html">macotron.url</a>
+<a href="/docs/api-usb.html">macotron.usb</a>
+<a href="/docs/api-window.html">macotron.window</a>
+</nav>
+<article class="doc">
+<h1>Screen tools</h1>
+<p class="lede">A group of built-in plugins that read the screen (text, QR codes, colors) or change how it looks (red tint, extra dark, CRT scanlines, Night Shift, brightness). Each one is a launcher command, and some also have a hotkey.</p>
+
+<h2 id="copy-text-from-the-screen">Copy text from the screen</h2>
+<p><b>OCR</b> (<code>ocr.js</code>) reads the text in a part of the screen and copies it. Press ⌘⇧O, or run <b>OCR Selection</b> from the launcher, then drag a box around the text. Press Escape to cancel. Text recognition runs on your Mac.</p>
+<p><b>Screenshot Rename</b> (<code>screenshot-rename.js</code>) adds the launcher command <b>Rename Last Screenshot</b>. It reads the text in the newest screenshot on your Desktop and renames the file after the first line, for example <code>invoice-march.png</code>. If the name is taken, it adds <code>-2</code>, <code>-3</code>, and so on.</p>
+<div class="note"><p>Selecting a part of the screen needs the <b>Screen Recording</b> permission. Grant it in Settings → Permissions.</p></div>
+
+<h2 id="qr-codes">QR codes</h2>
+<p><b>QR Code Tools</b> (<code>qr.js</code>) adds three launcher commands:</p>
+<ul>
+  <li><b>Scan QR from Screen</b>: drag a box around a QR code. Macotron copies what the code holds. This needs Screen Recording.</li>
+  <li><b>Scan QR from Camera</b>: opens a <b>Scan QR Code</b> window with a camera preview. Hold the code up to the camera. The window closes and copies the contents when it finds a code. <b>Cancel</b> stops the scan. This needs the Camera permission.</li>
+  <li><b>Show QR</b>: shows a QR code for the text on the clipboard. If the clipboard is empty, it asks for the text.</li>
+</ul>
+
+<h2 id="pick-a-color">Pick a color</h2>
+<p><b>Color Picker</b> (<code>color-picker.js</code>) opens the macOS magnifier. Press ⌘⇧K, or run <b>Pick Color</b>, then click a pixel. Macotron copies its hex color value and shows the value and the screen coordinates.</p>
+
+<h2 id="check-colors-for-color-blindness">Check colors for color blindness</h2>
+<p><b>Color Blindness Simulator</b> (<code>color-blindness.js</code>) takes one screenshot of the main display and shows it full screen, repainted the way a color-blind viewer sees it. Use it to check a design without changing your display. The launcher commands are <b>Simulate Deuteranopia</b>, <b>Simulate Protanopia</b>, <b>Simulate Tritanopia</b>, and <b>Simulate Achromatopsia</b>. In the overlay, press 1 to 4 to switch between them. Press Escape or click to close it. This needs Screen Recording.</p>
+
+<h2 id="screen-effects">Screen effects</h2>
+<p><b>Screen Effects</b> (<code>screen-effects.js</code>) changes how the display looks. Run a command again to turn the effect off.</p>
+<table>
+  <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Toggle Night Vision</td><td>Tints every display red, to keep your eyes adjusted to a dark room.</td></tr>
+    <tr><td>Toggle Extra Dark</td><td>Dims the display below the lowest brightness the hardware allows.</td></tr>
+    <tr><td>Toggle Invert Display</td><td>Swaps white and black.</td></tr>
+    <tr><td>Toggle CRT Effect</td><td>Lays scanlines and a phosphor grille over the desktop and darkens the picture. It does not curve the image.</td></tr>
+    <tr><td>Toggle Night Shift</td><td>Turns Night Shift on or off.</td></tr>
+    <tr><td>Night Shift 60%</td><td>Sets the Night Shift strength to 60%.</td></tr>
+    <tr><td>Toggle True Tone</td><td>Turns True Tone on or off, on displays that have it.</td></tr>
+    <tr><td>Toggle Grayscale</td><td>Shows the display in gray.</td></tr>
+  </tbody>
+</table>
+<p>Night Vision, Extra Dark, and Invert are one setting, so turning one on turns the others off. The plugin remembers which one is on and puts it back after a plugin reload or a restart.</p>
+<p>A command that this Mac cannot run shows <b>Unavailable</b>.</p>
+<div class="note"><p>The CRT overlay covers the displays that are connected when you turn it on. After you connect a display, turn the overlay off and on again.</p></div>
+
+<h2 id="brightness-and-xdr">Brightness and XDR</h2>
+<p><b>Brightness Commands</b> (<code>brightness.js</code>) adds two hotkeys: ⌃⌥- makes the display dimmer and ⌃⌥= makes it brighter, by 10% at a time. The launcher command <b>Toggle XDR</b> turns the extra-bright range of an XDR display on or off.</p>
+<p>All the hotkeys on this page can be changed in Settings → Plugins. See <a href="/docs/feature-hotkeys.html">Hotkeys</a>.</p>
+
+<h2 id="see-also">See also</h2>
+<ul>
+  <li><a href="/docs/api-screen.html">macotron.screen</a>, <a href="/docs/api-ocr.html">macotron.ocr</a>, <a href="/docs/api-qr.html">macotron.qr</a>, <a href="/docs/api-display.html">macotron.display</a></li>
+  <li><a href="/docs/guide-permissions.html">Permissions</a></li>
+  <li><a href="/docs/feature-built-in-plugins.html">Built-in plugins</a></li>
+</ul>
+</article>
+  </main>
+  <footer>
+    <p><a href="https://github.com/statico/macotron">github.com/statico/macotron</a></p>
+    <p><a href="/docs/">Docs</a> · <a href="/glossary.html">Glossary</a></p>
+  </footer>
+  <script src="/common.js"></script>
+</body>
+</html>

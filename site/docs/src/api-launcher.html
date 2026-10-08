@@ -1,0 +1,87 @@
+<!-- title: macotron.launcher
+     summary: Add rows to the Macotron launcher, from a fixed list or computed from what the user types.
+     group: API -->
+<h1>macotron.launcher</h1>
+<p class="lede">Add your own rows to the Macotron launcher, either as a fixed list that the launcher filters or as answers computed from the text the user types.</p>
+
+<pre><code class="language-javascript">// Answer "2*21" with "42" right in the launcher.
+macotron.launcher.query("calc", (q) =&gt; {
+  if (!/^[\d\s+\-*/().]+$/.test(q)) return [];
+  const n = Function("return (" + q + ")")();
+  if (!isFinite(n)) return [];
+  return [{
+    id: "result",
+    title: String(n),
+    subtitle: "Return to copy",
+    sfSymbol: "equal.square",
+    kind: "Calculator",
+    onClick: () =&gt; macotron.clipboard.set(String(n)),
+  }];
+});</code></pre>
+
+<h2>Rows</h2>
+<p>Both calls take rows in the same shape, <code>LauncherItem</code>:</p>
+
+<table>
+  <thead><tr><th>Field</th><th>Type</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>string</td><td>Identifies the row within its provider. Stars (⌘S) and keyboard shortcuts are saved against it, so keep it stable. Defaults to the row's index.</td></tr>
+    <tr><td><code>title</code></td><td>string</td><td>The main text. Defaults to the id.</td></tr>
+    <tr><td><code>subtitle</code></td><td>string</td><td>Smaller text under the title.</td></tr>
+    <tr><td><code>kind</code></td><td>string</td><td>The label on the right of the row, such as <code>"Calculator"</code>. Default <code>"Plugin"</code>.</td></tr>
+    <tr><td><code>app</code></td><td>string</td><td>A bundle ID, such as <code>com.apple.Notes</code>. The row shows that app's icon.</td></tr>
+    <tr><td><code>path</code></td><td>string</td><td>A file path. The row shows that file's Finder icon.</td></tr>
+    <tr><td><code>sfSymbol</code></td><td>string</td><td>An SF Symbol name for the icon, used when there is no <code>app</code> or <code>path</code> icon.</td></tr>
+    <tr><td><code>onClick</code></td><td>() =&gt; void</td><td>Runs when the user picks the row.</td></tr>
+  </tbody>
+</table>
+
+<h2>Fixed lists</h2>
+
+<h3>set(id: string, items: LauncherItem[]): void</h3>
+<p>Replaces the rows of provider <code>id</code>. The launcher fuzzy-matches the typed text against each row's title and subtitle, and ranks the matches together with apps and commands. With an empty query, the launcher shows only starred rows.</p>
+
+<pre><code class="language-javascript">macotron.launcher.set("snippets", [
+  { id: "omw", title: "omw", subtitle: "On my way!", onClick: () =&gt; macotron.snippets.insert("omw") },
+]);</code></pre>
+
+<h2>Live answers</h2>
+
+<h3>query(id: string, handler: (query: string) =&gt; LauncherItem[] | Promise&lt;LauncherItem[]&gt;, opts?: { run?, secondary? }): void</h3>
+<p>Calls <code>handler</code> on every keystroke with the launcher's text. Calling <code>query</code> again with the same id replaces the handler.</p>
+<p>Return fast, and return <code>[]</code> when the text is not for you. A synchronous handler that runs longer than 250 ms is interrupted.</p>
+<p>A row that does not match the text by name, such as <code>42</code> for <code>2*21</code>, is an answer and goes to the top of the list. A row that does match by name is ranked with everything else.</p>
+<p>The handler can return a promise. The launcher does not wait for it: the keystroke shows what is ready, and the rows appear when the promise resolves. An answer to text the user has since changed is dropped. A rejected promise clears this provider's rows.</p>
+
+<table>
+  <thead><tr><th>Option</th><th>Type</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>run</code></td><td>(rowId: string) =&gt; void</td><td>Runs a row from its id alone. The launcher calls it when the user triggers a row that is no longer on screen, for example from a keyboard shortcut after a restart. Use row ids you can act on, such as file paths.</td></tr>
+    <tr><td><code>secondary</code></td><td>boolean</td><td>Set this for a provider that answers almost any text, such as a file search. Its rows never lead the list and lose ties to other results.</td></tr>
+  </tbody>
+</table>
+
+<pre><code class="language-javascript">// From the file-search plugin.
+macotron.launcher.query("file-search", async (query) =&gt; {
+  const term = query.trim();
+  if (term.length &lt; 2) return [];
+  const hits = await macotron.files.search(term, { limit: 8 });
+  return hits.map((h) =&gt; ({ id: h.path, title: h.name, subtitle: h.path, path: h.path, onClick: () =&gt; open(h.path) }));
+}, {
+  secondary: true,
+  run: (path) =&gt; open(path),
+});</code></pre>
+
+<h2>Removing</h2>
+
+<h3>remove(id: string): void</h3>
+<p>Removes the provider's fixed rows and its query handler.</p>
+
+<div class="note"><p>The launcher shows at most 20 results at a time.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><code>macotron.command</code> for named commands with arguments, which also appear in the launcher.</li>
+  <li><a href="/docs/api-files.html">macotron.files</a> and <a href="/docs/api-spotlight.html">macotron.spotlight</a> for file results.</li>
+  <li>The <code>calculator.js</code>, <code>emoji.js</code> and <code>file-search.js</code> plugins.</li>
+</ul>

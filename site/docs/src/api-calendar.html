@@ -1,0 +1,63 @@
+<!-- title: macotron.calendar
+     summary: Read upcoming Calendar events, with the meeting join link pulled out for you.
+     group: API -->
+<h1>macotron.calendar</h1>
+<p class="lede">Read upcoming events from every calendar on the Mac, including iCloud, Google, and Exchange accounts added in System Settings. Each event comes with its video-call join link when it has one.</p>
+
+<pre><code class="language-javascript">const events = await macotron.calendar.upcoming({ hours: 8 });
+const next = events.find((e) =&gt; !e.allDay &amp;&amp; e.start &gt; Date.now());
+if (next) {
+  macotron.menubar.status("next-meeting", {
+    title: next.title,
+    onClick: () =&gt; next.url &amp;&amp; macotron.url.open(next.url),
+  });
+}</code></pre>
+
+<h2>Events</h2>
+
+<h3>upcoming(opts?: { hours?: number; calendars?: string[]; from?: number }): Promise&lt;Array&lt;{ id, title, start, end, allDay, location, calendar, url }&gt;&gt;</h3>
+<p>Events that overlap a time window, soonest first. The fetch runs off the main thread.</p>
+
+<table>
+  <thead><tr><th>Option</th><th>Default</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>hours</code></td><td><code>24</code></td><td>The window ends this many hours from now.</td></tr>
+    <tr><td><code>from</code></td><td>now</td><td>Where the window starts, in milliseconds since 1970. Use it to also get events that are already over, such as earlier today. A time after now is treated as now.</td></tr>
+    <tr><td><code>calendars</code></td><td>all</td><td>Only search calendars with these names. Omit it, or pass <code>[]</code>, to search every calendar.</td></tr>
+  </tbody>
+</table>
+
+<p>A calendar's name is its title. When two accounts have a calendar with the same title, each name gets the account in parentheses, such as <code>"Work (Google)"</code>. A bare title matches every calendar with that title. When none of the names match a calendar, the result is <code>[]</code>.</p>
+<p>A <code>calendars</code> option in <code>macotron.plugin()</code> shows the user a checkbox list of their calendars in Settings. Pass its value straight to <code>upcoming()</code>; an empty selection means every calendar.</p>
+
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>The event's identifier.</td></tr>
+    <tr><td><code>title</code></td><td>The event title, or <code>""</code>.</td></tr>
+    <tr><td><code>start</code>, <code>end</code></td><td>Milliseconds since 1970.</td></tr>
+    <tr><td><code>allDay</code></td><td>Whether it is an all-day event.</td></tr>
+    <tr><td><code>location</code></td><td>The location text, or <code>""</code>.</td></tr>
+    <tr><td><code>calendar</code></td><td>The calendar's title, without the account.</td></tr>
+    <tr><td><code>url</code></td><td>The join link, or <code>""</code>.</td></tr>
+  </tbody>
+</table>
+
+<p>For <code>url</code>, Macotron collects every <code>https://</code> link in the event's URL field, location, and notes, in that order. A Google Meet, Zoom, Microsoft Teams, or Webex link wins. Otherwise it is the first link found.</p>
+
+<div class="note"><p>Macotron needs Calendars access. The first call asks macOS to show the permission prompt and resolves with <code>[]</code> while the user decides. Call again after access is granted. If access is denied, every call resolves with <code>[]</code>; turn it on in System Settings → Privacy &amp; Security → Calendars.</p></div>
+
+<pre><code class="language-javascript">// Everything today, including meetings that are over.
+const midnight = new Date();
+midnight.setHours(0, 0, 0, 0);
+const today = await macotron.calendar.upcoming({
+  from: midnight.getTime(),
+  hours: (midnight.getTime() + 86400000 - Date.now()) / 3600000,
+});</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-reminders.html">macotron.reminders</a> for to-dos.</li>
+  <li><a href="/docs/api-url.html">macotron.url</a> to open a join link.</li>
+  <li>The <code>meetings.js</code> and <code>calendar.js</code> plugins.</li>
+</ul>

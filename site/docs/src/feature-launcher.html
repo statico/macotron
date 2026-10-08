@@ -1,0 +1,88 @@
+<!-- title: Launcher
+     summary: Open apps, run plugin commands, and search files from one keyboard-driven bar.
+     group: Features
+     order: 10 -->
+<h1>Launcher</h1>
+<p class="lede">The launcher is a search bar that opens on a hotkey. Type a few letters to open an app, run a plugin command, or pick a row that a plugin added, such as a file, a contact, or a calculator answer.</p>
+
+<h2>Opening it</h2>
+<p>Press <kbd>⌥Space</kbd> (Option-Space). That is the default. To change it, open Settings → General and record a new combo in <b>Launcher Hotkey</b>. The menu bar item also has <b>Open Launcher</b>.</p>
+<p>When the query is empty, the launcher shows only your starred rows. It does not guess what you want.</p>
+
+<h2>Searching</h2>
+<p>Matching is fuzzy: <code>sysset</code> finds System Settings, and the letters do not have to be next to each other. The launcher searches these sources:</p>
+<ul>
+  <li><b>Apps</b> installed on the Mac.</li>
+  <li><b>Commands</b> that plugins register with <code>macotron.command()</code>.</li>
+  <li><b>Plugin rows</b>: lists a plugin keeps up to date, such as Apple Notes or clipboard history.</li>
+  <li><b>Live answers</b>: plugins that read what you type and answer it, such as the calculator. An answer that does not match by name, such as <code>4</code> for <code>2+2</code>, goes to the top.</li>
+  <li><b>Macotron's own commands</b>: Show Hotkeys, Macotron Settings, Macotron Plugins, Quit Macotron, and Reset Launcher Ranking.</li>
+</ul>
+<p>The results you pick most often move up. <b>Reset Launcher Ranking</b> forgets those counts. The list shows up to 20 rows.</p>
+
+<h2>Keys</h2>
+<table>
+  <thead><tr><th>Key</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td><kbd>Return</kbd></td><td>Open or run the selected row.</td></tr>
+    <tr><td><kbd>↑</kbd> <kbd>↓</kbd>, or <kbd>Control-P</kbd> <kbd>Control-N</kbd></td><td>Move the selection.</td></tr>
+    <tr><td><kbd>⌘Return</kbd></td><td>Reveal the row in Finder.</td></tr>
+    <tr><td><kbd>⌥Return</kbd></td><td>Quick Look preview, for rows that are files.</td></tr>
+    <tr><td><kbd>⌘C</kbd></td><td>Copy the path, for rows that are files.</td></tr>
+    <tr><td><kbd>⌘S</kbd></td><td>Star or unstar the row.</td></tr>
+    <tr><td><kbd>⌘K</kbd></td><td>Record a global shortcut for the row.</td></tr>
+    <tr><td><kbd>⌘;</kbd></td><td>Open Macotron Settings.</td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>Close the launcher, or leave an argument form.</td></tr>
+  </tbody>
+</table>
+
+<h2>Stars</h2>
+<p>Press <kbd>⌘S</kbd> on any row to star it. Starred rows are the list you see when you open the launcher and type nothing. Press <kbd>⌘S</kbd> again to remove the star.</p>
+
+<h2>Shortcuts for any row</h2>
+<p>Select a row, press <kbd>⌘K</kbd>, then press the combo you want. Press <kbd>Delete</kbd> instead to clear the shortcut, or <kbd>Esc</kbd> to cancel. This works for apps, plugin commands, and plugin rows. A shortcut for an app hides the app when it is already in front.</p>
+<p>You can also set command shortcuts in Settings → Plugins, and app shortcuts in Settings → Shortcuts. See <a href="/docs/feature-hotkeys.html">Hotkeys</a>.</p>
+
+<h2>Command arguments</h2>
+<p>Some commands ask for input before they run. When you pick one, the launcher shows a small form with text fields, number fields, or dropdowns. For example, <b>Search Google</b> asks for a query, and <b>Generate Lorem Ipsum</b> asks for a count and a unit. Fill in the form and press <kbd>Return</kbd>. A required field must have a value.</p>
+<pre><code class="language-javascript">macotron.command("Search GitHub", "Search GitHub", (args) =&gt; {
+  macotron.url.open("https://github.com/search?q=" + encodeURIComponent(args.q));
+}, {
+  arguments: [{ name: "q", type: "text", placeholder: "Query", required: true }],
+});</code></pre>
+
+<h2>Look</h2>
+<p>Settings → General has two options for the launcher:</p>
+<ul>
+  <li><b>Quick Search</b>: the background. <b>Translucent</b> (the default), <b>Glass</b>, or <b>Opaque</b>.</li>
+  <li><b>Text Size</b>: 80%, 100%, or 120%.</li>
+</ul>
+
+<h2>Plugins that add to the launcher</h2>
+<table>
+  <thead><tr><th>Plugin</th><th>What you get</th></tr></thead>
+  <tbody>
+    <tr><td>Calculator</td><td>Type a sum (<code>20% of 85</code>) or a conversion (<code>12 km in miles</code>). Return copies the answer.</td></tr>
+    <tr><td>File Search</td><td>Files and folders by name, from Macotron's own index. See <a href="/docs/feature-file-search.html">File search</a>.</td></tr>
+    <tr><td>Clipboard History</td><td>Recent copies as rows. See <a href="/docs/feature-clipboard.html">Clipboard</a>.</td></tr>
+    <tr><td>Text Snippets</td><td>Snippet rows. See <a href="/docs/feature-snippets.html">Snippets</a>.</td></tr>
+    <tr><td>Contacts Search</td><td>Names, emails, and phone numbers.</td></tr>
+    <tr><td>Notes Search</td><td>Apple Notes by title. Return opens the note.</td></tr>
+    <tr><td>Web Search</td><td>Search Google, Wikipedia, Maps, YouTube, or GitHub, and Define for Dictionary.</td></tr>
+    <tr><td>System Settings Search</td><td>Open a System Settings pane by name.</td></tr>
+    <tr><td>Emoji Picker</td><td>Type two or more letters of an emoji name.</td></tr>
+    <tr><td>Shortcuts</td><td>Your Shortcuts.app shortcuts. <b>Refresh Shortcuts</b> reloads the list.</td></tr>
+    <tr><td>Window Controls</td><td>Tile commands and Switch Window. See <a href="/docs/feature-windows.html">Windows</a>.</td></tr>
+    <tr><td>Lock Screen Command</td><td>Lock Screen.</td></tr>
+    <tr><td>Dev Utils</td><td>Generate UUID, Unix Timestamp, Encode Base64, Decode JWT.</td></tr>
+    <tr><td>Lorem Ipsum Generator</td><td>Generate Lorem Ipsum, with count and unit.</td></tr>
+  </tbody>
+</table>
+<p>Most other built-in plugins add a command or two. See <a href="/docs/feature-built-in-plugins.html">Built-in plugins</a>.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-launcher.html">macotron.launcher</a>: add rows or answer the query from a plugin.</li>
+  <li><a href="/docs/api-core.html">macotron.command</a>: register a command with arguments.</li>
+  <li><a href="/docs/feature-hotkeys.html">Hotkeys</a></li>
+</ul>

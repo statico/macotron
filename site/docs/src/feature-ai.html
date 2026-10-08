@@ -1,0 +1,64 @@
+<!-- title: AI
+     summary: Chat with Apple Intelligence, Claude, or Gemini, translate selected text, and where API keys go.
+     group: Features
+     order: 100 -->
+<h1>AI</h1>
+<p class="lede">Built-in plugins open a chat window, translate the text you selected, and describe a part of the screen. They use the on-device Apple Intelligence model or a cloud model with your own API key.</p>
+
+<h2>Providers</h2>
+<table>
+  <thead><tr><th>Provider</th><th>Needs</th></tr></thead>
+  <tbody>
+    <tr><td>Apple Intelligence (on-device)</td><td>macOS 26 Tahoe, a Mac that supports Apple Intelligence, and Apple Intelligence turned on in System Settings. No key, and nothing leaves your Mac.</td></tr>
+    <tr><td>Claude (Anthropic)</td><td>An Anthropic API key.</td></tr>
+    <tr><td>Gemini (Google)</td><td>A Gemini API key.</td></tr>
+    <tr><td>OpenAI</td><td>An OpenAI API key. No built-in plugin uses it, but your own plugins can.</td></tr>
+  </tbody>
+</table>
+<p>When the on-device model cannot run, the plugin shows why: the Mac cannot run Apple Intelligence, Apple Intelligence is off, or the model is still downloading.</p>
+
+<h2>AI Chat Window</h2>
+<p><b>AI Chat Window</b> (<code>ai-chat.js</code>) adds the launcher command <b>AI Chat</b>. It opens a chat panel where replies stream in as the model writes them, with Markdown formatting. A menu at the top of the panel picks the model for the next message, and <b>+</b> starts a new chat. The plugin keeps your 50 most recent chats, so they are still there after a restart.</p>
+<p>Settings → Plugins → AI Chat Window has these settings:</p>
+<table>
+  <thead><tr><th>Setting</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Model</td><td>The default model: <b>On-device (Apple Intelligence)</b> (the default), <b>Claude Sonnet</b>, <b>Claude Opus</b>, or <b>Gemini Flash</b>.</td></tr>
+    <tr><td>Anthropic API key</td><td>Needed for the Claude models.</td></tr>
+    <tr><td>Gemini API key</td><td>Needed for Gemini Flash.</td></tr>
+  </tbody>
+</table>
+
+<h2>Translate Selected Text</h2>
+<p><b>Translate Selected Text</b> (<code>translate.js</code>) adds the launcher command <b>Translate Selection</b>. Select text in any app, run the command, and a panel shows the translation above the original. It uses the on-device model only.</p>
+<p>The <b>Target locale</b> setting picks the language. Leave it empty to translate into your system language, which the field shows as a grey hint.</p>
+<div class="note"><p>Reading the selected text in another app needs the <b>Accessibility</b> permission.</p></div>
+
+<h2>Screen Summary</h2>
+<p><b>Screen Summary Example</b> (<code>screen-ai-summary.js</code>) shows how a plugin sends a screenshot to a model. Press ⌘⇧S, or run <b>Summarize Screen</b>, then drag a box. The plugin sends the image to Claude and shows a short description in a notification. It needs Screen Recording.</p>
+<div class="note"><p>As shipped, this example has no API key setting and passes no key, so the command fails with a missing-key error. Add a <code>password</code> option and pass it as <code>apiKey</code> to make it work. AI Chat Window shows how.</p></div>
+
+<h2>API keys</h2>
+<p>Enter API keys in a plugin's settings, in Settings → Plugins. A key field stores the key in the macOS Keychain. <code>settings.json</code> keeps only a reference to the Keychain item, so the key never lands in your workdir or its git history.</p>
+<p>Each plugin has its own key fields. Entering an Anthropic key in AI Chat Window does not give it to other plugins. In your own plugins, declare a <code>password</code> option for each key:</p>
+<pre><code class="language-javascript">const opts = macotron.plugin({
+  title: "Ask Claude",
+  description: "Ask Claude about the clipboard.",
+  options: {
+    apiKey: { type: "password", label: "Anthropic API key", required: true },
+  },
+});
+
+macotron.command("Ask Claude", "Explain the clipboard", async () =&gt; {
+  const reply = await macotron.ai.claude({ apiKey: opts.apiKey })
+    .chat("Explain this briefly:\n\n" + macotron.clipboard.text());
+  macotron.notify.show("Claude", reply);
+});</code></pre>
+<p>See <a href="/docs/guide-plugin-settings.html">Plugin settings</a> for option types, and <a href="/docs/api-ai.html">macotron.ai</a> for chat, streaming, and models.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-ai.html">macotron.ai</a></li>
+  <li><a href="/docs/api-keychain.html">macotron.keychain</a></li>
+  <li><a href="/docs/guide-security.html">Security</a></li>
+</ul>

@@ -1,0 +1,92 @@
+<!-- title: Globals
+     summary: console, timers, localStorage, and dialogs, plus what a browser or Node has that Macotron does not.
+     group: API -->
+<h1>Globals</h1>
+<p class="lede">Plugins run in QuickJS, not in a browser or Node. A few web-style globals exist so that common code works. Everything else comes from <code>macotron.*</code>.</p>
+
+<pre><code class="language-javascript">const last = localStorage.getItem("lastRun");
+console.log("loaded, last run", last);
+localStorage.setItem("lastRun", new Date().toISOString());
+
+setTimeout(() =&gt; console.log("one second later"), 1000);</code></pre>
+
+<h2>console</h2>
+<p>Each call joins its arguments with spaces and writes one line to the macOS log under subsystem <code>io.statico.macotron</code> and category <code>plugin</code>, with the plugin's file name in front. Objects go through <code>JSON.stringify</code>, so an <code>Error</code> prints as <code>{}</code>; log <code>e.message</code> instead.</p>
+
+<h3>console.log(...args: any[]): void</h3>
+<p>Writes at info level. The same as <code>macotron.log</code>.</p>
+
+<h3>console.info(...args: any[]): void</h3>
+<p>Writes at info level, like <code>log</code>. <code>console.debug</code> does the same.</p>
+
+<h3>console.warn(...args: any[]): void</h3>
+<p>Writes at notice level, which the system log keeps by default.</p>
+
+<h3>console.error(...args: any[]): void</h3>
+<p>Writes at error level.</p>
+
+<p>There is no <code>console.table</code>, <code>console.time</code>, or <code>console.assert</code>. Info lines only show when you ask for them:</p>
+<pre><code class="language-javascript">// In Terminal:
+// log stream --level info --style compact --predicate 'subsystem == "io.statico.macotron" AND category == "plugin"'</code></pre>
+
+<h2>Timers</h2>
+<p>Timers run on the main thread. Macotron cancels every timer when plugins reload. Each callback has 5 seconds to return before Macotron interrupts it.</p>
+
+<h3>setTimeout(callback: () =&gt; void, ms?: number): number</h3>
+<p>Runs <code>callback</code> once after <code>ms</code> milliseconds, and returns an id. The delay is rounded down to a whole number and is at least 1 ms. Extra arguments are not passed to the callback; use a closure.</p>
+
+<h3>setInterval(callback: () =&gt; void, ms: number): number</h3>
+<p>Runs <code>callback</code> every <code>ms</code> milliseconds, and returns an id. <code>ms</code> is required.</p>
+
+<h3>clearTimeout(id: number): void</h3>
+<h3>clearInterval(id: number): void</h3>
+<p>Cancels a timer. The two are the same function, so either one cancels either kind of timer.</p>
+<p>For schedules such as "every 5 minutes on the clock" or "at 07:30 on weekdays", use <a href="/docs/api-core.html">macotron.every and macotron.at</a>. They also catch up after the Mac sleeps.</p>
+
+<h2>localStorage</h2>
+<p>A string key-value store that survives restarts. It is saved to <code>data/localStorage.json</code> in the Macotron folder after every change. All plugins share one store, so put a prefix on your keys, such as <code>"layouts:work"</code>.</p>
+
+<h3>getItem(key: string): string | null</h3>
+<p>The stored string, or <code>null</code> when the key is absent.</p>
+
+<h3>setItem(key: string, value: string): void</h3>
+<p>Stores <code>value</code> as a string. Store objects with <code>JSON.stringify</code> and read them back with <code>JSON.parse</code>.</p>
+
+<h3>removeItem(key: string): void</h3>
+<p>Deletes one key.</p>
+
+<h3>clear(): void</h3>
+<p>Deletes every key, including the keys of other plugins.</p>
+
+<div class="note"><p>The type definitions list <code>length</code> and <code>key(index)</code>, but this release does not implement them. <code>localStorage.length</code> is <code>undefined</code> and calling <code>key()</code> throws.</p></div>
+
+<h2>Dialogs</h2>
+
+<h3>alert(message?: any): void</h3>
+<h3>confirm(message?: any): boolean</h3>
+<h3>prompt(message?: any, defaultValue?: string): string | null</h3>
+<p>Browser-style dialogs, shown as a standard macOS alert. They block every plugin until the user answers. <code>confirm</code> returns <code>true</code> for OK. <code>prompt</code> returns the text for OK and <code>null</code> for Cancel. They are the same functions as <code>macotron.alert</code>, <code>macotron.confirm</code>, and <code>macotron.prompt</code>; see <a href="/docs/api-core.html">macotron (core)</a>.</p>
+
+<h2>Built into the JavaScript engine</h2>
+<p>QuickJS supplies the standard language: <code>Promise</code> and <code>async</code>/<code>await</code>, <code>JSON</code>, <code>Map</code>, <code>Set</code>, <code>WeakRef</code>, typed arrays, <code>Proxy</code>, <code>RegExp</code>, and <code>Date</code>. It also adds <code>queueMicrotask</code>, <code>atob</code> and <code>btoa</code>, and <code>performance.now()</code>.</p>
+
+<h2>What is missing, and what to use instead</h2>
+<table>
+  <thead><tr><th>You might expect</th><th>Use instead</th></tr></thead>
+  <tbody>
+    <tr><td><code>fetch</code>, <code>XMLHttpRequest</code></td><td><a href="/docs/api-http.html">macotron.http</a> (<code>get</code>, <code>post</code>, <code>put</code>, <code>delete</code>, each a promise)</td></tr>
+    <tr><td>Node <code>fs</code>, <code>path</code></td><td><a href="/docs/api-fs.html">macotron.fs</a></td></tr>
+    <tr><td>Node <code>child_process</code></td><td><a href="/docs/api-shell.html">macotron.shell.run</a></td></tr>
+    <tr><td><code>require</code>, npm packages</td><td>Not available. Keep a plugin's code in its own file.</td></tr>
+    <tr><td><code>document</code>, <code>window</code>, the DOM</td><td><a href="/docs/api-panel.html">macotron.panel</a>, which hosts a real web page</td></tr>
+    <tr><td><code>Notification</code></td><td><a href="/docs/api-notify.html">macotron.notify</a></td></tr>
+    <tr><td>Clipboard API</td><td><a href="/docs/api-clipboard.html">macotron.clipboard</a></td></tr>
+    <tr><td>Secret storage</td><td><a href="/docs/api-keychain.html">macotron.keychain</a>, or a <code>"password"</code> option in <code>macotron.plugin()</code></td></tr>
+  </tbody>
+</table>
+<p>There is also no <code>process</code>, <code>Buffer</code>, <code>TextEncoder</code>, <code>TextDecoder</code>, <code>URL</code>, <code>crypto</code>, <code>structuredClone</code>, or <code>Intl</code>.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-core.html">macotron (core)</a> for commands, events, and scheduling.</li>
+</ul>

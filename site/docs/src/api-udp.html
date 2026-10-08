@@ -1,0 +1,42 @@
+<!-- title: macotron.udp
+     summary: Send UDP datagrams and listen on a port for incoming messages.
+     group: API -->
+<h1>macotron.udp</h1>
+<p class="lede">Send UDP datagrams to a host and port, and listen on a local port for datagrams from other devices.</p>
+
+<pre><code class="language-javascript">// Answer pings from a device on the LAN.
+macotron.udp.listen(9999);
+macotron.on("udp:message", ({ host, port, data }) =&gt; {
+  if (data === "ping") macotron.udp.send(host, port, "pong");
+});</code></pre>
+
+<h2>Sending</h2>
+
+<h3>send(host: string, port: number, data: string | number[]): { ok: boolean; error?: string }</h3>
+<p>Sends one datagram over IPv4. <code>host</code> is an IPv4 address or a host name. <code>data</code> is a string, sent as UTF-8, or an array of bytes from 0 to 255. Each call opens a fresh socket, so the datagram leaves from a random local port.</p>
+<p>Returns <code>{ ok: false, error }</code> when the host does not resolve, the data holds a value that is not a byte, or the send fails.</p>
+
+<div class="note"><p>Broadcast addresses such as <code>255.255.255.255</code> do not work: the socket is not set up for broadcast, so the send fails.</p></div>
+
+<pre><code class="language-javascript">// Send three raw bytes to a device on the LAN.
+const r = macotron.udp.send("192.168.1.50", 4210, [0x01, 0xff, 0x00]);
+if (!r.ok) console.log("send failed:", r.error);</code></pre>
+
+<h2>Listening</h2>
+
+<h3>listen(port: number): { ok: boolean; error?: string }</h3>
+<p>Binds the port on every IPv4 interface and sends each datagram that arrives as a <code>udp:message</code> event. Listening on a port that is already open returns <code>{ ok: true }</code>. Returns <code>{ ok: false, error }</code> when the port cannot be bound, for example when another app holds it.</p>
+
+<h3>unlisten(port: number): void</h3>
+<p>Closes the port. Macotron closes every port when plugins reload.</p>
+
+<h2>Events</h2>
+
+<h3>udp:message</h3>
+<p>Fires for each datagram on a port you listen on. The payload is <code>{ host, port, data }</code>. <code>host</code> and <code>port</code> are the sender's address, so you can reply with <code>send(host, port, …)</code>. <code>data</code> is the message as a string when it is valid UTF-8, and base64 otherwise. The event does not say which local port received the datagram.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-bonjour.html">macotron.bonjour</a> to find a device's host and port.</li>
+  <li><a href="/docs/api-http.html">macotron.http</a> for HTTP requests.</li>
+</ul>

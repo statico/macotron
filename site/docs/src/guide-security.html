@@ -1,0 +1,65 @@
+<!-- title: Security
+     summary: How Macotron decides which plugin code may run, and what an enabled plugin can do.
+     group: Guide
+     order: 6 -->
+<h1>Security</h1>
+<p class="lede">A plugin runs with all of Macotron's access: your files, the shell, the network, and every permission you granted. Macotron's protection is about <em>which</em> code runs. It makes sure no plugin runs, or changes, without your approval.</p>
+
+<h2>What an enabled plugin can do</h2>
+<p>Enabling a plugin is the same as running its code yourself. In particular:</p>
+<ul>
+  <li><code>macotron.shell.run</code> runs any command through <code>/bin/zsh</code>. There is no allowlist and no prompt for each command.</li>
+  <li><code>macotron.fs</code> reads and writes files with Macotron's access.</li>
+  <li><code>macotron.http</code> sends data anywhere.</li>
+  <li>The <code>permissions</code> a plugin declares are a request, not a limit. Macotron cannot stop a plugin from using an API it did not declare.</li>
+</ul>
+<p>So read a plugin, or have your agent explain it, before you approve it, and approve only code from a source you trust.</p>
+
+<h2>Approval and hashes</h2>
+<p>Macotron keeps a ledger of the SHA-256 hash of every plugin file you approved. The ledger lives in the macOS Keychain, apart from plugin secrets, so no plugin can read or change it.</p>
+<ul>
+  <li>At launch, a plugin runs only if its bytes match the approved hash.</li>
+  <li>When a running plugin's file changes, the new bytes do not run. The copy already in memory keeps running until the next reload or restart; after that, the plugin stays stopped until you review it. The Macotron menu says how many plugin files changed and offers <strong>Review &amp; Reload</strong>.</li>
+  <li>A new file in <code>plugins/</code> waits too, with <strong>Review &amp; Load</strong>. Macotron posts a notification when one appears.</li>
+</ul>
+<p>This is what stops another program from quietly editing a plugin to run its own code. Files that a plugin imports go through the same check.</p>
+
+<h2>The review sheet</h2>
+<p>Reviewing a changed or new plugin opens a sheet with its title, its description, the permissions it declares, and <strong>View Source…</strong>. Macotron also scans the code:</p>
+<ul>
+  <li>On macOS 26 with Apple Intelligence on, the on-device model reads the code three times, looking for harmful behavior.</li>
+  <li>Static checks flag <code>eval()</code>, reading the Keychain and sending HTTP in the same file, running <code>curl</code> or <code>wget</code> in a shell, and comments that try to talk to the scanner.</li>
+</ul>
+<p>A clean scan makes <strong>Load</strong> (or <strong>Reload</strong>) the default button. When a check fails, or the model is not available, the button reads <strong>Run Anyway</strong>. The scan is advice, not a gate: you decide. Approving records the new hash.</p>
+<p>Built-in plugins ship inside the signed app, so adding one from the catalog skips the scan. <strong>Scan Anyway</strong> runs it on demand.</p>
+
+<h2>Hot Reload</h2>
+<p>Hot Reload skips the hash check and the scan. Every save loads at once. It is for writing plugins, and it is off by default.</p>
+<ul>
+  <li>Turn it on with <strong>Enable Hot Reloading</strong> in the Macotron menu, or Settings → General → Hot Reload.</li>
+  <li>While it is on, the menu bar icon has an orange reload badge and the menu says <strong>Hot Reload is on — plugins load without a scan</strong>.</li>
+  <li>Only you can turn it on, from the menu or Settings. A released build of Macotron has no other switch for it.</li>
+</ul>
+<p>Turn it off when you finish, so a later change to a file has to be approved again.</p>
+
+<h2>The block list</h2>
+<p>Macotron downloads a published list of SHA-256 hashes of known-bad plugin code at launch, and keeps a copy on disk, so it works offline too. A blocked file does not load, does not install, and cannot be approved with <strong>Run Anyway</strong>, even with Hot Reload on.</p>
+
+<h2>Secrets</h2>
+<p>Keep API keys in a <code>password</code> option, which Settings stores in the Keychain, or in <a href="/docs/api-keychain.html">macotron.keychain</a>. <code>settings.json</code> holds only a reference to the Keychain item, so you can commit it. Never put a key in plugin source, <code>localStorage</code>, or git.</p>
+
+<h2>Links from other apps</h2>
+<p>Any app or web page can open a <code>macotron://</code> link. Macotron asks before it passes one to a plugin, and shows the link and the app that sent it. If you write a plugin that handles links, treat every part of the link as untrusted input.</p>
+
+<h2>The background helper</h2>
+<p>Fan control needs root, so Macotron can install a helper that runs as root. It installs only when you select <strong>Install…</strong> and approve it in System Settings, and you can remove it from Settings → Permissions. See <a href="/docs/guide-permissions.html#the-background-helper">Permissions</a>.</p>
+
+<h2>Updates</h2>
+<p>Macotron updates are signed. It installs an update only when the signature matches the public key inside the copy you already have, so a hijacked download cannot replace it. See <a href="/docs/guide-updates.html">Updates</a>.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/guide-community-plugins.html">Community plugins</a></li>
+  <li><a href="/docs/guide-permissions.html">Permissions</a></li>
+  <li><a href="/docs/api-shell.html">macotron.shell</a></li>
+</ul>

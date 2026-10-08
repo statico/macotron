@@ -1,0 +1,125 @@
+<!-- title: macotron.system
+     summary: CPU, GPU, memory, disk, processes, battery, fans, appearance, Focus, locale, and time zones.
+     group: API -->
+<h1>macotron.system</h1>
+<p class="lede">Read the state of the Mac: CPU, GPU, memory, disk, network totals, processes, battery, and fans. Switch Dark Mode and Low Power Mode, and format the time in another zone.</p>
+
+<pre><code class="language-javascript">// CPU and memory pressure in the menu bar, every two seconds.
+function render() {
+  const cpu = Math.round(macotron.system.cpu().usage);
+  const { pressure } = macotron.system.memory();
+  macotron.menubar.status("load", {
+    title: cpu + "%",
+    color: pressure === "normal" ? undefined : "orange",
+  });
+}
+
+render();
+macotron.every(2000, render);</code></pre>
+
+<h2>CPU and GPU</h2>
+
+<h3>cpu(): { usage, performance, efficiency, performanceCores, efficiencyCores }</h3>
+<p><code>usage</code> is the busy percentage, <code>0</code>…<code>100</code>, of all cores together since the previous call. The counters are shared by all plugins, so the window runs from whichever plugin called last. Call it on a steady timer for a steady reading.</p>
+<p><code>performance</code> and <code>efficiency</code> are the busy percentages of each core cluster on Apple silicon. <code>performanceCores</code> and <code>efficiencyCores</code> are the logical core counts. An Intel Mac reports every core as a performance core and <code>efficiencyCores</code> as <code>0</code>.</p>
+
+<h3>gpu(): { name, usage } | null</h3>
+<p>The GPU's name and its utilization in percent. <code>usage</code> is <code>0</code> when macOS does not report it. Returns <code>null</code> when the Mac has no Metal GPU.</p>
+
+<h3>processes(limit?: number): Promise&lt;Array&lt;{ name, pid, cpu }&gt;&gt;</h3>
+<p>The processes using the most CPU, highest first. <code>limit</code> defaults to 10. <code>cpu</code> is the percentage that <code>ps</code> reports, where 100 is one full core, so a busy process can go above 100. <code>name</code> is the executable path or name.</p>
+
+<h2>Memory, disk, and network</h2>
+
+<h3>memory(): { total, used, free, active, inactive, wired, compressed, pressure }</h3>
+<p>All sizes are bytes. <code>used</code> is active plus wired plus compressed memory, and <code>free</code> is <code>total</code> minus <code>used</code>, so free includes the file cache.</p>
+<p><code>pressure</code> is <code>"normal"</code>, <code>"warning"</code>, or <code>"critical"</code>: the same signal as Activity Monitor's memory pressure graph. Read <code>pressure</code> to warn about memory. Do not compare <code>used</code> to <code>total</code>: macOS fills free memory with cache on purpose, so a Mac that looks nearly full with normal pressure is healthy.</p>
+
+<h3>disk(): { total, free, used }</h3>
+<p>Bytes on the startup volume. <code>free</code> is the space available for important use, which counts purgeable space that macOS can clear.</p>
+
+<h3>network(): { bytesIn, bytesOut }</h3>
+<p>Total bytes received and sent on every interface except loopback, since the interfaces came up. Take two readings and subtract to get a rate.</p>
+<div class="note"><p>The counters come from 32-bit fields, so each interface wraps at 4 GiB. A rate that goes negative means a counter wrapped; skip that sample. For per-interface counters, see <a href="/docs/api-network.html">macotron.network</a><code>.counters()</code>.</p></div>
+
+<h2>Battery and Low Power Mode</h2>
+
+<h3>battery(): Battery</h3>
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>level</code></td><td>Charge in percent, <code>0</code>…<code>100</code>. <code>-1</code> on a Mac with no battery.</td></tr>
+    <tr><td><code>charging</code></td><td><code>true</code> while on AC power, even when the battery is full. Read <code>charged</code> to tell the two apart.</td></tr>
+    <tr><td><code>charged</code></td><td><code>true</code> when the battery is full.</td></tr>
+    <tr><td><code>timeRemaining</code></td><td>Minutes until empty, or <code>-1</code> when unknown.</td></tr>
+    <tr><td><code>timeToFull</code></td><td>Minutes until full, or <code>-1</code> when unknown.</td></tr>
+    <tr><td><code>source</code></td><td><code>"ac"</code> or <code>"battery"</code>.</td></tr>
+    <tr><td><code>health</code></td><td>Maximum capacity as a percent of the design capacity. Only when known.</td></tr>
+    <tr><td><code>cycles</code></td><td>Charge cycle count. Only when known.</td></tr>
+    <tr><td><code>watts</code></td><td>The power adapter's wattage. Only when known.</td></tr>
+    <tr><td><code>lowPowerMode</code></td><td>Whether Low Power Mode is on.</td></tr>
+  </tbody>
+</table>
+
+<h3>setLowPowerMode(enabled: boolean): Promise&lt;{ ok, lowPowerMode, error? }&gt;</h3>
+<p>Turns Low Power Mode on or off for both battery and power adapter, with <code>pmset</code>. macOS asks the user for an administrator password, and the promise resolves after the user answers. If the user cancels, <code>ok</code> is <code>false</code>, <code>error</code> says why, and <code>lowPowerMode</code> is the current setting.</p>
+
+<h2>Fans</h2>
+<p>Any plugin can read fan speeds. Setting a minimum speed, the fan floor, needs the Macotron background helper, because the fans are changed with root privileges. To offer the helper, put <code>"helper"</code> in the <code>permissions</code> of <code>macotron.plugin()</code>. The plugin's Settings page then shows an Install button.</p>
+
+<h3>fans(): FanState</h3>
+<table>
+  <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>available</code></td><td><code>true</code> when this Mac has fans that can be read.</td></tr>
+    <tr><td><code>controllable</code></td><td><code>true</code> when a floor can be set now: the Mac has fans and the helper is installed.</td></tr>
+    <tr><td><code>floor</code></td><td>The minimum in percent while Macotron holds one. Absent when the fans follow macOS.</td></tr>
+    <tr><td><code>error</code></td><td>Why the fans could not be read, when they could not.</td></tr>
+    <tr><td><code>fans</code></td><td><code>Array&lt;{ index, rpm, min, max }&gt;</code>: the current, minimum, and maximum speed of each fan in RPM.</td></tr>
+  </tbody>
+</table>
+
+<h3>setFanFloor(percent: number | null): Promise&lt;FanState&gt;</h3>
+<p>Holds the fans at or above <code>percent</code> of the range from each fan's minimum to its maximum speed. Values above <code>100</code> count as <code>100</code>. <code>null</code>, or a value of <code>0</code> or less, gives control back to macOS. Resolves with the new <code>fans()</code> state. When the helper is not installed or cannot be reached, the state carries an <code>error</code>.</p>
+<p>The floor never lowers a fan below the speed macOS wants. A floor below 100% is released when the Mac's thermal state reaches serious, so that macOS can run the fans faster.</p>
+<div class="note"><p>A plugin reload keeps the floor only if a plugin sets it again while loading. If no plugin claims it, the fans go back to macOS. When Macotron quits, the helper gives the fans back too, so store the floor (for example in <code>localStorage</code>) and set it again at load.</p></div>
+<pre><code class="language-javascript">const saved = Number(localStorage.getItem("fan.floor")) || null;
+if (saved) macotron.system.setFanFloor(saved);</code></pre>
+
+<h2>Appearance and Focus</h2>
+
+<h3>darkMode(): boolean</h3>
+<p>Whether the system shows Dark Mode now. This is the macOS appearance, not Macotron's own Settings theme. To pick colors for the menu bar, read <a href="/docs/api-menubar.html">macotron.menubar</a><code>.isDark()</code> instead, because the menu bar follows the wallpaper.</p>
+
+<h3>setDarkMode(on: boolean): Promise&lt;{ ok, darkMode, error? }&gt;</h3>
+<p>Switches the system to Dark or Light Mode. If the direct switch is not available, Macotron asks System Events instead, and macOS can ask the user to allow that the first time.</p>
+
+<h3>appearance(): "light" | "dark" | "auto"</h3>
+<p>The appearance setting. <code>"auto"</code> means macOS switches with the time of day; it reads <code>"auto"</code> whichever theme shows now.</p>
+
+<h3>setAppearance(mode: "light" | "dark" | "auto"): Promise&lt;{ ok, appearance, error? }&gt;</h3>
+<p>Sets the appearance. <code>"light"</code> and <code>"dark"</code> turn off automatic switching first. Throws a <code>TypeError</code> for any other mode.</p>
+<pre><code class="language-javascript">const next = { light: "dark", dark: "auto", auto: "light" }[macotron.system.appearance()];
+macotron.system.setAppearance(next);</code></pre>
+
+<h3>focus(): { focused: boolean }</h3>
+<p>Whether a Focus mode, such as Do Not Disturb, Sleep, or Work, is on. It reads <code>false</code> until macOS gives Macotron access to Focus status. You cannot change Focus from here.</p>
+
+<h2>Locale and time zones</h2>
+<p>The JavaScript runtime has no <code>Intl</code>, so use these calls to format for the user's locale or for another zone.</p>
+
+<h3>locale(): { language, region, measurement, hour12 }</h3>
+<p><code>language</code> is a code such as <code>"en"</code> and <code>region</code> a code such as <code>"US"</code>; either can be <code>""</code>. <code>measurement</code> is <code>"metric"</code> or <code>"us"</code>. <code>hour12</code> is <code>true</code> when the user's clock shows AM and PM.</p>
+
+<h3>timeIn(zone: string, format?: string): string</h3>
+<p>The time now in an IANA zone such as <code>"Europe/London"</code>, or in a zone abbreviation such as <code>"PST"</code>. <code>format</code> is a Unicode date pattern and defaults to <code>"HH:mm"</code>. Returns <code>""</code> for a zone macOS does not know.</p>
+<pre><code class="language-javascript">macotron.system.timeIn("Asia/Tokyo");             // "02:42"
+macotron.system.timeIn("Asia/Tokyo", "EEE h:mm a"); // "Fri 2:42 AM"</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-power.html">macotron.power</a> to keep the Mac awake, and for sleep and lock events.</li>
+  <li><a href="/docs/api-network.html">macotron.network</a> for Wi-Fi, Bluetooth, and per-interface counters.</li>
+  <li><a href="/docs/api-display.html">macotron.display</a> for Night Shift, True Tone, and grayscale.</li>
+  <li>The <code>system-metrics.js</code>, <code>battery.js</code>, <code>fan.js</code>, <code>appearance.js</code>, and <code>world-clock.js</code> plugins.</li>
+</ul>

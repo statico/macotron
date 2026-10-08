@@ -1,0 +1,30 @@
+<!-- title: macotron.mouse
+     summary: Read where the pointer is and which buttons are down, and move the pointer.
+     group: API -->
+<h1>macotron.mouse</h1>
+<p class="lede">Read the pointer position and the button state, and move the pointer to a new spot.</p>
+
+<pre><code class="language-javascript">// Nudge the pointer 100 points to the right.
+const { x, y } = macotron.mouse.location();
+macotron.mouse.warp(x + 100, y);</code></pre>
+
+<h2>Coordinates</h2>
+<p><code>location()</code> and <code>warp()</code> use Cocoa screen points. The origin is the bottom-left corner of the main display, and y grows upward. Window frames, <a href="/docs/api-ax.html">accessibility</a> frames, and <a href="/docs/api-event.html">event</a> coordinates use the top-left corner instead, with y growing downward. To convert, subtract y from the height of the main display.</p>
+
+<h2>Pointer</h2>
+
+<h3>location(): { x: number, y: number }</h3>
+<p>The current pointer position in Cocoa screen points. It needs no permission.</p>
+
+<h3>warp(x: number, y: number): boolean</h3>
+<h3>warp(point: { x: number, y: number }): boolean</h3>
+<p>Moves the pointer to the point, in Cocoa screen points. It does not click, and apps get no mouse-moved event. Returns <code>false</code> only when the arguments are missing.</p>
+
+<h3>buttons(): { left: boolean, right: boolean, center: boolean }</h3>
+<p>Which mouse buttons are held right now. <code>center</code> is the middle button.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-event.html">macotron.event</a> to click, scroll, or watch mouse events.</li>
+  <li><a href="/docs/api-window.html">macotron.window</a> for window frames.</li>
+</ul>
