@@ -167,7 +167,8 @@ final class NowPlaying: @unchecked Sendable {
     /// until a track or play state changes.
     func watch(_ on: Bool) {
         queue.async { [weak self] in
-            guard let self else { return }
+            // A repeat watch(true) would skip the restart backoff below.
+            guard let self, on != wantWatch else { return }
             wantWatch = on
             if on { startWatcher() } else { stopWatcher() }
         }

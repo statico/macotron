@@ -28,6 +28,9 @@ public final class MediaModule: NativeModule {
 
         JSBridge.fn(ctx, media, "nowPlaying", 0) { ctx, _, _, _ in
             guard let ctx else { return QJS_Undefined() }
+            // The first call reads directly, since the watcher has nothing yet;
+            // after that the watcher keeps the snapshot current with no spawn.
+            if !Engine.isDryRun(ctx) { NowPlaying.shared.watch(true) }
             return JSBridge.newObject(ctx, NowPlaying.shared.freshSnapshot().js)
         }
 
@@ -51,11 +54,13 @@ public final class MediaModule: NativeModule {
         JS_FreeValue(ctx, global)
     }
 
-    // Watch only while a plugin listens; nowPlaying() reads on demand otherwise.
+    // Watch while a plugin listens or has called nowPlaying(), which starts the
+    // watcher itself and serves its snapshot: reading by spawning osascript
+    // blocked the main thread. cleanup() stops it, so each reload starts clean.
     // ponytail: a listener added after load (inside a timer, say) waits for the next reload.
     public func didReload() {
-        guard let engine, !engine.dryRun else { return }
-        NowPlaying.shared.watch(engine.eventBus.hasListeners("media:changed"))
+        guard let engine, !engine.dryRun, engine.eventBus.hasListeners("media:changed") else { return }
+        NowPlaying.shared.watch(true)
     }
 
     public func cleanup() {
