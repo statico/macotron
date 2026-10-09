@@ -253,7 +253,9 @@ enum BluetoothBattery {
     static func cached() -> [String: Int] {
         lock.lock()
         defer { lock.unlock() }
-        if let cache, Date().timeIntervalSince(cache.at) < 30 { return cache.map }
+        // system_profiler takes over a second of CPU, and battery levels drift
+        // slowly, so a poller pays for it at most every five minutes.
+        if let cache, Date().timeIntervalSince(cache.at) < 300 { return cache.map }
         let map = parse(profilerJSON())
         self.cache = (Date(), map)
         return map

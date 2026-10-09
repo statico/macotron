@@ -22,6 +22,8 @@ public final class IdleModule: NativeModule {
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.poll() }
         }
+        // Idle detection does not need to be punctual; slack lets the system coalesce wakeups.
+        timer?.tolerance = 0.5
     }
 
     public func register(in engine: Engine, options: [String: Any]) {

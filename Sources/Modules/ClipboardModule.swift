@@ -38,8 +38,7 @@ public final class ClipboardModule: NativeModule {
         self.engine = engine
         historyOptIn = options["history"] as? Bool ?? false
         engine.configStore["__clipboardModule"] = self
-        guard !engine.dryRun else { return }
-        startPolling()
+        if historyOptIn { startPolling() }
     }
 
     public func register(in engine: Engine, options: [String: Any]) {
@@ -171,6 +170,18 @@ public final class ClipboardModule: NativeModule {
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.poll() }
         }
+        timer?.tolerance = 0.05
+    }
+
+    private func stopPolling() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    // Poll only while something consumes it: history, or a clipboard:changed listener.
+    // ponytail: a listener added after load (inside a timer, say) waits for the next reload.
+    public func didReload() {
+        if historyEnabled { startPolling() } else { stopPolling() }
     }
 
     fileprivate func trimmedHistory() -> [[String: Any]] {
@@ -183,8 +194,7 @@ public final class ClipboardModule: NativeModule {
     }
 
     public func cleanup() {
-        timer?.invalidate()
-        timer = nil
+        stopPolling()
         removePasteTap()
         pastePlain = false
         historyOptIn = false
@@ -271,18 +281,19 @@ public final class ClipboardModule: NativeModule {
         guard historyEnabled, ClipboardHistoryPolicy.isRecordable(ClipboardPasteboard.types(pasteboard)) else { return }
 
         if let text = pasteboard.string(forType: .string), !text.isEmpty {
-            push(kind: "text", text: text)
+            if text.utf8.count <= ClipboardHistoryPolicy.maxTextBytes { push(kind: "text", text: text) }
             return
         }
         var png: Data?
         if let data = pasteboard.data(forType: .png) {
             png = data
         } else if let data = pasteboard.data(forType: .tiff),
+                  data.count <= ClipboardHistoryPolicy.maxTIFFBytes,
                   let rep = NSBitmapImageRep(data: data),
                   let converted = rep.representation(using: .png, properties: [:]) {
             png = converted
         }
-        guard let png else { return }
+        guard let png, png.count <= ClipboardHistoryPolicy.maxImageBytes else { return }
         push(kind: "image", text: png.base64EncodedString())
     }
 
@@ -320,6 +331,14 @@ enum ClipboardHistoryPolicy {
     ]
     static let maxCount = 50
     static let maxAgeMs = 24 * 60 * 60 * 1000.0
+    // Size caps keep 50 entries from holding a gigabyte of screenshots or logs.
+    // Oversized items are skipped, not truncated, so paste(id) never pastes half of something.
+    static let maxTextBytes = 100_000
+    static let maxImageBytes = 2_000_000
+    // The TIFF-to-PNG encode runs on main; a TIFF this large rarely
+    // compresses under maxImageBytes, so it is not worth the stall.
+    // ponytail: size heuristic; move the encode off main if big images matter.
+    static let maxTIFFBytes = 16_000_000
 
     static func isRecordable(_ types: [String]) -> Bool {
         !types.contains { skipTypes.contains($0) }

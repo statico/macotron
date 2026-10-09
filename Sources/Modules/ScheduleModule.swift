@@ -304,6 +304,9 @@ private final class ScheduleJob {
                 module.invokeJob(self)
             }
         }
+        // A tenth of the interval as slack lets the system coalesce wakeups
+        // without plugins noticing the drift.
+        timer?.tolerance = interval * 0.1
         RunLoop.main.add(timer!, forMode: .common)
     }
 
