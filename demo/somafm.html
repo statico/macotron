@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- Demo for the homepage recordings: plays SomaFM Groove Salad and hands
+     the current track to macOS Now Playing, which SomaFM's own player does not. -->
+<meta charset="utf-8">
+<title>Groove Salad</title>
+<style>
+  body { margin: 0; height: 100vh; display: grid; place-items: center; background: #1d2a1d; font: 16px -apple-system, sans-serif; color: #e8f0e8; }
+  button { font: inherit; font-size: 20px; padding: 14px 28px; border-radius: 999px; border: 0; background: #7dbb4a; color: #102010; cursor: pointer; }
+  img { width: 160px; border-radius: 12px; display: block; margin: 0 auto 16px; }
+  p { text-align: center; }
+</style>
+<div>
+  <img src="https://api.somafm.com/logos/512/groovesalad512.png" alt="">
+  <p id="now">SomaFM · Groove Salad</p>
+  <p><button id="play">Play</button></p>
+</div>
+<audio id="audio" src="https://ice6.somafm.com/groovesalad-256-mp3"></audio>
+<script>
+  const audio = document.getElementById("audio");
+  const art = [{ src: "https://api.somafm.com/logos/512/groovesalad512.png", sizes: "512x512", type: "image/png" }];
+
+  async function refresh() {
+    try {
+      const { songs } = await (await fetch("https://somafm.com/songs/groovesalad.json")).json();
+      const song = songs[0];
+      document.getElementById("now").textContent = song.artist + " · " + song.title;
+      navigator.mediaSession.metadata = new MediaMetadata({ title: song.title, artist: song.artist, album: "SomaFM Groove Salad", artwork: art });
+    } catch {}
+  }
+
+  // A live stream never ends, so tell Now Playing the state outright.
+  audio.onplay = () => (navigator.mediaSession.playbackState = "playing");
+  audio.onpause = () => (navigator.mediaSession.playbackState = "paused");
+  navigator.mediaSession.setActionHandler("play", () => audio.play());
+  navigator.mediaSession.setActionHandler("pause", () => audio.pause());
+
+  document.getElementById("play").onclick = () => {
+    audio.play();
+    refresh();
+    setInterval(refresh, 20000);
+  };
+</script>
