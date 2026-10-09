@@ -34,10 +34,13 @@
   document.querySelector(".tour-prev").addEventListener("click", () => go(current - 1));
   document.querySelector(".tour-next").addEventListener("click", () => go(current + 1));
 
-  // Advance when a clip has looped a couple of times, unless the visitor
-  // has taken over the carousel.
+  // Advance when a clip ends; once the visitor has taken over the carousel,
+  // replay the current clip instead.
   let touched = false;
   track.addEventListener("pointerdown", () => { touched = true; });
-  tabs.forEach((t) => t.addEventListener("click", () => { touched = true; }));
-  if (!still) setInterval(() => { if (!touched && !document.hidden) go(current + 1); }, 9000);
+  document.querySelectorAll(".tour-tabs button, .tour-nav button").forEach((b) => b.addEventListener("click", () => { touched = true; }));
+  slides.forEach((s) => s.querySelector("video").addEventListener("ended", (e) => {
+    if (touched) e.target.play().catch(() => {});
+    else go(current + 1);
+  }));
 })();
