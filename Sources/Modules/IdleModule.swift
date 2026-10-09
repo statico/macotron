@@ -15,10 +15,16 @@ public final class IdleModule: NativeModule {
 
     public init() {}
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         self.engine = engine
         engine.configStore["__idleModule"] = self
+        guard !engine.dryRun else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.poll() }
+        }
+    }
 
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
@@ -39,11 +45,6 @@ public final class IdleModule: NativeModule {
         JS_SetPropertyStr(ctx, macotron, "idle", idle)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
-
-        guard !engine.dryRun else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.poll() }
-        }
     }
 
     public func cleanup() {

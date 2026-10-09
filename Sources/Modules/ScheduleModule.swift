@@ -20,10 +20,14 @@ public final class ScheduleModule: NativeModule {
 
     public init() {}
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         self.engine = engine
         engine.configStore["__scheduleModule"] = self
+        guard !engine.dryRun else { return }
+        startObservers()
+    }
 
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
@@ -49,9 +53,6 @@ public final class ScheduleModule: NativeModule {
 
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
-
-        guard !engine.dryRun else { return }
-        startObservers()
     }
 
     public func cleanup() {
@@ -71,7 +72,7 @@ public final class ScheduleModule: NativeModule {
     private func registerEvery(ctx: OpaquePointer, spec: JSValue, callback: JSValue) -> JSValue {
         guard let engine else { return QJS_Undefined() }
 
-        let pluginFile = engine.currentEvaluatingFile
+        let pluginFile = engine.callerFile(ctx)
         let protected = JS_DupValue(ctx, callback)
 
         if JS_IsString(spec) {
@@ -86,7 +87,7 @@ public final class ScheduleModule: NativeModule {
                 JS_FreeValue(ctx, protected)
                 return QJS_ThrowTypeError(ctx, "invalid schedule: \(raw)")
             }
-            engine.recordPluginEvent("schedule:every \(raw)")
+            engine.recordPluginEvent("schedule:every \(raw)", file: engine.callerFile(ctx))
             let id = addWallClockJob(ctx: ctx, schedule: schedule, callback: protected, pluginFile: pluginFile)
             return makeStopFunction(ctx: ctx, jobID: id)
         }
@@ -131,13 +132,13 @@ public final class ScheduleModule: NativeModule {
             return QJS_ThrowTypeError(ctx, "invalid time: \(time)")
         }
 
-        engine.recordPluginEvent("schedule:at \(time)")
+        engine.recordPluginEvent("schedule:at \(time)", file: engine.callerFile(ctx))
         let protected = JS_DupValue(ctx, callback)
         let id = addWallClockJob(
             ctx: ctx,
             schedule: schedule,
             callback: protected,
-            pluginFile: engine.currentEvaluatingFile
+            pluginFile: engine.callerFile(ctx)
         )
         return makeStopFunction(ctx: ctx, jobID: id)
     }

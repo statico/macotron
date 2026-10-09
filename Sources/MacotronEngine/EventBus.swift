@@ -33,7 +33,6 @@ public final class EventBus {
         listeners[event] = list.isEmpty ? nil : list
     }
 
-    /// Emit an event, calling all registered callbacks
     /// Emit an event, calling all registered callbacks.
     ///
     /// `budget` overrides the default time each listener gets before the engine
@@ -53,14 +52,16 @@ public final class EventBus {
         defer { for h in held { JS_FreeValue(h.ctx, h.callback) } }
 
         for listener in held {
-            let result = engine.callJS(
-                listener.callback,
-                data.map { [$0] } ?? [],
-                budget: budget,
-                label: "event \(event)",
-                drain: false
-            )
-            if let result { JS_FreeValue(engine.context, result) }
+            engine.withContext(listener.ctx) {
+                let result = engine.callJS(
+                    listener.callback,
+                    data.map { [$0] } ?? [],
+                    budget: budget,
+                    label: "event \(event)",
+                    drain: false
+                )
+                if let result { JS_FreeValue(listener.ctx, result) }
+            }
         }
         engine.drainJobQueue(budget: budget)
     }

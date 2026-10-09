@@ -44,6 +44,7 @@ struct URLSchemeEventTests {
         defer { module.cleanup() }
 
         engine.reset()
+        engine.registerAllModules()
         URLSchemeModule.handle([URL(string: "https://example.com/reload")!])
 
         let (_, error) = engine.evaluate("""

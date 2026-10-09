@@ -55,7 +55,7 @@ extension JSBridge {
         }
 
         let token = engine.registerPending(resolve: resolve, reject: reject)
-        let file = engine.currentEvaluatingFile
+        let file = engine.callerFile(ctx)
         nonisolated(unsafe) let capturedCtx = ctx
         DispatchQueue.global(qos: qos).async {
             let outcome = work()
@@ -141,7 +141,7 @@ extension JSBridge {
         }
 
         let token = engine.registerPending(resolve: resolve, reject: reject)
-        let file = engine.currentEvaluatingFile
+        let file = engine.callerFile(ctx)
         return (promise, { outcome in
             guard let pending = engine.claimPending(token) else { return }
             settle(ctx, engine: engine, file: file,

@@ -10,8 +10,13 @@ public final class USBModule: NativeModule {
 
     public init() {}
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         engine.configStore["__usbModule"] = self
+        guard !engine.dryRun else { return }
+        USBWatch.start(engine)
+    }
+
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
@@ -25,9 +30,6 @@ public final class USBModule: NativeModule {
         JS_SetPropertyStr(ctx, macotron, "usb", usb)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
-
-        guard !engine.dryRun else { return }
-        USBWatch.start(engine)
     }
 
     public func cleanup() {

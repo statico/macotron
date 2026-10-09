@@ -79,9 +79,12 @@ public final class DisplayModule: NativeModule {
 
     public init() {}
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         engine.configStore["__displayModule"] = self
         if !engine.dryRun { DisplayChange.start(engine) }
+    }
+
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotronObj = JSBridge.getProperty(ctx, global, "macotron")

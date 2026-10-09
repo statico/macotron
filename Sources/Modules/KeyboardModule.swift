@@ -89,7 +89,7 @@ public final class KeyboardModule: NativeModule {
             }
 
             guard let engine = Engine.of(ctx) else { return QJS_Undefined() }
-            let pluginFile = engine.currentEvaluatingFile ?? ""
+            let pluginFile = engine.callerFile(ctx) ?? ""
             let fullId = pluginFile.isEmpty ? key : "\(pluginFile)/\(key)"
             let table = CommandShortcuts.load(from: engine.configStore["keyboardShortcuts"])
             let comboStr = table.resolved(fullId, default: defaultCombo)

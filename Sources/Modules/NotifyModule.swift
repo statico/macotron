@@ -108,12 +108,14 @@ public final class NotifyModule: NativeModule {
         }
     }
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         engine.configStore["__notifyModule"] = self
         if !engine.dryRun {
             center.delegate = presenter
         }
+    }
 
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JS_GetPropertyStr(ctx, global, "macotron")

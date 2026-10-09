@@ -13,7 +13,12 @@ public protocol NativeModule: AnyObject {
     /// Default options for this module. User options in config.js override these.
     var defaultOptions: [String: Any] { get }
 
-    /// Register this module's functions in the given engine context
+    /// Once per reload, before any `register`: observers, timers, watchers,
+    /// and anything else the module should hold exactly one of.
+    func setUp(in engine: Engine, options: [String: Any])
+
+    /// Install this module's bindings in `engine.context`. Runs once per
+    /// plugin, each in its own context, so it must do nothing but bind.
     func register(in engine: Engine, options: [String: Any])
 
     /// Called when the engine is about to reset (cleanup resources)
@@ -24,6 +29,7 @@ public protocol NativeModule: AnyObject {
 extension NativeModule {
     public var moduleVersion: Int { 1 }
     public var defaultOptions: [String: Any] { [:] }
+    public func setUp(in engine: Engine, options: [String: Any]) {}
     public func cleanup() {}
     public func didReload() {}
 }

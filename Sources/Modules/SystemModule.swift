@@ -285,16 +285,18 @@ public final class SystemModule: NativeModule {
         FanController.shared.endReload()
     }
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         Permissions.beforeHelperUnregister = { FanController.shared.restoreIfNeeded() }
+        _ = CPUTicks.shared.usage()
+        _ = CoreTicks.shared.usage()
+    }
+
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
 
         let systemObj = JS_NewObject(ctx)
-
-        _ = CPUTicks.shared.usage()
-        _ = CoreTicks.shared.usage()
 
         JSBridge.fn(ctx, systemObj, "cpu", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }

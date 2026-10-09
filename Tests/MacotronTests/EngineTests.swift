@@ -49,6 +49,54 @@ struct EngineTests {
         #expect(b == nil)
     }
 
+    @Test("plugin contexts do not share globals or macotron")
+    func pluginContextsAreIsolated() {
+        let engine = Engine()
+        engine.registerAllModules()
+        engine.pluginContext("a.js")
+        engine.pluginContext("b.js")
+        engine.withEvaluatingFile("a.js") {
+            engine.evaluate("globalThis.secret = 1; macotron.version = 0; Array.prototype.leak = 1")
+        }
+        engine.withEvaluatingFile("b.js") {
+            let (result, _) = engine.evaluate(
+                "[typeof secret, typeof macotron.version, typeof [].leak].join()"
+            )
+            #expect(result == "undefined,object,undefined")
+        }
+    }
+
+    @Test("native calls know their plugin from the context, not the stack")
+    func identityComesFromContext() {
+        let engine = Engine()
+        engine.pluginContext("a.js")
+        engine.withEvaluatingFile("a.js") {
+            engine.evaluate("$$__on('t', function () { $$__registerCommand('late', '', function () {}) })")
+        }
+        // Emitted with no file on the stack, as a system event is.
+        engine.eventBus.emit("t", engine: engine)
+        #expect(engine.commandRegistry["a.js/late"] != nil)
+        #expect(engine.pluginFile(engine.context) == nil)
+    }
+
+    @Test("the host context owns no secrets once plugins have contexts")
+    func hostOwnsNoSecrets() {
+        let engine = Engine()
+        engine.currentEvaluatingFile = "a.js"
+        #expect(engine.secretOwner(engine.context) == "a.js")
+        let ctx = engine.pluginContext("a.js")
+        #expect(engine.secretOwner(ctx) == "a.js")
+        #expect(engine.secretOwner(engine.context) == nil)
+    }
+
+    @Test("reset frees plugin contexts")
+    func resetDropsPluginContexts() {
+        let engine = Engine()
+        let ctx = engine.pluginContext("a.js")
+        engine.reset()
+        #expect(engine.pluginFile(ctx) == nil)
+    }
+
     @Test("Reset clears state")
     func testReset() {
         let engine = Engine()
