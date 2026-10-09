@@ -9,7 +9,7 @@ macotron.plugin({
 
 const ENVS = [
     { id: "prod", label: "prod", behind: [0, 0, 2, 3, 9, 14, 0] },
-    { id: "staging", label: "stage", behind: [0, 1, 0, 0, 1, 0, 0] },
+    { id: "staging", label: "staging", behind: [0, 1, 0, 0, 1, 0, 0] },
 ];
 
 function color(n) {
