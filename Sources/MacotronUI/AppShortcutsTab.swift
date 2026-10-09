@@ -21,7 +21,7 @@ enum AppShortcutDraft {
 }
 
 struct AppShortcutsTab: View {
-    @ObservedObject var state: SettingsState
+    let state: SettingsState
     @State private var selection: AppShortcutSummary.ID?
     @State private var adding = false
 
@@ -128,7 +128,7 @@ struct AppShortcutsTab: View {
 }
 
 private struct AddAppShortcutSheet: View {
-    @ObservedObject var state: SettingsState
+    let state: SettingsState
     var onAdd: (AppShortcutSummary, String) -> Void
     @Environment(\.dismiss) private var dismiss
 

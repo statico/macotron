@@ -194,51 +194,52 @@ public enum SettingsTab: Int, CaseIterable {
 }
 
 @MainActor
-public final class SettingsState: ObservableObject {
-    @Published public var launcherHotkey: String = "opt+space" { didSet { claimsCache = nil; conflictCache = nil } }
-    @Published public var showHotkeysHotkey: String = "" { didSet { claimsCache = nil; conflictCache = nil } }
-    @Published public var showMenuBarIcon: Bool = true
-    @Published public var launchAtLogin: Bool = false
-    @Published public var updateFrequency: UpdateFrequency = .daily
-    @Published public var appearance: AppearanceSetting = .system
-    @Published public var textScale: Double = 1.0
-    @Published public var launcherBackground: LauncherBackground = .translucent
-    @Published public var moduleSummaries: [ModuleSummary] = [] { didSet { claimsCache = nil; conflictCache = nil; updatableCache = nil } }
-    @Published public var appShortcuts: [AppShortcutSummary] = [] { didSet { claimsCache = nil; conflictCache = nil } }
+@Observable
+public final class SettingsState {
+    public var launcherHotkey: String = "opt+space" { didSet { claimsCache = nil; conflictCache = nil } }
+    public var showHotkeysHotkey: String = "" { didSet { claimsCache = nil; conflictCache = nil } }
+    public var showMenuBarIcon: Bool = true
+    public var launchAtLogin: Bool = false
+    public var updateFrequency: UpdateFrequency = .daily
+    public var appearance: AppearanceSetting = .system
+    public var textScale: Double = 1.0
+    public var launcherBackground: LauncherBackground = .translucent
+    public var moduleSummaries: [ModuleSummary] = [] { didSet { claimsCache = nil; conflictCache = nil; updatableCache = nil } }
+    public var appShortcuts: [AppShortcutSummary] = [] { didSet { claimsCache = nil; conflictCache = nil } }
 
     /// Building the claim table walks every plugin, hotkey, and app shortcut,
     /// and the plugin list asks for it once per row while it draws. Cache it and
     /// let the four inputs above clear it.
-    var claimsCache: [ShortcutConflicts.Claim]?
+    @ObservationIgnored var claimsCache: [ShortcutConflicts.Claim]?
 
     /// The plugin list draws 80-odd rows, and each row asks whether that
     /// plugin has an update and whether it has a shortcut conflict. Both
     /// answers used to walk the whole catalog again per row. Build each set
     /// once and let the inputs above clear it.
-    var updatableCache: Set<String>?
-    var conflictCache: Set<String>?
-    @Published public var requestedTab: Int?
-    @Published public var requestedPlugin: String?
-    @Published public var catalogPlugins: [CatalogPlugin] = [] { didSet { updatableCache = nil } }
-    @Published public var installedPluginNames: Set<String> = [] { didSet { updatableCache = nil } }
-    @Published public var pendingReview: [String] = []
+    @ObservationIgnored var updatableCache: Set<String>?
+    @ObservationIgnored var conflictCache: Set<String>?
+    public var requestedTab: Int?
+    public var requestedPlugin: String?
+    public var catalogPlugins: [CatalogPlugin] = [] { didSet { updatableCache = nil } }
+    public var installedPluginNames: Set<String> = [] { didSet { updatableCache = nil } }
+    public var pendingReview: [String] = []
     /// Pending plugins that have never run — new files rather than edits.
-    @Published public var newPlugins: Set<String> = []
-    @Published public var hotReload = false
-    @Published public var installTarget: CatalogPlugin?
-    @Published public var scanReport: PluginScanReport?
-    @Published public var scanning = false
-    @Published public var overwrite: CatalogOverwrite?
-    @Published public var isReviewing = false
+    public var newPlugins: Set<String> = []
+    public var hotReload = false
+    public var installTarget: CatalogPlugin?
+    public var scanReport: PluginScanReport?
+    public var scanning = false
+    public var overwrite: CatalogOverwrite?
+    public var isReviewing = false
 
     // Community plugins, found through the GitHub topic. No index file and no
     // server: see CommunityCatalog.
-    @Published public var communityEntries: [CommunityEntry] = [] { didSet { updatableCache = nil } }
-    @Published public var communityLoading = false
-    @Published public var communityError: String?
+    public var communityEntries: [CommunityEntry] = [] { didSet { updatableCache = nil } }
+    public var communityLoading = false
+    public var communityError: String?
     /// Repository ids whose published bytes differ from the installed copy.
-    @Published public var communityUpdates: Set<String> = [] { didSet { updatableCache = nil } }
-    @Published public var installingRepo: String?
+    public var communityUpdates: Set<String> = [] { didSet { updatableCache = nil } }
+    public var installingRepo: String?
     private var communityFetchedAt: Date?
     private var communityTask: Task<Void, Never>?
     /// Bytes the staleness check already downloaded, keyed by repo, so an
@@ -257,8 +258,8 @@ public final class SettingsState: ObservableObject {
     public var onReviewPending: ((String?) -> Void)?
 
     /// Baseline permissions plus whatever the loaded plugins declared.
-    @Published public var requiredPermissions: [Permission] = Permissions.baseline
-    @Published public var grantedPermissions: Set<Permission> = []
+    public var requiredPermissions: [Permission] = Permissions.baseline
+    public var grantedPermissions: Set<Permission> = []
 
     public var readHotkey: (() -> String)?
     public var writeHotkey: ((String) -> Void)?
@@ -675,7 +676,7 @@ public final class SettingsState: ObservableObject {
 }
 
 public struct SettingsView: View {
-    @ObservedObject var state: SettingsState
+    @Bindable var state: SettingsState
     @State private var selectedTab: SettingsTab
     @State private var selectedPlugin: String?
     @State private var pluginFilter = ""
@@ -1363,7 +1364,7 @@ struct PluginListRow: View {
 
 struct PluginDetailView: View {
     let summary: ModuleSummary
-    @ObservedObject var state: SettingsState
+    let state: SettingsState
     @State private var showDeleteAlert = false
     @State private var showUpdateAlert = false
 
@@ -1730,7 +1731,7 @@ struct PluginDetailView: View {
 struct ModuleOptionRow: View {
     let option: ModuleOption
     let filename: String
-    @ObservedObject var state: SettingsState
+    let state: SettingsState
 
     @State private var stringValue: String = ""
     @State private var boolValue: Bool = false
