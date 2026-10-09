@@ -1,0 +1,13 @@
+import sys; sys.path.insert(0, '.')
+from drive import *
+key('esc'); glide(760, 300, 0.1)
+p = record("nowplaying", 11)
+glide(540, 12, 1.0); time.sleep(0.8)
+c.mouseDown(3); time.sleep(0.2); c.mouseUp(3)
+time.sleep(1.5)
+glide(530, 96, 0.8); time.sleep(1.2)
+glide(520, 155, 0.6); time.sleep(1.2)
+key('esc'); time.sleep(0.3)
+glide(760, 300, 0.9)
+done(p, "nowplaying")
+c.disconnect()

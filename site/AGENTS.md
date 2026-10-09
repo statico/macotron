@@ -11,6 +11,7 @@ A static homepage. No build step. Vercel serves the `site/` folder as the domain
 - `workdir/plugins/*.js` — copies of the 74 built-in plugins
 - `glossary.html` — terms used on the page and in the host API
 - `og.html` / `og.png` — the social preview card. `og.html` is the source; screenshot it at exactly 1200x630 to regenerate `og.png` after changing the wording. It is not linked from the site.
+- `media/tour/` — the tour clips. They are shot in a VM and cut by `demo/encode.sh`; `demo/README.md` explains how to reshoot them.
 
 The app itself lives in the repo root (`Sources/`, `Examples/plugins/`). Do not treat this folder as the plugin workdir. The workdir `AGENTS.md` that Macotron writes for coding agents is `workdir/AGENTS.md` here, and a generated file on the user's Mac.
 
