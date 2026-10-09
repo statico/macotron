@@ -34,13 +34,6 @@
   document.querySelector(".tour-prev").addEventListener("click", () => go(current - 1));
   document.querySelector(".tour-next").addEventListener("click", () => go(current + 1));
 
-  // Advance when a clip ends; once the visitor has taken over the carousel,
-  // replay the current clip instead.
-  let touched = false;
-  track.addEventListener("pointerdown", () => { touched = true; });
-  document.querySelectorAll(".tour-tabs button, .tour-nav button").forEach((b) => b.addEventListener("click", () => { touched = true; }));
-  slides.forEach((s) => s.querySelector("video").addEventListener("ended", (e) => {
-    if (touched) e.target.play().catch(() => {});
-    else go(current + 1);
-  }));
+  // Advance to the next clip when one ends, wrapping after the last.
+  slides.forEach((s) => s.querySelector("video").addEventListener("ended", () => go(current + 1)));
 })();

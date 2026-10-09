@@ -88,6 +88,90 @@
         </div>
         <p class="brew"><code>brew install statico/tap/macotron</code></p>
         <p class="fineprint">Free and open source. Built with Swift and QuickJS.</p>
+      </div>
+
+      <div class="tour" id="tour" aria-label="What Macotron does">
+        <div class="tour-tabs" role="tablist">
+            <button type="button" role="tab" data-slide="0" aria-selected="true">Your own menu bar</button>
+            <button type="button" role="tab" data-slide="1" aria-selected="false">Quick launcher</button>
+            <button type="button" role="tab" data-slide="2" aria-selected="false">Window management</button>
+            <button type="button" role="tab" data-slide="3" aria-selected="false">Meeting bar</button>
+            <button type="button" role="tab" data-slide="4" aria-selected="false">Now Playing</button>
+            <button type="button" role="tab" data-slide="5" aria-selected="false">At a glance</button>
+            <button type="button" role="tab" data-slide="6" aria-selected="false">Community plugins</button>
+        </div>
+        <ol class="tour-track" id="tour-track">
+          <li class="slide" id="tour-deploy" aria-label="Your own menu bar">
+            <div class="screen">
+              <video src="media/tour/deploy.mp4" poster="media/tour/deploy.jpg" muted playsinline preload="none"></video>
+            </div>
+            <div class="slide-copy">
+              <h3>Your own menu bar</h3>
+              <p>Two lines, stoplight colors: is prod current, and how many commits behind. About thirty lines of JavaScript.</p>
+            </div>
+          </li>
+          <li class="slide" id="tour-launcher" aria-label="Quick launcher">
+            <div class="screen">
+              <video src="media/tour/launcher.mp4" poster="media/tour/launcher.jpg" muted playsinline preload="none"></video>
+            </div>
+            <div class="slide-copy">
+              <h3>Quick launcher</h3>
+              <p>Files, apps, math and commands, fuzzy-ranked as you type.</p>
+            </div>
+          </li>
+          <li class="slide" id="tour-windows" aria-label="Window management">
+            <div class="screen">
+              <video src="media/tour/windows.mp4" poster="media/tour/windows.jpg" muted playsinline preload="none"></video>
+            </div>
+            <div class="slide-copy">
+              <h3>Window management</h3>
+              <p>Hotkeys, drag-to-snap and a grid for the focused window.</p>
+            </div>
+          </li>
+          <li class="slide" id="tour-meetings" aria-label="Meeting bar">
+            <div class="screen">
+              <video src="media/tour/meetings.mp4" poster="media/tour/meetings.jpg" muted playsinline preload="none"></video>
+            </div>
+            <div class="slide-copy">
+              <h3>Meeting bar</h3>
+              <p>The next meeting and its join link in the menu bar, and a full-screen reminder with a QR code when it starts.</p>
+            </div>
+          </li>
+          <li class="slide" id="tour-nowplaying" aria-label="Now Playing">
+            <div class="screen">
+              <video src="media/tour/nowplaying.mp4" poster="media/tour/nowplaying.jpg" muted playsinline preload="none"></video>
+            </div>
+            <div class="slide-copy">
+              <h3>Now Playing</h3>
+              <p>Track, artist and cover art from whatever is playing. Here, SomaFM.</p>
+            </div>
+          </li>
+          <li class="slide" id="tour-system" aria-label="At a glance">
+            <div class="screen">
+              <video src="media/tour/system.mp4" poster="media/tour/system.jpg" muted playsinline preload="none"></video>
+            </div>
+            <div class="slide-copy">
+              <h3>At a glance</h3>
+              <p>A CPU and memory graph, the battery, Cupertino weather, and the month with world clocks, each one click away.</p>
+            </div>
+          </li>
+          <li class="slide" id="tour-community" aria-label="Community plugins">
+            <div class="screen">
+              <video src="media/tour/community.mp4" poster="media/tour/community.jpg" muted playsinline preload="none"></video>
+            </div>
+            <div class="slide-copy">
+              <h3>Community plugins</h3>
+              <p>Browse plugins people publish on GitHub, add one, and it's in the launcher. Yes, chess.</p>
+            </div>
+          </li>
+        </ol>
+        <div class="tour-nav">
+          <button type="button" class="tour-prev" aria-label="Previous">&#8249;</button>
+          <button type="button" class="tour-next" aria-label="Next">&#8250;</button>
+        </div>
+      </div>
+
+      <div class="hero-copy">
         <p class="beta"><strong>Beta.</strong> Macotron goes 1.0 when I, the author, consider it stable. Until then, expect things to move around.</p>
       </div>
       <figure class="hero-code">
@@ -100,87 +184,6 @@
 });</code></pre>
         <figcaption>Save, reload, and the hotkey is live.</figcaption>
       </figure>
-    </section>
-
-    <section class="tour" id="tour" aria-label="What Macotron does">
-      <div class="tour-tabs" role="tablist">
-          <button type="button" role="tab" data-slide="0" aria-selected="true">Your own menu bar</button>
-          <button type="button" role="tab" data-slide="1" aria-selected="false">Quick launcher</button>
-          <button type="button" role="tab" data-slide="2" aria-selected="false">Window management</button>
-          <button type="button" role="tab" data-slide="3" aria-selected="false">Meeting bar</button>
-          <button type="button" role="tab" data-slide="4" aria-selected="false">Now Playing</button>
-          <button type="button" role="tab" data-slide="5" aria-selected="false">At a glance</button>
-          <button type="button" role="tab" data-slide="6" aria-selected="false">Community plugins</button>
-      </div>
-      <ol class="tour-track" id="tour-track">
-        <li class="slide" id="tour-deploy" aria-label="Your own menu bar">
-          <div class="screen">
-            <video src="media/tour/deploy.mp4" poster="media/tour/deploy.jpg" muted playsinline preload="none"></video>
-          </div>
-          <div class="slide-copy">
-            <h3>Your own menu bar</h3>
-            <p>Two lines, stoplight colors: is prod current, and how many commits behind. About thirty lines of JavaScript.</p>
-          </div>
-        </li>
-        <li class="slide" id="tour-launcher" aria-label="Quick launcher">
-          <div class="screen">
-            <video src="media/tour/launcher.mp4" poster="media/tour/launcher.jpg" muted playsinline preload="none"></video>
-          </div>
-          <div class="slide-copy">
-            <h3>Quick launcher</h3>
-            <p>Files, apps, math and commands, fuzzy-ranked as you type.</p>
-          </div>
-        </li>
-        <li class="slide" id="tour-windows" aria-label="Window management">
-          <div class="screen">
-            <video src="media/tour/windows.mp4" poster="media/tour/windows.jpg" muted playsinline preload="none"></video>
-          </div>
-          <div class="slide-copy">
-            <h3>Window management</h3>
-            <p>Hotkeys, drag-to-snap and a grid for the focused window.</p>
-          </div>
-        </li>
-        <li class="slide" id="tour-meetings" aria-label="Meeting bar">
-          <div class="screen">
-            <video src="media/tour/meetings.mp4" poster="media/tour/meetings.jpg" muted playsinline preload="none"></video>
-          </div>
-          <div class="slide-copy">
-            <h3>Meeting bar</h3>
-            <p>The next meeting and its join link in the menu bar, and a full-screen reminder with a QR code when it starts.</p>
-          </div>
-        </li>
-        <li class="slide" id="tour-nowplaying" aria-label="Now Playing">
-          <div class="screen">
-            <video src="media/tour/nowplaying.mp4" poster="media/tour/nowplaying.jpg" muted playsinline preload="none"></video>
-          </div>
-          <div class="slide-copy">
-            <h3>Now Playing</h3>
-            <p>Track, artist and cover art from whatever is playing. Here, SomaFM.</p>
-          </div>
-        </li>
-        <li class="slide" id="tour-system" aria-label="At a glance">
-          <div class="screen">
-            <video src="media/tour/system.mp4" poster="media/tour/system.jpg" muted playsinline preload="none"></video>
-          </div>
-          <div class="slide-copy">
-            <h3>At a glance</h3>
-            <p>A CPU and memory graph, the battery, Cupertino weather, and the month with world clocks, each one click away.</p>
-          </div>
-        </li>
-        <li class="slide" id="tour-community" aria-label="Community plugins">
-          <div class="screen">
-            <video src="media/tour/community.mp4" poster="media/tour/community.jpg" muted playsinline preload="none"></video>
-          </div>
-          <div class="slide-copy">
-            <h3>Community plugins</h3>
-            <p>Browse plugins people publish on GitHub, add one, and it's in the launcher. Yes, chess.</p>
-          </div>
-        </li>
-      </ol>
-      <div class="tour-nav">
-        <button type="button" class="tour-prev" aria-label="Previous">&#8249;</button>
-        <button type="button" class="tour-next" aria-label="Next">&#8250;</button>
-      </div>
     </section>
 
     <section class="can" id="can">
