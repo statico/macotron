@@ -34,6 +34,9 @@ enum WindowWatch {
             NSWorkspace.shared.notificationCenter.removeObserver(launchObserver)
         }
         WindowWatchState.shared.launchObserver = nil
+        for observer in WindowWatchState.shared.observers.values {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
+        }
         WindowWatchState.shared.observers.removeAll()
         WindowWatchState.shared.engine = nil
     }

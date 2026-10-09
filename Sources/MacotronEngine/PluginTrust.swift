@@ -21,6 +21,11 @@ public final class MemoryHashStore: PluginHashStore {
 /// Ledger lives in the host-only trust service, isolated from plugin secrets
 /// so `macotron.keychain.*` can never forge or wipe approvals.
 public final class KeychainHashStore: PluginHashStore {
+    /// Every reload checks every plugin, and each Keychain read is an IPC
+    /// round trip. Only this class writes the trust service, so a write or
+    /// delete dropping the entry keeps the cache honest.
+    private var cache: [String: String?] = [:]
+
     public init() {}
 
     public static func account(_ filename: String) -> String {
@@ -28,16 +33,21 @@ public final class KeychainHashStore: PluginHashStore {
     }
 
     public func read(filename: String) -> String? {
-        KeychainStore.read(account: Self.account(filename), service: KeychainStore.trustServiceName)
+        if let hit = cache[filename] { return hit }
+        let hash = KeychainStore.read(account: Self.account(filename), service: KeychainStore.trustServiceName)
+        cache[filename] = hash
+        return hash
     }
 
     public func write(filename: String, hash: String) {
+        cache[filename] = nil
         KeychainStore.write(
             account: Self.account(filename), value: hash,
             service: KeychainStore.trustServiceName)
     }
 
     public func delete(filename: String) {
+        cache[filename] = nil
         KeychainStore.delete(account: Self.account(filename), service: KeychainStore.trustServiceName)
     }
 

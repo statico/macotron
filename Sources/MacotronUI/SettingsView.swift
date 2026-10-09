@@ -842,12 +842,15 @@ public struct SettingsView: View {
         .foregroundStyle(warn ? Color.orange : (isSelected ? Color.primary : Color.secondary))
     }
 
+    /// Decoded once: the General tab's body re-runs on every settings publish.
+    private static let banner = Bundle.main.url(forResource: "banner", withExtension: "png")
+        .flatMap(NSImage.init(contentsOf:))
+
     private var generalTab: some View {
         ScrollView {
             VStack(spacing: 0) {
                 VStack(spacing: 8) {
-                    if let bannerURL = Bundle.main.url(forResource: "banner", withExtension: "png"),
-                       let nsImage = NSImage(contentsOf: bannerURL) {
+                    if let nsImage = Self.banner {
                         Button {
                             NSWorkspace.shared.open(MacotronRepo.url)
                         } label: {

@@ -368,7 +368,7 @@ public final class ModuleManager {
         // as the user editing a plugin. `.cache/` is the sharp one: reloadAll
         // writes it, so a reload triggered by it schedules the next reload,
         // and the app spins for as long as the watcher is running.
-        let ours = ["/data/", "/backups/", "/.cache/"]
+        let ours = ["/data/", "/backups/", "/.cache/", "/.git/"]
         let paths = rawPaths.filter { path in !ours.contains { path.contains($0) } }
         guard !paths.isEmpty else { return }
 
@@ -408,7 +408,8 @@ public final class ModuleManager {
             engine.configStore = workspace.readSettings()
             onDidReload?()
         }
-        if pluginChanges.isEmpty, !settingsChanged, !paths.isEmpty {
+        // A shared library a plugin imports; a README or editor swap file is not.
+        if pluginChanges.isEmpty, !settingsChanged, paths.contains(where: { $0.hasSuffix(".js") }) {
             reloadAll()
         }
     }

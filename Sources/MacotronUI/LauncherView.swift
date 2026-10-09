@@ -17,7 +17,7 @@ public struct SearchResult: Identifiable {
     public let title: String
     public let subtitle: String
     public let type: ResultType
-    public let nsImage: NSImage?
+    public var nsImage: NSImage?
     public let commandArguments: [CommandArgumentSpec]
     public let shortcut: String
     public let kind: String
@@ -108,7 +108,10 @@ extension SearchResult {
     ) -> [SearchResult] {
         guard !appPaths.isEmpty else { return rows }
         return rows.filter { row in
-            row.type == .app || row.path.isEmpty || !appPaths.contains(resolvedPath(row.path))
+            // Only a bundle can be an app's duplicate, and resolving symlinks
+            // costs a filesystem call per path component on every keystroke.
+            !row.path.hasSuffix(".app") && !row.path.hasSuffix(".app/")
+                || row.type == .app || !appPaths.contains(resolvedPath(row.path))
         }
     }
 

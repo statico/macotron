@@ -149,7 +149,8 @@ enum AudioDevices {
         let buf = UnsafeMutableRawPointer.allocate(byteCount: Int(size), alignment: MemoryLayout<CFString>.alignment)
         defer { buf.deallocate() }
         guard AudioObjectGetPropertyData(id, &addr, 0, nil, &size, buf) == noErr else { return "" }
-        return buf.load(as: CFString.self) as String
+        // CoreAudio hands back a +1 string; loading it as CFString retains again.
+        return buf.load(as: Unmanaged<CFString>.self).takeRetainedValue() as String
     }
 
     private static func scalar(

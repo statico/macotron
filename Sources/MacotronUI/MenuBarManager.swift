@@ -205,6 +205,7 @@ public final class MenuBarManager: NSObject {
     }
 
     public func setIcon(_ sfSymbolName: String) {
+        guard symbolName != sfSymbolName else { return }
         symbolName = sfSymbolName
         refreshStatusImage()
     }

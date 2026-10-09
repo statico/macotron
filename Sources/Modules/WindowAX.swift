@@ -68,11 +68,9 @@ enum WindowAX {
               let windows = windowsRef as? [AXUIElement] else {
             return 0
         }
-        let wantTitle = title(win)
-        for (i, other) in windows.enumerated() where title(other) == wantTitle {
-            return i
-        }
-        return 0
+        // CFEqual compares the elements without an AX round trip per window,
+        // and tells apart two windows that share a title.
+        return windows.firstIndex { CFEqual($0, win) } ?? 0
     }
 
     static func setBool(_ win: AXUIElement, _ attr: String, _ value: Bool) -> Bool {

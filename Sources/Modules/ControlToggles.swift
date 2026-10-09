@@ -112,9 +112,12 @@ enum NetworkControl {
         return ["ok": true, "mode": normalized]
     }
 
-    private static func wifiDevice() -> String? {
-        wifiDevice(from: run("/usr/sbin/networksetup", ["-listallhardwareports"]).out)
-    }
+    /// The hardware port list does not change while Macotron runs, and
+    /// listing it is a process per sample.
+    private static let cachedWifiDevice = wifiDevice(
+        from: run("/usr/sbin/networksetup", ["-listallhardwareports"]).out)
+
+    private static func wifiDevice() -> String? { cachedWifiDevice }
 
     private static func power(_ device: String) -> Bool? {
         parsePower(run("/usr/sbin/networksetup", ["-getairportpower", device]).out)
