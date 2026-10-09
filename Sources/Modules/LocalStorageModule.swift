@@ -31,7 +31,7 @@ public final class LocalStorageModule: NativeModule {
 
     // MARK: - NativeModule
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         // Resolve configDir from options, else the one the host passed in.
         if let configDir = options["configDir"] as? String ?? self.configDir {
             let dataDir = URL(fileURLWithPath: configDir).appendingPathComponent("data")
@@ -44,7 +44,10 @@ public final class LocalStorageModule: NativeModule {
         } else {
             logger.warning("LocalStorageModule: no configDir provided, storage will be ephemeral")
         }
+        engine.configStore["__localStorageModule"] = self
+    }
 
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
 
@@ -100,9 +103,6 @@ public final class LocalStorageModule: NativeModule {
 
         JS_SetPropertyStr(ctx, global, "localStorage", storageObj)
         JS_FreeValue(ctx, global)
-
-        // Stash self so C callbacks can retrieve it
-        engine.configStore["__localStorageModule"] = self
     }
 
     public func cleanup() {

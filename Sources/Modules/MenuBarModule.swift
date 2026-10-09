@@ -211,7 +211,7 @@ public final class MenuBarModule: NativeModule {
             let onHoverVal = JSBridge.getProperty(ctx, opts, "onHover")
 
             if let mod: MenuBarModule = Engine.module(ctx, "__menuBarModule") {
-                if let file = Engine.of(ctx)?.currentEvaluatingFile { mod.statusOwners[id] = file }
+                if let file = Engine.of(ctx)?.callerFile(ctx) { mod.statusOwners[id] = file }
                 mod.dropCallbacks(for: id, ctx: ctx)
                 let onClick: (() -> Void)? = mod.bindClick(ctx: ctx, from: onClickVal, key: id)
                 let onHover = mod.bindHover(ctx: ctx, from: onHoverVal, key: id + "#hover")
@@ -270,7 +270,7 @@ public final class MenuBarModule: NativeModule {
     fileprivate func bindClick(ctx: OpaquePointer, from val: JSValue, key: String) -> (() -> Void)? {
         guard JS_IsFunction(ctx, val) else { return nil }
         callbacks[key] = JS_DupValue(ctx, val)
-        let pluginFile = engine?.currentEvaluatingFile
+        let pluginFile = engine?.callerFile(ctx)
         return { [weak self, weak engine] in
             guard let self, let engine, let ctx = engine.context else {
                 logger.info("click \(key, privacy: .public): module or engine gone")
@@ -295,7 +295,7 @@ public final class MenuBarModule: NativeModule {
     fileprivate func bindHover(ctx: OpaquePointer, from val: JSValue, key: String) -> ((Bool) -> Void)? {
         guard JS_IsFunction(ctx, val) else { return nil }
         callbacks[key] = JS_DupValue(ctx, val)
-        let pluginFile = engine?.currentEvaluatingFile
+        let pluginFile = engine?.callerFile(ctx)
         return { [weak self, weak engine] hovering in
             guard let self, let engine, let ctx = engine.context else { return }
             guard let cb = self.callbacks[key] else { return }

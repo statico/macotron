@@ -98,10 +98,13 @@ public final class EventModule: NativeModule {
 
     public init() {}
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         EventTapState.shared.engine = engine
         EventTapState.shared.module = self
         GestureMonitor.shared.engine = engine
+    }
+
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")

@@ -15,9 +15,21 @@ public final class SpacesModule: NativeModule {
 
     public init() {}
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         self.engine = engine
         engine.configStore["__spacesModule"] = self
+        guard !engine.dryRun else { return }
+        lastIDs = Spaces.list().filter(\.current).map(\.id)
+        observer = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.emitIfChanged() }
+        }
+    }
+
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
@@ -52,16 +64,6 @@ public final class SpacesModule: NativeModule {
         JS_SetPropertyStr(ctx, macotron, "spaces", spaces)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
-
-        guard !engine.dryRun else { return }
-        lastIDs = Spaces.list().filter(\.current).map(\.id)
-        observer = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.activeSpaceDidChangeNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.emitIfChanged() }
-        }
     }
 
     public func cleanup() {

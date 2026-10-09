@@ -51,9 +51,11 @@ public final class URLSchemeModule: NativeModule {
         }
     }
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         URLSchemeEventReceiver.shared.configure(engine: engine)
+    }
 
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotronObj = JSBridge.getProperty(ctx, global, "macotron")
@@ -247,7 +249,6 @@ final class URLSchemeEventReceiver {
            !confirmEvent(url: url, sourceBundle: sourceBundle) {
             return
         }
-
 
         var payload: [String: Any] = [
             "url": urlString,

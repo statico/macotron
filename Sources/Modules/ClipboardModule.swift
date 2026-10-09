@@ -34,10 +34,15 @@ public final class ClipboardModule: NativeModule {
 
     public init() {}
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         self.engine = engine
         historyOptIn = options["history"] as? Bool ?? false
         engine.configStore["__clipboardModule"] = self
+        guard !engine.dryRun else { return }
+        startPolling()
+    }
+
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
@@ -156,9 +161,6 @@ public final class ClipboardModule: NativeModule {
         JS_SetPropertyStr(ctx, macotron, "clipboard", clipboard)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
-
-        guard !engine.dryRun else { return }
-        startPolling()
     }
 
     var isPolling: Bool { timer != nil }

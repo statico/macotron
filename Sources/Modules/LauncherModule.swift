@@ -203,10 +203,49 @@ public final class LauncherModule: NativeModule {
         provider.hasSuffix(liveSuffix) ? String(provider.dropLast(liveSuffix.count)) : provider
     }
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    /// The await glue and its push callback live in the host context once per
+    /// reload: they only shuttle a provider's promise back here.
+    public func setUp(in engine: Engine, options: [String: Any]) {
         self.engine = engine
         engine.configStore["__launcherModule"] = self
 
+        let ctx = engine.context!
+        let global = JS_GetGlobalObject(ctx)
+        push = JS_NewCFunction(ctx, { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 3 else { return QJS_Undefined() }
+            guard let engine = Engine.of(ctx) else { return QJS_Undefined() }
+            guard let mod = engine.configStore["__launcherModule"] as? LauncherModule,
+                  let bucket = JSBridge.toString(ctx, argv[0]),
+                  JSBridge.toString(ctx, argv[2]) == mod.currentQuery else {
+                return QJS_Undefined()
+            }
+            let before = mod.fingerprint(bucket)
+            mod.replace(provider: bucket, items: argv[1], ctx: ctx)
+            mod.answered[bucket] = mod.currentQuery
+            // Refreshing on an unchanged answer would ask the provider again,
+            // which would resolve again: the same rows end the round trip.
+            if !mod.isCollecting, before != mod.fingerprint(bucket) {
+                mod.onLiveUpdate?()
+            }
+            return QJS_Undefined()
+        }, "push", 3)
+
+        // A rejected provider hands `replace` a non-array, which clears the
+        // bucket, so one handler covers both outcomes.
+        engine.evaluate("""
+            globalThis.__macotronLauncherAwait = function (push, promise, bucket, asked) {
+                var settle = function (rows) { push(bucket, rows, asked); };
+                Promise.resolve(promise).then(settle, settle);
+            };
+            """, filename: "<launcher-await>")
+        awaitGlue = JSBridge.getProperty(ctx, global, "__macotronLauncherAwait")
+        let atom = JS_NewAtom(ctx, "__macotronLauncherAwait")
+        _ = JS_DeleteProperty(ctx, global, atom, 0)
+        JS_FreeAtom(ctx, atom)
+        JS_FreeValue(ctx, global)
+    }
+
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
@@ -260,38 +299,6 @@ public final class LauncherModule: NativeModule {
             mod.dropQuery(provider: provider, ctx: ctx)
             return QJS_Undefined()
         }
-
-        push = JS_NewCFunction(ctx, { ctx, _, argc, argv in
-            guard let ctx, let argv, argc >= 3 else { return QJS_Undefined() }
-            guard let engine = Engine.of(ctx) else { return QJS_Undefined() }
-            guard let mod = engine.configStore["__launcherModule"] as? LauncherModule,
-                  let bucket = JSBridge.toString(ctx, argv[0]),
-                  JSBridge.toString(ctx, argv[2]) == mod.currentQuery else {
-                return QJS_Undefined()
-            }
-            let before = mod.fingerprint(bucket)
-            mod.replace(provider: bucket, items: argv[1], ctx: ctx)
-            mod.answered[bucket] = mod.currentQuery
-            // Refreshing on an unchanged answer would ask the provider again,
-            // which would resolve again: the same rows end the round trip.
-            if !mod.isCollecting, before != mod.fingerprint(bucket) {
-                mod.onLiveUpdate?()
-            }
-            return QJS_Undefined()
-        }, "push", 3)
-
-        // A rejected provider hands `replace` a non-array, which clears the
-        // bucket, so one handler covers both outcomes.
-        engine.evaluate("""
-            globalThis.__macotronLauncherAwait = function (push, promise, bucket, asked) {
-                var settle = function (rows) { push(bucket, rows, asked); };
-                Promise.resolve(promise).then(settle, settle);
-            };
-            """, filename: "<launcher-await>")
-        awaitGlue = JSBridge.getProperty(ctx, global, "__macotronLauncherAwait")
-        let atom = JS_NewAtom(ctx, "__macotronLauncherAwait")
-        _ = JS_DeleteProperty(ctx, global, atom, 0)
-        JS_FreeAtom(ctx, atom)
 
         JS_SetPropertyStr(ctx, macotron, "launcher", launcher)
         JS_FreeValue(ctx, macotron)

@@ -20,8 +20,32 @@ public final class AppModule: NativeModule {
 
     public init() {}
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         self.engine = engine
+        engine.configStore["__appModule"] = self
+        guard !engine.dryRun else { return }
+        let center = NSWorkspace.shared.notificationCenter
+        activationObserver = center.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                    as? NSRunningApplication,
+                  let bundleID = app.bundleIdentifier else {
+                return
+            }
+            let name = app.localizedName ?? bundleID
+            let pid = Int(app.processIdentifier)
+            Task { @MainActor [weak self] in
+                self?.emitActivation(bundleID: bundleID, name: name, pid: pid)
+            }
+        }
+        observe(center, NSWorkspace.didLaunchApplicationNotification, "app:launched")
+        observe(center, NSWorkspace.didTerminateApplicationNotification, "app:terminated")
+    }
+
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
@@ -117,28 +141,6 @@ public final class AppModule: NativeModule {
         JS_SetPropertyStr(ctx, macotron, "app", appObj)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
-
-        engine.configStore["__appModule"] = self
-        guard !engine.dryRun else { return }
-        let center = NSWorkspace.shared.notificationCenter
-        activationObserver = center.addObserver(
-            forName: NSWorkspace.didActivateApplicationNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
-                    as? NSRunningApplication,
-                  let bundleID = app.bundleIdentifier else {
-                return
-            }
-            let name = app.localizedName ?? bundleID
-            let pid = Int(app.processIdentifier)
-            Task { @MainActor [weak self] in
-                self?.emitActivation(bundleID: bundleID, name: name, pid: pid)
-            }
-        }
-        observe(center, NSWorkspace.didLaunchApplicationNotification, "app:launched")
-        observe(center, NSWorkspace.didTerminateApplicationNotification, "app:terminated")
     }
 
     public func cleanup() {

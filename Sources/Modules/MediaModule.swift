@@ -11,10 +11,16 @@ public final class MediaModule: NativeModule {
 
     public init() {}
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         self.engine = engine
         engine.configStore["__mediaModule"] = self
+        guard !engine.dryRun else { return }
+        NowPlaying.shared.onChange = { [weak self] in
+            DispatchQueue.main.async { self?.publish() }
+        }
+    }
 
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
@@ -43,11 +49,6 @@ public final class MediaModule: NativeModule {
         JS_SetPropertyStr(ctx, macotron, "media", media)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
-
-        guard !engine.dryRun else { return }
-        NowPlaying.shared.onChange = { [weak self] in
-            DispatchQueue.main.async { self?.publish() }
-        }
     }
 
     // Watch only while a plugin listens; nowPlaying() reads on demand otherwise.

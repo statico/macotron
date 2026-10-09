@@ -161,10 +161,12 @@ public final class ModuleManager {
         engine.registerAllModules()
         timer.step("registerAllModules")
 
-        // Evaluate the runtime after the final registerAllModules: registration
-        // replaces the global macotron object, so helpers must land on it last.
+        // Evaluate the runtime after registerAllModules: registration replaces
+        // the global macotron object, so helpers must land on it last. Each
+        // plugin context gets it the same way as it is made.
         if let runtimeURL = Bundle.main.url(forResource: "macotron-runtime", withExtension: "js"),
            let runtimeJS = try? String(contentsOf: runtimeURL, encoding: .utf8) {
+            engine.runtimeScript = runtimeJS
             engine.evaluate(runtimeJS, filename: "macotron-runtime.js")
         }
         timer.step("runtime.js")
@@ -245,9 +247,13 @@ public final class ModuleManager {
             }
         }
 
-        engine.currentEvaluatingFile = filename
-        defer { engine.currentEvaluatingFile = nil }
+        _ = engine.pluginContext(filename)
+        engine.withEvaluatingFile(filename) {
+            evaluate(source, filename: filename, path: file.path(percentEncoded: false), cachePath: cachePath)
+        }
+    }
 
+    private func evaluate(_ source: String, filename: String, path: String, cachePath: URL) {
         let isolated = Engine.isolatedPlugin(source)
         if let cacheData = try? Data(contentsOf: cachePath) {
             let (_, error) = engine.evaluateBytecode(cacheData, filename: filename)
@@ -255,12 +261,11 @@ public final class ModuleManager {
             logger.error("\(filename) (cached): \(error ?? "")")
         }
 
-        let fullPath = file.path(percentEncoded: false)
-        let (_, error) = engine.evaluate(isolated, filename: fullPath)
+        let (_, error) = engine.evaluate(isolated, filename: path)
         if let error {
             logger.error("\(filename): \(error)")
             lastReloadErrors.append((filename: filename, error: error))
-        } else if let bytecode = engine.compileToBytecode(isolated, filename: fullPath) {
+        } else if let bytecode = engine.compileToBytecode(isolated, filename: path) {
             deleteStaleCaches(filename: filename, keeping: cachePath.lastPathComponent)
             try? bytecode.write(to: cachePath)
         }

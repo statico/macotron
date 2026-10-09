@@ -55,7 +55,25 @@ public final class Engine {
     public static let stackLimit = 2 * 1024 * 1024
 
     public private(set) var runtime: OpaquePointer!
+
+    /// The context native code works in: a plugin's own while it runs, the
+    /// host's otherwise.
     public private(set) var context: OpaquePointer!
+
+    /// Tests, the checker, and module glue run here. No plugin does.
+    private var hostContext: OpaquePointer!
+
+    /// One context per plugin, all in one runtime, so a plugin cannot see or
+    /// patch another's globals, and native code knows who called it from the
+    /// `ctx` it is handed.
+    private var pluginContexts: [String: OpaquePointer] = [:]
+    private var contextFiles: [OpaquePointer: String] = [:]
+
+    /// macotron-runtime.js, evaluated into every plugin context as it is made.
+    public var runtimeScript: String?
+
+    /// Each module's merged options from the last `registerAllModules`.
+    private var moduleOptions: [String: [String: Any]] = [:]
     public let eventBus = EventBus()
 
     private var modules: [NativeModule] = []
@@ -143,6 +161,55 @@ public final class Engine {
         of(ctx)?.configStore[key] as? T
     }
 
+    /// The plugin that owns `ctx`, or nil for the host context. Native code
+    /// that hands out a plugin's own data keys it by this, never by
+    /// `currentEvaluatingFile`, which says only whose callback is on the stack.
+    public func pluginFile(_ ctx: OpaquePointer?) -> String? {
+        ctx.flatMap { contextFiles[$0] }
+    }
+
+    /// The plugin whose secrets `ctx` may have. The host context gets none
+    /// once plugins have their own, or code a plugin smuggles into it could
+    /// pass as whichever plugin's callback happens to be running.
+    public func secretOwner(_ ctx: OpaquePointer?) -> String? {
+        pluginFile(ctx) ?? (pluginContexts.isEmpty ? currentEvaluatingFile : nil)
+    }
+
+    /// The plugin to file bookkeeping under: the caller's context, else the
+    /// file being evaluated in the host (tests and the checker).
+    public func callerFile(_ ctx: OpaquePointer?) -> String? {
+        pluginFile(ctx) ?? currentEvaluatingFile
+    }
+
+    /// Run `body` with `ctx` as `context`. A reset inside `body` frees the
+    /// contexts, so this falls back to the new host rather than restore one.
+    public func withContext<T>(_ ctx: OpaquePointer, _ body: () -> T) -> T {
+        let previous = context
+        context = ctx
+        defer {
+            let live = previous == hostContext || previous.map { contextFiles[$0] != nil } == true
+            context = live ? previous : hostContext
+        }
+        return body()
+    }
+
+    /// The context for `file`, made on first use with its own globals, its own
+    /// `macotron`, and the runtime script.
+    @discardableResult
+    public func pluginContext(_ file: String) -> OpaquePointer {
+        if let ctx = pluginContexts[file] { return ctx }
+        let ctx = JS_NewContext(runtime)!
+        pluginContexts[file] = ctx
+        contextFiles[ctx] = file
+        withContext(ctx) {
+            setupTimerGlobals()
+            setupCoreGlobals()
+            installBindings()
+            if let runtimeScript { evaluate(runtimeScript, filename: "macotron-runtime.js") }
+        }
+        return ctx
+    }
+
     /// Base directory for resolving ES module imports (set by ModuleManager)
     public var moduleBaseDir: URL?
 
@@ -156,7 +223,8 @@ public final class Engine {
         // than throwing a catchable RangeError.
         JS_SetMemoryLimit(runtime, Self.memoryLimit)
         JS_SetMaxStackSize(runtime, Self.stackLimit)
-        context = JS_NewContext(runtime)
+        hostContext = JS_NewContext(runtime)
+        context = hostContext
         setupInterruptHandler()
         setupRejectionTracker()
         setupModuleLoader()
@@ -366,7 +434,7 @@ public final class Engine {
                 let callback = argv[0]
                 var ms: Int32 = 0
                 if argc > 1 { JS_ToInt32(ctx, &ms, argv[1]) }
-                let id = engine.scheduleTimer(callback: callback, ms: ms, repeats: false)
+                let id = engine.scheduleTimer(callback: callback, ms: ms, repeats: false, file: engine.callerFile(ctx))
                 return JS_NewInt32(ctx, Int32(id))
             }, "setTimeout", 2))
 
@@ -380,7 +448,7 @@ public final class Engine {
                 let callback = argv[0]
                 var ms: Int32 = 0
                 JS_ToInt32(ctx, &ms, argv[1])
-                let id = engine.scheduleTimer(callback: callback, ms: ms, repeats: true)
+                let id = engine.scheduleTimer(callback: callback, ms: ms, repeats: true, file: engine.callerFile(ctx))
                 return JS_NewInt32(ctx, Int32(id))
             }, "setInterval", 2))
 
@@ -417,7 +485,7 @@ public final class Engine {
                 if let opaque {
                     let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
                     engine.logHandler?(msg)
-                    plugin = engine.currentEvaluatingFile ?? ""
+                    plugin = engine.callerFile(ctx) ?? ""
                 }
                 // Name the plugin, or `log show` gives a wall of anonymous lines.
                 // Errors and warnings go out at levels the log keeps by default;
@@ -440,7 +508,7 @@ public final class Engine {
                 if let opaque {
                     let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
                     engine.eventBus.on(event, callback: argv[1], ctx: ctx)
-                    engine.recordPluginEvent(event)
+                    engine.recordPluginEvent(event, file: engine.callerFile(ctx))
                 }
                 return QJS_Undefined()
             }, "$$__on", 2))
@@ -474,7 +542,7 @@ public final class Engine {
                     opts = JSBridge.jsToSwift(ctx, argv[3]) as? [String: Any] ?? [:]
                 }
 
-                let pluginFile = engine.currentEvaluatingFile ?? ""
+                let pluginFile = engine.callerFile(ctx) ?? ""
                 var commandID = pluginFile.isEmpty ? name : "\(pluginFile)/\(name)"
                 if let explicit = opts["id"] as? String, !explicit.isEmpty {
                     commandID = explicit
@@ -532,7 +600,8 @@ public final class Engine {
                 let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
 
                 let metadata = JSBridge.jsToSwift(ctx, argv[0]) as? [String: Any] ?? [:]
-                let filename = engine.currentEvaluatingFile ?? "<unknown>"
+                let filename = engine.callerFile(ctx) ?? "<unknown>"
+                let owner = engine.secretOwner(ctx)
 
                 engine.moduleMetadata[filename] = metadata
                 engine.addDeclaredPermissions(metadata["permissions"])
@@ -546,7 +615,7 @@ public final class Engine {
                 for (key, def) in optionDefs {
                     let type = def["type"] as? String ?? "string"
                     if type == "password" {
-                        if let ref = userOverrides[key] as? String, !ref.isEmpty,
+                        if owner == filename, let ref = userOverrides[key] as? String, !ref.isEmpty,
                            let secret = KeychainStore.read(account: ref), !secret.isEmpty {
                             resolved[key] = secret
                         } else {
@@ -568,7 +637,7 @@ public final class Engine {
                 let opaque = JS_GetContextOpaque(ctx)
                 guard let opaque else { return QJS_Undefined() }
                 let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-                engine.replaceChecks(JSBridge.jsToSwift(ctx, argv[0]))
+                engine.replaceChecks(JSBridge.jsToSwift(ctx, argv[0]), file: engine.callerFile(ctx))
                 return QJS_Undefined()
             }, "$$__checks", 1))
 
@@ -578,21 +647,21 @@ public final class Engine {
                 let opaque = JS_GetContextOpaque(ctx)
                 guard let opaque else { return QJS_Undefined() }
                 let engine = Unmanaged<Engine>.fromOpaque(opaque).takeUnretainedValue()
-                engine.openPluginSettings()
+                engine.openPluginSettings(engine.callerFile(ctx))
                 return QJS_Undefined()
             }, "$$__openSettings", 0))
 
         JS_FreeValue(context, global)
     }
 
-    func openPluginSettings() {
-        guard let file = currentEvaluatingFile, !file.isEmpty else { return }
+    func openPluginSettings(_ file: String?) {
+        guard let file, !file.isEmpty else { return }
         let open = onOpenPluginSettings
         DispatchQueue.main.async { open?(file) }
     }
 
-    public func recordPluginEvent(_ event: String) {
-        guard let file = currentEvaluatingFile, !file.isEmpty, !event.isEmpty else { return }
+    public func recordPluginEvent(_ event: String, file: String?) {
+        guard let file, !file.isEmpty, !event.isEmpty else { return }
         var events = pluginEvents[file] ?? []
         if !events.contains(event) {
             events.append(event)
@@ -600,8 +669,8 @@ public final class Engine {
         }
     }
 
-    func replaceChecks(_ value: Any?) {
-        guard let file = currentEvaluatingFile, !file.isEmpty else { return }
+    func replaceChecks(_ value: Any?, file: String?) {
+        guard let file, !file.isEmpty else { return }
         let rows = PluginCheck.parseList(value)
         let next: [PluginCheck]? = rows.isEmpty ? nil : rows
         if pluginChecks[file] == next { return }
@@ -621,11 +690,10 @@ public final class Engine {
 
     // MARK: - Timer Management
 
-    private func scheduleTimer(callback: JSValue, ms: Int32, repeats: Bool) -> UInt32 {
+    private func scheduleTimer(callback: JSValue, ms: Int32, repeats: Bool, file pluginFile: String?) -> UInt32 {
         let id = nextTimerID
         nextTimerID += 1
         let protectedCallback = JS_DupValue(context, callback)
-        let pluginFile = currentEvaluatingFile
 
         let interval = TimeInterval(max(ms, 1)) / 1000
         let timer = Timer(timeInterval: interval, repeats: repeats) { [weak self] _ in
@@ -650,13 +718,19 @@ public final class Engine {
         return id
     }
 
+    /// Run `body` as `file`: its name, and its context if it has one, so the
+    /// values native code makes for it land in its own context.
     public func withEvaluatingFile(_ file: String?, _ body: () -> Void) {
         let previous = currentEvaluatingFile
         if let file, !file.isEmpty {
             currentEvaluatingFile = file
         }
         defer { currentEvaluatingFile = previous }
-        body()
+        if let file, let ctx = pluginContexts[file] {
+            withContext(ctx, body)
+        } else {
+            body()
+        }
     }
 
     public func cancelTimer(_ id: UInt32) {
@@ -749,7 +823,8 @@ public final class Engine {
 
     // MARK: - Evaluate
 
-    /// Plugins share one context; wrap so `const opts` in two files does not collide.
+    /// Wrap a plugin in a function, so it may `return` early at the top level
+    /// and two files checked in one context do not collide on `const opts`.
     public static func isolatedPlugin(_ source: String) -> String {
         "(function(){\n\(source)\n})();"
     }
@@ -832,11 +907,26 @@ public final class Engine {
         modules.append(module)
     }
 
-    /// Register all modules with current options from configStore
+    /// Set up every module once with current options from configStore, then
+    /// bind them in the current context. Plugin contexts made after this get
+    /// the same bindings.
     public func registerAllModules() {
         let userOptions = configStore["modules"] as? [String: [String: Any]] ?? [:]
+        moduleOptions = [:]
+        for module in modules {
+            moduleOptions[module.name] = module.defaultOptions.merging(
+                userOptions[module.name] ?? [:],
+                uniquingKeysWith: { _, user in user }
+            )
+        }
+        for module in modules {
+            module.setUp(in: self, options: moduleOptions[module.name] ?? [:])
+        }
+        installBindings()
+    }
 
-        // Create macotron global object
+    /// A fresh `macotron` global in the current context, with every module bound.
+    private func installBindings() {
         let global = JS_GetGlobalObject(context)
         let macotronObj = JS_NewObject(context)
 
@@ -857,13 +947,8 @@ public final class Engine {
         JS_SetPropertyStr(context, global, "macotron", macotronObj)
         JS_FreeValue(context, global)
 
-        // Register each module
         for module in modules {
-            let opts = module.defaultOptions.merging(
-                userOptions[module.name] ?? [:],
-                uniquingKeysWith: { _, user in user }
-            )
-            module.register(in: self, options: opts)
+            module.register(in: self, options: moduleOptions[module.name] ?? [:])
         }
     }
 
@@ -904,14 +989,16 @@ public final class Engine {
         commandRegistry.removeAll()
         hotkeyRegistry.removeAll()
 
-        // Reset JS context
-        StepTimer.measure("reset JS_FreeContext") { JS_FreeContext(context) }
-        context = JS_NewContext(runtime)
-        setupInterruptHandler()
-        setupModuleLoader()
+        StepTimer.measure("reset JS_FreeContext") {
+            for ctx in pluginContexts.values { JS_FreeContext(ctx) }
+            JS_FreeContext(hostContext)
+        }
+        pluginContexts.removeAll()
+        contextFiles.removeAll()
+        hostContext = JS_NewContext(runtime)
+        context = hostContext
         setupTimerGlobals()
         setupCoreGlobals()
-        registerAllModules()
     }
 
     // No deinit needed — Engine lives for the app's entire lifetime.

@@ -11,7 +11,7 @@ public final class UDPModule: NativeModule {
 
     public init() {}
 
-    public func register(in engine: Engine, options: [String: Any]) {
+    public func setUp(in engine: Engine, options: [String: Any]) {
         self.engine = engine
         engine.configStore["__udpModule"] = self
         hub.onMessage = { [weak self] host, port, data in
@@ -19,7 +19,9 @@ public final class UDPModule: NativeModule {
                 self?.emit(host: host, port: port, data: data)
             }
         }
+    }
 
+    public func register(in engine: Engine, options: [String: Any]) {
         let ctx = engine.context!
         let global = JS_GetGlobalObject(ctx)
         let macotron = JSBridge.getProperty(ctx, global, "macotron")
