@@ -230,12 +230,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         menuBarManager.onHiddenStatusChange = { [weak self] _ in
-            self?.settingsState.refreshModules()
+            self?.refreshModulesSoon()
             self?.refreshPermissions()
         }
         menuBarManager.onOccludedStatusChange = { [weak self] ids in
             guard let self else { return }
-            self.settingsState.refreshModules()
+            self.refreshModulesSoon()
             // Once per launch: the state flaps on every lid open and display
             // change, and the fix is the user's to make.
             if !ids.isEmpty, !self.announcedOccludedStatus {
@@ -398,8 +398,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             timer.step("installCommandShortcuts")
             self?.rebindPluginHotkeys()
             timer.step("rebindPluginHotkeys")
-            self?.settingsState.refreshModules()
-            timer.step("refreshModules")
+            self?.refreshModulesSoon()
             self?.refreshIntegrity()
             timer.step("refreshIntegrity")
         }
@@ -478,7 +477,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         engine.onPluginChecksChanged = { [weak self] in
-            self?.settingsState.refreshModules()
+            self?.refreshModulesSoon()
         }
         engine.onOpenPluginSettings = { [weak self] file in
             self?.settingsState.requestedTab = SettingsTab.plugins.rawValue
@@ -541,7 +540,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             self.moduleManager.setModuleEnabled(filename: filename, enabled: enabled)
             self.moduleManager.reloadAll()
-            self.settingsState.refreshModules()
+            self.refreshModulesSoon()
         }
         settingsState.changePluginsFolder = { [weak self] in
             self?.pickAndSwitchPluginsFolder()
@@ -966,7 +965,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // held back instead of leaving them quarantined until the next launch.
         if value {
             moduleManager?.reloadAll()
-            settingsState.refreshModules()
+            refreshModulesSoon()
         }
         refreshIntegrity()
     }
@@ -978,6 +977,23 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private func occludedStatusItems(of filename: String) -> [String] {
         owned(menuBarManager?.occludedStatusIDs ?? [], by: filename)
     }
+
+    /// Rebuilding the plugin list re-reads and hashes every catalog and
+    /// installed plugin, and a reload asks for it once per plugin that declares
+    /// checks, then again when it finishes. Fold every ask in one runloop turn
+    /// into a single rebuild after it. It still runs with Settings closed: the
+    /// menu bar's update badge is counted from the same rebuild.
+    private func refreshModulesSoon() {
+        guard !modulesRefreshPending else { return }
+        modulesRefreshPending = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.modulesRefreshPending = false
+            self.settingsState.refreshModules()
+        }
+    }
+
+    private var modulesRefreshPending = false
 
     private func owned(_ ids: Set<String>, by filename: String) -> [String] {
         let owners = menuBarPluginModule?.statusOwners ?? [:]
@@ -1113,7 +1129,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         moduleManager.reloadAll()
         timer.step("reloadAll")
         refreshIntegrity()
-        settingsState.refreshModules()
+        refreshModulesSoon()
         timer.total()
     }
 
@@ -1125,7 +1141,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             let dest = try writePlugin(filename, source: source, in: workspace)
             moduleManager.reloadAll()
             refreshIntegrity()
-            settingsState.refreshModules()
+            refreshModulesSoon()
             NSWorkspace.shared.open(dest)
         } catch {
             NSLog("[Macotron] Could not create \(filename): \(error)")
@@ -1371,7 +1387,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         engine.configStore = workspace.readSettings()
         installCommandShortcuts()
         rebindPluginHotkeys()
-        settingsState.refreshModules()
+        refreshModulesSoon()
         settingsState.refreshAppShortcuts()
         return true
     }
