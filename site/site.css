@@ -944,9 +944,9 @@ footer a:hover { color: var(--ink); }
 
 /* --- tour: one muted clip per slide, native scroll-snap --- */
 
-/* Sits in the hero between the fine print and the beta notice, with the
-   same gap on both sides. */
-.tour { margin: 3rem 0; }
+/* Sits in the hero between the fine print and the beta notice. The nav
+   buttons close the block, so it needs less room below than above. */
+.tour { margin: 3.5rem 0 2.5rem; }
 .tour + .hero-copy .beta { margin-top: 0; }
 .tour-tabs {
   display: flex;
@@ -1000,17 +1000,38 @@ footer a:hover { color: var(--ink); }
 .slide-copy { max-width: 36rem; margin: 1.2rem auto 0; text-align: center; }
 .slide-copy h3 { margin: 0 0 0.35rem; font-size: 1.15rem; }
 .slide-copy p { margin: 0; color: var(--muted); line-height: 1.5; text-wrap: pretty; }
-.tour-nav { display: flex; justify-content: center; gap: 0.6rem; margin-top: 1.1rem; }
+.tour-nav { display: flex; justify-content: center; gap: 0.6rem; margin-top: 1.25rem; }
 .tour-nav button {
-  width: 2.2rem;
-  height: 2.2rem;
-  font-size: 1.3rem;
-  line-height: 1;
-  color: var(--ink);
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  color: var(--muted);
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 50%;
   cursor: pointer;
+}
+.tour-nav svg { width: 0.95rem; height: 0.95rem; }
+.tour-nav button:hover { color: var(--ink); }
+:is(.tour-tabs, .tour-nav) button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+[data-look="glass"] :is(.tour-tabs button, .tour-nav button) {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+  border-color: var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-hi);
+}
+[data-look="glass"] .tour-tabs button[aria-selected="true"] {
+  color: var(--btn-ink);
+  background: var(--btn);
+  border-color: var(--btn);
+}
+[data-look="glass"] .screen {
+  border-color: var(--glass-edge);
+  box-shadow: var(--glass-shadow);
 }
 @media (max-width: 800px) {
   .tour-tabs { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
