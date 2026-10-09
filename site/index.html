@@ -174,16 +174,6 @@
       <div class="hero-copy">
         <p class="beta"><strong>Beta.</strong> Macotron goes 1.0 when I, the author, consider it stable. Until then, expect things to move around.</p>
       </div>
-      <figure class="hero-code">
-        <pre><code class="language-javascript"><span class="tok-cmt">// ~/Macotron/plugins/tile.js</span>
-<span class="tok-fn">macotron</span>.<span class="tok-fn">keyboard</span>.on(<span class="tok-str">"Tile Left"</span>, <span class="tok-str">"ctrl+opt+left"</span>, () =&gt; {
-  <span class="tok-kw">const</span> win = <span class="tok-fn">macotron</span>.window.focused();
-  <span class="tok-fn">macotron</span>.window.moveToFraction(win.id, {
-    x: <span class="tok-num">0</span>, y: <span class="tok-num">0</span>, w: <span class="tok-num">0.5</span>, h: <span class="tok-num">1</span>,
-  });
-});</code></pre>
-        <figcaption>Save, reload, and the hotkey is live.</figcaption>
-      </figure>
     </section>
 
     <section class="can" id="can">

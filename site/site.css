@@ -285,30 +285,6 @@ main > section {
   color: var(--ink);
 }
 
-.hero-code {
-  margin: 3rem auto 0;
-  max-width: 40rem;
-  text-align: left;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  overflow: hidden;
-}
-.hero-code pre {
-  margin: 0;
-  padding: 1.15rem 1.35rem;
-  font-size: 0.8rem;
-  line-height: 1.7;
-  overflow-x: auto;
-}
-.hero-code figcaption {
-  border-top: 1px solid var(--line);
-  padding: 0.55rem 1.35rem;
-  font-size: 0.78rem;
-  color: var(--muted);
-  background: var(--bg-2);
-}
-
 /* --- capabilities --- */
 
 .can { padding-bottom: 3.5rem; }
@@ -826,7 +802,7 @@ footer a:hover { color: var(--ink); }
 
 /* --- glass surfaces --- */
 
-[data-look="glass"] :is(.top, .can-head, .group, .hero-code, .finder, .api-grid, .docs-nav, .doc) {
+[data-look="glass"] :is(.top, .can-head, .group, .finder, .api-grid, .docs-nav, .doc) {
   background: var(--glass);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   backdrop-filter: blur(24px) saturate(160%);
@@ -869,8 +845,6 @@ footer a:hover { color: var(--ink); }
   border-radius: var(--r-inner);
   text-align: left;
 }
-[data-look="glass"] .hero-code { border-radius: var(--r-panel); }
-[data-look="glass"] .hero-code figcaption { background: transparent; }
 
 /* --- capabilities --- */
 
@@ -937,7 +911,7 @@ footer a:hover { color: var(--ink); }
 
 /* No backdrop-filter: opaque panels so nothing reads through. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  [data-look="glass"] :is(.top, .can-head, .group, .hero-code, .finder, .api-grid, .docs-nav, .doc) {
+  [data-look="glass"] :is(.top, .can-head, .group, .finder, .api-grid, .docs-nav, .doc) {
     background: var(--glass-solid);
   }
 }
