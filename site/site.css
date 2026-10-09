@@ -944,7 +944,10 @@ footer a:hover { color: var(--ink); }
 
 /* --- tour: one muted clip per slide, native scroll-snap --- */
 
-.tour { padding-bottom: 4rem; }
+/* Sits in the hero between the fine print and the beta notice, with the
+   same gap on both sides. */
+.tour { margin: 3rem 0; }
+.tour + .hero-copy .beta { margin-top: 0; }
 .tour-tabs {
   display: flex;
   flex-wrap: wrap;
