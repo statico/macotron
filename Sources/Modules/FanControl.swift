@@ -68,6 +68,10 @@ public final class FanController: @unchecked Sendable {
     private var helperConnection: NSXPCConnection?
     /// Whether the running daemon has been checked against this app once.
     private var recycled = false
+    /// Separate from `lock` because `helperEnabled` is read both with and
+    /// without it held.
+    private let statusLock = NSLock()
+    private var helperStatus: (at: Date, enabled: Bool)?
     /// Last failure per SMC key, so a repeating read logs once, not every tick.
     private var readErrors: [String: String] = [:]
 
@@ -156,8 +160,20 @@ public final class FanController: @unchecked Sendable {
         dropConnection()
     }
 
+    /// `SMAppService.status` is an XPC round trip to launchd, and the fan
+    /// snapshot asks on every poll. The answer only changes when the helper is
+    /// installed, removed, or switched in Login Items -- the last of which
+    /// happens in System Settings with no event here -- so a few seconds'
+    /// staleness is the price of not asking every time.
     private var helperEnabled: Bool {
-        SMAppService.daemon(plistName: MacotronHelperService.plistName).status == .enabled
+        statusLock.lock()
+        defer { statusLock.unlock() }
+        if let cached = helperStatus, -cached.at.timeIntervalSinceNow < 5 {
+            return cached.enabled
+        }
+        let enabled = SMAppService.daemon(plistName: MacotronHelperService.plistName).status == .enabled
+        helperStatus = (Date(), enabled)
+        return enabled
     }
 
     private func snapshotLocked() -> FanSnapshot {

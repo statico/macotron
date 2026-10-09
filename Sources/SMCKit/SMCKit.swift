@@ -170,6 +170,10 @@ public struct SMCParamStruct {
 public final class SMCConnection: @unchecked Sendable {
     private let lock = NSRecursiveLock()
     private var connection: io_connect_t = 0
+    /// A key's size and type are fixed by the firmware, so asking once is
+    /// enough. Without this every read or write paid for a second round trip
+    /// into the SMC just to rediscover them. Guarded by `lock`.
+    private var keyInfoCache: [UInt32: (size: UInt32, type: UInt32)] = [:]
 
     public init() {}
 
@@ -226,11 +230,15 @@ public final class SMCConnection: @unchecked Sendable {
     public func keyInfo(_ name: String) throws -> (size: UInt32, type: UInt32) {
         lock.lock()
         defer { lock.unlock() }
+        let key = fourCC(name)
+        if let cached = keyInfoCache[key] { return cached }
         var input = SMCParamStruct()
-        input.key = fourCC(name)
+        input.key = key
         input.data8 = 9
         let output = try transact(&input)
-        return (output.keyInfo.dataSize, output.keyInfo.dataType)
+        let info = (size: output.keyInfo.dataSize, type: output.keyInfo.dataType)
+        keyInfoCache[key] = info
+        return info
     }
 
     public func call(
