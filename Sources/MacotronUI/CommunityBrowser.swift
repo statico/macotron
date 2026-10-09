@@ -4,7 +4,7 @@ import MacotronEngine
 import SwiftUI
 
 struct CommunityBrowser: View {
-    @ObservedObject var state: SettingsState
+    let state: SettingsState
     @State private var query = ""
 
     var body: some View {

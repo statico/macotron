@@ -56,7 +56,7 @@ public final class WizardState: ObservableObject {
 
 public struct WizardView: View {
     @ObservedObject var state: WizardState
-    @ObservedObject var permissions: SettingsState
+    let permissions: SettingsState
 
     public init(state: WizardState, permissions: SettingsState) {
         self.state = state

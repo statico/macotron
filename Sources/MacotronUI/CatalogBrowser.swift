@@ -72,7 +72,7 @@ private struct CatalogRow: View {
 }
 
 private struct CatalogInstallSheet: View {
-    @ObservedObject var state: SettingsState
+    let state: SettingsState
     let plugin: CatalogPlugin
 
     var body: some View {
@@ -254,7 +254,7 @@ private struct CatalogInstallSheet: View {
 }
 
 private struct CatalogInstaller: ViewModifier {
-    @ObservedObject var state: SettingsState
+    let state: SettingsState
     let enabled: Bool
 
     func body(content: Content) -> some View {
