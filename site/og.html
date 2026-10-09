@@ -22,8 +22,6 @@
     --glass: rgba(255, 255, 255, 0.6);
     --glass-edge: rgba(17, 21, 28, 0.08);
     --glass-hi: rgba(255, 255, 255, 0.8);
-    --tok-kw: #36577f; --tok-str: #3c6634; --tok-cmt: #535d72;
-    --tok-fn: #2a6275; --tok-num: #764f71;
     --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   }
   * { box-sizing: border-box; margin: 0; }
@@ -50,14 +48,11 @@
     letter-spacing: -0.045em; color: var(--h1);
   }
   .byline { margin-top: 14px; font-size: 25px; line-height: 1.35; color: var(--muted); text-wrap: balance; }
-  .code {
-    font-family: var(--mono); font-size: 21px; line-height: 1.6;
-    background: var(--glass); border: 1px solid var(--glass-edge); border-radius: 20px;
-    box-shadow: inset 0 1px 0 var(--glass-hi), 0 12px 40px rgba(46, 52, 64, 0.12);
-    padding: 22px 28px; white-space: pre;
+  /* Menu bar strip cropped from the deploy tour clip. */
+  .bar {
+    display: block; width: 100%; border-radius: 14px;
+    box-shadow: 0 14px 40px rgba(46, 52, 64, 0.22);
   }
-  .cmt { color: var(--tok-cmt); font-style: italic; } .fn { color: var(--tok-fn); }
-  .kw { color: var(--tok-kw); } .str { color: var(--tok-str); } .num { color: var(--tok-num); }
   .foot { display: flex; align-items: center; justify-content: space-between; font-size: 23px; }
   .foot b { color: var(--accent); font-weight: 600; }
   .brew {
@@ -76,11 +71,7 @@
     </div>
   </div>
 
-  <div class="code"><span class="cmt">// ~/Macotron/plugins/tile.js</span>
-<span class="fn">macotron</span>.keyboard.on(<span class="str">"Tile Left"</span>, <span class="str">"ctrl+opt+left"</span>, () =&gt; {
-  <span class="kw">const</span> win = <span class="fn">macotron</span>.window.focused();
-  <span class="fn">macotron</span>.window.moveToFraction(win.id, { x: <span class="num">0</span>, w: <span class="num">0.5</span> });
-});</div>
+  <img class="bar" src="og-menubar.png" alt="">
 
   <div class="foot">
     <b>macotron.statico.io</b>
