@@ -120,6 +120,6 @@ Host CSS defines system colors as variables: `--macotron-accent`, `--macotron-ac
 
 **localStorage:** `getItem`, `setItem`, `removeItem`, `clear`, backed by `data/localStorage.json` in the workdir and shared by every plugin. No `length` or `key()`.
 
-**Keychain:** `macotron.keychain.get(key)`, `.set(key, value)`, `.delete(key)`, `.has(key)`. Keys are shared by every plugin, so prefix them.
+**Keychain:** `macotron.keychain.get(key)`, `.set(key, value)`, `.delete(key)`, `.has(key)`. Keys are per plugin: the account is `macotron.keychain/<file>/<key>`, so two plugins can use the same key name without seeing each other's value. A key from before 0.8, stored under the bare name, is read once as a fallback and copied to the plugin's own account (not in dry-run).
 
 **AI:** See [05-ai-integration.md](05-ai-integration.md).

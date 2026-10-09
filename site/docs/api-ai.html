@@ -174,7 +174,7 @@
 
 <h2 id="api-keys">API keys</h2>
 <p>Macotron has no global AI key setting. A cloud client uses only the <code>apiKey</code> you pass to its factory. Without one, every request rejects with <code>API key not provided. Set it in your config.</code></p>
-<p>Keep keys out of plugin source. Declare a <code>password</code> option in <code>macotron.plugin()</code>: the user enters the key in Settings, Macotron stores it in the Keychain, and the option value you get back is the key itself. To share one key between plugins, store it with <a href="/docs/api-keychain.html">macotron.keychain</a> and read it with <code>macotron.keychain.get()</code>.</p>
+<p>Keep keys out of plugin source. Declare a <code>password</code> option in <code>macotron.plugin()</code>: the user enters the key in Settings, Macotron stores it in the Keychain, and the option value you get back is the key itself. <a href="/docs/api-keychain.html">macotron.keychain</a> also works, and keeps each plugin's keys apart.</p>
 
 <h2 id="the-client">The client</h2>
 <p>The first argument to both methods is a prompt string, or an array of <code>{ role, content }</code> messages for a conversation. <code>role</code> is <code>"user"</code> or <code>"assistant"</code>. Macotron does not keep chat history: pass the whole conversation on every call, and save it yourself in <code>localStorage</code> if you need it later.</p>
