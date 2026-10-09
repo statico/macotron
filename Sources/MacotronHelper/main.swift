@@ -59,6 +59,10 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     private var didUnlock = false
     private var floor: Int?
     private var modeKey = "F0Md"
+    private var modeKeyProbed = false
+    /// Each fan's firmware rpm limits, read once: they never change, and the
+    /// 2s timer would otherwise re-read them on every tick.
+    private var limits: [(min: Double, max: Double)]?
     private var timer: DispatchSourceTimer?
     private var forced: Set<Int> = []
 
@@ -238,16 +242,16 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
         throw SMCError.thermalLock
     }
 
-    /// Which spelling of the mode key this Mac uses. Cheap enough to redo on
-    /// every apply, and it means a machine that names it `FNmd` needs no
-    /// special case anywhere else.
+    /// Which spelling of the mode key this Mac uses, so a machine that names
+    /// it `FNmd` needs no special case anywhere else. The answer is fixed by
+    /// the firmware, so once one spelling reads it is never asked again; a Mac
+    /// where neither reads keeps trying, in case the SMC was briefly busy.
     private func probeModeKey() throws {
-        if (try? smc.readUInt8("F0Md")) != nil {
-            modeKey = "F0Md"
+        if modeKeyProbed { return }
+        for candidate in ["F0Md", "F0md"] where (try? smc.readUInt8(candidate)) != nil {
+            modeKey = candidate
+            modeKeyProbed = true
             return
-        }
-        if (try? smc.readUInt8("F0md")) != nil {
-            modeKey = "F0md"
         }
     }
 
@@ -260,15 +264,33 @@ final class HelperService: NSObject, MacotronHelperProtocol, @unchecked Sendable
     }
 
     private func readFans() throws -> [FanInfo] {
-        let count = Int(try smc.readUInt8("FNum"))
-        return (0..<count).map { index in
+        try fanLimits().enumerated().map { index, limit in
             FanInfo(
                 index: index,
                 rpm: (try? smc.readRPM(key(index, "Ac"))) ?? 0,
+                min: limit.min,
+                max: limit.max
+            )
+        }
+    }
+
+    /// The fan count and limits, cached once they read cleanly. A maximum
+    /// that reads as zero is a failed read, not a fact about the fan, so that
+    /// answer is not kept: caching it would leave the fan on auto until the
+    /// helper restarts.
+    private func fanLimits() throws -> [(min: Double, max: Double)] {
+        if let limits { return limits }
+        let count = Int(try smc.readUInt8("FNum"))
+        let read = (0..<count).map { index in
+            (
                 min: (try? smc.readRPM(key(index, "Mn"))) ?? 0,
                 max: (try? smc.readRPM(key(index, "Mx"))) ?? 0
             )
         }
+        if read.allSatisfy({ $0.max > 0 }) {
+            limits = read
+        }
+        return read
     }
 
     private func key(_ index: Int, _ suffix: String) -> String {
