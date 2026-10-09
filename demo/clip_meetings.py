@@ -1,0 +1,11 @@
+import sys; sys.path.insert(0, '.')
+from drive import *
+glide(860, 400, 0.2)
+p = record("meetings", 60)
+glide(665, 12, 1.0); time.sleep(0.4)
+c.mouseDown(3); time.sleep(0.2); c.mouseUp(3)
+time.sleep(3.5)
+key('esc'); time.sleep(0.3)
+glide(860, 400, 1.0)
+done(p, "meetings")
+c.disconnect()
