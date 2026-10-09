@@ -8,9 +8,14 @@
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let current = 0;
 
+  const left = (n) => slides[n].offsetLeft - track.offsetLeft;
   const go = (i) => {
     const n = (i + slides.length) % slides.length;
-    track.scrollTo({ left: slides[n].offsetLeft - track.offsetLeft, behavior: still ? "auto" : "smooth" });
+    if (still) return track.scrollTo({ left: left(n), behavior: "instant" });
+    // A far jump would crawl past every slide in between, so cut to the
+    // neighbor and glide only the last step.
+    if (Math.abs(n - current) > 1) track.scrollTo({ left: left(n > current ? n - 1 : n + 1), behavior: "instant" });
+    track.scrollTo({ left: left(n), behavior: "smooth" });
   };
 
   const seen = new IntersectionObserver((entries) => {
