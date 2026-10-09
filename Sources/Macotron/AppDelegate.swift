@@ -1486,7 +1486,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                         title: hit.title,
                         subtitle: hit.subtitle,
                         type: .plugin,
-                        nsImage: hit.image ?? fileIcon(hit.path),
+                        nsImage: hit.image,
                         kind: hit.kind,
                         isFavorite: favorites.contains(hit.id),
                         path: hit.path
@@ -1510,7 +1510,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
                     title: hit.title,
                     subtitle: hit.subtitle,
                     type: .plugin,
-                    nsImage: hit.image ?? self.fileIcon(hit.path),
+                    nsImage: hit.image,
                     kind: hit.kind,
                     isFavorite: favorites.contains(hit.id),
                     path: hit.path
@@ -1527,13 +1527,19 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             let appPaths = Set(apps.map { $0.url.resolvingSymlinksInPath().path })
             let answerRows = SearchResult.withoutAppDuplicates(answers.map(row), appPaths: appPaths)
 
-            return answerRows + SearchResult.ranked(
+            // File icons load only for rows that survive the limit: a file
+            // index can match hundreds, and each miss hits NSWorkspace.
+            return (answerRows + SearchResult.ranked(
                 query: q,
                 rows: SearchResult.withoutAppDuplicates(results + rest.map(row), appPaths: appPaths),
                 late: Set(rest.filter(\.secondary).map(\.id)),
                 uses: uses,
                 limit: max(0, 20 - answerRows.count)
-            )
+            )).map { row in
+                var row = row
+                if row.nsImage == nil { row.nsImage = fileIcon(row.path) }
+                return row
+            }
         }
     }
 

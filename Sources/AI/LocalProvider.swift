@@ -63,9 +63,11 @@ private enum FoundationChat {
         if let onChunk {
             var last = ""
             for try await snapshot in session.streamResponse(to: prompt) {
+                // utf16 counts are O(1) on native strings; Character counts
+                // walk the whole reply each snapshot.
                 let text = snapshot.content
-                if text.count > last.count {
-                    onChunk(String(text.dropFirst(last.count)))
+                if text.utf16.count > last.utf16.count {
+                    onChunk(String(text.utf16.dropFirst(last.utf16.count)) ?? "")
                 }
                 last = text
             }

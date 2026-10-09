@@ -77,7 +77,9 @@ public final class Engine {
     public let eventBus = EventBus()
 
     private var modules: [NativeModule] = []
-    private var timers: [UInt32: Timer] = [:]
+    /// The callback is held until the timer goes: a live function keeps its
+    /// plugin's whole context from being freed.
+    private var timers: [UInt32: (timer: Timer, callback: JSValue)] = [:]
     private var nextTimerID: UInt32 = 1
     private var interruptDeadline: Date?
 
@@ -699,22 +701,23 @@ public final class Engine {
         let timer = Timer(timeInterval: interval, repeats: repeats) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
+                // Held for the call: a callback that clears its own timer
+                // releases the timer's reference while it is still running.
+                let callback = JS_DupValue(self.context, protectedCallback)
+                defer { JS_FreeValue(self.context, callback) }
                 self.withEvaluatingFile(pluginFile) {
                     let label = repeats ? "setInterval" : "setTimeout"
                     if let result = self.callJS(
-                        protectedCallback, label: "\(pluginFile ?? "timer"): \(label)"
+                        callback, label: "\(pluginFile ?? "timer"): \(label)"
                     ) {
                         JS_FreeValue(self.context, result)
                     }
                 }
-                if !repeats {
-                    JS_FreeValue(self.context, protectedCallback)
-                    self.cancelTimer(id)
-                }
+                if !repeats { self.cancelTimer(id) }
             }
         }
         RunLoop.main.add(timer, forMode: .common)
-        timers[id] = timer
+        timers[id] = (timer, protectedCallback)
         return id
     }
 
@@ -734,13 +737,15 @@ public final class Engine {
     }
 
     public func cancelTimer(_ id: UInt32) {
-        timers[id]?.invalidate()
-        timers.removeValue(forKey: id)
+        guard let entry = timers.removeValue(forKey: id) else { return }
+        entry.timer.invalidate()
+        JS_FreeValue(context, entry.callback)
     }
 
     public func cancelAllTimers() {
-        for (_, timer) in timers {
-            timer.invalidate()
+        for entry in timers.values {
+            entry.timer.invalidate()
+            JS_FreeValue(context, entry.callback)
         }
         timers.removeAll()
     }

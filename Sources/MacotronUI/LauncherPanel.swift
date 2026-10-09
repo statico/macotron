@@ -274,7 +274,8 @@ public final class LauncherPanel: NonactivatingPanel {
         let content = LauncherPlacement.frame(height: height, visible: visible, pinTop: pin)
         applySizeLimits(in: visible, height: content.height)
         lastHeight = content.height
-        windowFrame.size = content.size
+        // @Published fires on every assignment, redrawing the whole launcher.
+        if windowFrame.size != content.size { windowFrame.size = content.size }
         let newFrame = content.insetBy(dx: -pad, dy: -pad)
         if abs(frame.width - newFrame.width) < 0.5 && abs(frame.height - newFrame.height) < 0.5
             && abs(frame.origin.x - newFrame.origin.x) < 0.5 && abs(frame.origin.y - newFrame.origin.y) < 0.5 {
@@ -399,7 +400,8 @@ public final class LauncherPanel: NonactivatingPanel {
         super.setFrame(frameRect, display: flag)
         applyingFrame = false
         let pad = Self.shadowPadding
-        windowFrame.size = NSSize(width: frame.width - 2 * pad, height: frame.height - 2 * pad)
+        let size = NSSize(width: frame.width - 2 * pad, height: frame.height - 2 * pad)
+        if windowFrame.size != size { windowFrame.size = size }
         pinHost()
     }
 
