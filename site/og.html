@@ -9,29 +9,29 @@
   Source for og.png, the social preview card. It is not linked from the site.
   Regenerate after changing the wording:
 
-    python3 -m http.server 19876 --directory site
-    # then screenshot http://localhost:19876/og.html at exactly 1200x630
+    make serve
+    # then screenshot http://localhost:8123/og.html at exactly 1200x630
 -->
 <style>
-  /* Mirrors the homepage's light glass look (site.css, data-look="glass"). */
+  /* Mirrors the homepage's dark glass look (site.css, data-look="glass"). */
   :root {
-    --wall: #e6ebf2;
-    --h1: #11151c;
-    --ink: #1d2330;
-    --muted: #434c5e;
-    --accent: #36577f;
-    --glass: rgba(255, 255, 255, 0.6);
-    --glass-edge: rgba(17, 21, 28, 0.08);
-    --glass-hi: rgba(255, 255, 255, 0.8);
+    --wall: #11151c;
+    --h1: #ffffff;
+    --ink: #eceff4;
+    --muted: #b4bdcc;
+    --accent: #88c0d0;
+    --glass: rgba(30, 36, 46, 0.55);
+    --glass-edge: rgba(255, 255, 255, 0.08);
+    --glass-hi: rgba(255, 255, 255, 0.1);
     --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   }
   * { box-sizing: border-box; margin: 0; }
   body {
     width: 1200px; height: 630px; overflow: hidden;
     background:
-      radial-gradient(720px 540px at 10% 4%, rgba(94, 129, 172, 0.24), transparent 70%),
-      radial-gradient(660px 540px at 92% 40%, rgba(180, 142, 173, 0.22), transparent 70%),
-      radial-gradient(600px 460px at 40% 104%, rgba(136, 192, 208, 0.18), transparent 70%),
+      radial-gradient(720px 540px at 10% 4%, rgba(94, 129, 172, 0.22), transparent 70%),
+      radial-gradient(660px 540px at 92% 40%, rgba(180, 142, 173, 0.15), transparent 70%),
+      radial-gradient(600px 460px at 40% 104%, rgba(136, 192, 208, 0.07), transparent 70%),
       var(--wall);
     color: var(--ink);
     font: 16px system-ui, -apple-system, sans-serif;
@@ -42,17 +42,17 @@
   .head { display: flex; align-items: center; gap: 32px; }
   .head img {
     width: 128px; height: 128px; flex: none;
-    filter: drop-shadow(0 10px 24px rgba(46, 52, 64, 0.22));
+    filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.35));
   }
   h1 {
     font-size: 76px; font-weight: 600; line-height: 1;
     letter-spacing: -0.045em; color: var(--h1);
   }
   .byline { margin-top: 14px; font-size: 25px; line-height: 1.35; color: var(--muted); text-wrap: balance; }
-  /* Menu bar strip cropped from the deploy tour clip. */
+  /* Menu bar strip cropped from the menu bar tour clip. */
   .bar {
     display: block; width: 100%; border-radius: 14px;
-    box-shadow: 0 14px 40px rgba(46, 52, 64, 0.22);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
   }
   .foot { display: flex; align-items: center; justify-content: space-between; font-size: 23px; }
   .foot b { color: var(--accent); font-weight: 600; }
