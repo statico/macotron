@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.8.1</title>
+            <sparkle:version>0.8.1</sparkle:version>
+            <sparkle:shortVersionString>0.8.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Tue, 13 Oct 2026 21:14:51 +0000</pubDate>
+            <description><![CDATA[<ul><li>Site: dark social card to match the site</li><li>Meetings: one overlay at a time, newest replaces older</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.8.1/Macotron-0.8.1.dmg" type="application/octet-stream" sparkle:edSignature="YxFOjsKOYGy1D7Peh7IYypDc80Tx42VOL8Q7AMNB1H696hArcviVNagvsW8s5Jh9y3qy53JPLuc6qtNl+TT+Dw==" length="10444091" />
+        </item>
+        <item>
             <title>0.8.0</title>
             <sparkle:version>0.8.0</sparkle:version>
             <sparkle:shortVersionString>0.8.0</sparkle:shortVersionString>
