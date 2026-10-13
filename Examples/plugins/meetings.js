@@ -248,8 +248,10 @@ setInterval(() => {
   document.getElementById("cd").textContent = m ? "Started " + m + "m ago" : "Starting now";
 }, 1000);
 </script>`;
+        // One id for every meeting: opening it again replaces whatever
+        // overlay is still up, so missed meetings don't stack up.
         const id = macotron.panel.open({
-            id: "meeting:" + event.id,
+            id: "meeting",
             title: event.title || "Meeting",
             html,
             glass: true,
