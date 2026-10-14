@@ -738,7 +738,9 @@ public struct SettingsView: View {
                 Spacer()
                 Picker("", selection: $catalogSection) {
                     ForEach(CatalogSection.allCases) { section in
-                        Text(section.label).tag(section)
+                        Label(section.label, systemImage: section.symbol)
+                            .labelStyle(.titleAndIcon)
+                            .tag(section)
                     }
                 }
                 .pickerStyle(.segmented)
