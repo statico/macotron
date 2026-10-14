@@ -1191,7 +1191,7 @@ public struct SettingsView: View {
                     showCatalog = true
                 } label: {
                     Label("Catalog", systemImage: "square.grid.2x2")
-                        .labelStyle(.iconOnly)
+                        .labelStyle(.titleAndIcon)
                 }
                 .buttonStyle(.bordered)
                 .help("Browse and add plugins from the catalog")
@@ -1209,7 +1209,7 @@ public struct SettingsView: View {
                     Button("Open Plugins Folder") { state.openPluginsFolder?() }
                 } label: {
                     Label("Create", systemImage: "plus")
-                        .labelStyle(.iconOnly)
+                        .labelStyle(.titleAndIcon)
                 }
                 .menuStyle(.borderedButton)
                 .fixedSize()
