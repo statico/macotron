@@ -68,7 +68,7 @@ function clockLabel(at) {
     let hours = d.getHours();
     const suffix = hour12 ? (hours < 12 ? " AM" : " PM") : "";
     if (hour12) hours = hours % 12 || 12;
-    return hours + (mins ? ":" + String(mins).padStart(2, "0") : "") + suffix;
+    return hours + ":" + String(mins).padStart(2, "0") + suffix;
 }
 
 function durationLabel(mins) {
