@@ -736,16 +736,8 @@ public struct SettingsView: View {
                 Text("Plugin Catalog")
                     .font(.title2.weight(.semibold))
                 Spacer()
-                Picker("", selection: $catalogSection) {
-                    ForEach(CatalogSection.allCases) { section in
-                        Label(section.label, systemImage: section.symbol)
-                            .labelStyle(.titleAndIcon)
-                            .tag(section)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .fixedSize()
+                CatalogSectionPicker(selection: $catalogSection)
+                    .fixedSize()
             }
 
             switch catalogSection {
@@ -2015,6 +2007,46 @@ struct ModuleOptionRow: View {
     }
 }
 
+
+/// NSSegmentedControl, not a segmented Picker: SwiftUI's draws either the
+/// icon or the title of a Label on macOS, and AppKit draws both.
+struct CatalogSectionPicker: NSViewRepresentable {
+    @Binding var selection: CatalogSection
+
+    func makeCoordinator() -> Coordinator { Coordinator(selection: $selection) }
+
+    func makeNSView(context: Context) -> NSSegmentedControl {
+        let sections = CatalogSection.allCases
+        let control = NSSegmentedControl(
+            labels: sections.map(\.label),
+            trackingMode: .selectOne,
+            target: context.coordinator,
+            action: #selector(Coordinator.changed(_:))
+        )
+        for (index, section) in sections.enumerated() {
+            control.setImage(NSImage(systemSymbolName: section.symbol, accessibilityDescription: nil), forSegment: index)
+            control.setImageScaling(.scaleProportionallyDown, forSegment: index)
+        }
+        return control
+    }
+
+    func updateNSView(_ control: NSSegmentedControl, context: Context) {
+        context.coordinator.selection = $selection
+        control.selectedSegment = selection.rawValue
+    }
+
+    final class Coordinator: NSObject {
+        var selection: Binding<CatalogSection>
+
+        init(selection: Binding<CatalogSection>) { self.selection = selection }
+
+        @objc func changed(_ control: NSSegmentedControl) {
+            if let section = CatalogSection(rawValue: control.selectedSegment) {
+                selection.wrappedValue = section
+            }
+        }
+    }
+}
 
 /// NSSearchField, not a TextField: the clear button, the magnifier, and the
 /// Escape-clears behaviour are what the HIG asks for and all of it ships.
