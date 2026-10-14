@@ -217,4 +217,11 @@ enum CatalogSection: Int, CaseIterable, Identifiable {
         case .community: return "Community"
         }
     }
+
+    var symbol: String {
+        switch self {
+        case .builtIn: return "shippingbox"
+        case .community: return "person.2"
+        }
+    }
 }
