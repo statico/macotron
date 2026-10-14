@@ -1054,6 +1054,20 @@ public struct SettingsView: View {
         .background(missing.isEmpty ? Color.clear : Color.orange.opacity(0.08))
     }
 
+    private func sidebarBanner(_ title: String, color: Color, action: @escaping () -> Void) -> some View {
+        VStack(spacing: 0) {
+            Button(title, action: action)
+                .buttonStyle(.borderedProminent)
+                .tint(color)
+                .controlSize(.small)
+                .frame(maxWidth: .infinity)
+                .padding(8)
+                .background(color.opacity(0.12))
+
+            Divider()
+        }
+    }
+
     /// Not everything in this list is needed for Macotron to run — a plugin can
     /// ask for the background helper — so the copy talks about approval, not working.
     private func permissionsSummary(missing: [Permission]) -> String {
@@ -1070,6 +1084,20 @@ public struct SettingsView: View {
                 pluginSidebarActions
 
                 Divider()
+
+                // Tinted to match the menu bar icon: orange for review, blue for updates.
+                if !state.pendingReview.isEmpty {
+                    sidebarBanner(state.newPlugins.count == state.pendingReview.count
+                                  ? "Review & Load" : "Review & Reload", color: .orange) {
+                        state.onReviewPending?(nil)
+                    }
+                }
+
+                if state.updateCount > 0 {
+                    sidebarBanner("Update All (\(state.updateCount))…", color: .blue) {
+                        showUpdateAll = true
+                    }
+                }
 
                 if state.moduleSummaries.isEmpty {
                     emptyPluginsPlaceholder
@@ -1100,26 +1128,6 @@ public struct SettingsView: View {
                     .frame(maxHeight: .infinity)
                 }
 
-                if !state.pendingReview.isEmpty {
-                    Divider()
-
-                    Button(state.newPlugins.count == state.pendingReview.count
-                           ? "Review & Load" : "Review & Reload") {
-                        state.onReviewPending?(nil)
-                    }
-                    .controlSize(.small)
-                    .padding(8)
-                }
-
-                if state.updateCount > 0 {
-                    Divider()
-
-                    Button("Update All (\(state.updateCount))…") {
-                        showUpdateAll = true
-                    }
-                    .controlSize(.small)
-                    .padding(8)
-                }
             }
             .frame(width: 240)
             .frame(maxHeight: .infinity)
