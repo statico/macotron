@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.8.2</title>
+            <sparkle:version>0.8.2</sparkle:version>
+            <sparkle:shortVersionString>0.8.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Wed, 14 Oct 2026 02:14:37 +0000</pubDate>
+            <description><![CDATA[<ul><li>Settings: Review &amp; Reload and Update All lead the plugin list, tinted</li><li>Settings: Catalog and Create as centered icon buttons</li><li>Settings: Catalog and Create show their titles beside the icons</li><li>Catalog: icons on the Built-In and Community segments</li><li>Catalog: draw the section tabs with NSSegmentedControl</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.8.2/Macotron-0.8.2.dmg" type="application/octet-stream" sparkle:edSignature="B6it3A8MCWEcOTaBMmcYWjpI8PLrkitCLoQoTPVMSFoAFwsgT+R8q100LFsVALN2wjD+1wD0rHL7fdrSdrsWAQ==" length="10453205" />
+        </item>
+        <item>
             <title>0.8.1</title>
             <sparkle:version>0.8.1</sparkle:version>
             <sparkle:shortVersionString>0.8.1</sparkle:shortVersionString>
