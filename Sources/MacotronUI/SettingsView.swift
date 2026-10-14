@@ -1187,8 +1187,11 @@ public struct SettingsView: View {
     private var pluginSidebarActions: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                Button("Catalog") {
+                Button {
                     showCatalog = true
+                } label: {
+                    Label("Catalog", systemImage: "square.grid.2x2")
+                        .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.bordered)
                 .help("Browse and add plugins from the catalog")
@@ -1205,14 +1208,14 @@ public struct SettingsView: View {
                     Button("Empty Plugin…") { showNewPlugin = true }
                     Button("Open Plugins Folder") { state.openPluginsFolder?() }
                 } label: {
-                    Text("Create")
+                    Label("Create", systemImage: "plus")
+                        .labelStyle(.iconOnly)
                 }
                 .menuStyle(.borderedButton)
                 .fixedSize()
                 .help("Create a plugin with an editor or agent")
-
-                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity)
 
             PluginSearchField(text: $pluginFilter)
         }
