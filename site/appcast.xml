@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.8.3</title>
+            <sparkle:version>0.8.3</sparkle:version>
+            <sparkle:shortVersionString>0.8.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Wed, 14 Oct 2026 16:52:27 +0000</pubDate>
+            <description><![CDATA[<ul><li>Meetings: whole-hour start times read 10:00, not 10</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.8.3/Macotron-0.8.3.dmg" type="application/octet-stream" sparkle:edSignature="xiXG2mErY1PD4A5kRBWHhBxYO80Fe61aBqLBrrmQLZeTiSuWf7iQBbc/u7wOj6m1anBxmoigdZt9yCdDdcysAQ==" length="10453097" />
+        </item>
+        <item>
             <title>0.8.2</title>
             <sparkle:version>0.8.2</sparkle:version>
             <sparkle:shortVersionString>0.8.2</sparkle:shortVersionString>
