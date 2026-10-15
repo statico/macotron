@@ -393,6 +393,7 @@ const APIS = [
   ]],
   ["macotron.notify", ["System banners and HUD toasts"]],
   ["macotron.media", ["Now Playing snapshot, play/pause, skip"]],
+  ["macotron.player", ["Radio streams and podcasts; ICY song titles", "Control Center and media keys"]],
   ["macotron.calendar", ["Upcoming events with times and location"]],
   ["macotron.reminders", ["list, add, complete"]],
   ["macotron.notes", ["List and open Apple Notes"]],

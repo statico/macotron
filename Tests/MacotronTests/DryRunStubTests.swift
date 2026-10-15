@@ -209,4 +209,23 @@ struct DryRunStubTests {
         let (result, _) = engine.evaluate("globalThis.out")
         #expect(result == "[]")
     }
+
+    @Test("player calls do not play and state stays stopped")
+    func player() {
+        let engine = dryEngine([PlayerModule()])
+        let (result, error) = engine.evaluate("""
+            const ok = macotron.player.play('https://example.com/stream', { title: 'X', position: 10 });
+            macotron.player.pause();
+            macotron.player.resume();
+            macotron.player.toggle();
+            macotron.player.seek(30);
+            macotron.player.setVolume(0.5);
+            macotron.player.stop();
+            const s = macotron.player.state();
+            [ok, macotron.player.play('ftp://example.com/a'), s.status, s.url, s.duration].join('|')
+            """)
+        #expect(error == nil)
+        #expect(result == "true|false|stopped||")
+        #expect(Player.shared.state().url == nil)
+    }
 }

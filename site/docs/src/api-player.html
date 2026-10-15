@@ -1,0 +1,79 @@
+<!-- title: macotron.player
+     summary: Play internet radio and podcasts with Macotron's own audio player.
+     group: API -->
+<h1>macotron.player</h1>
+<p class="lede">Play an internet radio stream or a podcast episode in Macotron itself. The player shows in Control Center, answers the media keys, and keeps playing when you reload a plugin.</p>
+
+<pre><code class="language-javascript">// Play SomaFM Groove Salad and show the song in the menu bar.
+macotron.player.play("https://ice1.somafm.com/groovesalad-128-mp3", { title: "Groove Salad" });
+
+function paint(s) {
+  s = s || macotron.player.state();
+  macotron.menubar.status("radio", {
+    title: s.status === "stopped" ? "" : (s.streamTitle || s.title || ""),
+    sfSymbol: "radio",
+    onClick: () =&gt; macotron.player.toggle(),
+  });
+}
+paint();
+macotron.on("player:changed", paint);</code></pre>
+
+<h2>Playing</h2>
+
+<h3>play(url, { title?, artist?, artwork?, position? }): boolean</h3>
+<p>Stops whatever is playing and starts <code>url</code>. Only <code>http</code>, <code>https</code>, and <code>file</code> URLs play; for any other scheme the call returns <code>false</code> and nothing changes.</p>
+<ul>
+  <li><code>title</code> and <code>artist</code> show in <code>state()</code> and in Control Center.</li>
+  <li><code>artwork</code> is an image URL or file path for Control Center.</li>
+  <li><code>position</code> is the second to start at, for resuming a podcast.</li>
+</ul>
+<p>The call returns at once. The stream loads in the background: watch <code>player:changed</code> for <code>"playing"</code> or <code>"error"</code>.</p>
+
+<h3>pause(): void</h3>
+<p>Pauses playback.</p>
+
+<h3>resume(): void</h3>
+<p>Continues after a pause.</p>
+
+<h3>toggle(): void</h3>
+<p>Pauses when playing, resumes when paused.</p>
+
+<h3>stop(): void</h3>
+<p>Stops and forgets the item. <code>state()</code> is then <code>"stopped"</code>.</p>
+
+<h3>seek(seconds): void</h3>
+<p>Jumps to an absolute position. Live streams have no duration and ignore it.</p>
+
+<h3>setVolume(volume): void</h3>
+<p>Sets the player's volume from <code>0</code> to <code>1</code>. This is the player's own volume, not the system volume; use <a href="/docs/api-audio.html">macotron.audio</a> for that.</p>
+
+<h2>Reading</h2>
+
+<h3>state(): { status, url, title, artist, streamTitle, position, duration, volume, error? }</h3>
+<p><code>status</code> is one of:</p>
+<ul>
+  <li><code>"stopped"</code>: nothing loaded. <code>url</code>, <code>title</code>, and the other strings are <code>null</code>.</li>
+  <li><code>"loading"</code>: connecting or buffering.</li>
+  <li><code>"playing"</code></li>
+  <li><code>"paused"</code></li>
+  <li><code>"error"</code>: the stream did not load or dropped. <code>error</code> has AVFoundation's message. Macotron does not retry; call <code>play()</code> again.</li>
+</ul>
+<p><code>streamTitle</code> is the song a radio station sends in its ICY metadata, usually <code>Artist - Song</code>, or <code>null</code>. <code>position</code> and <code>duration</code> are seconds. <code>duration</code> is <code>null</code> for a live stream.</p>
+
+<h2>Events</h2>
+
+<h3>player:changed</h3>
+<p>Fires with <code>state()</code> when the status, the item, <code>streamTitle</code>, or <code>error</code> changes. It does not fire as the position moves: a plugin that shows progress reads <code>state()</code> on its own timer.</p>
+
+<h2>Lifetime and the system</h2>
+<p>There is one player for all of Macotron. Reloading a plugin does not stop it, so a reloaded plugin reads <code>state()</code> to catch up. Quitting Macotron stops it.</p>
+<p>The player publishes to the system Now Playing, so Control Center, the media keys, and <a href="/docs/api-media.html">macotron.media</a> see Macotron like any other player. Play, pause, and play/pause work there, and skip back and forward 30 seconds when the item has a duration.</p>
+
+<div class="note"><p>AVPlayer plays MP3, AAC, and HLS streams. Some stations send Ogg Vorbis or Opus, which fail with <code>"error"</code>.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-media.html">macotron.media</a> to control other apps' playback.</li>
+  <li><a href="/docs/api-audio.html">macotron.audio</a> for devices and system volume.</li>
+  <li>The <code>radio.js</code> plugin.</li>
+</ul>
