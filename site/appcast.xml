@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.8.5</title>
+            <sparkle:version>0.8.5</sparkle:version>
+            <sparkle:shortVersionString>0.8.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Thu, 15 Oct 2026 19:26:44 +0000</pubDate>
+            <description><![CDATA[<ul><li>Screen Sharing: connect with the saved connection type instead of asking</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.8.5/Macotron-0.8.5.dmg" type="application/octet-stream" sparkle:edSignature="IgrNaysMetRt48AoyuSh5RrDciN0yDqDZP3jxxjDH4p3uP+n968v3sqjWjZjMrxJranr/F4SaV0/AjazR1O3Dw==" length="10457629" />
+        </item>
+        <item>
             <title>0.8.4</title>
             <sparkle:version>0.8.4</sparkle:version>
             <sparkle:shortVersionString>0.8.4</sparkle:shortVersionString>
