@@ -625,6 +625,13 @@ enum PluginMenu {
 
     static func sync(_ menu: NSMenu, to entries: [MenuBarEntry], retaining boxes: inout [Action]) {
         boxes.removeAll()
+        reconcile(menu, to: entries, retaining: &boxes)
+    }
+
+    /// Rebuilds only the level whose shape changed. Swapping in a new NSMenu
+    /// for a submenu that is open leaves the old one on screen beside the new
+    /// one, so each submenu keeps its NSMenu and has its items replaced instead.
+    private static func reconcile(_ menu: NSMenu, to entries: [MenuBarEntry], retaining boxes: inout [Action]) {
         if sameShape(menu, entries) {
             write(entries, onto: menu, retaining: &boxes)
         } else {
@@ -681,11 +688,8 @@ enum PluginMenu {
             if item.isSeparatorItem { return false }
             if (entry.html != nil) != (item.view is MenuWebView) { return false }
             if entry.inline != (item.view is MenuButtonRow) { return false }
-            if entry.children.isEmpty {
-                return item.submenu == nil
-            }
-            guard let submenu = item.submenu else { return false }
-            return sameShape(submenu, entry.children)
+            if entry.html != nil || entry.inline { return true }
+            return entry.children.isEmpty == (item.submenu == nil)
         }
     }
 
@@ -706,7 +710,7 @@ enum PluginMenu {
             }
             apply(title: entry.title, icon: entry.icon, dimmed: entry.dimmed, to: item)
             if !entry.children.isEmpty, let submenu = item.submenu {
-                write(entry.children, onto: submenu, retaining: &boxes)
+                reconcile(submenu, to: entry.children, retaining: &boxes)
             } else {
                 bind(entry, to: item, retaining: &boxes)
             }
