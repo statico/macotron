@@ -25,8 +25,19 @@ async function readConnections() {
     macotron.shell.run("/bin/rm", ["-rf", dir]);
   }
 }
+// The saved connection's type, as the query Screen Sharing reads on vnc:// URLs; without one it asks
+// "High Performance or Standard?". displayType is {virtualDisplays: {numberOfDisplays}}, {remoteMacsDisplay: {}}
+// or {compatibilityMode: {}}.
+function typeQuery(displayType) {
+  if (!displayType) return "";
+  if (displayType.compatibilityMode) return "?displayType=adaptive&numVirtualDisplays=0";
+  const n = displayType.virtualDisplays?.numberOfDisplays ?? 0;
+  return "?displayType=high&numVirtualDisplays=" + n;
+}
+
 function connect(c) {
-  const url = "vnc://" + (c.username ? encodeURIComponent(c.username) + "@" : "") + c.address + (c.port ? ":" + c.port : "");
+  const url = "vnc://" + (c.username ? encodeURIComponent(c.username) + "@" : "") + c.address + (c.port ? ":" + c.port : "")
+    + typeQuery(c.displayConfiguration?.displayType);
   console.log("screen-sharing: connecting to", c.displayName, url);
   if (!macotron.url.open(url, "com.apple.ScreenSharing")) {
     console.error("screen-sharing: open failed for", url);
