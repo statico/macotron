@@ -1,7 +1,54 @@
 macotron.plugin({
     title: "CPU, GPU and Memory Graph",
-    description: "CPU core, GPU, and memory gauges in the menu bar.",
+    description: "CPU core, GPU, and memory gauges in the menu bar, with the top processes for each.",
 });
+
+const TOP_N = 8;
+const PS = ["-Aceo", "pid=,pcpu=,rss=,comm="];
+// Apple silicon's GPU driver keeps a running GPU-time total per client; Intel Macs have none, so the GPU list stays empty there.
+const IOREG = "/usr/sbin/ioreg -r -c AGXDeviceUserClient -a | /usr/bin/plutil -convert json -o - -";
+
+let top = { cpu: [], gpu: [], mem: [] };
+let lastGPU = null; // { at, ns: Map<pid, ns> }
+
+async function sampleGPU() {
+    const res = await macotron.shell.run("/bin/sh", ["-c", IOREG]);
+    if (res.exitCode !== 0) return new Map();
+    const ns = new Map();
+    for (const client of JSON.parse(res.stdout)) {
+        const pid = Number(/pid (\d+)/.exec(client.IOUserClientCreator || "")?.[1]);
+        if (!pid) continue;
+        const t = (client.AppUsage || []).reduce((sum, u) => sum + (u.accumulatedGPUTime || 0), 0);
+        ns.set(pid, (ns.get(pid) || 0) + t);
+    }
+    const now = Date.now();
+    const pct = new Map();
+    if (lastGPU) {
+        const elapsed = (now - lastGPU.at) * 1e6;
+        for (const [pid, t] of ns) {
+            const d = t - (lastGPU.ns.get(pid) ?? t);
+            if (d > 0) pct.set(pid, (d / elapsed) * 100);
+        }
+    }
+    lastGPU = { at: now, ns };
+    return pct;
+}
+
+async function sampleTop() {
+    const [ps, gpu] = await Promise.all([macotron.shell.run("/bin/ps", PS), sampleGPU().catch(() => new Map())]);
+    const procs = [];
+    for (const line of ps.stdout.split("\n")) {
+        const m = /^\s*(\d+)\s+([\d.]+)\s+(\d+)\s+(.+)$/.exec(line);
+        if (m) procs.push({ pid: +m[1], cpu: +m[2], mem: +m[3] * 1024, name: m[4], gpu: gpu.get(+m[1]) || 0 });
+    }
+    const best = (key) => procs.filter((p) => p[key] > 0).sort((a, b) => b[key] - a[key]).slice(0, TOP_N);
+    top = { cpu: best("cpu"), gpu: best("gpu"), mem: best("mem") };
+}
+
+function topMenu(title, list, fmt) {
+    const rows = list.map((p) => ({ title: fmt(p) + "  " + p.name }));
+    return { title, menu: rows.length ? rows : [{ title: "Nothing to show", dimmed: true }] };
+}
 
 // Bars fill from the bottom; the donut runs clockwise from twelve o'clock.
 const H = 18;
@@ -49,7 +96,18 @@ function gb(bytes) {
     return (bytes / 1e9).toFixed(1) + " GB";
 }
 
-function paint() {
+let busy = false;
+async function paint() {
+    if (busy) return;
+    busy = true;
+    try {
+        await sampleTop();
+    } catch (e) {
+        console.error("cpu-graph: process sample failed", e);
+    } finally {
+        busy = false;
+    }
+
     const cpu = macotron.system.cpu();
     const gpu = macotron.system.gpu();
     const mem = macotron.system.memory();
@@ -91,6 +149,12 @@ function paint() {
             { title: "  App " + gb(app) },
             { title: "  Wired " + gb(mem.wired) },
             { title: "  Compressed " + gb(mem.compressed) },
+            "-",
+            topMenu("Top CPU", top.cpu, (p) => pct(p.cpu)),
+            topMenu("Top GPU", top.gpu, (p) => pct(p.gpu)),
+            topMenu("Top Memory", top.mem, (p) => gb(p.mem)),
+            "-",
+            { title: "Open Activity Monitor", onClick: () => macotron.shell.run("/usr/bin/open", ["-b", "com.apple.ActivityMonitor"]) },
         ],
     });
 }
