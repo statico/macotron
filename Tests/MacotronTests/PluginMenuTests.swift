@@ -122,6 +122,29 @@ struct PluginMenuTests {
         )
         #expect(menu.items.map(\.title) == ["CPU 1%", "GPU 2%"])
     }
+
+    /// A top-processes list grows and shrinks between repaints. Replacing the
+    /// submenu's NSMenu while it is open leaves the old one on screen too.
+    @MainActor
+    @Test("a submenu whose rows change keeps its NSMenu")
+    func submenuIsReused() {
+        var boxes: [PluginMenu.Action] = []
+        let row = { (n: Int) in MenuBarEntry(title: "\(n)%") }
+        let menu = PluginMenu.make(
+            [MenuBarEntry(title: "Top CPU", children: [row(9), row(5)])],
+            retaining: &boxes
+        )
+        let item = menu.items[0]
+        let submenu = item.submenu
+        PluginMenu.sync(
+            menu,
+            to: [MenuBarEntry(title: "Top CPU", children: [row(8)])],
+            retaining: &boxes
+        )
+        #expect(menu.items[0] === item)
+        #expect(item.submenu === submenu)
+        #expect(submenu?.items.map(\.title) == ["8%"])
+    }
 }
 
 @Suite("PluginFilter")
