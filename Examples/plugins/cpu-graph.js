@@ -6,19 +6,20 @@ macotron.plugin({
 const TOP_N = 8;
 const PS = ["-Aceo", "pid=,pcpu=,rss=,comm="];
 // Apple silicon's GPU driver keeps a running GPU-time total per client; Intel Macs have none, so the GPU list stays empty there.
-const IOREG = "/usr/sbin/ioreg -r -c AGXDeviceUserClient -a | /usr/bin/plutil -convert json -o - -";
+const IOREG = ["-r", "-c", "AGXDeviceUserClient", "-l"];
 
 let top = { cpu: [], gpu: [], mem: [] };
 let lastGPU = null; // { at, ns: Map<pid, ns> }
 
 async function sampleGPU() {
-    const res = await macotron.shell.run("/bin/sh", ["-c", IOREG]);
+    const res = await macotron.shell.run("/usr/sbin/ioreg", IOREG);
     if (res.exitCode !== 0) return new Map();
     const ns = new Map();
-    for (const client of JSON.parse(res.stdout)) {
-        const pid = Number(/pid (\d+)/.exec(client.IOUserClientCreator || "")?.[1]);
+    // One "+-o" block per client: its creator pid and the GPU time of each of its queues.
+    for (const block of res.stdout.split("+-o ")) {
+        const pid = Number(/"IOUserClientCreator" = "pid (\d+)/.exec(block)?.[1]);
         if (!pid) continue;
-        const t = (client.AppUsage || []).reduce((sum, u) => sum + (u.accumulatedGPUTime || 0), 0);
+        const t = [...block.matchAll(/"accumulatedGPUTime"=(\d+)/g)].reduce((sum, m) => sum + Number(m[1]), 0);
         ns.set(pid, (ns.get(pid) || 0) + t);
     }
     const now = Date.now();

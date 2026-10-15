@@ -4,10 +4,27 @@ macotron.plugin({
   description: "Connect to saved Screen Sharing computers from the menu bar or the launcher.",
 });
 
-// The app keeps its connection list as a binary plist embedded in its prefs under `connectionsStore`.
-const READ = "/usr/bin/defaults export com.apple.ScreenSharing - | /usr/bin/plutil -extract connectionsStore raw -o - - | /usr/bin/base64 -d | /usr/bin/plutil -extract connectionDetails json -o - -";
 const PREFS_DIR = "~/Library/Containers/com.apple.ScreenSharing/Data/Library/Preferences";
 
+async function run(cmd, args) {
+  const res = await macotron.shell.run(cmd, args);
+  if (res.exitCode !== 0) throw new Error(res.stderr.trim() || cmd + " exited " + res.exitCode);
+  return res.stdout;
+}
+
+// The app keeps its connection list as a binary plist embedded in its prefs under `connectionsStore`.
+// Each step goes through a temp file so no shell is needed to pipe them together.
+async function readConnections() {
+  const dir = (await run("/usr/bin/mktemp", ["-d"])).trim();
+  try {
+    await run("/usr/bin/defaults", ["export", "com.apple.ScreenSharing", dir + "/prefs.plist"]);
+    await run("/usr/bin/plutil", ["-extract", "connectionsStore", "raw", "-o", dir + "/store.b64", dir + "/prefs.plist"]);
+    await run("/usr/bin/base64", ["-d", "-i", dir + "/store.b64", "-o", dir + "/store.plist"]);
+    return JSON.parse(await run("/usr/bin/plutil", ["-extract", "connectionDetails", "json", "-o", "-", dir + "/store.plist"]));
+  } finally {
+    macotron.shell.run("/bin/rm", ["-rf", dir]);
+  }
+}
 function connect(c) {
   const url = "vnc://" + (c.username ? encodeURIComponent(c.username) + "@" : "") + c.address + (c.port ? ":" + c.port : "");
   console.log("screen-sharing: connecting to", c.displayName, url);
@@ -21,9 +38,7 @@ async function paint() {
   let menu;
   let conns = [];
   try {
-    const res = await macotron.shell.run("/bin/sh", ["-c", READ]);
-    if (res.exitCode !== 0) throw new Error(res.stderr.trim() || "exit " + res.exitCode);
-    conns = Object.values(JSON.parse(res.stdout))
+    conns = Object.values(await readConnections())
       .map((d) => d.connectionParameters?.networkAddress?._0)
       .filter((c) => c?.address)
       .sort((a, b) => (a.displayName || a.address).localeCompare(b.displayName || b.address));
