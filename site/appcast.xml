@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.8.4</title>
+            <sparkle:version>0.8.4</sparkle:version>
+            <sparkle:shortVersionString>0.8.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Thu, 15 Oct 2026 03:50:47 +0000</pubDate>
+            <description><![CDATA[<ul><li>Screen Sharing: saved connections in the menu bar and the launcher</li><li>CPU graph: top CPU, GPU and memory processes in its menu</li><li>Screen Sharing, CPU graph: drop /bin/sh so the plugin scan passes</li><li>Menus: update an open submenu in place instead of replacing it</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.8.4/Macotron-0.8.4.dmg" type="application/octet-stream" sparkle:edSignature="cjXOIhlrDIfFvyvO78i0GSogbwQ0ai+ou2H4XsqWl5eq+oJcDMEx+QCz3hy3tOwIJiHemYOThqeyoOS9BvykBw==" length="10456439" />
+        </item>
+        <item>
             <title>0.8.3</title>
             <sparkle:version>0.8.3</sparkle:version>
             <sparkle:shortVersionString>0.8.3</sparkle:shortVersionString>
