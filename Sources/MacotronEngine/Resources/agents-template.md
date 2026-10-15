@@ -135,8 +135,8 @@ the body is sentence case; a bare state continues the title in lowercase:
 Timers: `macotron.every(ms, fn)` repeats; `macotron.at("07:30", fn)` runs daily at a clock time.
 Events: `macotron.on(name, fn)` for `app:activated`, `audio:changed`,
 `clipboard:changed`, `display:changed`, `hid:input`, `media:changed`,
-`menubar:appearance`, `panel:closed`, `space:changed`, `usb:changed`,
-`wifi:changed`.
+`menubar:appearance`, `panel:closed`, `player:changed`, `space:changed`,
+`usb:changed`, `wifi:changed`.
 
 Everything else -- windows, clipboard, http, audio, network, system toggles,
 screen, HID, QR, AI -- is typed in `.cache/macotron.d.ts`.

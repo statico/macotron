@@ -39,6 +39,7 @@ func registerStandardModules(in engine: Engine) {
     engine.addModule(HomeKitModule())
     engine.addModule(DockModule())
     engine.addModule(MediaModule())
+    engine.addModule(PlayerModule())
     engine.addModule(PowerModule())
     engine.addModule(NetworkModule())
     engine.addModule(BonjourModule())

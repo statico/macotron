@@ -84,7 +84,8 @@ declare const macotron: {
      * Subscribe to a host event. The events the host emits are
      * `app:activated`, `app:launched`, `app:terminated`, `audio:changed`,
      * `clipboard:changed`, `display:changed`, `hid:input`, `media:changed`,
-     * `menubar:appearance`, `panel:closed`, `space:changed`, `system:active`,
+     * `menubar:appearance`, `panel:closed`, `player:changed`,
+     * `space:changed`, `system:active`,
      * `system:idle`, `system:lock`, `system:sleep`, `system:unlock`,
      * `system:wake`, `udp:message`, `usb:changed`, `wifi:changed`,
      * `window:created` and `window:focused`, plus the dynamic
@@ -433,6 +434,33 @@ declare const macotron: {
         playPause(): void;
         next(): void;
         previous(): void;
+    };
+
+    /**
+     * Macotron's own audio player, for radio streams and podcasts. It
+     * outlives plugin reloads; re-sync from `state()` after one.
+     * `player:changed` fires with `state()` when the status, item,
+     * `streamTitle` or `error` changes, not as the position moves.
+     */
+    player: {
+        /**
+         * Replace whatever is playing. `http`, `https` and `file` URLs only;
+         * anything else returns false. `position` is seconds to start at,
+         * `artwork` an image URL or file path shown in Control Center.
+         */
+        play(
+            url: string,
+            opts?: { title?: string; artist?: string; artwork?: string; position?: number }
+        ): boolean;
+        pause(): void;
+        resume(): void;
+        toggle(): void;
+        stop(): void;
+        /** Absolute seconds. Ignored on live streams. */
+        seek(seconds: number): void;
+        /** 0…1, the player's own volume, not the system's. */
+        setVolume(volume: number): void;
+        state(): PlayerState;
     };
 
     ai: {
@@ -1067,6 +1095,22 @@ interface HTTPResponse {
     status: number;
     body: string;
     headers: Record<string, string>;
+}
+
+interface PlayerState {
+    status: "stopped" | "loading" | "playing" | "paused" | "error";
+    url: string | null;
+    title: string | null;
+    artist: string | null;
+    /** The station's ICY `StreamTitle`, usually `Artist - Song`. */
+    streamTitle: string | null;
+    /** Seconds. */
+    position: number;
+    /** Seconds; null for a live stream or before it is known. */
+    duration: number | null;
+    volume: number;
+    /** AVFoundation's message, when `status` is "error". */
+    error?: string;
 }
 
 interface AIChatMessage {

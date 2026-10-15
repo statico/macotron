@@ -72,6 +72,7 @@ Native macOS host for JavaScript plugins.
 - [macotron.notify](/docs/api-notify.html): Post system notification banners and show short on-screen toasts.
 - [macotron.ocr](/docs/api-ocr.html): Read the text in an image file or a base64 PNG with Apple's on-device Vision OCR.
 - [macotron.panel](/docs/api-panel.html): Open floating web-view windows and exchange messages with the page inside them.
+- [macotron.player](/docs/api-player.html): Play internet radio and podcasts with Macotron's own audio player.
 - [macotron.power](/docs/api-power.html): Keep the Mac awake, lock, sleep, log out, restart, or shut down, and react to sleep and lock.
 - [macotron.qr](/docs/api-qr.html): Read QR codes from images, the screen, or the camera, and make QR code images.
 - [macotron.reminders](/docs/api-reminders.html): List, add, and complete reminders in the Reminders app.
