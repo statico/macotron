@@ -48,7 +48,7 @@ Macotron runs on macOS 15 Sequoia and later. A few things need macOS 26 Tahoe: t
 
 ## What it Does
 
-The 74 built-in plugins do things like:
+The 75 built-in plugins do things like:
 
 - Extend quick search with files, contacts, or Apple Notes
 - Toggle extra-dark or red night vision mode
@@ -62,6 +62,7 @@ The 74 built-in plugins do things like:
 - Convert HEIC images to JPEGs in `~/Downloads`
 - Toggle mic mute or cycle through audio output devices
 - Show the now-playing music information with album art
+- Play internet radio and podcasts, with the song in the menu bar
 - Start a chat window with Apple Intelligence, Claude, or Gemini
 - Select a region on the screen and OCR it
 - Scan a QR code off the screen, or show one
