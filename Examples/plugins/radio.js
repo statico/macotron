@@ -2,7 +2,7 @@
 macotron.plugin({
     title: "Radio & Podcasts",
     description: "Play internet radio and podcasts from the launcher, with the song in the menu bar.",
-    help: "Open the launcher and type `radio` and a station name, or `podcast` and a show. Return plays it; a show is also subscribed, and starts at its newest episode. `radio` or `podcast` alone lists your favorite stations or subscribed shows. Podcasts resume where you stopped. The menu bar item has play and pause, volume, favorites, recent stations, and every subscribed show's latest episodes.",
+    help: "Open the launcher and type `radio` and a station name, or `podcast` and a show. Return plays it; a show is also subscribed, and starts at its newest episode. `radio` alone offers the station browser (search, genres, countries, and a star to favorite) and lists your favorites; `podcast` alone lists your subscribed shows. Podcasts resume where you stopped. The menu bar item has play and pause, volume, favorites, recent stations, and every subscribed show's latest episodes.",
 });
 
 const API = "https://all.api.radio-browser.info/json";
@@ -44,34 +44,42 @@ function json(res) {
 
 // ---- Radio ----
 
-function stationRows(list) {
+function toStations(list) {
     return (list || [])
         .filter((s) => CODECS.includes(s.codec))
         .map((s) => {
-            const station = { name: s.name.trim(), url: s.url_resolved || s.url, uuid: s.stationuuid };
             const format = s.bitrate ? `${s.codec} ${s.bitrate} kbps` : s.codec;
             const tags = (s.tags || "").split(",").filter(Boolean).slice(0, 3).join(", ");
-            return stationRow(station, [s.countrycode || s.country, format, tags].filter(Boolean).join(" · "));
+            return {
+                name: s.name.trim(),
+                url: s.url_resolved || s.url,
+                uuid: s.stationuuid,
+                subtitle: [s.countrycode || s.country, format, tags].filter(Boolean).join(" · "),
+            };
         });
 }
 
-function stationRow(station, subtitle) {
+function stationRow(station) {
     return {
         id: station.url,
         title: station.name,
-        subtitle: subtitle || "Favorite station",
+        subtitle: station.subtitle || "Favorite station",
         sfSymbol: "radio",
         onClick: () => playStation(station),
     };
 }
 
-async function searchStations(text) {
-    const q = encodeURIComponent(text);
+// `filter` is a radio-browser search parameter: `name=…`, `tag=…`, or `countrycode=…`.
+async function fetchStations(filter, limit) {
     const res = await macotron.http.get(
-        `${API}/stations/search?name=${q}&hidebroken=true&order=votes&reverse=true&limit=20`,
+        `${API}/stations/search?${filter}&hidebroken=true&order=votes&reverse=true&limit=${limit}`,
         HEADERS
     );
-    return stationRows(json(res));
+    return toStations(json(res));
+}
+
+async function searchStations(text) {
+    return (await fetchStations("name=" + encodeURIComponent(text), 20)).map(stationRow);
 }
 
 function playStation(station) {
@@ -81,6 +89,7 @@ function playStation(station) {
         return;
     }
     recent = [station].concat(recent.filter((r) => r.url !== station.url)).slice(0, 5);
+    syncBrowser();
     save("radio.recent", recent);
     if (station.uuid) macotron.http.post(`${API}/url/${station.uuid}`, "", HEADERS);
 }
@@ -185,6 +194,7 @@ function toggleFavorite(station) {
         : favs.concat([station]);
     save("radio.favs", favs);
     paint();
+    syncBrowser();
 }
 
 function stationItems(list) {
@@ -240,6 +250,7 @@ function menu(s) {
         }
     }
     rows.push("-");
+    rows.push({ title: "Browse Stations…", onClick: openBrowser });
     rows.push({ title: "Favorites", menu: stationItems(favs) });
     rows.push({ title: "Recent", menu: stationItems(recent) });
     rows.push({
@@ -262,7 +273,143 @@ macotron.on("player:changed", (s) => {
     savePosition(s);
     if (s.status === "error") macotron.notify.toast(s.title || "Radio", s.error || "Playback failed", { color: "error" });
     paint(s);
+    syncBrowser();
 });
+
+// ---- Station browser panel ----
+
+const BROWSER_HTML = `<style>
+#q { width:100%; font-size:18px; padding:6px 2px; border:0; background:transparent; color:var(--macotron-label); outline:none; }
+#tabs { display:flex; gap:4px; }
+#tabs button { flex:1; }
+#tabs button.on { background:var(--macotron-accent); color:var(--macotron-accent-text); }
+#chips { display:flex; flex-wrap:wrap; gap:6px; }
+#chips:empty { display:none; }
+.chip { padding:3px 10px; border-radius:12px; cursor:pointer; background:var(--macotron-fill); }
+.chip.on { background:var(--macotron-accent); color:var(--macotron-accent-text); }
+.row { display:flex; align-items:center; gap:10px; padding:6px 8px; border-radius:8px; cursor:pointer; }
+.row:hover { background:var(--macotron-fill); }
+.row.playing { background:var(--macotron-selected); color:var(--macotron-selected-text); }
+.row .text { flex:1; min-width:0; }
+.row .name, .row .sub { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.row .sub { font-size:11px; color:var(--macotron-secondary-label); }
+.row.playing .sub { color:inherit; opacity:0.8; }
+.icon { width:22px; text-align:center; font-size:15px; }
+.star { cursor:pointer; color:var(--macotron-secondary-label); }
+.star.on { color:#f5b400; }
+</style>
+<input id="q" autofocus placeholder="Search Stations…" spellcheck="false" aria-label="Search stations">
+<div id="tabs" role="tablist">
+  <button data-tab="favorites">Favorites</button><button data-tab="top">Top</button>
+  <button data-tab="genres">Genres</button><button data-tab="countries">Countries</button>
+</div>
+<div id="chips"></div>
+<div id="list" class="grow scroll"></div>
+<script>
+const send = (d) => webkit.messageHandlers.macotron.postMessage(d);
+let stations = [], favs = [], playing = null, seq = 0, timer = null;
+const $ = (id) => document.getElementById(id);
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;" }[c])); }
+function ask(d) { d.seq = ++seq; $("list").innerHTML = "<p class='muted'>Loading…</p>"; send(d); }
+function tab(name) {
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+  $("chips").innerHTML = "";
+  $("q").value = "";
+  ask({ tab: name });
+}
+function paint() {
+  $("list").innerHTML = stations.length ? stations.map((s, i) =>
+    "<div class='row" + (s.url === playing ? " playing" : "") + "' data-i='" + i + "'>" +
+    "<span class='icon'>" + (s.url === playing ? "■" : "▶") + "</span>" +
+    "<div class='text'><div class='name'>" + esc(s.name) + "</div><div class='sub'>" + esc(s.subtitle) + "</div></div>" +
+    "<span class='icon star" + (favs.includes(s.url) ? " on" : "") + "' title='Favorite'>" + (favs.includes(s.url) ? "★" : "☆") + "</span></div>"
+  ).join("") : "<p class='muted'>No stations</p>";
+}
+window.__macotronReceive = (d) => {
+  if (!d) return;
+  if (d.favs) favs = d.favs;
+  if ("playing" in d) playing = d.playing;
+  if (d.chips && d.seq === seq) {
+    $("chips").innerHTML = d.chips.map((c) =>
+      "<span class='chip' data-kind='" + c.kind + "' data-value='" + esc(c.value) + "'>" + esc(c.label) + "</span>").join("");
+    $("list").innerHTML = "";
+    return;
+  }
+  if (d.stations && d.seq === seq) stations = d.stations;
+  paint();
+};
+$("q").oninput = (e) => {
+  clearTimeout(timer);
+  const text = e.target.value.trim();
+  timer = setTimeout(() => text ? ask({ search: text }) : tab("favorites"), 300);
+};
+$("tabs").onclick = (e) => { if (e.target.dataset.tab) tab(e.target.dataset.tab); };
+$("chips").onclick = (e) => {
+  const c = e.target.closest(".chip");
+  if (!c) return;
+  document.querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x === c));
+  ask({ [c.dataset.kind]: c.dataset.value });
+};
+$("list").onclick = (e) => {
+  const row = e.target.closest(".row");
+  if (!row) return;
+  const s = stations[+row.dataset.i];
+  send(e.target.closest(".star") ? { fav: s } : s.url === playing ? { stop: true } : { play: s });
+};
+tab("favorites");
+</script>`;
+
+let browserId = null;
+
+function syncBrowser() {
+    if (!browserId) return;
+    const s = macotron.player.state();
+    macotron.panel.postMessage(browserId, {
+        favs: favs.map((f) => f.url),
+        playing: s.status === "stopped" ? null : s.url,
+    });
+}
+
+async function chips(kind) {
+    const res = await macotron.http.get(
+        `${API}/${kind === "tag" ? "tags" : "countries"}?order=stationcount&reverse=true&hidebroken=true&limit=60`,
+        HEADERS
+    );
+    return (json(res) || []).map((c) => kind === "tag"
+        ? { kind, label: c.name, value: c.name }
+        : { kind, label: c.name, value: c.iso_3166_1 });
+}
+
+async function answer(id, d) {
+    const reply = { seq: d.seq };
+    if (d.tab === "favorites") reply.stations = favs;
+    else if (d.tab === "top") reply.stations = await fetchStations("", 60);
+    else if (d.tab === "genres") reply.chips = await chips("tag");
+    else if (d.tab === "countries") reply.chips = await chips("country");
+    else if (d.search) reply.stations = await fetchStations("name=" + encodeURIComponent(d.search), 60);
+    else if (d.tag) reply.stations = await fetchStations("tagExact=true&tag=" + encodeURIComponent(d.tag), 60);
+    else if (d.country) reply.stations = await fetchStations("countrycode=" + encodeURIComponent(d.country), 60);
+    if (browserId === id) macotron.panel.postMessage(id, reply);
+}
+
+function openBrowser() {
+    const id = macotron.panel.open({ id: "radio-browser", title: "Radio Stations", width: 460, height: 600, html: BROWSER_HTML });
+    browserId = id;
+    syncBrowser();
+    macotron.panel.onMessage(id, (d) => {
+        if (!d) return;
+        if (d.play) playStation(d.play);
+        else if (d.stop) stop();
+        else if (d.fav) toggleFavorite(d.fav);
+        else answer(id, d);
+    });
+}
+
+macotron.on("panel:closed", ({ id }) => {
+    if (id === browserId) browserId = null;
+});
+
+macotron.command("Browse Radio Stations", "Search and browse internet radio, and pick favorites", openBrowser);
 
 macotron.every(15_000, () => {
     const s = macotron.player.state();
@@ -276,7 +423,11 @@ macotron.launcher.query("radio", (query) => {
     const m = String(query || "").match(/^\s*(radio|podcast)(?:\s+(.*))?$/i);
     if (!m) return [];
     const text = (m[2] || "").trim();
-    if (m[1].toLowerCase() === "radio") return text ? searchStations(text) : favs.map((st) => stationRow(st));
+    if (m[1].toLowerCase() === "radio") {
+        if (text) return searchStations(text);
+        const browse = { id: "radio-browse", title: "Browse Radio Stations…", subtitle: "Search, genres, countries, favorites", sfSymbol: "radio", onClick: openBrowser };
+        return [browse].concat(favs.map(stationRow));
+    }
     return text ? searchShows(text) : subs.map(showRow);
 });
 
