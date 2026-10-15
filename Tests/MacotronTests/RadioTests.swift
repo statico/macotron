@@ -32,6 +32,8 @@ struct RadioTests {
                 state: () => state,
                 stop: () => {}, toggle: () => {}, seek: () => {}, setVolume: () => {}
             },
+            command: () => {},
+            panel: { open: () => "p", postMessage: () => {}, onMessage: () => {} },
             clipboard: { set: () => {} },
             notify: { toast: () => {} }
         };
