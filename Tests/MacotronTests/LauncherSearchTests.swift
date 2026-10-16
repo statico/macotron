@@ -41,7 +41,6 @@ struct LauncherSearchTests {
                 plugin: () => ({}),
                 command: (name, desc, fn) => { commands[name] = fn; },
                 url: { open: (url) => { opened.push(url); } },
-                shell: { run: () => {} },
                 notify: { toast: () => {} }
             };
             """#, extra: #"""
@@ -55,18 +54,17 @@ struct LauncherSearchTests {
     @Test("Define opens dict:// for the word")
     func define() throws {
         let result = try PluginHarness.evalSettled(plugin: "web-search.js", mock: #"""
-            var runs = [];
+            var opened = [];
             var commands = {};
             var macotron = {
                 plugin: () => ({}),
                 command: (name, desc, fn) => { commands[name] = fn; },
-                url: { open: () => {} },
-                shell: { run: (cmd, args) => { runs.push({ cmd: cmd, args: args }); } },
+                url: { open: (url) => { opened.push(url); } },
                 notify: { toast: () => {} }
             };
             """#, extra: #"""
             commands["Define"]({ q: "apple" });
-            JSON.stringify(runs)
+            JSON.stringify(opened)
             """#)
         #expect(result.contains("dict://"))
         #expect(result.contains("apple"))
