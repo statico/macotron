@@ -1,4 +1,4 @@
-// APIs: menubar.status, launcher.set, shell.run, url.open, fs.watch, notify.toast
+// APIs: menubar.status, launcher.set, plist, app.launch, url.open, fs.watch, notify.toast
 macotron.plugin({
   title: "Screen Sharing",
   description: "Connect to saved Screen Sharing computers from the menu bar or the launcher.",
@@ -6,25 +6,16 @@ macotron.plugin({
 
 const PREFS_DIR = "~/Library/Containers/com.apple.ScreenSharing/Data/Library/Preferences";
 
-async function run(cmd, args) {
-  const res = await macotron.shell.run(cmd, args);
-  if (res.exitCode !== 0) throw new Error(res.stderr.trim() || cmd + " exited " + res.exitCode);
-  return res.stdout;
+// The app keeps its connection list as a binary plist embedded as Data in its prefs under `connectionsStore`.
+function readConnections() {
+  const prefs = macotron.plist.read(PREFS_DIR + "/com.apple.ScreenSharing.plist");
+  // No prefs (or no store in them) means Screen Sharing has never saved a computer.
+  if (!prefs?.connectionsStore) return {};
+  const store = macotron.plist.parse({ base64: prefs.connectionsStore });
+  if (!store) throw new Error("unreadable connectionsStore");
+  return store.connectionDetails || {};
 }
 
-// The app keeps its connection list as a binary plist embedded in its prefs under `connectionsStore`.
-// Each step goes through a temp file so no shell is needed to pipe them together.
-async function readConnections() {
-  const dir = (await run("/usr/bin/mktemp", ["-d"])).trim();
-  try {
-    await run("/usr/bin/defaults", ["export", "com.apple.ScreenSharing", dir + "/prefs.plist"]);
-    await run("/usr/bin/plutil", ["-extract", "connectionsStore", "raw", "-o", dir + "/store.b64", dir + "/prefs.plist"]);
-    await run("/usr/bin/base64", ["-d", "-i", dir + "/store.b64", "-o", dir + "/store.plist"]);
-    return JSON.parse(await run("/usr/bin/plutil", ["-extract", "connectionDetails", "json", "-o", "-", dir + "/store.plist"]));
-  } finally {
-    macotron.shell.run("/bin/rm", ["-rf", dir]);
-  }
-}
 // The saved connection's type as the vnc:// query Screen Sharing parses (`quality`, not `displayType`, which it ignores and then saves the session back as Standard); without one it asks
 // "High Performance or Standard?". displayType is {virtualDisplays: {numberOfDisplays}}, {remoteMacsDisplay: {}}
 // or {compatibilityMode: {}}.
@@ -46,11 +37,11 @@ function connect(c) {
   }
 }
 
-async function paint() {
+function paint() {
   let menu;
   let conns = [];
   try {
-    conns = Object.values(await readConnections())
+    conns = Object.values(readConnections())
       .map((d) => d.connectionParameters?.networkAddress?._0)
       .filter((c) => c?.address)
       .sort((a, b) => (a.displayName || a.address).localeCompare(b.displayName || b.address));
@@ -63,7 +54,7 @@ async function paint() {
   }
   menu.push(
     "-",
-    { title: "Open Screen Sharing", onClick: () => macotron.shell.run("/usr/bin/open", ["-b", "com.apple.ScreenSharing"]) },
+    { title: "Open Screen Sharing", onClick: () => macotron.app.launch("com.apple.ScreenSharing") },
     { title: "Refresh", onClick: paint },
   );
   macotron.launcher.set("screen-sharing", conns.map((c) => ({
