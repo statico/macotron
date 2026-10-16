@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.9.0</title>
+            <sparkle:version>0.9.0</sparkle:version>
+            <sparkle:shortVersionString>0.9.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Fri, 16 Oct 2026 20:43:28 +0000</pubDate>
+            <description><![CDATA[<ul><li>Spec: radio and podcasts player</li><li>Player: macotron.player, an AVPlayer for radio streams and podcasts</li><li>Radio &amp; Podcasts: search radio-browser and iTunes from the launcher</li><li>Radio: station browser panel with search, genres, countries, and favorites</li><li>Screen Sharing: open High Performance connections with quality=high</li><li>Radio: setting to hide the song or station in the menu bar</li><li>Add macotron.plist, macotron.prefs, and native fs/app/system calls</li><li>Screen Sharing: read saved connections with macotron.plist</li><li>Emoji Picker: read emoji names with plist.read instead of plutil</li><li>Pointer Tuning: read and write HID prefs with macotron.prefs</li><li>Present Mode: read and write CreateDesktop with macotron.prefs</li><li>Security Checklist: find apps with app.path and read Info.plist natively</li><li>File Search: open results with macotron.fs.open</li><li>CPU Graph: open Activity Monitor with macotron.app.launch</li><li>Web Search: open dict:// with macotron.url.open</li><li>Add macotron.disks, macotron.image and macotron.speech</li><li>USB watcher: speak through macotron.speech instead of /usr/bin/say</li><li>Eject: list and eject disks through macotron.disks</li><li>HEIC to JPEG: convert through macotron.image instead of sips</li><li>Storage: read volumes, home and the Trash through host APIs</li><li>Site: regenerate docs for plist, prefs, disks, image and speech</li><li>Drop a redundant format and null check found in review</li><li>Settings: run the catalog segment action on the main actor</li><li>Tests: mock console for Screen Sharing, keep the Queue panel off screen</li><li>Tests: app.info reads Calculator's bundle id and refuses a non-bundle</li><li>Radio: list every API in the header and explain the play-count POST</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.9.0/Macotron-0.9.0.dmg" type="application/octet-stream" sparkle:edSignature="5czYFPy6y/0VVuIiSJOx20Yfs6uqNiCNHj+Blzc/+THkaC7bhyI9ZIIdKIJsLI+hhnlVy39+EU4bnfvFK7iYDw==" length="10519353" />
+        </item>
+        <item>
             <title>0.8.5</title>
             <sparkle:version>0.8.5</sparkle:version>
             <sparkle:shortVersionString>0.8.5</sparkle:shortVersionString>
