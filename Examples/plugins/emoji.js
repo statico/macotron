@@ -1,4 +1,4 @@
-// APIs: shell.run, localStorage, panel, launcher.query, clipboard.set, event.post
+// APIs: plist, localStorage, panel, launcher.query, clipboard.set, event.post
 const opts = macotron.plugin({
   title: "Emoji Picker",
   description: "Search emoji by name, keep the ones you use most at the top, and insert one.",
@@ -69,14 +69,15 @@ function categoryOf(emoji) {
 
 let emoji = [];
 
-async function load() {
+function load() {
   const cached = localStorage.getItem("emoji:list:v1");
   if (cached) {
     emoji = JSON.parse(cached);
     return;
   }
-  const out = await macotron.shell.run("/usr/bin/plutil", ["-convert", "json", "-o", "-", NAMES_PLIST]);
-  const names = JSON.parse(out.stdout);
+  const names = macotron.plist.read(NAMES_PLIST);
+  // Nothing is cached when the read fails, so the next open tries again.
+  if (!names) return;
   emoji = Object.keys(names)
     .map((e) => ({ e, n: names[e], c: categoryOf(e) }))
     .sort((a, b) => ORDER.indexOf(a.c) - ORDER.indexOf(b.c) || a.e.codePointAt(0) - b.e.codePointAt(0));
