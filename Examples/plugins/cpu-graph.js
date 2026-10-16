@@ -155,7 +155,7 @@ async function paint() {
             topMenu("Top GPU", top.gpu, (p) => pct(p.gpu)),
             topMenu("Top Memory", top.mem, (p) => gb(p.mem)),
             "-",
-            { title: "Open Activity Monitor", onClick: () => macotron.shell.run("/usr/bin/open", ["-b", "com.apple.ActivityMonitor"]) },
+            { title: "Open Activity Monitor", onClick: () => macotron.app.launch("com.apple.ActivityMonitor") },
         ],
     });
 }
