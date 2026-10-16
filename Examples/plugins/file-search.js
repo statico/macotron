@@ -1,4 +1,4 @@
-// APIs: files, launcher.query, spotlight.search, shell.run, localStorage, command, checks, every, notify.toast
+// APIs: files, launcher.query, spotlight.search, shell.run, fs.open, localStorage, command, checks, every, notify.toast
 
 const opts = macotron.plugin({
     title: "File Search",
@@ -91,7 +91,7 @@ const open = (path) => {
     const o = opens[path] || { count: 0, last: 0 };
     opens[path] = { count: o.count + 1, last: Date.now() };
     remember();
-    macotron.shell.run("/usr/bin/open", [path]);
+    macotron.fs.open(path);
 };
 
 // Any home directory becomes ~ so the subtitle stays inside one row.

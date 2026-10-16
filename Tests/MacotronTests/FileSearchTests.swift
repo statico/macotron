@@ -60,8 +60,8 @@ struct FileSearchTests {
                     __mdfind.push(args);
                     return { exitCode: 0, stdout: "/Users/alex/body.txt\n/Users/alex/budget.pdf\n", stderr: "" };
                 }
-                __opened.push(args[0]);
-            } }
+            } },
+            fs: { open: (path) => { __opened.push(path); return true; } }
         };
         """#
 
