@@ -230,46 +230,59 @@ struct MenuPluginsTests {
         #expect(result.contains(#""title":"09:41""#))
     }
 
-    @Test("eject skips Macintosh HD and Data")
+    @Test("eject lists ejectable disks, ejects natively, and toasts a refusal")
     func ejectFilter() throws {
-        let result = try PluginHarness.evalSettled(plugin: "eject.js", mock: #"""
+        let engine = try PluginHarness.load(plugin: "eject.js", mock: #"""
             var statusConfig = null;
             var runs = [];
+            var ejects = [];
+            var toasts = [];
             var confirmOk = false;
             function confirm() { return confirmOk; }
             var macotron = {
                 plugin: () => ({}),
                 command: () => {},
-                fs: { list: () => ["Macintosh HD", "Macintosh HD - Data", "Data", "Backup", ".hidden"] },
+                disks: {
+                    list: () => [
+                        { name: "Macintosh HD", path: "/", root: true, ejectable: false, network: false },
+                        { name: "Scratch", path: "/Volumes/Scratch", root: false, ejectable: false, network: false },
+                        { name: "Backup", path: "/Volumes/Backup", root: false, ejectable: true, network: false },
+                        { name: "Share", path: "/Volumes/Share", root: false, ejectable: false, network: true }
+                    ],
+                    eject: (path) => {
+                        ejects.push(path);
+                        return Promise.resolve(path === "/Volumes/Share" ? { ok: false, error: "busy" } : { ok: true });
+                    }
+                },
                 menubar: { status: (id, cfg) => { statusConfig = cfg; } },
-                every: () => {},
+                notify: { toast: (title, body, opts) => { toasts.push({ title: title, body: body, color: opts && opts.color }); } },
                 shell: { run: (cmd, args) => { runs.push({ cmd: cmd, args: args }); } }
             };
             """#, extra: #"""
-            var names = userVolumes(["Macintosh HD", "Data", "Stick", ".foo"]);
-            statusConfig.menu[0].onClick();
             var menu = statusConfig.menu.map(r => r.title);
+            statusConfig.menu[0].onClick();
+            statusConfig.menu[1].onClick();
             confirmOk = false;
             statusConfig.menu[menu.length - 1].onClick();
             var afterNo = runs.length;
             confirmOk = true;
             statusConfig.menu[menu.length - 1].onClick();
+            """#)
+        let result = PluginHarness.run(engine, #"""
             JSON.stringify({
-                names: names,
-                symbol: statusConfig.sfSymbol,
-                runs: runs,
-                afterNo: afterNo,
                 menu: menu,
-                last: menu[menu.length - 1]
+                symbol: statusConfig.sfSymbol,
+                ejects: ejects,
+                toasts: toasts,
+                runs: runs,
+                afterNo: afterNo
             })
             """#)
-        #expect(result.contains(#""Stick""#))
-        #expect(!result.contains("Macintosh HD"))
+        #expect(result.contains(#""menu":["Eject Backup","Eject Share","Empty Trash"]"#))
         #expect(result.contains("eject.fill"))
-        #expect(result.contains("/Volumes/Backup") || result.contains("Eject Backup"))
-        #expect(result.contains(#""eject""#))
-        #expect(result.contains(#""last":"Empty Trash""#))
-        #expect(result.contains(#""afterNo":1"#))
+        #expect(result.contains(#""ejects":["/Volumes/Backup","/Volumes/Share"]"#))
+        #expect(result.contains(#""toasts":[{"title":"Could not eject Share","body":"busy","color":"error"}]"#))
+        #expect(result.contains(#""afterNo":0"#))
         #expect(result.contains("/usr/bin/osascript"))
         #expect(result.contains("empty the trash"))
     }
