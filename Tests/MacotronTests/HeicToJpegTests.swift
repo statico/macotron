@@ -30,7 +30,7 @@ struct HeicToJpegTests {
             };
             """#, extra: "run();")
         let result = PluginHarness.run(engine, "JSON.stringify({ converts: converts, toasts: toasts, logged: logged })")
-        #expect(result.contains(#"{"src":"~/Downloads/a.HEIC","dest":"~/Downloads/a.jpg","format":"jpeg","quality":1}"#))
+        #expect(result.contains(#"{"src":"~/Downloads/a.HEIC","dest":"~/Downloads/a.jpg","quality":1}"#))
         #expect(!result.contains("b.heic"))
         #expect(result.contains(#""body":"1 converted, 1 already existed, 1 failed","color":"warning""#))
         #expect(result.contains("c.heif: cannot read"))
