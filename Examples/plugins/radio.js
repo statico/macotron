@@ -1,8 +1,16 @@
 // APIs: player, http, launcher.query, menubar.status, localStorage, clipboard.set, notify.toast, every
-macotron.plugin({
+const opts = macotron.plugin({
     title: "Radio & Podcasts",
     description: "Play internet radio and podcasts from the launcher, with the song in the menu bar.",
     help: "Open the launcher and type `radio` and a station name, or `podcast` and a show. Return plays it; a show is also subscribed, and starts at its newest episode. `radio` alone offers the station browser (search, genres, countries, and a star to favorite) and lists your favorites; `podcast` alone lists your subscribed shows. Podcasts resume where you stopped. The menu bar item has play and pause, volume, favorites, recent stations, and every subscribed show's latest episodes.",
+    options: {
+        showTitle: {
+            type: "boolean",
+            label: "Show song or station in the menu bar",
+            help: "Off leaves only the radio icon.",
+            default: true,
+        },
+    },
 });
 
 const API = "https://all.api.radio-browser.info/json";
@@ -263,7 +271,7 @@ function menu(s) {
 function paint(s) {
     s = s || macotron.player.state();
     macotron.menubar.status("radio", {
-        title: s.status === "stopped" ? "" : clip(s.streamTitle || s.title || "", 30),
+        title: s.status === "stopped" || opts.showTitle === false ? "" : clip(s.streamTitle || s.title || "", 30),
         sfSymbol: "radio",
         menu: menu(s),
     });
