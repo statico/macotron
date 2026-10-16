@@ -72,3 +72,15 @@ struct PlistPrefsTests {
         #expect(!Prefs.set(domain, "bad", [NSNull()]))
     }
 }
+
+@MainActor
+@Suite("app.info")
+struct AppInfoTests {
+    @Test("reads a bundle's id and version; a non-bundle is nil")
+    func info() {
+        let info = AppModule.info("/System/Applications/Calculator.app")
+        #expect(info?["bundleID"] as? String == "com.apple.calculator")
+        #expect(info?["version"] is String)
+        #expect(AppModule.info("/tmp") == nil)
+    }
+}
