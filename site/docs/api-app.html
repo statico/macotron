@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>macotron.app · Macotron</title>
-  <meta name="description" content="List, launch, switch to, hide, and quit apps, and pick items from their menus.">
+  <meta name="description" content="List, find, launch, switch to, hide, and quit apps, and pick items from their menus.">
   <meta name="ai-disclosure" content="ai-generated">
   <meta property="og:title" content="macotron.app · Macotron">
-  <meta property="og:description" content="List, launch, switch to, hide, and quit apps, and pick items from their menus.">
+  <meta property="og:description" content="List, find, launch, switch to, hide, and quit apps, and pick items from their menus.">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Macotron">
   <meta property="og:url" content="https://macotron.statico.io/docs/api-app.html">
@@ -91,6 +91,7 @@
 <a href="/docs/api-camera.html">macotron.camera</a>
 <a href="/docs/api-clipboard.html">macotron.clipboard</a>
 <a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-disks.html">macotron.disks</a>
 <a href="/docs/api-display.html">macotron.display</a>
 <a href="/docs/api-dock.html">macotron.dock</a>
 <a href="/docs/api-event.html">macotron.event</a>
@@ -100,6 +101,7 @@
 <a href="/docs/api-homekit.html">macotron.homekit</a>
 <a href="/docs/api-http.html">macotron.http</a>
 <a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-image.html">macotron.image</a>
 <a href="/docs/api-keyboard.html">macotron.keyboard</a>
 <a href="/docs/api-keychain.html">macotron.keychain</a>
 <a href="/docs/api-launcher.html">macotron.launcher</a>
@@ -112,7 +114,9 @@
 <a href="/docs/api-ocr.html">macotron.ocr</a>
 <a href="/docs/api-panel.html">macotron.panel</a>
 <a href="/docs/api-player.html">macotron.player</a>
+<a href="/docs/api-plist.html">macotron.plist</a>
 <a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-prefs.html">macotron.prefs</a>
 <a href="/docs/api-qr.html">macotron.qr</a>
 <a href="/docs/api-reminders.html">macotron.reminders</a>
 <a href="/docs/api-screen.html">macotron.screen</a>
@@ -121,6 +125,7 @@
 <a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
 <a href="/docs/api-snippets.html">macotron.snippets</a>
 <a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-speech.html">macotron.speech</a>
 <a href="/docs/api-spotlight.html">macotron.spotlight</a>
 <a href="/docs/api-system.html">macotron.system</a>
 <a href="/docs/api-udp.html">macotron.udp</a>
@@ -143,6 +148,20 @@
 
 <h3 id="frontmost-name-string-bundleid-string-pid-number-null">frontmost(): { name: string; bundleID: string; pid: number } | null</h3>
 <p>The app in front. Macotron itself is skipped: while a Macotron panel or the launcher has focus, this returns the app that was in front before it. Returns <code>null</code> when there is no such app yet.</p>
+
+<h2 id="installed-apps">Installed apps</h2>
+
+<h3 id="path-bundleid-string-string-null">path(bundleID: string): string | null</h3>
+<p>Where the app with that bundle ID is installed, such as <code>"/Applications/Safari.app"</code>, or <code>null</code> when Launch Services knows no such app. The app does not have to be running.</p>
+
+<h3 id="info-path-string-bundleid-name-version-build-path-null">info(path: string): { bundleID, name, version, build, path } | null</h3>
+<p>Reads the app bundle at <code>path</code>. <code>version</code> is the version users see (<code>CFBundleShortVersionString</code>) and <code>build</code> the build number (<code>CFBundleVersion</code>); either is <code>null</code> when the bundle does not declare it. Returns <code>null</code> when <code>path</code> is not a bundle. Each call reads the bundle from disk, so an app that has updated reports its new version.</p>
+
+<pre><code class="language-javascript"><span class="tok-kw">const</span> path = <span class="tok-fn">macotron</span>.app.path(<span class="tok-str">"com.apple.Safari"</span>);
+<span class="tok-kw">const</span> info = path &amp;&amp; <span class="tok-fn">macotron</span>.app.info(path);
+console.log(info?.name, info?.version);</code></pre>
+
+<p>For other keys in an app's <code>Info.plist</code>, read it with <a href="/docs/api-plist.html">macotron.plist</a>.</p>
 
 <h2 id="launching-and-switching">Launching and switching</h2>
 
