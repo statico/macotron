@@ -259,4 +259,24 @@ struct DryRunStubTests {
         #expect(result == "true|false|stopped||")
         #expect(Player.shared.state().url == nil)
     }
+
+    @Test("disks.eject, image.convert and speech.say are inert")
+    func disksImageSpeech() throws {
+        let dir = NSTemporaryDirectory() + "macotron-dryrun-image-\(UUID().uuidString)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        let engine = dryEngine([DisksModule(), ImageModule(), SpeechModule()])
+        let (_, error) = engine.evaluate("""
+            globalThis.out = [];
+            macotron.disks.eject('/Volumes/Nope').then(r => { globalThis.out.push(r.ok); });
+            macotron.image.convert('\(dir)/missing.heic', '\(dir)/out.jpg', { format: 'jpeg' })
+                .then(r => { globalThis.out.push(r.ok); });
+            globalThis.said = String(macotron.speech.say('hello'));
+            """)
+        #expect(error == nil)
+        #expect(engine.evaluate("JSON.stringify(globalThis.out)").0 == "[true,true]")
+        #expect(engine.evaluate("globalThis.said").0 == "undefined")
+        #expect(Speech.synthesizer.isSpeaking == false)
+        #expect(!FileManager.default.fileExists(atPath: dir + "/out.jpg"))
+    }
 }
