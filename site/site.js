@@ -258,7 +258,7 @@ const CARDS = [
     ["Fan", "Hold a fan-speed floor from the menu bar."],
     ["Frontmost App", "Track the last app that became active."],
     ["Headphone Pause", "Pause media when headphones unplug."],
-    ["HEIC to JPEG", "sips conversion on a stock Mac."],
+    ["HEIC to JPEG", "Convert Downloads photos, metadata kept."],
     ["HID", "List HID devices attached to this Mac."],
     ["Icon Rainbow", "Cycle the menu bar glyph."],
     ["Idle", "Notify when the Mac goes idle or wakes."],

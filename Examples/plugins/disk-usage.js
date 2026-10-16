@@ -10,34 +10,18 @@ function fmt(kb) {
     return (n / (1024 * 1024)).toFixed(n < 10 * 1024 * 1024 ? 1 : 0) + " GB";
 }
 
-function volumeName(mount) {
-    if (mount === "/" || mount === "/System/Volumes/Data") return "Macintosh HD";
-    const parts = mount.split("/").filter(Boolean);
-    return parts[parts.length - 1] || mount;
-}
-
-function parseDf(text) {
-    const rows = [];
-    for (const line of String(text || "").split("\n")) {
-        const m = line.match(/^(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(.*)$/);
-        if (!m) continue;
-        const mount = m[6].trim();
-        const fs = m[1];
-        if (fs === "devfs" || fs.startsWith("map ")) continue;
-        const keep = mount === "/" || mount === "/System/Volumes/Data" || mount.startsWith("/Volumes/");
-        if (!keep) continue;
-        rows.push({
-            name: volumeName(mount),
-            path: mount,
-            kb: Number(m[3]),
-            total: Number(m[2]),
-            kind: "volume",
-        });
-    }
-    if (rows.some((r) => r.path === "/System/Volumes/Data")) {
-        return rows.filter((r) => r.path !== "/");
-    }
-    return rows;
+// Server volumes have no SMART and no local I/O to report. Sizes stay in KB
+// like du's, and "used" is total minus what Finder calls available, so
+// purgeable space counts as free there too.
+function volumeRows(disks) {
+    return (disks || []).filter((v) => !v.network).map((v) => ({
+        name: v.name,
+        path: v.path,
+        device: v.device,
+        kb: (v.total - v.available) / 1024,
+        total: v.total / 1024,
+        kind: "volume",
+    }));
 }
 
 function parseDu(text, dir) {
@@ -81,8 +65,8 @@ function smartOf(info) {
     return { status, known: !!status, ok: !status || status === "Verified" };
 }
 
-// df names a slice (disk3s1s1) but iostat counts the whole physical device
-// (disk3), so trim the slice suffix to join the two readings.
+// disks.list names a slice (disk3s1s1) but iostat counts the whole physical
+// device (disk3), so trim the slice suffix to join the two readings.
 function physicalDisk(id) {
     const m = String(id || "").match(/^disk\d+/);
     return m ? m[0] : "";
@@ -108,13 +92,12 @@ function parseIostat(text) {
     return disks;
 }
 
+// SMART has no API short of the NVMe and ATA SMART user clients, so it is
+// still diskutil's to report.
 async function volumes() {
-    const df = await macotron.shell.run("/bin/df", ["-k"]);
-    const rows = parseDf(df.stdout);
+    const rows = volumeRows(macotron.disks.list());
     for (const row of rows) {
-        const info = parseDiskutil((await macotron.shell.run("/usr/sbin/diskutil", ["info", row.path])).stdout);
-        row.device = info["Device Identifier"] || "";
-        row.smart = smartOf(info);
+        row.smart = smartOf(parseDiskutil((await macotron.shell.run("/usr/sbin/diskutil", ["info", row.path])).stdout));
     }
     return rows;
 }
@@ -144,7 +127,7 @@ function folderName(path, home) {
     const trimmed = String(path || "").replace(/\/+$/, "");
     const base = String(home || "").replace(/\/+$/, "");
     if (base && trimmed === base) return "Home";
-    return volumeName(path);
+    return trimmed.split("/").filter(Boolean).pop() || trimmed;
 }
 
 macotron.command("Disk Usage", "Browse folder sizes in your home folder", () => {
@@ -281,8 +264,7 @@ send({ type: "start" });
     macotron.panel.onMessage(id, async (data) => {
         if (!data) return;
         if (data.type === "start") {
-            home = String((await macotron.shell.run("/usr/bin/printenv", ["HOME"])).stdout || "").trim();
-            if (!home) return;
+            home = macotron.system.home();
             showDir(home);
             // `iostat -c 2` spends a second collecting its sample, so it only
             // ever runs here, when someone is looking at the panel.
@@ -332,18 +314,15 @@ function bundleIdOf(name) {
 }
 
 // Spotlight knows every installed app; app.list() only knows the ones running
-// right now, so it tops up anything Spotlight has not indexed.
+// right now, so it tops up anything Spotlight has not indexed. spotlight.search
+// matches names, not content types, so the query itself is still mdfind's.
 async function installedIds() {
     const ids = new Set();
     for (const app of macotron.app.list() || []) if (app.bundleID) ids.add(app.bundleID);
     const found = await macotron.shell.run("/usr/bin/mdfind", ["kMDItemContentTypeTree == 'com.apple.application-bundle'"]);
-    const apps = String(found.stdout || "").split("\n").filter(Boolean);
-    if (apps.length) {
-        // One mdls over every app beats one mdfind per candidate id.
-        const out = await macotron.shell.run("/usr/bin/mdls", ["-name", "kMDItemCFBundleIdentifier"].concat(apps));
-        const re = /kMDItemCFBundleIdentifier\s*=\s*"([^"]+)"/g;
-        let m;
-        while ((m = re.exec(String(out.stdout || "")))) ids.add(m[1]);
+    for (const path of String(found.stdout || "").split("\n").filter(Boolean)) {
+        const info = macotron.app.info(path);
+        if (info && info.bundleID) ids.add(info.bundleID);
     }
     return ids;
 }
@@ -384,22 +363,6 @@ async function leftovers(home) {
         rows.sort((a, b) => b.kb - a.kb);
     }
     return { rows, skipped, error: "" };
-}
-
-// Finder's delete moves to the Trash, so every removal stays recoverable -- an
-// rm here would be unforgivable. The paths ride in as osascript arguments
-// rather than inside the script text, so a quote in a filename cannot turn
-// into AppleScript.
-function trashScript(paths) {
-    return [
-        "-e", "on run argv",
-        "-e", "set doomed to {}",
-        "-e", "repeat with p in argv",
-        "-e", "set end of doomed to (POSIX file (p as text)) as alias",
-        "-e", "end repeat",
-        "-e", 'tell application "Finder" to delete doomed',
-        "-e", "end run",
-    ].concat(paths);
 }
 
 macotron.command("Find Leftover Files", "Find files left behind by apps that are gone", () => {
@@ -456,8 +419,7 @@ window.webkit.messageHandlers.macotron.postMessage({ type: "start" });
     let home = "";
 
     async function scan() {
-        if (!home) home = String((await macotron.shell.run("/usr/bin/printenv", ["HOME"])).stdout || "").trim();
-        if (!home) return;
+        if (!home) home = macotron.system.home();
         const r = await leftovers(home);
         found = r.rows;
         macotron.panel.postMessage(id, {
@@ -483,8 +445,8 @@ window.webkit.messageHandlers.macotron.postMessage({ type: "start" });
         const paths = (data.paths || []).map(String).filter((p) => known.has(p));
         if (!paths.length) return;
         if (!macotron.confirm("Move " + paths.length + " item(s) to the Trash?\n\nThey stay recoverable from the Trash.")) return;
-        const r = await macotron.shell.run("/usr/bin/osascript", trashScript(paths));
-        const failed = r.exitCode !== 0;
+        // The Trash, never an rm: every removal stays recoverable.
+        const failed = macotron.fs.trash(paths).failed.length > 0;
         macotron.notify.toast(
             "Leftovers",
             failed ? "Could not move everything to the Trash" : paths.length + " item(s) moved to the Trash",
@@ -493,7 +455,7 @@ window.webkit.messageHandlers.macotron.postMessage({ type: "start" });
     });
 });
 
-// Volume health is worth knowing without opening anything, and df plus a
-// diskutil call per volume is cheap enough to pay once at load. A mock or a
-// sandbox without these tools must not take the plugin down with it.
+// Volume health is worth knowing without opening anything, and a diskutil call
+// per volume is cheap enough to pay once at load. A mock or a sandbox without
+// these tools must not take the plugin down with it.
 refreshHealth().catch(() => {});
