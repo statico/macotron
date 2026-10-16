@@ -35,5 +35,5 @@ for (const [name, engine] of [
 macotron.command("Define", "Look up a word in Dictionary", (args) => {
   const q = String(args.q || "").trim();
   if (!q) return macotron.notify.toast("Enter a query");
-  macotron.shell.run("/usr/bin/open", ["dict://" + encodeURIComponent(q)]);
+  macotron.url.open("dict://" + encodeURIComponent(q));
 }, qArg);
