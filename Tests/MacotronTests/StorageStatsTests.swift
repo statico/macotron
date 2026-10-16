@@ -5,8 +5,8 @@ import Testing
 @MainActor
 @Suite("StorageStats")
 struct StorageStatsTests {
-    /// The plugin reaches for shell, checks and app at load time, so the mock
-    /// has to answer all three before any parsing function can be called.
+    /// The plugin reaches for disks, shell and checks at load time, so the
+    /// mock has to answer all three before any parsing function can be called.
     private func eval(_ js: String) throws -> String {
         try PluginHarness.eval(
             plugin: "disk-usage.js",
@@ -19,6 +19,7 @@ struct StorageStatsTests {
                     notify: { toast: () => {} },
                     fs: { exists: () => false, list: () => [] },
                     app: { list: () => [] },
+                    disks: { list: () => [] },
                     checks: () => {},
                     confirm: () => false
                 };
@@ -130,12 +131,52 @@ struct StorageStatsTests {
         #expect(result == #"["com.example.Thing","com.example.Thing","com.example.Thing","",""]"#)
     }
 
-    @Test("trashing goes through Finder with the paths as arguments")
-    func trashesViaFinder() throws {
-        let result = try eval(#"JSON.stringify(trashScript(["/a/b", "/c/d"]))"#)
-        // Finder's delete trashes rather than erases, so it stays recoverable.
-        #expect(result.contains("tell application \\\"Finder\\\" to delete doomed"))
-        // The paths must land after the script, never spliced into it.
-        #expect(result.hasSuffix(#""/a/b","/c/d"]"#))
+    @Test("leftovers move to the Trash, and only paths the scan found")
+    func trashesLeftovers() throws {
+        let engine = try PluginHarness.load(plugin: "disk-usage.js", mock: #"""
+            var commands = {};
+            var onMessage = null;
+            var trashed = [];
+            var toasts = [];
+            var rows = [];
+            var running = [];
+            for (var i = 0; i < 20; i++) running.push({ bundleID: "com.example.Running" + i });
+            var macotron = {
+                plugin: () => ({}),
+                command: (title, subtitle, fn) => { commands[title] = fn; },
+                panel: {
+                    open: () => 1,
+                    postMessage: (id, m) => { rows.push((m.rows || []).map((r) => r.id)); },
+                    onMessage: (id, fn) => { onMessage = fn; }
+                },
+                shell: { run: (cmd, args) => Promise.resolve({
+                    stdout: cmd === "/usr/bin/mdfind" ? "/Applications/Kept.app\n" : "",
+                    stderr: "", exitCode: 0 }) },
+                system: { home: () => "/Users/alex" },
+                app: {
+                    list: () => running,
+                    info: (path) => path === "/Applications/Kept.app" ? { bundleID: "com.example.Kept" } : null
+                },
+                fs: {
+                    exists: (p) => p === "/Users/alex/Library/Caches",
+                    list: () => ["com.example.Gone", "com.example.Kept"],
+                    trash: (paths) => { trashed.push(paths); return { trashed: paths, failed: [] }; }
+                },
+                disks: { list: () => [] },
+                notify: { toast: (title, body) => { toasts.push(body); } },
+                checks: () => {},
+                confirm: () => true
+            };
+            """#, extra: #"""
+            commands["Find Leftover Files"]();
+            onMessage({ type: "start" });
+            """#)
+        // The Kept app was found by mdfind and named by app.info, so its
+        // folder is not a leftover.
+        #expect(PluginHarness.run(engine, "JSON.stringify(rows[0])") == #"["com.example.Gone"]"#)
+        PluginHarness.run(engine, #"onMessage({ type: "trash", paths: ["/Users/alex/Library/Caches/com.example.Gone", "/etc/hosts"] });"#)
+        let result = PluginHarness.run(engine, "JSON.stringify({ trashed: trashed, toasts: toasts })")
+        // /etc/hosts was never offered, so it does not move.
+        #expect(result == #"{"trashed":[["/Users/alex/Library/Caches/com.example.Gone"]],"toasts":["1 item(s) moved to the Trash"]}"#)
     }
 }

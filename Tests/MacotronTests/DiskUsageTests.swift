@@ -12,23 +12,17 @@ struct DiskUsageTests {
             extra: js)
     }
 
-    @Test("df keeps Macintosh HD and /Volumes, drops system slices")
-    func parseVolumes() throws {
-        let df = """
-            Filesystem 1024-blocks Used Available Capacity Mounted on
-            /dev/disk3s1s1 1948455240 16716080 822730596 2% /
-            devfs 370 370 0 100% /dev
-            /dev/disk3s6 1948455240 17825852 822730596 3% /System/Volumes/VM
-            /dev/disk3s5 1948455240 1070017848 822730596 57% /System/Volumes/Data
-            /dev/disk9s1 2107888 1621304 477280 78% /Volumes/Backup
-            """
-        let result = try eval("JSON.stringify(parseDf(" + String(reflecting: df) + "))")
-        #expect(result.contains("Macintosh HD"))
-        #expect(result.contains("Backup"))
-        #expect(result.contains("/System/Volumes/Data"))
-        #expect(!result.contains("\"path\":\"/\""))
-        #expect(!result.contains("/dev"))
-        #expect(!result.contains("/System/Volumes/VM"))
+    @Test("volumes skip server shares and count purgeable space as free")
+    func volumes() throws {
+        let result = try eval(#"""
+            JSON.stringify(volumeRows([
+                { name: "Macintosh HD", path: "/", device: "disk3s1s1", total: 1048576000, available: 262144000, network: false },
+                { name: "Backup", path: "/Volumes/Backup", device: "disk9s1", total: 2097152, available: 1048576, network: false },
+                { name: "Share", path: "/Volumes/Share", device: "//nas/Share", total: 1024, available: 0, network: true }
+            ]))
+            """#)
+        #expect(result == #"[{"name":"Macintosh HD","path":"/","device":"disk3s1s1","kb":768000,"total":1024000,"kind":"volume"},"#
+            + #"{"name":"Backup","path":"/Volumes/Backup","device":"disk9s1","kb":1024,"total":2048,"kind":"volume"}]"#)
     }
 
     @Test("du lists children largest first and keeps a total")
