@@ -25,14 +25,15 @@ async function readConnections() {
     macotron.shell.run("/bin/rm", ["-rf", dir]);
   }
 }
-// The saved connection's type, as the query Screen Sharing reads on vnc:// URLs; without one it asks
+// The saved connection's type as the vnc:// query Screen Sharing parses (`quality`, not `displayType`, which it ignores and then saves the session back as Standard); without one it asks
 // "High Performance or Standard?". displayType is {virtualDisplays: {numberOfDisplays}}, {remoteMacsDisplay: {}}
 // or {compatibilityMode: {}}.
 function typeQuery(displayType) {
   if (!displayType) return "";
-  if (displayType.compatibilityMode) return "?displayType=adaptive&numVirtualDisplays=0";
-  const n = displayType.virtualDisplays?.numberOfDisplays ?? 0;
-  return "?displayType=high&numVirtualDisplays=" + n;
+  if (displayType.compatibilityMode) return "?quality=adaptive&numVirtualDisplays=0";
+  // High Performance needs numVirtualDisplays >= 1; with 0 Screen Sharing falls back to Standard (saved entries can store 0).
+  const n = Math.max(1, displayType.virtualDisplays?.numberOfDisplays ?? 0);
+  return "?quality=high&numVirtualDisplays=" + n;
 }
 
 function connect(c) {
