@@ -1,0 +1,44 @@
+<!-- title: macotron.disks
+     summary: List mounted volumes with their size and free space, and eject a disk.
+     group: API -->
+<h1>macotron.disks</h1>
+<p class="lede">List the volumes that Finder shows, with their size and free space, and eject a disk.</p>
+
+<pre><code class="language-javascript">// Put an eject item in the menu bar for each external disk.
+const menu = macotron.disks.list()
+  .filter((v) =&gt; v.ejectable)
+  .map((v) =&gt; ({
+    title: "Eject " + v.name,
+    onClick: async () =&gt; {
+      const r = await macotron.disks.eject(v.path);
+      if (!r.ok) macotron.notify.toast("Could not eject " + v.name, r.error, { color: "error" });
+    },
+  }));
+macotron.menubar.status("eject", { sfSymbol: "eject.fill", menu });</code></pre>
+
+<h2>Listing</h2>
+
+<h3>list(): Array&lt;{ name, path, device, fsType, total, free, available, internal, removable, ejectable, network, readOnly, root }&gt;</h3>
+<p>The mounted volumes that Finder shows. System volumes that Finder hides, such as <code>/System/Volumes/Data</code>, are not in the list. The startup disk is the row with <code>root: true</code> and <code>path: "/"</code>.</p>
+<ul>
+  <li><code>name</code> is the name Finder shows, for example <code>"Macintosh HD"</code>.</li>
+  <li><code>path</code> is the mount point, for example <code>"/Volumes/Backup"</code>.</li>
+  <li><code>device</code> is the BSD name, for example <code>"disk3s1s1"</code>. For a network share it is the server path.</li>
+  <li><code>fsType</code> is the file system, for example <code>"apfs"</code>, <code>"exfat"</code>, or <code>"smbfs"</code>.</li>
+  <li><code>total</code>, <code>free</code>, and <code>available</code> are bytes. <code>free</code> is the space the file system can give now. <code>available</code> also counts purgeable space, such as caches and local snapshots, that macOS removes when it needs room. Finder shows <code>available</code>.</li>
+  <li><code>internal</code>, <code>removable</code>, and <code>ejectable</code> describe the device. They are <code>false</code> for a network share.</li>
+  <li><code>network</code> is <code>true</code> for a server volume. <code>readOnly</code> is <code>true</code> when the volume is mounted read-only. The startup volume is read-only because macOS seals it.</li>
+</ul>
+
+<div class="note"><p>The call does not wait for a server. Macotron reads the sizes of a network share from the kernel's last reading, so they can be out of date, and the call cannot stop when a server is gone.</p></div>
+
+<h2>Ejecting</h2>
+
+<h3>eject(path): Promise&lt;{ ok, error? }&gt;</h3>
+<p>Unmounts every volume on the disk that holds <code>path</code>, then ejects the disk. When an app keeps a file open on the volume, <code>ok</code> is <code>false</code> and <code>error</code> tells why.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-fs.html">macotron.fs</a> to read and write files.</li>
+  <li>The <code>eject.js</code> and <code>disk-usage.js</code> plugins.</li>
+</ul>

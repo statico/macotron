@@ -1,0 +1,22 @@
+<!-- title: macotron.speech
+     summary: Speak text aloud with a system voice.
+     group: API -->
+<h1>macotron.speech</h1>
+<p class="lede">Speak text aloud with the system voice or another voice that is installed on the Mac.</p>
+
+<pre><code class="language-javascript">// Say the name of each USB device when it is plugged in.
+macotron.on("usb:changed", (info) =&gt; {
+  if (info.action === "add") macotron.speech.say(info.name + " connected");
+});</code></pre>
+
+<h2>Speaking</h2>
+
+<h3>say(text, { voice? }): void</h3>
+<p>Starts to speak <code>text</code> and returns at once. When speech is already in progress, the new text waits until it is done, so two plugins do not speak at the same time.</p>
+<p><code>voice</code> is a voice identifier, for example <code>"com.apple.voice.compact.en-US.Samantha"</code>, or a voice name, for example <code>"Samantha"</code>. When the voice is not installed, or you do not give one, Macotron uses the default voice for the system language. Add more voices in System Settings &gt; Accessibility &gt; Spoken Content.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-notify.html">macotron.notify</a> to show a banner or a toast.</li>
+  <li>The <code>usb.js</code> plugin.</li>
+</ul>

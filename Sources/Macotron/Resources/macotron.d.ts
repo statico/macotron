@@ -642,6 +642,41 @@ declare const macotron: {
         list(): Array<{ name: string; vendor: string; vendorID: number; productID: number }>;
     };
 
+    disks: {
+        /** Volumes Finder shows. Sizes are bytes; `available` includes purgeable space. */
+        list(): Array<{
+            name: string;
+            path: string;
+            device: string;
+            fsType: string;
+            total: number;
+            free: number;
+            available: number;
+            internal: boolean;
+            removable: boolean;
+            ejectable: boolean;
+            network: boolean;
+            readOnly: boolean;
+            root: boolean;
+        }>;
+        /** Unmount every volume on the disk holding `path`, then eject it. */
+        eject(path: string): Promise<{ ok: boolean; error?: string }>;
+    };
+
+    image: {
+        /** Convert with ImageIO, keeping metadata and orientation. `format` defaults to `dest`'s extension. */
+        convert(
+            src: string,
+            dest: string,
+            opts?: { format?: "jpeg" | "png" | "heic" | "tiff"; quality?: number; maxSize?: number }
+        ): Promise<{ ok: boolean; error?: string }>;
+    };
+
+    speech: {
+        /** Speak `text` with the system voice, or `voice` by identifier or name. Returns at once. */
+        say(text: string, opts?: { voice?: string }): void;
+    };
+
     hid: {
         list(filter?: HIDFilter | string): HIDDeviceInfo[];
         open(filter?: HIDFilter | string): (HIDDeviceInfo & { id: string }) | null;

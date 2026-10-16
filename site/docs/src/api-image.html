@@ -1,0 +1,30 @@
+<!-- title: macotron.image
+     summary: Convert images between JPEG, PNG, HEIC, and TIFF, with quality and size limits.
+     group: API -->
+<h1>macotron.image</h1>
+<p class="lede">Convert an image file to JPEG, PNG, HEIC, or TIFF. Macotron uses ImageIO, the same code that Preview uses, and keeps the photo's metadata.</p>
+
+<pre><code class="language-javascript">// Convert one iPhone photo to a JPEG next to it.
+const r = await macotron.image.convert("~/Downloads/IMG_0001.heic", "~/Downloads/IMG_0001.jpg", {
+  format: "jpeg",
+  quality: 0.9,
+});
+if (!r.ok) macotron.notify.toast("Convert failed", r.error, { color: "error" });</code></pre>
+
+<h2>Converting</h2>
+
+<h3>convert(src, dest, { format?, quality?, maxSize? }): Promise&lt;{ ok, error? }&gt;</h3>
+<p>Reads <code>src</code> and writes <code>dest</code> in the new format. Both paths expand <code>~</code>. When <code>dest</code> exists, the call replaces it. When <code>dest</code> is the same file as <code>src</code>, the call fails and does not change the file.</p>
+<ul>
+  <li><code>format</code> is <code>"jpeg"</code>, <code>"png"</code>, <code>"heic"</code>, or <code>"tiff"</code>. If you do not give it, Macotron uses the extension of <code>dest</code>.</li>
+  <li><code>quality</code> is a number from 0 to 1 for JPEG and HEIC. A higher value gives a better image and a larger file.</li>
+  <li><code>maxSize</code> is the largest width or height in pixels. A larger image is scaled down and keeps its shape. A smaller image is not scaled up.</li>
+</ul>
+<p>The EXIF, GPS, and orientation tags go into the new file, so a photo stays the right way up.</p>
+<p>When the source cannot be read or the destination cannot be written, <code>ok</code> is <code>false</code> and <code>error</code> tells why. The promise does not reject.</p>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-fs.html">macotron.fs</a> to list and check files.</li>
+  <li>The <code>heic-to-jpeg.js</code> plugin.</li>
+</ul>
