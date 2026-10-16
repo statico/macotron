@@ -24,12 +24,14 @@ const POINTER_KEYS = [
   { key: "com.apple.scrollwheel.scaling", label: "Scroll speed" },
 ];
 
-async function readScaling(key) {
-  const r = await macotron.shell.run("/usr/bin/defaults", ["read", "-g", key]);
-  // Nobody has to have ever changed these, and an absent key makes defaults
-  // exit non-zero. That is "system default", not a failure to report.
-  if (r.exitCode !== 0) return null;
-  const n = Number(String(r.stdout).trim());
+function readScaling(key) {
+  const v = macotron.prefs.get("-g", key);
+  // Nobody has to have ever changed these, so an absent key is "system
+  // default", not a failure to report.
+  if (v === null || v === undefined) return null;
+  // Number(), because a boolean key (swipescrolldirection) reads as true or
+  // false, and one written by `defaults write` without a type is a string.
+  const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
 
@@ -41,12 +43,11 @@ function describeScaling(value) {
   return String(value);
 }
 
-macotron.command("Pointer Tuning", "View and adjust pointer and scroll behavior", async () => {
-  const values = [];
-  for (const k of POINTER_KEYS) values.push(await readScaling(k.key));
-  // swipescrolldirection is stored as 0/1, and absent means on, which is the
+macotron.command("Pointer Tuning", "View and adjust pointer and scroll behavior", () => {
+  const values = POINTER_KEYS.map((k) => readScaling(k.key));
+  // swipescrolldirection is a boolean, and absent means on, which is the
   // macOS default.
-  const natural = (await readScaling("com.apple.swipescrolldirection")) !== 0;
+  const natural = readScaling("com.apple.swipescrolldirection") !== 0;
 
   const rows = POINTER_KEYS.map((k, i) => `
     <div>
@@ -73,7 +74,7 @@ under your hand.</div>
   function send(msg) { webkit.messageHandlers.macotron.postMessage(msg); }
   function setScaling(i, value) {
     // Echo the new number locally rather than asking the host to read it
-    // back: defaults has already been written by the time it could answer.
+    // back: the pref has already been written by the time it could answer.
     document.getElementById("v" + i).textContent = value;
     send({ key: KEYS[i], value: Number(value) });
   }
@@ -81,10 +82,7 @@ under your hand.</div>
 </script>`,
   });
 
-  macotron.panel.onMessage(id, async (msg) => {
-    const args = msg.bool === undefined
-      ? ["write", "-g", msg.key, "-float", String(msg.value)]
-      : ["write", "-g", msg.key, "-bool", msg.bool ? "true" : "false"];
-    await macotron.shell.run("/usr/bin/defaults", args);
+  macotron.panel.onMessage(id, (msg) => {
+    macotron.prefs.set("-g", msg.key, msg.bool === undefined ? Number(msg.value) : !!msg.bool);
   });
 });
