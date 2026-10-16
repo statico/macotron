@@ -2040,7 +2040,7 @@ struct CatalogSectionPicker: NSViewRepresentable {
 
         init(selection: Binding<CatalogSection>) { self.selection = selection }
 
-        @objc func changed(_ control: NSSegmentedControl) {
+        @MainActor @objc func changed(_ control: NSSegmentedControl) {
             if let section = CatalogSection(rawValue: control.selectedSegment) {
                 selection.wrappedValue = section
             }
