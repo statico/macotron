@@ -125,7 +125,8 @@ struct MetricAlertsTests {
             command: () => {},
             shell: { run: () => Promise.resolve({ stdout: "", stderr: "", exitCode: 1 }) },
             http: { get: () => Promise.resolve({ status: 0, body: "", headers: {} }) },
-            app: { list: () => [] },
+            app: { list: () => [], path: () => null },
+            plist: { read: () => null },
             fs: { read: () => "", exists: () => false },
             notify: { toast: () => {}, show: () => {} },
             panel: { open: () => 1, postMessage: () => {}, onMessage: () => {}, close: () => {} }
@@ -174,5 +175,25 @@ struct MetricAlertsTests {
         #expect(PluginHarness.run(engine, "String(compareVersions('1.2.3', '1.2.4'))") == "-1")
         // Build suffixes are common in Info.plist and must not throw.
         #expect(PluginHarness.run(engine, "String(compareVersions('1.2.3b4', '1.2.3'))") == "0")
+    }
+
+    @Test("an app is outdated only when its own appcast is newer than its Info.plist")
+    func outdated() throws {
+        let engine = try PluginHarness.load(plugin: "security-checklist.js", mock: Self.securityMock, extra: #"""
+            macotron.app.list = () => [
+                { name: "Old", bundleID: "a.old" }, { name: "Current", bundleID: "a.current" },
+                { name: "NoFeed", bundleID: "a.nofeed" }, { name: "Gone", bundleID: "a.gone" }
+            ];
+            macotron.app.path = (id) => id === "a.gone" ? null : "/Applications/" + id + ".app";
+            macotron.plist.read = (path) => ({
+                "/Applications/a.old.app/Contents/Info.plist": { SUFeedURL: "https://x/feed", CFBundleShortVersionString: "1.9" },
+                "/Applications/a.current.app/Contents/Info.plist": { SUFeedURL: "https://x/feed", CFBundleShortVersionString: "1.10" },
+                "/Applications/a.nofeed.app/Contents/Info.plist": { CFBundleShortVersionString: "1.0" }
+            })[path] || null;
+            macotron.http.get = () => Promise.resolve({ status: 200, body: "<rss><channel><item><title>1.10</title></item></channel></rss>" });
+            var __out = null;
+            outdatedApps().then((o) => { __out = o; });
+            """#)
+        #expect(PluginHarness.run(engine, "__out.join('|')") == "Old 1.9 → 1.10")
     }
 }
