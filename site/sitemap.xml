@@ -153,6 +153,10 @@
     <lastmod>2026-10-15</lastmod>
   </url>
   <url>
+    <loc>https://macotron.statico.io/docs/api-disks.html</loc>
+    <lastmod>2026-10-15</lastmod>
+  </url>
+  <url>
     <loc>https://macotron.statico.io/docs/api-display.html</loc>
     <lastmod>2026-10-15</lastmod>
   </url>
@@ -186,6 +190,10 @@
   </url>
   <url>
     <loc>https://macotron.statico.io/docs/api-idle.html</loc>
+    <lastmod>2026-10-15</lastmod>
+  </url>
+  <url>
+    <loc>https://macotron.statico.io/docs/api-image.html</loc>
     <lastmod>2026-10-15</lastmod>
   </url>
   <url>
@@ -237,7 +245,15 @@
     <lastmod>2026-10-15</lastmod>
   </url>
   <url>
+    <loc>https://macotron.statico.io/docs/api-plist.html</loc>
+    <lastmod>2026-10-15</lastmod>
+  </url>
+  <url>
     <loc>https://macotron.statico.io/docs/api-power.html</loc>
+    <lastmod>2026-10-15</lastmod>
+  </url>
+  <url>
+    <loc>https://macotron.statico.io/docs/api-prefs.html</loc>
     <lastmod>2026-10-15</lastmod>
   </url>
   <url>
@@ -270,6 +286,10 @@
   </url>
   <url>
     <loc>https://macotron.statico.io/docs/api-spaces.html</loc>
+    <lastmod>2026-10-15</lastmod>
+  </url>
+  <url>
+    <loc>https://macotron.statico.io/docs/api-speech.html</loc>
     <lastmod>2026-10-15</lastmod>
   </url>
   <url>

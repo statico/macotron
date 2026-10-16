@@ -90,6 +90,7 @@
 <a href="/docs/api-camera.html">macotron.camera</a>
 <a href="/docs/api-clipboard.html">macotron.clipboard</a>
 <a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-disks.html">macotron.disks</a>
 <a href="/docs/api-display.html">macotron.display</a>
 <a href="/docs/api-dock.html">macotron.dock</a>
 <a href="/docs/api-event.html">macotron.event</a>
@@ -99,6 +100,7 @@
 <a href="/docs/api-homekit.html">macotron.homekit</a>
 <a href="/docs/api-http.html">macotron.http</a>
 <a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-image.html">macotron.image</a>
 <a href="/docs/api-keyboard.html">macotron.keyboard</a>
 <a href="/docs/api-keychain.html">macotron.keychain</a>
 <a href="/docs/api-launcher.html">macotron.launcher</a>
@@ -111,7 +113,9 @@
 <a href="/docs/api-ocr.html">macotron.ocr</a>
 <a href="/docs/api-panel.html">macotron.panel</a>
 <a href="/docs/api-player.html">macotron.player</a>
+<a href="/docs/api-plist.html">macotron.plist</a>
 <a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-prefs.html">macotron.prefs</a>
 <a href="/docs/api-qr.html">macotron.qr</a>
 <a href="/docs/api-reminders.html">macotron.reminders</a>
 <a href="/docs/api-screen.html">macotron.screen</a>
@@ -120,6 +124,7 @@
 <a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
 <a href="/docs/api-snippets.html">macotron.snippets</a>
 <a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-speech.html">macotron.speech</a>
 <a href="/docs/api-spotlight.html">macotron.spotlight</a>
 <a href="/docs/api-system.html">macotron.system</a>
 <a href="/docs/api-udp.html">macotron.udp</a>
@@ -163,7 +168,7 @@
 <dt><a href="/docs/api-globals.html">Globals</a></dt><dd>console, timers, localStorage, and dialogs, plus what a browser or Node has that Macotron does not.</dd>
 <dt><a href="/docs/api-core.html">macotron (core)</a></dt><dd>Plugin metadata, launcher commands, host events, timers, dialogs, and logging.</dd>
 <dt><a href="/docs/api-ai.html">macotron.ai</a></dt><dd>Send prompts to Claude, OpenAI, Gemini, or the on-device Apple Intelligence model.</dd>
-<dt><a href="/docs/api-app.html">macotron.app</a></dt><dd>List, launch, switch to, hide, and quit apps, and pick items from their menus.</dd>
+<dt><a href="/docs/api-app.html">macotron.app</a></dt><dd>List, find, launch, switch to, hide, and quit apps, and pick items from their menus.</dd>
 <dt><a href="/docs/api-appletv.html">macotron.appletv</a></dt><dd>Find Apple TVs on the local network, pair with the PIN they show, and send remote keys.</dd>
 <dt><a href="/docs/api-audio.html">macotron.audio</a></dt><dd>List audio devices, switch input and output, set volume and mute, and record the microphone.</dd>
 <dt><a href="/docs/api-ax.html">macotron.ax</a></dt><dd>Read the selected text, walk another app&#x27;s UI elements, press buttons, and set field values.</dd>
@@ -172,15 +177,17 @@
 <dt><a href="/docs/api-camera.html">macotron.camera</a></dt><dd>List cameras, show a live preview window, and take a PNG snapshot from it.</dd>
 <dt><a href="/docs/api-clipboard.html">macotron.clipboard</a></dt><dd>Read and write the pasteboard, keep a short history, and force plain-text paste.</dd>
 <dt><a href="/docs/api-contacts.html">macotron.contacts</a></dt><dd>List and search the people in Contacts, with their emails and phone numbers.</dd>
+<dt><a href="/docs/api-disks.html">macotron.disks</a></dt><dd>List mounted volumes with their size and free space, and eject a disk.</dd>
 <dt><a href="/docs/api-display.html">macotron.display</a></dt><dd>List displays, set brightness and gamma, and switch Night Shift, True Tone, grayscale, XDR, and CRT.</dd>
 <dt><a href="/docs/api-dock.html">macotron.dock</a></dt><dd>Read the badges on Dock icons, such as unread counts in Mail or Messages.</dd>
 <dt><a href="/docs/api-event.html">macotron.event</a></dt><dd>Post synthetic clicks, keys, text, and scrolls, and watch or swallow input from every app.</dd>
 <dt><a href="/docs/api-files.html">macotron.files</a></dt><dd>Search file and folder names in Macotron&#x27;s own fast index of the folders you choose.</dd>
-<dt><a href="/docs/api-fs.html">macotron.fs</a></dt><dd>Read, write, list, rename, and watch files anywhere your user account can reach.</dd>
+<dt><a href="/docs/api-fs.html">macotron.fs</a></dt><dd>Read, write, list, rename, open, reveal, trash, and watch files anywhere your user account can reach.</dd>
 <dt><a href="/docs/api-hid.html">macotron.hid</a></dt><dd>List HID devices, open one, and send and read raw input, output, and feature reports.</dd>
 <dt><a href="/docs/api-homekit.html">macotron.homekit</a></dt><dd>Run Home scenes and accessory actions, kept as shortcuts in one Shortcuts folder.</dd>
 <dt><a href="/docs/api-http.html">macotron.http</a></dt><dd>Make GET, POST, PUT, and DELETE requests and read the status, body, and headers.</dd>
 <dt><a href="/docs/api-idle.html">macotron.idle</a></dt><dd>Read how long the user has been away, and get events when the Mac goes idle and comes back.</dd>
+<dt><a href="/docs/api-image.html">macotron.image</a></dt><dd>Convert images between JPEG, PNG, HEIC, and TIFF, with quality and size limits.</dd>
 <dt><a href="/docs/api-keyboard.html">macotron.keyboard</a></dt><dd>Global hotkeys the user can rebind, the current modifier keys, and a Hyper key.</dd>
 <dt><a href="/docs/api-keychain.html">macotron.keychain</a></dt><dd>Store API keys, tokens, and other secrets in the macOS Keychain.</dd>
 <dt><a href="/docs/api-launcher.html">macotron.launcher</a></dt><dd>Add rows to the Macotron launcher, from a fixed list or computed from what the user types.</dd>
@@ -193,7 +200,9 @@
 <dt><a href="/docs/api-ocr.html">macotron.ocr</a></dt><dd>Read the text in an image file or a base64 PNG with Apple&#x27;s on-device Vision OCR.</dd>
 <dt><a href="/docs/api-panel.html">macotron.panel</a></dt><dd>Open floating web-view windows and exchange messages with the page inside them.</dd>
 <dt><a href="/docs/api-player.html">macotron.player</a></dt><dd>Play internet radio and podcasts with Macotron&#x27;s own audio player.</dd>
+<dt><a href="/docs/api-plist.html">macotron.plist</a></dt><dd>Read property list files and parse plist text or bytes into plain JavaScript values.</dd>
 <dt><a href="/docs/api-power.html">macotron.power</a></dt><dd>Keep the Mac awake, lock, sleep, log out, restart, or shut down, and react to sleep and lock.</dd>
+<dt><a href="/docs/api-prefs.html">macotron.prefs</a></dt><dd>Read and write your user&#x27;s preference domains, the same values defaults reads and writes.</dd>
 <dt><a href="/docs/api-qr.html">macotron.qr</a></dt><dd>Read QR codes from images, the screen, or the camera, and make QR code images.</dd>
 <dt><a href="/docs/api-reminders.html">macotron.reminders</a></dt><dd>List, add, and complete reminders in the Reminders app.</dd>
 <dt><a href="/docs/api-screen.html">macotron.screen</a></dt><dd>Capture the screen or a dragged region as a PNG, and pick a color with the system eyedropper.</dd>
@@ -202,6 +211,7 @@
 <dt><a href="/docs/api-shortcuts.html">macotron.shortcuts</a></dt><dd>List your Shortcuts and run one by name.</dd>
 <dt><a href="/docs/api-snippets.html">macotron.snippets</a></dt><dd>Keep text snippets under short abbreviations that expand as you type in any app.</dd>
 <dt><a href="/docs/api-spaces.html">macotron.spaces</a></dt><dd>List desktops on every display, switch to one, and move a window to another desktop.</dd>
+<dt><a href="/docs/api-speech.html">macotron.speech</a></dt><dd>Speak text aloud with a system voice.</dd>
 <dt><a href="/docs/api-spotlight.html">macotron.spotlight</a></dt><dd>Find files and folders by name with Spotlight, and complete typed paths one folder at a time.</dd>
 <dt><a href="/docs/api-system.html">macotron.system</a></dt><dd>CPU, GPU, memory, disk, processes, battery, fans, appearance, Focus, locale, and time zones.</dd>
 <dt><a href="/docs/api-udp.html">macotron.udp</a></dt><dd>Send UDP datagrams and listen on a port for incoming messages.</dd>

@@ -91,6 +91,7 @@
 <a href="/docs/api-camera.html">macotron.camera</a>
 <a href="/docs/api-clipboard.html">macotron.clipboard</a>
 <a href="/docs/api-contacts.html">macotron.contacts</a>
+<a href="/docs/api-disks.html">macotron.disks</a>
 <a href="/docs/api-display.html">macotron.display</a>
 <a href="/docs/api-dock.html">macotron.dock</a>
 <a href="/docs/api-event.html">macotron.event</a>
@@ -100,6 +101,7 @@
 <a href="/docs/api-homekit.html">macotron.homekit</a>
 <a href="/docs/api-http.html">macotron.http</a>
 <a href="/docs/api-idle.html">macotron.idle</a>
+<a href="/docs/api-image.html">macotron.image</a>
 <a href="/docs/api-keyboard.html">macotron.keyboard</a>
 <a href="/docs/api-keychain.html">macotron.keychain</a>
 <a href="/docs/api-launcher.html">macotron.launcher</a>
@@ -112,7 +114,9 @@
 <a href="/docs/api-ocr.html">macotron.ocr</a>
 <a href="/docs/api-panel.html">macotron.panel</a>
 <a href="/docs/api-player.html">macotron.player</a>
+<a href="/docs/api-plist.html">macotron.plist</a>
 <a href="/docs/api-power.html">macotron.power</a>
+<a href="/docs/api-prefs.html">macotron.prefs</a>
 <a href="/docs/api-qr.html">macotron.qr</a>
 <a href="/docs/api-reminders.html">macotron.reminders</a>
 <a href="/docs/api-screen.html">macotron.screen</a>
@@ -121,6 +125,7 @@
 <a href="/docs/api-shortcuts.html">macotron.shortcuts</a>
 <a href="/docs/api-snippets.html">macotron.snippets</a>
 <a href="/docs/api-spaces.html">macotron.spaces</a>
+<a href="/docs/api-speech.html">macotron.speech</a>
 <a href="/docs/api-spotlight.html">macotron.spotlight</a>
 <a href="/docs/api-system.html" aria-current="page">macotron.system</a>
 <a href="/docs/api-udp.html">macotron.udp</a>
@@ -232,6 +237,9 @@ render();
 
 <h3 id="focus-focused-boolean">focus(): { focused: boolean }</h3>
 <p>Whether a Focus mode, such as Do Not Disturb, Sleep, or Work, is on. It reads <code>false</code> until macOS gives Macotron access to Focus status. You cannot change Focus from here.</p>
+
+<h3 id="home-string">home(): string</h3>
+<p>The path of the user's home folder, such as <code>"/Users/alex"</code>. Every <code>macotron.fs</code> call already expands <code>~</code>; use this when you build a path to compare against, or one for a tool that does not.</p>
 
 <h2 id="locale-and-time-zones">Locale and time zones</h2>
 <p>The JavaScript runtime has no <code>Intl</code>, so use these calls to format for the user's locale or for another zone.</p>
