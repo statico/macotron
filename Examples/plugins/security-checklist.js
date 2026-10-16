@@ -1,4 +1,4 @@
-// APIs: command, shell.run, http.get, app.list, panel, notify
+// APIs: command, shell.run, http.get, app.list, app.path, plist.read, panel, notify
 
 macotron.plugin({
     title: "Security Checklist Example",
@@ -54,36 +54,21 @@ function compareVersions(a, b) {
     return 0;
 }
 
-async function plistValue(path, key) {
-    const r = await run("/usr/bin/defaults", ["read", path + "/Contents/Info.plist", key]);
-    // A key the bundle does not declare exits non-zero, which is an answer,
-    // not an error.
-    return r.exitCode === 0 ? String(r.stdout).trim() : "";
-}
-
-// app.list() names the running apps but not where they live, and Spotlight is
-// the Apple-shipped way to turn a bundle identifier back into a path.
-async function bundlePath(bundleID) {
-    // The identifier goes into a query string, so refuse anything that is not
-    // shaped like one rather than letting it close the quote.
-    if (!/^[A-Za-z0-9.\-]+$/.test(String(bundleID))) return "";
-    const r = await run("/usr/bin/mdfind", ["kMDItemCFBundleIdentifier == '" + bundleID + "'"]);
-    return String(r.stdout).split("\n")[0].trim();
-}
-
 async function outdatedApps() {
     const out = [];
     for (const app of macotron.app.list().slice(0, APP_LIMIT)) {
-        const path = await bundlePath(app.bundleID);
-        if (!path) continue;
+        // app.list() names the running apps but not where they live.
+        const path = macotron.app.path(app.bundleID);
+        const info = path && macotron.plist.read(path + "/Contents/Info.plist");
+        if (!info) continue;
 
         // No appcast means the developer never published one to compare
         // against. Skip the app: guessing from a third-party catalog would
         // be both wrong more often and a dependency this host will not take.
-        const feed = await plistValue(path, "SUFeedURL");
+        const feed = String(info.SUFeedURL || "");
         if (!/^https?:\/\//i.test(feed)) continue;
 
-        const version = await plistValue(path, "CFBundleShortVersionString");
+        const version = String(info.CFBundleShortVersionString || "");
         if (!version) continue;
 
         const res = await macotron.http.get(feed);
