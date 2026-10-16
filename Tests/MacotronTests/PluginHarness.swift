@@ -27,14 +27,14 @@ enum PluginHarness {
         let source = try String(contentsOf: url, encoding: .utf8)
         let engine = Engine()
         let (_, error) = engine.evaluate("\(mock)\n\(source)\n\(extra)", filename: url.path)
-        #expect(error == nil)
+        #expect(error == nil, "\(error ?? "")")
         return engine
     }
 
     @discardableResult
     static func run(_ engine: Engine, _ js: String) -> String {
         let (result, error) = engine.evaluate(js)
-        #expect(error == nil)
+        #expect(error == nil, "\(error ?? "")")
         return result ?? ""
     }
 
@@ -45,7 +45,7 @@ enum PluginHarness {
         let source = try String(contentsOf: url, encoding: .utf8)
         let engine = Engine()
         let (result, error) = engine.evaluate("\(mock)\n\(source)\n\(extra)", filename: url.path)
-        #expect(error == nil)
+        #expect(error == nil, "\(error ?? "")")
         return result ?? ""
     }
 
