@@ -1,4 +1,4 @@
-// APIs: command, shell.run, notify
+// APIs: command, prefs.get, prefs.set, shell.run, notify
 
 macotron.plugin({
     title: "Presenter Mode",
@@ -6,26 +6,26 @@ macotron.plugin({
 });
 
 async function hideDesktopIcons(hide) {
-    await macotron.shell.run("/usr/bin/defaults", [
-        "write", "com.apple.finder", "CreateDesktop", hide ? "false" : "true",
-    ]);
+    if (!macotron.prefs.set("com.apple.finder", "CreateDesktop", !hide)) {
+        throw new Error("Couldn't write Finder's CreateDesktop setting");
+    }
     await macotron.shell.run("/usr/bin/killall", ["Finder"]);
 }
 
 // Finder's own setting outlives Macotron, so ask it rather than remembering:
 // a plugin variable would come back false after a restart with the icons
 // still hidden, and the next toggle would hide them again.
-async function iconsHidden() {
-    const r = await macotron.shell.run("/usr/bin/defaults", [
-        "read", "com.apple.finder", "CreateDesktop",
-    ]);
+function iconsHidden() {
     // The key is absent until something writes it, and absent means shown.
-    return String(r.stdout || "").trim() === "false";
+    // It is a boolean, or the string "false" if `defaults write` set it
+    // without a type.
+    const v = macotron.prefs.get("com.apple.finder", "CreateDesktop");
+    return v !== null && ["false", "0"].includes(String(v).toLowerCase());
 }
 
 macotron.command("Toggle Present Mode", "Hide desktop icons for screensharing", async () => {
     try {
-        const presenting = !(await iconsHidden());
+        const presenting = !iconsHidden();
         await hideDesktopIcons(presenting);
         macotron.notify.toast("Present Mode", presenting ? "on — desktop icons hidden" : "off", { color: "success" });
     } catch (err) {
