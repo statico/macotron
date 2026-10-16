@@ -1,4 +1,4 @@
-// APIs: fs.list, fs.exists, shell.run, command, notify
+// APIs: fs.list, fs.exists, image.convert, command, notify
 
 macotron.plugin({
   title: "HEIC to JPEG",
@@ -11,26 +11,18 @@ macotron.command("Convert Downloads HEIC", "Write JPEGs next to HEIC files in Do
         macotron.notify.toast("HEIC to JPEG", "No HEIC files in Downloads");
         return;
     }
-    const home = (await macotron.shell.run("/usr/bin/printenv", ["HOME"])).stdout.trim();
-    const dir = home + "/Downloads";
     let ok = 0;
     let skipped = 0;
     const errors = [];
     for (const name of names) {
-        const destName = name.replace(/\.hei[cf]$/i, ".jpg");
-        const destRel = "~/Downloads/" + destName;
-        if (macotron.fs.exists(destRel)) {
+        const dest = "~/Downloads/" + name.replace(/\.hei[cf]$/i, ".jpg");
+        if (macotron.fs.exists(dest)) {
             skipped += 1;
             continue;
         }
-        const r = await macotron.shell.run("/usr/bin/sips", [
-            "-s", "format", "jpeg",
-            "-s", "formatOptions", "100",
-            dir + "/" + name,
-            "--out", dir + "/" + destName,
-        ]);
-        if (r.exitCode !== 0) {
-            errors.push(name + ": " + String(r.stderr || r.stdout).trim());
+        const r = await macotron.image.convert("~/Downloads/" + name, dest, { format: "jpeg", quality: 1 });
+        if (!r.ok) {
+            errors.push(name + ": " + r.error);
             continue;
         }
         ok += 1;
