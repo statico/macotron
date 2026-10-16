@@ -343,6 +343,7 @@ const APIS = [
   ["macotron.appletv", ["list, pair with a PIN, send keys"]],
   ["macotron.app", [
     "List, launch, switch, hide, quit",
+    "Install path and version by bundle ID",
     "Choose an AX menu path",
     "app:activated / launched / terminated",
   ]],
@@ -367,7 +368,9 @@ const APIS = [
     "setPastePlain for Command-V",
   ]],
   ["macotron.snippets", ["List, set, insert, expansion on/off"]],
-  ["macotron.fs", ["read, readBytes, write, list, exists, rename, watch"]],
+  ["macotron.fs", ["read, readBytes, write, list, exists, rename, watch", "open, reveal in Finder, trash"]],
+  ["macotron.plist", ["Read plist files; parse text or base64"]],
+  ["macotron.prefs", ["get and set defaults domains, -g included"]],
   ["macotron.files", [
     "Name search over an in-memory index",
     "Answers in ms where spotlight takes ~1s",

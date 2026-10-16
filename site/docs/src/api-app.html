@@ -1,5 +1,5 @@
 <!-- title: macotron.app
-     summary: List, launch, switch to, hide, and quit apps, and pick items from their menus.
+     summary: List, find, launch, switch to, hide, and quit apps, and pick items from their menus.
      group: API -->
 <h1>macotron.app</h1>
 <p class="lede">List running apps, launch or switch to an app by bundle ID, hide or quit it, and choose a command from its menu bar. Apps are named by bundle ID, such as <code>com.apple.Safari</code>.</p>
@@ -15,6 +15,20 @@
 
 <h3>frontmost(): { name: string; bundleID: string; pid: number } | null</h3>
 <p>The app in front. Macotron itself is skipped: while a Macotron panel or the launcher has focus, this returns the app that was in front before it. Returns <code>null</code> when there is no such app yet.</p>
+
+<h2>Installed apps</h2>
+
+<h3>path(bundleID: string): string | null</h3>
+<p>Where the app with that bundle ID is installed, such as <code>"/Applications/Safari.app"</code>, or <code>null</code> when Launch Services knows no such app. The app does not have to be running.</p>
+
+<h3>info(path: string): { bundleID, name, version, build, path } | null</h3>
+<p>Reads the app bundle at <code>path</code>. <code>version</code> is the version users see (<code>CFBundleShortVersionString</code>) and <code>build</code> the build number (<code>CFBundleVersion</code>); either is <code>null</code> when the bundle does not declare it. Returns <code>null</code> when <code>path</code> is not a bundle. Each call reads the bundle from disk, so an app that has updated reports its new version.</p>
+
+<pre><code class="language-javascript">const path = macotron.app.path("com.apple.Safari");
+const info = path &amp;&amp; macotron.app.info(path);
+console.log(info?.name, info?.version);</code></pre>
+
+<p>For other keys in an app's <code>Info.plist</code>, read it with <a href="/docs/api-plist.html">macotron.plist</a>.</p>
 
 <h2>Launching and switching</h2>
 

@@ -105,6 +105,9 @@ macotron.system.setAppearance(next);</code></pre>
 <h3>focus(): { focused: boolean }</h3>
 <p>Whether a Focus mode, such as Do Not Disturb, Sleep, or Work, is on. It reads <code>false</code> until macOS gives Macotron access to Focus status. You cannot change Focus from here.</p>
 
+<h3>home(): string</h3>
+<p>The path of the user's home folder, such as <code>"/Users/alex"</code>. Every <code>macotron.fs</code> call already expands <code>~</code>; use this when you build a path to compare against, or one for a tool that does not.</p>
+
 <h2>Locale and time zones</h2>
 <p>The JavaScript runtime has no <code>Intl</code>, so use these calls to format for the user's locale or for another zone.</p>
 

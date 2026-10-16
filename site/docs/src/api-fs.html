@@ -1,8 +1,8 @@
 <!-- title: macotron.fs
-     summary: Read, write, list, rename, and watch files anywhere your user account can reach.
+     summary: Read, write, list, rename, open, reveal, trash, and watch files anywhere your user account can reach.
      group: API -->
 <h1>macotron.fs</h1>
-<p class="lede">Read, write, list, and rename files, and watch a file or folder for changes.</p>
+<p class="lede">Read, write, list, and rename files, open them or show them in Finder, move them to the Trash, and watch a file or folder for changes.</p>
 
 <pre><code class="language-javascript">// Give new screenshots on the Desktop a short name.
 for (const name of macotron.fs.list("~/Desktop")) {
@@ -15,7 +15,7 @@ for (const name of macotron.fs.list("~/Desktop")) {
 <h2>Paths</h2>
 <p>Every call expands a leading <code>~</code> to your home folder. Macotron is not sandboxed and applies no path rules of its own: a plugin can read and write anything your user account can, outside the workdir too. macOS privacy rules still apply. Folders such as Desktop, Documents, and Downloads can make macOS ask once whether Macotron may open them, and a refused folder makes the call throw.</p>
 <p>Use absolute paths or paths that start with <code>~</code>. Relative paths do not resolve against the plugin's folder.</p>
-<p>All calls are synchronous. When a call fails, it throws an error whose message starts with the call name, for example <code>fs.read failed: …</code>.</p>
+<p>All calls are synchronous. When a call fails, it throws an error whose message starts with the call name, for example <code>fs.read failed: …</code>. <code>open</code>, <code>reveal</code>, and <code>trash</code> do not throw; they report failure in their return value.</p>
 
 <h2>Reading</h2>
 
@@ -38,6 +38,20 @@ for (const name of macotron.fs.list("~/Desktop")) {
 
 <h3>rename(from: string, to: string): void</h3>
 <p>Moves or renames a file or folder. Throws if <code>to</code> already exists, so check with <code>exists()</code> first.</p>
+
+<h2>Opening and the Trash</h2>
+
+<h3>open(path: string, options?: { app?: string }): boolean</h3>
+<p>Opens the file or folder in its default app, as a double-click in Finder does. <code>app</code> is a bundle ID to open it with instead, such as <code>"com.apple.TextEdit"</code>. Returns <code>false</code> when the path does not exist or no app has that bundle ID.</p>
+
+<h3>reveal(path: string | string[]): boolean</h3>
+<p>Opens a Finder window with the items selected. Paths that do not exist are skipped. Returns <code>false</code> when none exist.</p>
+
+<h3>trash(path: string | string[]): { trashed: string[]; failed: Array&lt;{ path: string; error: string }&gt; }</h3>
+<p>Moves each item to the Trash, where the user can still put it back. Paths come back as you passed them, so you can match them against your own list.</p>
+
+<pre><code class="language-javascript">const { trashed, failed } = macotron.fs.trash(["~/Desktop/old.png", "~/Desktop/older.png"]);
+for (const f of failed) console.error(f.path, f.error);</code></pre>
 
 <h2>Watching</h2>
 

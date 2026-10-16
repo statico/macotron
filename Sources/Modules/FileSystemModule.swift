@@ -1,4 +1,5 @@
 // FileSystemModule.swift — macotron.fs: file system operations from JS
+import AppKit
 import CQuickJS
 import Foundation
 import MacotronEngine
@@ -79,7 +80,7 @@ private final class ActiveWatcher {
 @MainActor
 public final class FileSystemModule: NativeModule {
     public let name = "fs"
-    public let moduleVersion = 2
+    public let moduleVersion = 3
 
     /// Active fs.watch watchers, keyed by watcher ID.
     private var activeWatchers: [UInt64: ActiveWatcher] = [:]
@@ -277,6 +278,63 @@ public final class FileSystemModule: NativeModule {
         }
 
         // -----------------------------------------------------------------
+        // macotron.fs.open(path, { app? }) -> bool
+        // macotron.fs.reveal(pathOrPaths) -> bool
+        // macotron.fs.trash(pathOrPaths) -> { trashed, failed }
+        // -----------------------------------------------------------------
+        JSBridge.fn(ctx, fsObj, "open", 2) { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx, let argv, argc >= 1, let path = JSBridge.toString(ctx, argv[0]) else {
+                return QJS_ThrowTypeError(ctx, "fs.open requires a path argument")
+            }
+            let bundleID = argc > 1 ? JSBridge.string(ctx, argv[1], "app") : nil
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
+            let url = URL(fileURLWithPath: NSString(string: path).expandingTildeInPath)
+            guard FileManager.default.fileExists(atPath: url.path) else { return JSBridge.newBool(ctx, false) }
+            guard let bundleID else { return JSBridge.newBool(ctx, NSWorkspace.shared.open(url)) }
+            guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+                return JSBridge.newBool(ctx, false)
+            }
+            NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration())
+            return JSBridge.newBool(ctx, true)
+        }
+
+        JSBridge.fn(ctx, fsObj, "reveal", 1) { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx, let argv, argc >= 1 else {
+                return QJS_ThrowTypeError(ctx, "fs.reveal requires a path or an array of paths")
+            }
+            if Engine.isDryRun(ctx) { return JSBridge.newBool(ctx, true) }
+            let urls = FileSystemModule.paths(ctx, argv[0])
+                .map { URL(fileURLWithPath: NSString(string: $0).expandingTildeInPath) }
+                .filter { FileManager.default.fileExists(atPath: $0.path) }
+            guard !urls.isEmpty else { return JSBridge.newBool(ctx, false) }
+            NSWorkspace.shared.activateFileViewerSelecting(urls)
+            return JSBridge.newBool(ctx, true)
+        }
+
+        // Paths come back as given, so a caller can match them against its own list.
+        JSBridge.fn(ctx, fsObj, "trash", 1) { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx, let argv, argc >= 1 else {
+                return QJS_ThrowTypeError(ctx, "fs.trash requires a path or an array of paths")
+            }
+            let paths = FileSystemModule.paths(ctx, argv[0])
+            if Engine.isDryRun(ctx) {
+                return JSBridge.newObject(ctx, ["trashed": paths, "failed": [Any]()])
+            }
+            var trashed: [String] = []
+            var failed: [[String: Any]] = []
+            for path in paths {
+                do {
+                    let url = URL(fileURLWithPath: NSString(string: path).expandingTildeInPath)
+                    try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+                    trashed.append(path)
+                } catch {
+                    failed.append(["path": path, "error": error.localizedDescription])
+                }
+            }
+            return JSBridge.newObject(ctx, ["trashed": trashed, "failed": failed])
+        }
+
+        // -----------------------------------------------------------------
         // $$__fsStopWatcher(id) — hidden native helper called by stop closures
         // -----------------------------------------------------------------
         JS_SetPropertyStr(ctx, global, "$$__fsStopWatcher",
@@ -410,6 +468,15 @@ public final class FileSystemModule: NativeModule {
 
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
+    }
+
+    /// A path or an array of paths, as strings; anything else is dropped.
+    static func paths(_ ctx: OpaquePointer, _ value: JSValue) -> [String] {
+        switch JSBridge.jsToSwift(ctx, value) {
+        case let path as String: return [path]
+        case let list as [Any]: return list.compactMap { $0 as? String }
+        default: return []
+        }
     }
 
     public func cleanup() {

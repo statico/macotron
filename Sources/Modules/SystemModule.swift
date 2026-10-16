@@ -274,6 +274,7 @@ enum GPUStats {
 @MainActor
 public final class SystemModule: NativeModule {
     public let name = "system"
+    public let moduleVersion = 2
 
     public init() {}
 
@@ -541,6 +542,11 @@ public final class SystemModule: NativeModule {
         JSBridge.fn(ctx, systemObj, "focus", 0) { ctx, thisVal, argc, argv -> JSValue in
             guard let ctx else { return QJS_Undefined() }
             return JSBridge.newObject(ctx, FocusStatus.snapshot())
+        }
+
+        JSBridge.fn(ctx, systemObj, "home", 0) { ctx, thisVal, argc, argv -> JSValue in
+            guard let ctx else { return QJS_Undefined() }
+            return JSBridge.newString(ctx, FileManager.default.homeDirectoryForCurrentUser.path)
         }
 
         // Setting a floor is an XPC round trip to a daemon launchd may have to
