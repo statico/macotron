@@ -1,4 +1,4 @@
-// APIs: player, http, launcher.query, menubar.status, localStorage, clipboard.set, notify.toast, every
+// APIs: player, http, launcher.query, menubar.status, panel, command, on, localStorage, clipboard.set, notify.toast, every
 const opts = macotron.plugin({
     title: "Radio & Podcasts",
     description: "Play internet radio and podcasts from the launcher, with the song in the menu bar.",
@@ -99,6 +99,7 @@ function playStation(station) {
     recent = [station].concat(recent.filter((r) => r.url !== station.url)).slice(0, 5);
     syncBrowser();
     save("radio.recent", recent);
+    // radio-browser asks clients to count a play this way; it sends only the station id.
     if (station.uuid) macotron.http.post(`${API}/url/${station.uuid}`, "", HEADERS);
 }
 
