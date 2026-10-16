@@ -10,7 +10,7 @@ private let logger = Logger(subsystem: "io.statico.macotron", category: "app")
 @MainActor
 public final class AppModule: NativeModule {
     public let name = "app"
-    public let moduleVersion = 2
+    public let moduleVersion = 3
 
     private weak var engine: Engine?
     private var activationObserver: NSObjectProtocol?
@@ -138,9 +138,43 @@ public final class AppModule: NativeModule {
             return JSBridge.newBool(ctx, AppMenu.select(pid: app.processIdentifier, path: path))
         }
 
+        // macotron.app.info(path) -> { bundleID, name, version, build, path } or null
+        JSBridge.fn(ctx, appObj, "info", 1) { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 1,
+                  let path = JSBridge.toString(ctx, argv[0]),
+                  let info = AppModule.info(NSString(string: path).expandingTildeInPath) else { return QJS_Null() }
+            return JSBridge.newObject(ctx, info)
+        }
+
+        // macotron.app.path(bundleID) -> installed app path or null
+        JSBridge.fn(ctx, appObj, "path", 1) { ctx, _, argc, argv in
+            guard let ctx, let argv, argc >= 1,
+                  let bundleID = JSBridge.toString(ctx, argv[0]),
+                  let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return QJS_Null() }
+            return JSBridge.newString(ctx, url.path)
+        }
+
         JS_SetPropertyStr(ctx, macotron, "app", appObj)
         JS_FreeValue(ctx, macotron)
         JS_FreeValue(ctx, global)
+    }
+
+    /// Read fresh from disk rather than through `Bundle(url:)`, which caches
+    /// for the life of the process and would keep reporting the version an
+    /// app had before it updated.
+    static func info(_ path: String) -> [String: Any]? {
+        let url = URL(fileURLWithPath: path)
+        guard let dict = CFBundleCopyInfoDictionaryInDirectory(url as CFURL) as? [String: Any],
+              !dict.isEmpty else { return nil }
+        let name = dict["CFBundleDisplayName"] as? String ?? dict["CFBundleName"] as? String
+            ?? url.deletingPathExtension().lastPathComponent
+        return [
+            "bundleID": dict["CFBundleIdentifier"] as? String ?? NSNull(),
+            "name": name,
+            "version": dict["CFBundleShortVersionString"] as? String ?? NSNull(),
+            "build": dict["CFBundleVersion"] as? String ?? NSNull(),
+            "path": path,
+        ]
     }
 
     public func cleanup() {

@@ -29,7 +29,8 @@ Bump only when the plugin-facing JS contract changes.
 ## Built-in macOS only
 
 Plugins must run on a stock Mac with only Macotron installed. Use `macotron.*`
-APIs and Apple-shipped tools (`/usr/bin/open`, `/usr/bin/defaults`, `/bin/mv`).
+APIs first (`fs.open`, `fs.trash`, `prefs`, `plist`, `app.path` rather than
+`open`, `defaults`, `plutil`, `mdfind`), then Apple-shipped tools (`/bin/mv`).
 Do not call Homebrew, npm, pip, ffmpeg, Chrome-only binaries, or other
 third-party installs. Optional cloud AI keys are fine; they are not required
 for the host or built-in plugins to load.

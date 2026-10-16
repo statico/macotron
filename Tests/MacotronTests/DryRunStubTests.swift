@@ -57,6 +57,37 @@ struct DryRunStubTests {
         #expect(!FileManager.default.fileExists(atPath: dir + "/moved.txt"))
     }
 
+    @Test("fs.open, reveal, and trash do not touch disk")
+    func fsOpenRevealTrash() throws {
+        let dir = NSTemporaryDirectory() + "macotron-dryrun-trash-\(UUID().uuidString)"
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: dir) }
+        let file = dir + "/a.txt"
+        try "hello".write(toFile: file, atomically: true, encoding: .utf8)
+
+        let engine = dryEngine([FileSystemModule()])
+        let (result, error) = engine.evaluate("""
+            const t = macotron.fs.trash(['\(file)', '\(dir)/missing.txt']);
+            JSON.stringify([macotron.fs.open('\(file)'), macotron.fs.reveal('\(file)'),
+                            t.trashed.length, t.failed.length])
+            """)
+        #expect(error == nil)
+        #expect(result == "[true,true,2,0]")
+        #expect(FileManager.default.fileExists(atPath: file))
+    }
+
+    @Test("prefs.set reports success without writing")
+    func prefs() {
+        let domain = "io.statico.macotron.dryrun-\(UUID().uuidString)"
+        let engine = dryEngine([PrefsModule()])
+        let (result, error) = engine.evaluate("""
+            [macotron.prefs.set('\(domain)', 'k', 1), macotron.prefs.get('\(domain)', 'k')].join('|')
+            """)
+        #expect(error == nil)
+        #expect(result == "true|")
+        #expect(Prefs.get(domain, "k") == nil)
+    }
+
     @Test("keychain.set and delete are inert")
     func keychain() {
         let key = "macotron-dryrun-test-\(UUID().uuidString)"

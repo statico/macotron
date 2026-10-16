@@ -47,6 +47,8 @@ func registerStandardModules(in engine: Engine) {
     engine.addModule(AppleTVModule())
     engine.addModule(AudioModule())
     engine.addModule(IdleModule())
+    engine.addModule(PlistModule())
+    engine.addModule(PrefsModule())
     engine.addModule(SpacesModule())
     engine.addModule(USBModule())
     engine.addModule(HIDModule())

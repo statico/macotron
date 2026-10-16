@@ -1,0 +1,31 @@
+<!-- title: macotron.prefs
+     summary: Read and write your user's preference domains, the same values defaults reads and writes.
+     group: API -->
+<h1>macotron.prefs</h1>
+<p class="lede">Read and write the current user's preferences, the values that <code>defaults read</code> and <code>defaults write</code> reach, without a subprocess.</p>
+
+<pre><code class="language-javascript">// Hide desktop icons, then restart Finder so it notices.
+macotron.prefs.set("com.apple.finder", "CreateDesktop", false);
+macotron.shell.run("/usr/bin/killall", ["Finder"]);</code></pre>
+
+<h2>Domains</h2>
+<p>A domain is usually an app's bundle ID, such as <code>com.apple.finder</code>. <code>"-g"</code> and <code>"NSGlobalDomain"</code> mean the global domain, the same as for <code>defaults</code>. Reads and writes are for the current user on any host. A read of an app domain does not fall back to the global domain.</p>
+<p>Values convert as in <a href="/docs/api-plist.html">macotron.plist</a>: a date is milliseconds since 1970 and data is a base64 string.</p>
+
+<h2>Reading</h2>
+
+<h3>get(domain: string, key?: string): any | null</h3>
+<p>The value of <code>key</code>, or <code>null</code> when the key is not set. Without <code>key</code>, the whole domain as an object. A key that nobody has changed is usually absent, so treat <code>null</code> as the system default.</p>
+<p>Booleans come back as they were written. A value that <code>defaults write</code> stored without a type, such as <code>"false"</code>, comes back as a string, so compare loosely when another tool may have written the key.</p>
+
+<h2>Writing</h2>
+
+<h3>set(domain: string, key: string, value: any): boolean</h3>
+<p>Writes <code>value</code> and saves the domain to disk. A <code>null</code> value deletes the key. Whole numbers are written as integers, other numbers as reals, and booleans as booleans. Returns <code>false</code> when the value is not a property list, for example an array that holds <code>null</code>, or when the write fails.</p>
+<div class="note"><p>Most apps read their preferences when they start. An app that is already running can ignore a new value until it is restarted, and some system settings only take effect at the next login.</p></div>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-plist.html">macotron.plist</a> to read plist files directly.</li>
+  <li>The <code>hid.js</code> and <code>present-mode.js</code> plugins.</li>
+</ul>

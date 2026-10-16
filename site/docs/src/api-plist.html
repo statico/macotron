@@ -1,0 +1,37 @@
+<!-- title: macotron.plist
+     summary: Read property list files and parse plist text or bytes into plain JavaScript values.
+     group: API -->
+<h1>macotron.plist</h1>
+<p class="lede">Read a property list file, or parse plist text or bytes, into plain JavaScript objects. Binary, XML, and OpenStep plists all work, with no <code>plutil</code> or <code>defaults</code> in between.</p>
+
+<pre><code class="language-javascript">// The version of an installed app, straight from its Info.plist.
+const info = macotron.plist.read("/Applications/Safari.app/Contents/Info.plist");
+console.log(info?.CFBundleShortVersionString);</code></pre>
+
+<h2>Values</h2>
+<p>Dictionaries become objects, arrays become arrays, and strings, numbers, and booleans stay as they are. A date becomes a number of milliseconds since 1970, so <code>new Date(value)</code> turns it back into a date. Data becomes a base64 string.</p>
+<p>Some apps store a whole plist as a Data value inside another plist. Pass that base64 string to <code>parse({ base64 })</code> to read the inner one.</p>
+
+<h2>Reading</h2>
+
+<h3>read(path: string): any | null</h3>
+<p>The parsed contents of the file. A leading <code>~</code> expands to your home folder. Returns <code>null</code> when the file is missing, cannot be read, or is not a plist. The call is synchronous.</p>
+
+<h3>parse(text: string): any | null</h3>
+<p>Parses an XML or OpenStep plist given as text. Returns <code>null</code> when the text is not a plist.</p>
+
+<h3>parse({ base64: string }): any | null</h3>
+<p>Parses plist bytes given as base64, in any format, binary included.</p>
+
+<pre><code class="language-javascript">// Screen Sharing keeps its saved computers as a binary plist inside its prefs.
+const prefs = macotron.plist.read(
+  "~/Library/Containers/com.apple.ScreenSharing/Data/Library/Preferences/com.apple.ScreenSharing.plist");
+const store = prefs &amp;&amp; macotron.plist.parse({ base64: prefs.connectionsStore });
+console.log(Object.keys(store?.connectionDetails || {}).length, "saved computers");</code></pre>
+
+<h2>See also</h2>
+<ul>
+  <li><a href="/docs/api-prefs.html">macotron.prefs</a> to read and write preference domains, as <code>defaults</code> does.</li>
+  <li><a href="/docs/api-app.html">macotron.app</a> <code>info()</code> for an app's name and version.</li>
+  <li>The <code>screen-sharing.js</code>, <code>emoji.js</code>, and <code>security-checklist.js</code> plugins.</li>
+</ul>

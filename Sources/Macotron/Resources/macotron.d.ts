@@ -323,6 +323,28 @@ declare const macotron: {
         rename(from: string, to: string): void;
         list(path: string): string[];
         watch(path: string, callback: (event: { path: string; type: string }) => void): () => void;
+        /** Open in the default app, or the app with bundle ID `app`. False when the path or app is missing. */
+        open(path: string, options?: { app?: string }): boolean;
+        /** Select the existing paths in Finder. False when none exist. */
+        reveal(path: string | string[]): boolean;
+        /** Move to the Trash. Paths come back as given. */
+        trash(path: string | string[]): { trashed: string[]; failed: Array<{ path: string; error: string }> };
+    };
+
+    /** Dates are epoch ms; Data is base64, which `parse({ base64 })` accepts. */
+    plist: {
+        /** Binary, XML, or OpenStep. Null when missing or not a plist. */
+        read(path: string): any;
+        /** XML or OpenStep text, or `{ base64 }` bytes in any format. Null when not a plist. */
+        parse(input: string | { base64: string }): any;
+    };
+
+    /** CFPreferences for the current user. `"-g"` / `"NSGlobalDomain"` is the global domain. */
+    prefs: {
+        /** The value, or null when unset; without `key`, the whole domain. */
+        get(domain: string, key?: string): any;
+        /** `null` deletes the key. False when the value is not a plist or the write failed. */
+        set(domain: string, key: string, value: any): boolean;
     };
 
     clipboard: {
@@ -581,6 +603,10 @@ declare const macotron: {
         quit(bundleID?: string): boolean;
         /** AX menu path, e.g. `["File", "New Window"]`. Omit bundle id for the frontmost app. */
         menu(path: string[], bundleID?: string): boolean;
+        /** Where the app is installed, or null. */
+        path(bundleID: string): string | null;
+        /** Read fresh from the bundle's Info.plist; null when `path` is not a bundle. */
+        info(path: string): { bundleID: string | null; name: string; version: string | null; build: string | null; path: string } | null;
     };
 
     audio: {
@@ -792,6 +818,8 @@ declare const macotron: {
         setAppearance(mode: "light" | "dark" | "auto"): Promise<{ ok: boolean; appearance: "light" | "dark" | "auto"; darkMode?: boolean; error?: string }>;
         /** Whether a Focus mode (Do Not Disturb, Sleep, Work, …) is on. */
         focus(): { focused: boolean };
+        /** The user's home directory path. */
+        home(): string;
         disk(): { total: number; free: number; used: number };
         network(): { bytesIn: number; bytesOut: number };
         processes(limit?: number): Promise<Array<{ name: string; pid: number; cpu: number }>>;
