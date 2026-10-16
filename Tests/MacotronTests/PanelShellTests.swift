@@ -84,7 +84,7 @@ struct PanelHostDeliveryTests {
             onClosed: {}
         )
         defer { host.close() }
-        host.show()
+        // Never shown, so no window appears during tests; the page loads anyway.
         // Straight after open, which is when a plugin seeds its panel: the page
         // has not parsed its script yet, so this has to wait for it.
         host.evaluateJSON(["hello": "world"])

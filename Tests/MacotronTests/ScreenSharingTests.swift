@@ -8,6 +8,7 @@ struct ScreenSharingTests {
     /// `__prefs` is what plist.read hands back; the store nested in it is
     /// looked up by its base64 so the test sees the two-step read.
     private static let mock = #"""
+        var console = { log() {}, error() {} };
         var __prefs = null;
         var __stores = {};
         var __menu = null;
