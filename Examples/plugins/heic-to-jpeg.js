@@ -20,7 +20,7 @@ macotron.command("Convert Downloads HEIC", "Write JPEGs next to HEIC files in Do
             skipped += 1;
             continue;
         }
-        const r = await macotron.image.convert("~/Downloads/" + name, dest, { format: "jpeg", quality: 1 });
+        const r = await macotron.image.convert("~/Downloads/" + name, dest, { quality: 1 });
         if (!r.ok) {
             errors.push(name + ": " + r.error);
             continue;

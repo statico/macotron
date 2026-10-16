@@ -20,7 +20,7 @@ function iconsHidden() {
     // It is a boolean, or the string "false" if `defaults write` set it
     // without a type.
     const v = macotron.prefs.get("com.apple.finder", "CreateDesktop");
-    return v !== null && ["false", "0"].includes(String(v).toLowerCase());
+    return ["false", "0"].includes(String(v).toLowerCase());
 }
 
 macotron.command("Toggle Present Mode", "Hide desktop icons for screensharing", async () => {
