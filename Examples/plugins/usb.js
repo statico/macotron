@@ -8,7 +8,7 @@ macotron.on("usb:changed", (info) => {
   const verb = info.action === "remove" ? "removed" : "attached";
   macotron.notify.toast("USB " + verb, name);
   if (info.action !== "remove") {
-    macotron.shell.run("/usr/bin/say", ["Device", name, "connected"]);
+    macotron.speech.say("Device " + name + " connected");
   }
 });
 

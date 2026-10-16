@@ -140,7 +140,7 @@ struct MenuPluginsTests {
                 plugin: () => ({}),
                 on: (ev, fn) => { handler = fn; },
                 notify: { toast: (title, body) => { toasts.push({ title: title, body: body }); } },
-                shell: { run: (cmd, args) => { says.push(args); return Promise.resolve({ exitCode: 0 }); } },
+                speech: { say: (text) => { says.push(text); } },
                 usb: { list: () => [] },
                 command: () => {}
             };
@@ -151,7 +151,7 @@ struct MenuPluginsTests {
             """#)
         #expect(result.contains("USB attached"))
         #expect(result.contains("USB removed"))
-        #expect(result.contains(#""Device","Hub","connected""#) || result.contains("Device"))
+        #expect(result.contains(#""says":["Device Hub connected"]"#))
         #expect(!result.contains(#""remove""#))
     }
 
