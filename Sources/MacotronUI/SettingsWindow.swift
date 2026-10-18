@@ -6,7 +6,12 @@ import SwiftUI
 @MainActor
 public final class SettingsWindow {
     private var window: NSWindow?
+    private var closedAt: Date?
     private let settingsState: SettingsState
+
+    /// A plugin filter left from an earlier visit reads as missing plugins,
+    /// so one older than this is cleared when the window comes back.
+    static let filterLifetime: TimeInterval = 3 * 60
 
     public init(state: SettingsState) {
         self.settingsState = state
@@ -25,6 +30,10 @@ public final class SettingsWindow {
         // Reuse the window after a close. Its close observer is armed once, at
         // creation, and lives as long as the window does.
         if let window {
+            if let closedAt, Date().timeIntervalSince(closedAt) > Self.filterLifetime {
+                settingsState.pluginFilter = ""
+            }
+            closedAt = nil
             bringToFront(window)
             return
         }
@@ -47,6 +56,11 @@ public final class SettingsWindow {
         bringToFront(w)
 
         WindowActivationPolicy.handBackWhenClosed(w)
+        _ = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification, object: w, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.closedAt = Date() }
+        }
 
         self.window = w
     }

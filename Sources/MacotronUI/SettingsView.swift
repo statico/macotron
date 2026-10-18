@@ -220,6 +220,9 @@ public final class SettingsState {
     @ObservationIgnored var conflictCache: Set<String>?
     public var requestedTab: Int?
     public var requestedPlugin: String?
+    /// Lives here rather than in the view so the window can clear it after
+    /// being closed a while.
+    public var pluginFilter = ""
     public var catalogPlugins: [CatalogPlugin] = [] { didSet { updatableCache = nil } }
     public var installedPluginNames: Set<String> = [] { didSet { updatableCache = nil } }
     public var pendingReview: [String] = []
@@ -679,7 +682,8 @@ public struct SettingsView: View {
     @Bindable var state: SettingsState
     @State private var selectedTab: SettingsTab
     @State private var selectedPlugin: String?
-    @State private var pluginFilter = ""
+    /// Bumped when type-select hands the keyboard to the search field.
+    @State private var searchFocusRequest = 0
     @State private var showCatalog = false
     @State private var catalogSection: CatalogSection = .builtIn
     @State private var showNewPlugin = false
@@ -1109,13 +1113,13 @@ public struct SettingsView: View {
                     .listStyle(.sidebar)
                     .focused($pluginListFocused)
                     .onKeyPress(.escape) {
-                        guard !pluginFilter.isEmpty else { return .ignored }
+                        guard !state.pluginFilter.isEmpty else { return .ignored }
                         clearPluginFilter()
                         return .handled
                     }
                     .onKeyPress(.delete) {
-                        guard !pluginFilter.isEmpty else { return .ignored }
-                        pluginFilter.removeLast()
+                        guard !state.pluginFilter.isEmpty else { return .ignored }
+                        state.pluginFilter.removeLast()
                         return .handled
                     }
                     .onKeyPress { press in typePluginFilter(press) }
@@ -1211,7 +1215,7 @@ public struct SettingsView: View {
             }
             .frame(maxWidth: .infinity)
 
-            PluginSearchField(text: $pluginFilter)
+            PluginSearchField(text: $state.pluginFilter, focusRequest: searchFocusRequest)
         }
         .padding(8)
     }
@@ -1247,21 +1251,23 @@ public struct SettingsView: View {
     }
 
     private var filteredPlugins: [ModuleSummary] {
-        state.moduleSummaries.filter { PluginFilter.matches($0, query: pluginFilter) }
+        state.moduleSummaries.filter { PluginFilter.matches($0, query: state.pluginFilter) }
     }
 
     private func typePluginFilter(_ press: KeyPress) -> KeyPress.Result {
         guard !press.modifiers.contains(.command), !press.modifiers.contains(.control),
               !(NSApp.keyWindow?.firstResponder is NSTextView),
-              PluginFilter.accepts(press.characters, existing: pluginFilter) else { return .ignored }
-        pluginFilter += press.characters
+              PluginFilter.accepts(press.characters, existing: state.pluginFilter) else { return .ignored }
+        state.pluginFilter += press.characters
         selectedPlugin = PluginListNav.selectionAfterFilter(
             current: selectedPlugin, in: filteredPlugins)
+        // The rest of the typing, Cmd-A and Delete included, goes to the field.
+        searchFocusRequest += 1
         return .handled
     }
 
     private func clearPluginFilter() {
-        pluginFilter = ""
+        state.pluginFilter = ""
     }
 
     private func selectInitialPlugin() {
@@ -2052,6 +2058,8 @@ struct CatalogSectionPicker: NSViewRepresentable {
 /// Escape-clears behaviour are what the HIG asks for and all of it ships.
 struct PluginSearchField: NSViewRepresentable {
     @Binding var text: String
+    /// A change focuses the field with the caret after the text.
+    var focusRequest = 0
 
     func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
 
@@ -2068,10 +2076,19 @@ struct PluginSearchField: NSViewRepresentable {
     func updateNSView(_ field: NSSearchField, context: Context) {
         context.coordinator.text = $text
         if field.stringValue != text { field.stringValue = text }
+        guard focusRequest != context.coordinator.focusRequest else { return }
+        context.coordinator.focusRequest = focusRequest
+        // After this update pass, so the field already holds the new text.
+        DispatchQueue.main.async {
+            guard field.window?.makeFirstResponder(field) == true else { return }
+            let end = field.stringValue.utf16.count
+            field.currentEditor()?.selectedRange = NSRange(location: end, length: 0)
+        }
     }
 
     final class Coordinator: NSObject, NSSearchFieldDelegate {
         var text: Binding<String>
+        var focusRequest = 0
 
         init(text: Binding<String>) { self.text = text }
 
