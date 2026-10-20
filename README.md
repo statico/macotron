@@ -6,6 +6,14 @@
 <p align="center"><b>It does everything.</b><br>Customization and automation with a quick launch bar, global hotkeys, menu bar items, and APIs for everything you can think of. Open-source and free.</p>
 
 <p align="center">
+  <a href="https://github.com/statico/macotron/releases/latest"><img src="https://img.shields.io/github/v/release/statico/macotron?label=release" alt="Latest release"></a>
+  <a href="https://github.com/statico/macotron/releases"><img src="https://img.shields.io/github/downloads/statico/macotron/total" alt="Downloads"></a>
+  <img src="https://img.shields.io/badge/macOS-15%2B-blue?logo=apple" alt="macOS 15 or later">
+  <img src="https://img.shields.io/badge/Swift-6-orange?logo=swift&logoColor=white" alt="Swift 6">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/statico/macotron" alt="MIT license"></a>
+</p>
+
+<p align="center">
   <img src="docs/media/highlights.gif" alt="The quick launcher finding files and commands, then menu bar items for CPU, battery, weather and a calendar" width="720">
 </p>
 
