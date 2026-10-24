@@ -39,7 +39,8 @@ The appcast is signed after notarization, not before: stapling rewrites the
 DMG, and the EdDSA signature covers every byte of the file people download. The
 commit lands before the tag so the tag contains the feed that describes it.
 It is made through the GitHub API rather than `git commit`, because GitHub signs
-API commits and so they show Verified like the rest of `main`.
+commits the workflow's bot makes through the API, so they show Verified like the
+rest of `main`. A local `make publish` makes an unsigned one.
 
 Commits on `main` are signed. Your global git config signs with your key, and
 this repo's `author.name`/`author.email` make Claude Code the author. Use your
