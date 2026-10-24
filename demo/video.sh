@@ -66,6 +66,9 @@ card end 5
 # Every segment shares one encoding, so the concat is a stream copy.
 $FF -v error -y -f concat -i $W/list.txt -c copy -movflags +faststart $OUT
 
+# The README embeds an animated AVIF of the same cut.
+$FF -v error -y -i $OUT -c:v libsvtav1 -crf 40 -preset 6 -pix_fmt yuv420p -f avif docs/media/demo.avif
+
 # Contact sheet: 48 evenly spaced frames, to check caption placement.
 D=$(ffprobe -v error -show_entries format=duration -of csv=p=0 $OUT)
 $FF -v error -y -i $OUT -vf "fps=48/$D,scale=426:-1,tile=6x8" -frames:v 1 tmp/macotron-demo-sheet.jpg

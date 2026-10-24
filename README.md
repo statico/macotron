@@ -14,7 +14,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/media/highlights.gif" alt="The quick launcher finding files and commands, then menu bar items for CPU, battery, weather and a calendar" width="720">
+  <picture>
+    <source srcset="docs/media/demo.avif" type="image/avif">
+    <img src="docs/media/highlights.gif" alt="A captioned tour of Macotron: custom menu bar items, the quick launcher, clipboard history and emoji, window tiling, deploy status, a meeting bar, Now Playing, system stats, and community plugins" width="720">
+  </picture>
 </p>
 
 <p align="center">
