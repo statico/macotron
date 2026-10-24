@@ -10,6 +10,8 @@ The homepage tour (`site/media/tour`), the social card strip (`site/og-menubar.p
 | `clip_*.py` | One script per clip |
 | `run_batch.py clip…` | Records clips in order, resetting state between them |
 | `encode.sh` | Turns the recordings into every published asset |
+| `video.sh` | Cuts the standalone demo video with captions |
+| `captions.tsv`, `captions.swift` | The video's caption copy and its PNG renderer |
 | `files/` | Documents, calendar scripts and the SomaFM page the VM uses |
 | `plugins/deploy-status.js` | The demo-only deploy plugin |
 
@@ -85,6 +87,16 @@ The social card strip is a 1380x48 crop of the menu bar clip that stops just bef
 The README GIF is the launcher clip followed by the first 15 s of the glance clip. It is 720 px wide at 12 fps, with a 128-color palette built in two passes, and comes to about 2 MB.
 
 After a reshoot the timings shift. Re-pick the trims and posters in `encode.sh` from a contact sheet.
+
+## Demo video
+
+`demo/video.sh` cuts `tmp/macotron-demo.mp4`, a standalone video of about 2 min 15 s. It is 1280x800 H.264 at 30 fps, CRF 23, with no audio and with faststart, and comes to about 5 MB. Run `encode.sh` first, because the video reads the tour clips in `site/media/tour`. It also reads two raw recordings: `deploy.mov` (a still 2.5x crop of the deploy-status items as their counts change) and `paste.mov`.
+
+- **Order.** Title card, menu bar, launcher, clipboard and emoji, windows, deploy status, meetings, Now Playing, at a glance, community, closing card.
+- **Captions.** This ffmpeg has no `drawtext` filter. `captions.swift` draws each row of `captions.tsv` (name, title, one line of text) as a lower third in SF Pro on a transparent 1280x800 PNG. It also draws the title and closing cards. `video.sh` overlays each PNG with a 0.35 s alpha fade, from 0.5 s into the clip until 0.8 s before its end. A sixth `seg` argument ends a caption early. The launcher uses it so the caption leaves before the "cal" list reaches it.
+- **Segments.** Each segment is encoded with the same settings and tagged BT.709, so the final concat is a stream copy. Without the tags, the PNG cards come out as sRGB and players re-initialize at each card.
+- **Check.** The script also writes `tmp/macotron-demo-sheet.jpg`, a sheet of 48 frames. Check that no caption covers the thing being shown.
+- **`paste.mov`.** `clip_paste.py` records it with the 0.7.7 catalog's `clipboard-history.js` and `emoji.js` in the plugins folder. Approve both under Review & Reload, then run `clean()` before the clip. The clip seeds the clipboard, opens Clipboard History, then inserts 🍷 into a TextEdit note with the emoji picker. In 0.7.7 the history panel doesn't paste, so the clip only browses it. Filtering shows the seeds from earlier takes.
 
 ## Site
 

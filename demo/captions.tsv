@@ -1,0 +1,9 @@
+menubar	Your own menu bar	What's playing, your next meeting, whether prod is behind, the weather, battery and CPU.
+launcher	Quick launcher	Files, apps, math and commands, fuzzy-ranked as you type.
+windows	Window management	Hotkeys, drag-to-snap and a grid for the focused window.
+deploy	Deploy status	Each item is a small JavaScript plugin. This one asks if prod is behind main.
+meetings	Meeting bar	The next meeting in the menu bar, and a full-screen reminder when it starts.
+nowplaying	Now Playing	Track, artist and cover art from whatever is playing. Here, SomaFM.
+system	At a glance	CPU and memory, battery, weather, and the month with world clocks.
+community	Community plugins	Browse plugins people publish on GitHub, add one, and it's in the launcher. Yes, chess.
+paste	Clipboard and emoji	Your clipboard history, and every emoji searchable by name, a keystroke away.
