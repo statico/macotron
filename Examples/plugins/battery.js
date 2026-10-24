@@ -25,15 +25,19 @@ function snapshot() {
     const bat = macotron.system.battery();
     const level = bat && bat.level != null ? Math.round(bat.level) : -1;
     const charging = !!(bat && bat.charging);
+    const pluggedIn = !!bat && bat.source === "ac";
     const toFull = bat && bat.timeToFull;
+    // kIOPSIsCharged says a battery is full when it can, but not always, so no
+    // minutes left to full, or 100%, on the adapter counts as charged too --
+    // otherwise the menu bar sits at "0m to full". Unknown is -1.
+    const charged = !!(bat && bat.charged) || (pluggedIn && (toFull === 0 || level >= 100));
     return {
         level,
         charging,
-        // A full battery on the adapter still reports as charging, with nothing
-        // left to do. kIOPSIsCharged says so when it can, but not always, so no
-        // minutes left to full counts as charged too -- otherwise the menu bar
-        // sits at "0m to full". Unknown is -1, and stays charging.
-        charged: !!(bat && bat.charged) || (charging && toFull === 0),
+        pluggedIn,
+        charged,
+        // Optimized Charging or a charge limit holding it short of full.
+        held: pluggedIn && !charging && !charged,
         remaining: bat && bat.timeRemaining,
         toFull: bat && bat.timeToFull,
         source: bat && bat.source,
@@ -47,6 +51,7 @@ function snapshot() {
 function subtitle(s) {
     if (s.level < 0) return "Power adapter";
     if (s.charged) return "Charged";
+    if (s.held) return "Not charging";
     if (s.charging) {
         const t = minutesLabel(s.toFull);
         return t ? t + " to full" : "Charging";
@@ -55,8 +60,9 @@ function subtitle(s) {
 }
 
 function sourceLabel(s) {
-    if (s.source === "ac" || s.charging) {
+    if (s.pluggedIn || s.charging) {
         if (s.charged) return "Power adapter · Charged";
+        if (s.held) return "Power adapter · Not charging";
         return "Power adapter · Charging";
     }
     return "On battery";
@@ -73,16 +79,16 @@ function menu(s) {
     }
     const rows = [
         { title: s.level + "%", icon: symbol(s.level, s.charging) },
-        { title: sourceLabel(s), icon: s.charging ? "powerplug.fill" : "minus.plus.batteryblock" },
+        { title: sourceLabel(s), icon: s.pluggedIn ? "powerplug.fill" : "minus.plus.batteryblock" },
     ];
     if (s.charging && !s.charged) {
         const t = minutesLabel(s.toFull);
         if (t) rows.push({ title: t + " until full", icon: "clock" });
-    } else if (!s.charging) {
+    } else if (!s.pluggedIn) {
         const t = minutesLabel(s.remaining);
         if (t) rows.push({ title: t + " remaining", icon: "clock" });
     }
-    if (s.health > 0 || s.cycles > 0 || (s.charging && s.watts > 0)) {
+    if (s.health > 0 || s.cycles > 0 || (s.pluggedIn && s.watts > 0)) {
         rows.push("-");
         if (s.health > 0) {
             rows.push({ title: "Maximum capacity " + s.health + "%", icon: "heart.fill" });
@@ -90,7 +96,7 @@ function menu(s) {
         if (s.cycles > 0) {
             rows.push({ title: s.cycles + " cycles", icon: "arrow.triangle.2.circlepath" });
         }
-        if (s.charging && s.watts > 0) {
+        if (s.pluggedIn && s.watts > 0) {
             rows.push({ title: s.watts + "W adapter", icon: "bolt.fill" });
         }
     }
@@ -119,7 +125,7 @@ function openSettings() {
 
 function paint() {
     const s = snapshot();
-    const low = s.level >= 0 && s.level < 20 && !s.charging;
+    const low = s.level >= 0 && s.level < 20 && !s.pluggedIn;
     macotron.menubar.status("battery", {
         title: s.level < 0 ? "AC" : s.level + "%",
         subtitle: subtitle(s),

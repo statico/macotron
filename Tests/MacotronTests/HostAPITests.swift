@@ -97,6 +97,16 @@ struct BatteryStatusTests {
         #expect(snap["source"] as? String == "ac")
     }
 
+    @Test("on the adapter but held by charge preservation is not charging")
+    func notCharging() {
+        let snap = BatteryStatus.snapshot([[
+            kIOPSPowerSourceStateKey as String: kIOPSACPowerValue as String,
+            kIOPSIsChargingKey as String: false,
+        ]])
+        #expect(snap["charging"] as? Bool == false)
+        #expect(snap["source"] as? String == "ac")
+    }
+
     @Test("smart battery extras include health, cycles, and adapter watts")
     func smartExtras() {
         let extras = BatteryStatus.smartExtras([

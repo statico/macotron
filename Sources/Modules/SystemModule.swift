@@ -161,8 +161,13 @@ enum BatteryStatus {
                 level = Double(capacity) / Double(maxCapacity) * 100.0
             }
             if let state = desc[kIOPSPowerSourceStateKey] as? String {
-                charging = (state == kIOPSACPowerValue)
-                source = charging ? "ac" : "battery"
+                source = state == kIOPSACPowerValue ? "ac" : "battery"
+                charging = source == "ac"
+            }
+            // Plugged in is not charging: Optimized Charging and the charge
+            // limit hold a battery short of full on the adapter.
+            if let flag = desc[kIOPSIsChargingKey] as? Bool {
+                charging = flag
             }
             if let flag = desc[kIOPSIsChargedKey] as? Bool {
                 charged = flag

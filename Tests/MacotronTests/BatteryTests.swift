@@ -107,6 +107,41 @@ struct BatteryTests {
         #expect(result == "45m to full")
     }
 
+    @Test("held short of full on the adapter reads Not charging, not a time to full")
+    func heldReadsNotCharging() throws {
+        // Optimized Charging still reports a time to full while it holds.
+        let result = try PluginHarness.eval(plugin: "battery.js", mock: #"""
+            var statusConfig = null;
+            var macotron = {
+                plugin: () => ({}),
+                system: {
+                    battery: () => ({
+                        level: 89,
+                        charging: false,
+                        charged: false,
+                        timeRemaining: -1,
+                        timeToFull: 31,
+                        source: "ac",
+                        lowPowerMode: false
+                    })
+                },
+                menubar: { status: (id, cfg) => { statusConfig = cfg; } },
+                url: { open: () => {} },
+                every: () => {},
+                command: () => {},
+                notify: { toast: () => {} }
+            };
+            """#, extra: #"""
+            JSON.stringify({
+                subtitle: statusConfig.subtitle,
+                menu: statusConfig.menu.map((row) => row === "-" ? "-" : row.title)
+            })
+            """#)
+        #expect(result.contains("\"subtitle\":\"Not charging\""))
+        #expect(result.contains("Power adapter \u{00B7} Not charging"))
+        #expect(!result.contains("31m"))
+    }
+
     @Test("low power mode menu item turns it on and toasts")
     func lowPowerModeTurnsOn() throws {
         let engine = try PluginHarness.load(plugin: "battery.js", mock: #"""

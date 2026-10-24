@@ -182,7 +182,7 @@ render();
   <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
   <tbody>
     <tr><td><code>level</code></td><td>Charge in percent, <code>0</code>…<code>100</code>. <code>-1</code> on a Mac with no battery.</td></tr>
-    <tr><td><code>charging</code></td><td><code>true</code> while on AC power, even when the battery is full. Read <code>charged</code> to tell the two apart.</td></tr>
+    <tr><td><code>charging</code></td><td><code>true</code> while the battery is taking charge. On AC power it is <code>false</code> when the battery is full or Optimized Charging is holding it short of full; <code>source</code> is still <code>"ac"</code>. Older Macs that do not report this read <code>true</code> whenever they are on AC power.</td></tr>
     <tr><td><code>charged</code></td><td><code>true</code> when the battery is full.</td></tr>
     <tr><td><code>timeRemaining</code></td><td>Minutes until empty, or <code>-1</code> when unknown.</td></tr>
     <tr><td><code>timeToFull</code></td><td>Minutes until full, or <code>-1</code> when unknown.</td></tr>

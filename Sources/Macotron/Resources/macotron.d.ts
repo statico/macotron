@@ -823,6 +823,7 @@ declare const macotron: {
         };
         battery(): {
             level: number;
+            /** Taking charge now; false on AC when full or held short of full. Use `source` for plugged in. */
             charging: boolean;
             charged: boolean;
             /** Minutes until empty, or -1 if unknown. */

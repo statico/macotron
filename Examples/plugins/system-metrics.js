@@ -149,7 +149,7 @@ function checkAlerts(s) {
         // Charging through the threshold is not news, so only complain while
         // the battery is actually draining.
         ["battery", opts.batteryAlert,
-            !!bat && bat.level >= 0 && !bat.charging && bat.level <= num(opts.batteryThreshold, 20), 1,
+            !!bat && bat.level >= 0 && bat.source !== "ac" && bat.level <= num(opts.batteryThreshold, 20), 1,
             "Low battery", bat ? Math.round(bat.level) + "% remaining." : ""],
         ["memory", opts.memoryAlert, s.pressure === "warning" || s.pressure === "critical", 1,
             "Memory pressure", "The system reports " + s.pressure + " memory pressure."],
