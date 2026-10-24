@@ -22,25 +22,29 @@ The host tools are [Tart](https://tart.run), Python with `vncdotool` in `tmp/dem
 - Tart VM `demo-gg`, cloned from `ghcr.io/cirruslabs/macos-golden-gate-base` (macOS 27). Use dark mode, a 1280x800 display (2560x1600 pixels) and keep the sound muted.
 - Boot it with the share mounted, and leave it running:
   ```
-  tart run demo-gg --no-graphics --vnc-experimental --dir=share:$PWD/tmp/demo-share > tmp/demo-vm.log 2>&1
+  tart run demo-gg --no-graphics --no-clipboard --vnc-experimental --dir=share:$PWD/tmp/demo-share > tmp/demo-vm.log 2>&1
   ```
   `drive.py` reads the VNC port and password from that log. In the VM, the share is `/Volumes/My Shared Files/share`, and finished recordings are copied there.
+- **No host clipboard.** Without `--no-clipboard`, Tart syncs the host Mac's clipboard into the VM through the guest agent's SPICE vdagent. Macotron's clipboard history then records host text, and it shows up in the clipboard clip. As a second guard, the VM's `/Library/LaunchAgents/org.cirruslabs.tart-guest-agent.plist` runs `tart-guest-agent --run-rpc` instead of `--run-agent`, so the vdagent never starts. `tart exec` needs only the RPC part. The VM has no iCloud account, so Universal Clipboard is not a path. Macotron keeps its history in memory only, so quitting it clears the history. `printf '' | pbcopy` in the VM clears the pasteboard.
+- **Clock.** The tour clips show "Fri Oct 9" at about 11:30 PM GMT. To match it, turn off network time and set the date before a session: `sudo systemsetup -setusingnetworktime off; sudo date 100923302026`. Turn network time back on before you shut down.
 - **Wallpaper.** Golden Gate's only wallpaper is a sunset aerial with no night version, so the desktop is a blue-hour grade of one frame of it. Copy `/System/Library/Wallpapers/.default/Golden Gate.mov` out of the VM as `tmp/demo-share/gg.mov`, then:
   ```
   ffmpeg -ss 2 -i tmp/demo-share/gg.mov -frames:v 1 -vf "crop=3456:2160:560:0,scale=2560:1600:flags=lanczos" tmp/gg-base.png
   ffmpeg -i tmp/gg-base.png -vf "eq=gamma=0.55:saturation=0.75:brightness=-0.06,colorbalance=rs=-0.15:bs=0.2:rm=-0.1:bm=0.12:rh=-0.05:bh=0.05,vignette=PI/4.5,format=rgb24" tmp/demo-share/gg-dark.png
   ```
   Then set `~/Pictures/gg-dark.png` as the desktop picture.
-- **Setup.** Run `demo/setup.sh`. It installs Macotron from the DMG in the share and copies the catalog plugins plus the two demo plugins. It also writes `settings.json` with weather set to Cupertino and New York, London and Tokyo clocks. Finally it hides the Dock, Spotlight and widgets, and puts the documents into `~/Documents`.
+- **Setup.** Run `demo/setup.sh`. It installs Macotron from the DMG in the share and copies the catalog plugins plus the two demo plugins. The canned battery meter goes in as `canned-battery.js`. With the catalog name, Macotron 1.0 sees changed bytes and badges its menu bar icon with "1 plugin update". A `demo-` prefix does not work either, because Macotron renames `demo-*.js` back to the catalog name. It also writes `settings.json` with weather set to Cupertino and New York, London and Tokyo clocks. Finally it hides the Dock, Spotlight and widgets, and puts the documents into `~/Documents`.
   - `report.pdf` is `files/report.html` printed from Chrome with `--print-to-pdf`.
   - `docx.py` builds `report.docx`, because textutil drops images.
 - **By hand over VNC:**
+  - Approve the plugins under Review & Reload. Macotron 1.0 asks again after an upgrade, and each sheet says "This Mac cannot run Apple Intelligence". Click Run Anyway.
+  - In Settings > General, set Updates to Never so the Sparkle prompt stays out of the clips.
   - Grant the permissions. Golden Gate calls the Accessibility pane "Device Control and Data Access".
   - The first `tart exec` AppleScript aimed at each app hangs on a "tart-guest-agent wants access to control …" prompt until you click Allow at (698,385).
 - **Quiet the VM:**
   - `defaults -currentHost write com.apple.controlcenter NowPlaying -int 8` hides the system Now Playing item.
   - `defaults write com.apple.SoftwareUpdate AutomaticCheckEnabled -bool false`, plus the same in `/Library/Preferences` with sudo, cuts down the "Software Update Available" banners. A low-disk banner still shows up now and then. The trims in `encode.sh` cut around them; if one lands mid-clip, close it with the × at (924,52) and reshoot.
-- **Music.** Open `~/somafm.html` in Safari and press Play. It plays SomaFM Underground 80s, which gives Now Playing real titles. Cover art comes from the iTunes search, so `wait_art()` waits for a track that has art and started 25–90 s ago. That keeps the cover from changing mid-clip.
+- **Music.** Tart passes the VM's audio to the host speakers. Mute the VM output before you start the music: `tart exec demo-gg osascript -e 'set volume output volume 0' -e 'set volume with output muted'`. Muted output does not stop Now Playing. Open `~/somafm.html` in Safari and press Play. It plays SomaFM Underground 80s, which gives Now Playing real titles. Cover art comes from the iTunes search, so `wait_art()` waits for a track that has art and started 25–90 s ago. That keeps the cover from changing mid-clip.
 - **Menu bar.** Golden Gate hides overflow items behind a «, so Spotlight is hidden and the audio plugin is left out to make room. Cmd-drag the items into this order: Now Playing first (its width changes), then meetings, staging, prod, calendar, weather, battery, CPU.
 - **Calendar.** `files/events.applescript` seeds the events. `files/sam.applescript` moves "1:1 with Sam" three hours out, so the meetings item shows a calm countdown in the other clips. Re-run it before a session.
 
@@ -97,7 +101,7 @@ After a reshoot the timings shift. Re-pick the trims and posters in `encode.sh` 
 - **Segments.** Each segment is encoded with the same settings and tagged BT.709, so the final concat is a stream copy. Without the tags, the PNG cards come out as sRGB and players re-initialize at each card.
 - **README.** The script also writes `docs/media/demo.avif`, an animated AVIF of the same cut (SVT-AV1, CRF 40, about 4 MB). The README shows it, with `highlights.gif` as the fallback for browsers without AVIF.
 - **Check.** The script also writes `tmp/macotron-demo-sheet.jpg`, a sheet of 48 frames. Check that no caption covers the thing being shown.
-- **`paste.mov`.** `clip_paste.py` records it with the 0.7.7 catalog's `clipboard-history.js` and `emoji.js` in the plugins folder. Approve both under Review & Reload, then run `clean()` before the clip. The clip seeds the clipboard, opens Clipboard History, then inserts 🍷 into a TextEdit note with the emoji picker. In 0.7.7 the history panel doesn't paste, so the clip only browses it. Filtering shows the seeds from earlier takes.
+- **`paste.mov`.** `clip_paste.py` records it with the 1.0 catalog's `clipboard-history.js` and `emoji.js` in the plugins folder. Quit and reopen Macotron first so the history holds only the seeds, then run `clean()`. The clip seeds the clipboard with Lisbon trip text and opens Clipboard History. It clicks "Taberna da Rua das Flores, 8 PM", which puts the entry back on the clipboard and closes the panel, and Cmd-V pastes it after "Dinner:". Then the emoji picker inserts 🍷. The take is about 13 s.
 
 ## Site
 

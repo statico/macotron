@@ -18,13 +18,16 @@ python3 docx.py $H/report.docx files/charts.png
 [ -f $H/report.pdf ] || echo "Print files/report.html to $H/report.pdf (letter, no margins) before the next step." >&2
 
 x "osascript -e 'set volume output volume 0' -e 'set volume with output muted'"
-x "hdiutil attach -nobrowse -quiet '$S/Macotron-0.7.7.dmg' -mountpoint /tmp/m && cp -R /tmp/m/Macotron.app /Applications/ && hdiutil detach -quiet /tmp/m"
+x "hdiutil attach -nobrowse -quiet '$S/Macotron-1.0.0.dmg' -mountpoint /tmp/m && cp -R /tmp/m/Macotron.app /Applications/ && hdiutil detach -quiet /tmp/m"
 x "defaults write io.statico.macotron pluginsDirectory -string /Users/admin/Macotron
 defaults write io.statico.macotron wizardCompleted -bool true
 mkdir -p ~/Macotron/plugins
 C=/Applications/Macotron.app/Contents/Resources/Catalog
-for p in meetings now-playing windows window-grid cpu-graph weather mini-calendar file-search calculator web-search; do cp \$C/\$p.js ~/Macotron/plugins/; done
-cp '$S/deploy-status.js' '$S/battery.js' ~/Macotron/plugins/
+for p in meetings now-playing windows window-grid cpu-graph weather mini-calendar file-search calculator web-search clipboard-history emoji; do cp \$C/\$p.js ~/Macotron/plugins/; done
+cp '$S/deploy-status.js' ~/Macotron/plugins/
+# Not battery.js: a catalog name with changed bytes badges the menu icon with
+# "1 plugin update", and Macotron renames demo-*.js back to the catalog name.
+cp '$S/battery.js' ~/Macotron/plugins/canned-battery.js
 cat > ~/Macotron/settings.json <<'EOF'
 {\"keyboardShortcuts\":{},\"launcher\":{\"hotkey\":\"opt+space\"},\"modules\":{},\"pluginSettings\":{\"weather.js\":{\"location\":\"Cupertino, CA\"},\"mini-calendar.js\":{\"clocks\":\"America/New_York = New York\\nEurope/London = London\\nAsia/Tokyo = Tokyo\"},\"file-search.js\":{\"ignorePatterns\":\"node_modules\\n*.tmp\\ngo/pkg\\nLibrary\\nactions-runner\\nMacotron\"}},\"disabledPlugins\":[],\"launcherFavorites\":[],\"commandShortcuts\":{},\"ui\":{\"textScale\":1,\"launcherBackground\":\"translucent\",\"hotReload\":true,\"appearance\":\"system\",\"showMenuBarIcon\":true}}
 EOF
