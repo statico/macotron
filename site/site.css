@@ -272,19 +272,6 @@ main > section {
   font-size: 0.8rem;
   color: var(--muted);
 }
-.beta {
-  margin: 1.1rem 0 0;
-  padding: 0.6rem 0.85rem;
-  font-size: 0.85rem;
-  color: var(--muted);
-  background: var(--bg-2);
-  border-left: 3px solid var(--accent);
-  border-radius: 6px;
-}
-.beta strong {
-  color: var(--ink);
-}
-
 /* --- capabilities --- */
 
 .can { padding-bottom: 3.5rem; }
@@ -838,13 +825,6 @@ footer a:hover { color: var(--ink); }
 }
 [data-look="glass"] .byline { font-size: 1.15rem; }
 [data-look="glass"] .btn { border-radius: 999px; padding: 0.7rem 1.5rem; }
-[data-look="glass"] .beta {
-  max-width: 33rem;
-  margin-inline: auto;
-  border: 1px solid var(--glass-edge);
-  border-radius: var(--r-inner);
-  text-align: left;
-}
 
 /* --- capabilities --- */
 
@@ -918,10 +898,9 @@ footer a:hover { color: var(--ink); }
 
 /* --- tour: one muted clip per slide, native scroll-snap --- */
 
-/* Sits in the hero between the fine print and the beta notice. The nav
-   buttons close the block, so it needs less room below than above. */
+/* Sits in the hero below the fine print. The nav buttons close the
+   block, so it needs less room below than above. */
 .tour { margin: 3.5rem 0 2.5rem; }
-.tour + .hero-copy .beta { margin-top: 0; }
 .tour-tabs {
   display: flex;
   flex-wrap: wrap;
