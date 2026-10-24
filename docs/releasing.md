@@ -38,6 +38,13 @@ stapled too, which is quick since its contents already have a ticket.
 The appcast is signed after notarization, not before: stapling rewrites the
 DMG, and the EdDSA signature covers every byte of the file people download. The
 commit lands before the tag so the tag contains the feed that describes it.
+It is made through the GitHub API rather than `git commit`, because GitHub signs
+API commits and so they show Verified like the rest of `main`.
+
+Commits on `main` are signed. Your global git config signs with your key, and
+this repo's `author.name`/`author.email` make Claude Code the author. Use your
+own identity as committer, or GitHub cannot match the signature and shows
+Unverified.
 Vercel serves `site/` at the domain root, so pushing publishes
 https://macotron.statico.io/appcast.xml, which is the `SUFeedURL` baked into
 every shipped copy of the app. That branch push comes last, after the GitHub

@@ -292,17 +292,22 @@ publish: ## Appcast, tag, GitHub release, and cask for a built DMG (VERSION=x.y.
 	@test -f "$(DMG)" || { echo "No $(DMG). Run make dmg first."; exit 1; }
 	@# The appcast has to be signed after stapling, which rewrites the DMG, and
 	@# committed before the tag so the tag matches what the feed describes. The
-	@# branch is pushed last because that deploys the feed, and a feed that
-	@# names a DMG GitHub has not finished uploading is a 404 for everyone.
+	@# commit goes through the GitHub API, which signs it, so it shows Verified
+	@# like every other commit. main moves last because that deploys the feed,
+	@# and a feed that names a DMG GitHub has not finished uploading is a 404
+	@# for everyone.
 	@set -x; \
 	SPARKLE_DIR=$(SPARKLE_DIR) scripts/update-appcast.sh $(VERSION) "$(DMG)" $(BUILD_DIR)/notes.md && \
-	git add site/appcast.xml && \
-	git commit -qm "Appcast for $(VERSION)" -- site/appcast.xml && \
-	git tag -a v$(VERSION) -m "$(APP_NAME) $(VERSION)" && \
-	git push origin v$(VERSION) && \
+	tree=$$(gh api repos/{owner}/{repo}/git/trees -f base_tree=$$(git rev-parse HEAD^{tree}) \
+		-f 'tree[][path]=site/appcast.xml' -f 'tree[][mode]=100644' -f 'tree[][type]=blob' \
+		-F 'tree[][content]=@site/appcast.xml' -q .sha) && \
+	commit=$$(gh api repos/{owner}/{repo}/git/commits -f message="Appcast for $(VERSION)" \
+		-f tree=$$tree -f "parents[]=$$(git rev-parse HEAD)" -q .sha) && \
+	gh api repos/{owner}/{repo}/git/refs -f ref=refs/tags/v$(VERSION) -f sha=$$commit --silent && \
 	gh release create v$(VERSION) "$(DMG)" --title "$(APP_NAME) $(VERSION)" \
 		--notes-file $(BUILD_DIR)/notes.md && \
-	git push origin HEAD && \
+	gh api -X PATCH repos/{owner}/{repo}/git/refs/heads/main -f sha=$$commit --silent && \
+	git checkout -q site/appcast.xml && git pull -q --ff-only origin main && \
 	scripts/update-tap.sh $(VERSION) "$(DMG)"
 
 ##@ Maintenance
