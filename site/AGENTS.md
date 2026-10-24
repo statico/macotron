@@ -10,6 +10,7 @@ A static homepage. No build step. Vercel serves the `site/` folder as the domain
 - `site.js` / `site.css` — capabilities, API cards, plugin finder
 - `workdir/plugins/*.js` — copies of the 75 built-in plugins
 - `glossary.html` — terms used on the page and in the host API
+- `privacy.html`, `terms.html`, `security.html` — Privacy Policy, Terms of Use, and Security Policy (`security.html` mirrors the repo's `SECURITY.md`)
 - `og.html` / `og.png` — the social preview card. `og.html` is the source; screenshot it at exactly 1200x630 to regenerate `og.png` after changing the wording. It is not linked from the site.
 - `media/tour/` — the tour clips. They are shot in a VM and cut by `demo/encode.sh`; `demo/README.md` explains how to reshoot them.
 

@@ -640,6 +640,14 @@ footer a:hover { color: var(--ink); }
   font-size: 0.9rem;
 }
 .note p:last-child { margin-bottom: 0; }
+/* Standalone prose pages (privacy, terms, security) reuse .doc without the nav. */
+.page {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 1.5rem var(--pad) 4rem;
+}
+.doc .meta { color: var(--muted); font-size: 0.86rem; }
+.doc .credit { margin-top: 3rem; color: var(--muted); font-size: 0.8rem; }
 .doc-index { margin: 0 0 1rem; }
 .doc-index dt { margin-top: 0.8rem; font-weight: 600; }
 .doc-index dd { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.9rem; }

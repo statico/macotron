@@ -7,6 +7,9 @@ Native macOS host for JavaScript plugins.
 - [Home](/)
 - [Docs](/docs/)
 - [Glossary](/glossary.html)
+- [Privacy Policy](/privacy.html)
+- [Terms of Use](/terms.html)
+- [Security Policy](/security.html)
 - [AGENTS.md](/AGENTS.md)
 - [Sitemap](/sitemap.xml)
 

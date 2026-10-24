@@ -176,6 +176,8 @@ Plugins can define secrets that are stored in the Keychain instead of on disk.
 
 Updates are signed. Macotron only installs one that verifies against the key inside the copy you already have, so a hijacked download can't replace it.
 
+To report a vulnerability, see [SECURITY.md](SECURITY.md).
+
 ## Contributing
 
 Due to the hopelessness of reviewing code contributions in the AI era, pull requests have been disabled. Instead, file an issue to report a bug or request a feature.
@@ -205,6 +207,8 @@ For more information, refer to the plans and documentation in `docs/`.
 
 Macotron is MIT licensed. See [LICENSE](LICENSE).
 
+The website and app are also covered by the [Privacy Policy](https://macotron.statico.io/privacy.html) and [Terms of Use](https://macotron.statico.io/terms.html). The MIT License governs the code.
+
 ### Third-party code
 
 | Component | Location | License |
@@ -216,3 +220,7 @@ Macotron is MIT licensed. See [LICENSE](LICENSE).
 QuickJS-ng is the only vendored dependency. It ships here as an amalgamated `quickjs-amalgam.c` plus headers, with the upstream copyright notices intact in the source: Fabrice Bellard, Charlie Gordon, Ben Noordhuis, Saúl Ibarra Corretgé, and Marcin Kolny. The vendored version is whatever `QJS_VERSION_*` in `Vendor/quickjs-ng/include/quickjs.h` says. `quickjs-swift-helpers.c` is Macotron's own shim, not upstream code.
 
 Sparkle is the only Swift package dependency. The `macotron-index` binary is built from `Indexer/` and pulls a handful of crates from crates.io (`serde`, `serde_json`, `ignore`, `notify`, `libc`, `memchr`, `unicode-normalization`). Everything else is first-party Swift or an Apple-shipped framework. Nothing at runtime needs Homebrew or npm: plugins use `macotron.*` and Apple-shipped tools only.
+
+## Credits
+
+Made by [Ian Langworth](https://langworth.com) ([@statico](https://github.com/statico)).
