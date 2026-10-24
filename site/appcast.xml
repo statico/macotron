@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>0.9.2</title>
+            <sparkle:version>0.9.2</sparkle:version>
+            <sparkle:shortVersionString>0.9.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Sat, 24 Oct 2026 04:24:03 +0000</pubDate>
+            <description><![CDATA[<ul><li>README: release, downloads, macOS, Swift and license shields</li><li>Battery: show Not charging when the adapter is in but the battery is held</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v0.9.2/Macotron-0.9.2.dmg" type="application/octet-stream" sparkle:edSignature="7MNXQ8H15ra72OB0ZhktyofxGqXFmDNOXsxewOkIMo+FYXWSjeqiqzcrcuSM/nwpaQ9jc9HX44GF+s0j0OtnDA==" length="10527413" />
+        </item>
+        <item>
             <title>0.9.1</title>
             <sparkle:version>0.9.1</sparkle:version>
             <sparkle:shortVersionString>0.9.1</sparkle:shortVersionString>
