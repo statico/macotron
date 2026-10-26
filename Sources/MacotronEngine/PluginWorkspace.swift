@@ -76,22 +76,15 @@ public final class PluginWorkspace {
 
         try mergeGitignore()
 
+        // Inside another repo (a dotfiles checkout, say), a nested `git init`
+        // would capture every git command run from the workdir.
         let gitDir = root.appending(path: ".git")
-        if !fm.fileExists(atPath: gitDir.path(percentEncoded: false)), Self.gitIsUsable() {
-            let proc = Process()
-            proc.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-            proc.arguments = ["init"]
-            proc.currentDirectoryURL = root
-            proc.standardOutput = FileHandle.nullDevice
-            proc.standardError = FileHandle.nullDevice
-            do {
-                try proc.run()
-                proc.waitUntilExit()
-                if proc.terminationStatus != 0 {
-                    logger.error("git init failed with status \(proc.terminationStatus)")
-                }
-            } catch {
-                logger.error("git init skipped: \(error.localizedDescription)")
+        if !fm.fileExists(atPath: gitDir.path(percentEncoded: false)), Self.gitIsUsable(),
+           Self.run("/usr/bin/git", ["rev-parse", "--is-inside-work-tree"], in: root) != 0 {
+            switch Self.run("/usr/bin/git", ["init"], in: root) {
+            case 0: break
+            case let status?: logger.error("git init failed with status \(status)")
+            case nil: logger.error("git init skipped: git did not launch")
             }
         }
 
@@ -188,18 +181,20 @@ public final class PluginWorkspace {
 
     /// Real git, not the Xcode CLT stub. Workdir still works without it.
     private static func gitIsUsable() -> Bool {
+        run("/usr/bin/xcode-select", ["-p"]) == 0
+    }
+
+    /// Exit status, or nil when the tool can't launch.
+    private static func run(_ path: String, _ arguments: [String], in dir: URL? = nil) -> Int32? {
         let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: "/usr/bin/xcode-select")
-        proc.arguments = ["-p"]
+        proc.executableURL = URL(fileURLWithPath: path)
+        proc.arguments = arguments
+        proc.currentDirectoryURL = dir
         proc.standardOutput = FileHandle.nullDevice
         proc.standardError = FileHandle.nullDevice
-        do {
-            try proc.run()
-            proc.waitUntilExit()
-            return proc.terminationStatus == 0
-        } catch {
-            return false
-        }
+        guard (try? proc.run()) != nil else { return nil }
+        proc.waitUntilExit()
+        return proc.terminationStatus
     }
 
     /// Copy bundle `macotron.d.ts` and seed `.cache/jsconfig.json` for agent typecheck.

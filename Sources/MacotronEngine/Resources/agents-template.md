@@ -388,7 +388,8 @@ Disabled plugins stay on disk but are not loaded; manage them in Settings → Pl
 Commit often on `main`. Never commit secrets (API keys, tokens, passwords).
 Declare `password` options and let the user set them in Settings, or store
 secrets with `macotron.keychain`. Macotron runs `git init` only when Apple
-developer tools are already installed. Git is optional.
+developer tools are already installed and the workdir is not already inside
+a git repository. If it is, commit to that repository. Git is optional.
 
 ## AI from plugins
 

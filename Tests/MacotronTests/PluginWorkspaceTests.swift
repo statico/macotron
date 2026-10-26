@@ -89,4 +89,22 @@ struct PluginWorkspaceTests {
         let expected = "data/\nAGENTS.md\nCLAUDE.md\n.cache/\nbackups/\n"
         #expect(try String(contentsOf: url, encoding: .utf8) == expected)
     }
+
+    @Test @MainActor
+    func noNestedGitInit() throws {
+        let outer = FileManager.default.temporaryDirectory
+            .appending(path: "macotron-outer-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let dir = outer.appending(path: "macotron", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: outer) }
+        let git = Process()
+        git.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        git.arguments = ["init", "-q", outer.path(percentEncoded: false)]
+        try git.run()
+        git.waitUntilExit()
+
+        try PluginWorkspace(root: dir).ensureReady()
+
+        #expect(!FileManager.default.fileExists(atPath: dir.appending(path: ".git").path(percentEncoded: false)))
+    }
 }
