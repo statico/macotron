@@ -228,9 +228,10 @@ public final class ModuleManager {
         pendingReview.remove(filename)
 
         // Cache name embeds the source hash: any planted or stale bytecode
-        // whose name doesn't match the current source is never read.
+        // whose name doesn't match the current source is never read. `.src.bc`
+        // marks caches that keep function source; older `.iife.bc` ones didn't.
         let sourceHash = PluginHash.sha256(source: source)
-        let cachePath = cacheDir.appending(path: "\(filename).\(sourceHash).iife.bc")
+        let cachePath = cacheDir.appending(path: "\(filename).\(sourceHash).src.bc")
 
         switch PluginNeeds.parse(source) {
         case .failure(let error):
@@ -277,7 +278,7 @@ public final class ModuleManager {
         )) ?? []
         for file in files {
             let name = file.lastPathComponent
-            if name.hasPrefix(filename + "."), name.hasSuffix(".iife.bc"), name != keeping {
+            if name.hasPrefix(filename + "."), name.hasSuffix(".bc"), name != keeping {
                 try? FileManager.default.removeItem(at: file)
             }
         }

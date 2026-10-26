@@ -60,13 +60,24 @@ struct BytecodeCacheTests {
 
         try Data().write(to: ws.cacheDir.appending(path: "good.js.iife.bc"))
         try Data().write(to: ws.cacheDir.appending(path: "good.js.deadbeef.iife.bc"))
+        try Data().write(to: ws.cacheDir.appending(path: "good.js.\(PluginHash.sha256(source: goodSource)).iife.bc"))
 
         manager.reloadAll()
 
-        let expected = "good.js.\(PluginHash.sha256(source: goodSource)).iife.bc"
+        let expected = "good.js.\(PluginHash.sha256(source: goodSource)).src.bc"
         let caches = try FileManager.default
             .contentsOfDirectory(atPath: ws.cacheDir.path(percentEncoded: false))
-            .filter { $0.hasSuffix(".iife.bc") }
+            .filter { $0.hasSuffix(".bc") }
         #expect(caches == [expected])
+    }
+
+    @Test("function source survives a cache round trip")
+    func toStringSurvivesBytecode() throws {
+        let engine = Engine()
+        let bc = try #require(engine.compileToBytecode(
+            "function hello() { return 1 }\nglobalThis.src = hello.toString();", filename: "t.js"))
+        let fresh = Engine()
+        _ = fresh.evaluateBytecode(bc, filename: "t.js")
+        #expect(fresh.evaluate("globalThis.src").0 == "function hello() { return 1 }")
     }
 }

@@ -77,8 +77,8 @@ uint8_t *QJS_CompileToBytecode(JSContext *ctx, const char *source, size_t source
         *out_len = 0;
         return NULL;
     }
-    int flags = JS_WRITE_OBJ_BYTECODE | JS_WRITE_OBJ_STRIP_SOURCE;
-    uint8_t *buf = JS_WriteObject(ctx, out_len, obj, flags);
+    // Keep function source: plugins build panel pages from fn.toString().
+    uint8_t *buf = JS_WriteObject(ctx, out_len, obj, JS_WRITE_OBJ_BYTECODE);
     JS_FreeValue(ctx, obj);
     return buf;
 }
