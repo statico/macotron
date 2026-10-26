@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>1.0.1</title>
+            <sparkle:version>1.0.1</sparkle:version>
+            <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Mon, 26 Oct 2026 15:52:04 +0000</pubDate>
+            <description><![CDATA[<ul><li>Releasing: only the workflow bot's API commits are signed</li><li>README: captioned demo video as an animated AVIF, with the GIF as fallback</li><li>Terms and privacy: Alameda County venue and a mailing address</li><li>Demo video: reshoot clipboard and emoji on Macotron 1.0</li><li>Bytecode cache keeps function source, so fn.toString() works after launch</li><li>Workdir .gitignore: add missing lines, keep the user's, ignore backups/</li><li>Skip git init when the workdir is already inside a git repository</li><li>Plugin rename migration no longer writes defaults over unreadable settings</li><li>Settings and .gitignore writes keep a dotfiles symlink in place</li><li>Workdir .gitignore merge leaves unreadable files and negated lines alone</li><li>Settings cache sees edits made through a symlinked settings.json</li><li>Workspace: inline the one-line gitIsUsable wrapper</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v1.0.1/Macotron-1.0.1.dmg" type="application/octet-stream" sparkle:edSignature="SsAezlFrlRaNZfjA/1zxxqUEl5SmWsL5OyVZQDzGQVcV2SzRB3foCLD4vTE1RIkWJAeymOmf4HPvKeXnNNQKAA==" length="10528667" />
+        </item>
+        <item>
             <title>1.0.0</title>
             <sparkle:version>1.0.0</sparkle:version>
             <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
