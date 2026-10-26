@@ -65,7 +65,7 @@ public final class PluginWorkspace {
 
     // MARK: - Ensure ready
 
-    /// Create layout, git repo, seed README once, always rewrite AGENTS.md + CLAUDE.md.
+    /// Create layout, git repo, seed README once, merge .gitignore, always rewrite AGENTS.md + CLAUDE.md.
     public func ensureReady() throws {
         let fm = FileManager.default
         try fm.createDirectory(at: pluginsDir, withIntermediateDirectories: true)
@@ -74,8 +74,7 @@ public final class PluginWorkspace {
         try seedTypecheckCache()
         migrateLegacyModulesIfNeeded()
 
-        let gitignore = root.appending(path: ".gitignore")
-        try Self.gitignoreContents.write(to: gitignore, atomically: true, encoding: .utf8)
+        try mergeGitignore()
 
         let gitDir = root.appending(path: ".git")
         if !fm.fileExists(atPath: gitDir.path(percentEncoded: false)), Self.gitIsUsable() {
@@ -329,11 +328,19 @@ public final class PluginWorkspace {
         "launcherFavorites": [] as [String],
     ]
 
-    public static let gitignoreContents = """
-    AGENTS.md
-    CLAUDE.md
-    .cache/
-    """
+    public static let gitignoreLines = ["AGENTS.md", "CLAUDE.md", ".cache/", "backups/"]
+
+    /// Append whichever of Macotron's ignore lines are missing, keeping the user's own.
+    private func mergeGitignore() throws {
+        let url = root.appending(path: ".gitignore")
+        let existing = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        let have = Set(existing.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) })
+        let missing = Self.gitignoreLines.filter { !have.contains($0) }
+        guard !missing.isEmpty else { return }
+        let separator = existing.isEmpty || existing.hasSuffix("\n") ? "" : "\n"
+        try (existing + separator + missing.joined(separator: "\n") + "\n")
+            .write(to: url, atomically: true, encoding: .utf8)
+    }
 
     public static let agentsBanner = "<!-- DO NOT EDIT — Macotron overwrites this file. -->"
 

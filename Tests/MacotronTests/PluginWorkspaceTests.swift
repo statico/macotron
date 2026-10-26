@@ -71,4 +71,22 @@ struct PluginWorkspaceTests {
         #expect(agents.contains("macotron.checks"))
         #expect(!agents.contains("npx"))
     }
+
+    @Test @MainActor
+    func gitignoreKeepsUserLines() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appending(path: "macotron-ws-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appending(path: ".gitignore")
+        // The 1.0 file: Macotron's three lines and no trailing newline.
+        try "data/\nAGENTS.md\nCLAUDE.md\n.cache/".write(to: url, atomically: true, encoding: .utf8)
+
+        let ws = PluginWorkspace(root: dir)
+        try ws.ensureReady()
+        try ws.ensureReady()
+
+        let expected = "data/\nAGENTS.md\nCLAUDE.md\n.cache/\nbackups/\n"
+        #expect(try String(contentsOf: url, encoding: .utf8) == expected)
+    }
 }

@@ -12,6 +12,8 @@ Macotron loads the plugins and runs them. The app does not write plugin code.
 - `.cache/` — bytecode cache and typecheck config. Gitignored. Do not edit.
   `.cache/macotron.d.ts` is the full typed API; read it before guessing at a call.
 - `AGENTS.md` / `CLAUDE.md` — owned by Macotron. Overwritten on every launch.
+- `backups/` — copies of plugins deleted from Settings. Gitignored.
+- `.gitignore` — Macotron adds its own lines if they are missing and keeps the rest.
 
 ## Example plugins
 
