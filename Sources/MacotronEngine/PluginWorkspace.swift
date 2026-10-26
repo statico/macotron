@@ -296,7 +296,8 @@ public final class PluginWorkspace {
             withJSONObject: settings,
             options: [.prettyPrinted, .sortedKeys]
         )
-        try data.write(to: settingsFile, options: .atomic)
+        // Resolved first: an atomic write would replace a dotfiles symlink with a plain file.
+        try data.write(to: settingsFile.resolvingSymlinksInPath(), options: .atomic)
         settingsCache = nil
     }
 
@@ -336,7 +337,7 @@ public final class PluginWorkspace {
         guard !missing.isEmpty else { return }
         let separator = existing.isEmpty || existing.hasSuffix("\n") ? "" : "\n"
         try (existing + separator + missing.joined(separator: "\n") + "\n")
-            .write(to: url, atomically: true, encoding: .utf8)
+            .write(to: url.resolvingSymlinksInPath(), atomically: true, encoding: .utf8)
     }
 
     public static let agentsBanner = "<!-- DO NOT EDIT — Macotron overwrites this file. -->"

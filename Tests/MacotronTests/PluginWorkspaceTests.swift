@@ -109,6 +109,24 @@ struct PluginWorkspaceTests {
     }
 
     @Test @MainActor
+    func settingsWriteKeepsSymlink() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appending(path: "macotron-ws-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let real = dir.appending(path: "dotfiles-settings.json")
+        try "{}".write(to: real, atomically: true, encoding: .utf8)
+        let ws = PluginWorkspace(root: dir)
+        try FileManager.default.createSymbolicLink(at: ws.settingsFile, withDestinationURL: real)
+
+        try ws.writeSettings(["a": 1])
+
+        let link = try FileManager.default.destinationOfSymbolicLink(atPath: ws.settingsFile.path(percentEncoded: false))
+        #expect(link == real.path(percentEncoded: false))
+        #expect(try String(contentsOf: real, encoding: .utf8).contains("\"a\""))
+    }
+
+    @Test @MainActor
     func renameMigrationLeavesUnreadableSettings() throws {
         let dir = FileManager.default.temporaryDirectory
             .appending(path: "macotron-ws-\(UUID().uuidString)", directoryHint: .isDirectory)
