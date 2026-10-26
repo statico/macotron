@@ -79,7 +79,9 @@ public final class PluginWorkspace {
         // Inside another repo (a dotfiles checkout, say), a nested `git init`
         // would capture every git command run from the workdir.
         let gitDir = root.appending(path: ".git")
-        if !fm.fileExists(atPath: gitDir.path(percentEncoded: false)), Self.gitIsUsable(),
+        // xcode-select: real git, not the Xcode CLT stub. Workdir still works without it.
+        if !fm.fileExists(atPath: gitDir.path(percentEncoded: false)),
+           Self.run("/usr/bin/xcode-select", ["-p"]) == 0,
            Self.run("/usr/bin/git", ["rev-parse", "--is-inside-work-tree"], in: root) != 0 {
             switch Self.run("/usr/bin/git", ["init"], in: root) {
             case 0: break
@@ -179,11 +181,6 @@ public final class PluginWorkspace {
                 )
             }
         }
-    }
-
-    /// Real git, not the Xcode CLT stub. Workdir still works without it.
-    private static func gitIsUsable() -> Bool {
-        run("/usr/bin/xcode-select", ["-p"]) == 0
     }
 
     /// Exit status, or nil when the tool can't launch.
