@@ -261,7 +261,7 @@ public final class PluginWorkspace {
 
     public func readSettings() -> [String: Any] {
         let stamp = (try? FileManager.default.attributesOfItem(
-            atPath: settingsFile.path(percentEncoded: false)
+            atPath: settingsFile.resolvingSymlinksInPath().path(percentEncoded: false)
         )) ?? [:]
         if let cached = settingsCache,
            cached.stamp[FileAttributeKey.modificationDate] as? Date

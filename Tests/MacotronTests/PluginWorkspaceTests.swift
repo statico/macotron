@@ -129,7 +129,11 @@ struct PluginWorkspaceTests {
         let ws = PluginWorkspace(root: dir)
         try FileManager.default.createSymbolicLink(at: ws.settingsFile, withDestinationURL: real)
 
+        _ = ws.readSettings()
         try ws.writeSettings(["a": 1])
+        #expect(ws.readSettings()["a"] as? Int == 1)
+        try #"{"a": 22}"#.write(to: real, atomically: true, encoding: .utf8)
+        #expect(ws.readSettings()["a"] as? Int == 22)
 
         let link = try FileManager.default.destinationOfSymbolicLink(atPath: ws.settingsFile.path(percentEncoded: false))
         #expect(link == real.path(percentEncoded: false))
