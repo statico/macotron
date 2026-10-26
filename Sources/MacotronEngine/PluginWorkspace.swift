@@ -117,8 +117,7 @@ public final class PluginWorkspace {
         hashStore: PluginHashStore = PluginTrust.store
     ) {
         let fm = FileManager.default
-        var settings = readSettings()
-        var moved = false
+        var moved: [(String, String)] = []
 
         for (oldName, newName) in renames.sorted(by: { $0.key < $1.key }) {
             let src = pluginsDir.appending(path: oldName)
@@ -134,14 +133,17 @@ public final class PluginWorkspace {
                 logger.error("Failed to migrate \(oldName) to \(newName): \(error.localizedDescription)")
                 continue
             }
-            rewriteStoredNames(&settings, oldName: oldName, newName: newName)
             PluginTrust.migrateHash(from: oldName, to: newName, store: hashStore)
-            moved = true
+            moved.append((oldName, newName))
         }
 
-        guard moved else { return }
+        guard !moved.isEmpty else { return }
         do {
-            try writeSettings(settings)
+            try updateSettings { settings in
+                for (oldName, newName) in moved {
+                    rewriteStoredNames(&settings, oldName: oldName, newName: newName)
+                }
+            }
         } catch {
             logger.error("Failed to save settings after migrating names: \(error.localizedDescription)")
         }

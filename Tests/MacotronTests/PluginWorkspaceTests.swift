@@ -107,4 +107,19 @@ struct PluginWorkspaceTests {
 
         #expect(!FileManager.default.fileExists(atPath: dir.appending(path: ".git").path(percentEncoded: false)))
     }
+
+    @Test @MainActor
+    func renameMigrationLeavesUnreadableSettings() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appending(path: "macotron-ws-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let ws = PluginWorkspace(root: dir)
+        try FileManager.default.createDirectory(at: ws.pluginsDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try "".write(to: ws.pluginsDir.appending(path: "demo-weather.js"), atomically: true, encoding: .utf8)
+        try "{ half-written".write(to: ws.settingsFile, atomically: true, encoding: .utf8)
+
+        ws.migratePluginNames(["demo-weather.js": "weather.js"], hashStore: MemoryHashStore())
+
+        #expect(try String(contentsOf: ws.settingsFile, encoding: .utf8) == "{ half-written")
+    }
 }
