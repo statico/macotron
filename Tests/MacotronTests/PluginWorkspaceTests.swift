@@ -79,15 +79,25 @@ struct PluginWorkspaceTests {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let url = dir.appending(path: ".gitignore")
-        // The 1.0 file: Macotron's three lines and no trailing newline.
-        try "data/\nAGENTS.md\nCLAUDE.md\n.cache/".write(to: url, atomically: true, encoding: .utf8)
-
         let ws = PluginWorkspace(root: dir)
-        try ws.ensureReady()
-        try ws.ensureReady()
+        func contents() throws -> String { try String(contentsOf: url, encoding: .utf8) }
 
-        let expected = "data/\nAGENTS.md\nCLAUDE.md\n.cache/\nbackups/\n"
-        #expect(try String(contentsOf: url, encoding: .utf8) == expected)
+        // The 1.0 file, plus a user line: Macotron's three lines and no trailing newline.
+        try "data/\nAGENTS.md\nCLAUDE.md\n.cache/".write(to: url, atomically: true, encoding: .utf8)
+        try ws.ensureReady()
+        try ws.ensureReady()
+        #expect(try contents() == "data/\nAGENTS.md\nCLAUDE.md\n.cache/\nbackups/\n")
+
+        // A negated line counts as present.
+        try "!backups/\nAGENTS.md\nCLAUDE.md\n.cache/\n".write(to: url, atomically: true, encoding: .utf8)
+        try ws.ensureReady()
+        #expect(try contents() == "!backups/\nAGENTS.md\nCLAUDE.md\n.cache/\n")
+
+        // Not UTF-8: left alone, not overwritten.
+        let latin1 = Data("# caf".utf8) + Data([0xE9, 0x0A])
+        try latin1.write(to: url)
+        try ws.ensureReady()
+        #expect(try Data(contentsOf: url) == latin1)
     }
 
     @Test @MainActor

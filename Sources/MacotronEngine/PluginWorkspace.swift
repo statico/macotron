@@ -326,14 +326,17 @@ public final class PluginWorkspace {
         "launcherFavorites": [] as [String],
     ]
 
-    public static let gitignoreLines = ["AGENTS.md", "CLAUDE.md", ".cache/", "backups/"]
+    private static let gitignoreLines = ["AGENTS.md", "CLAUDE.md", ".cache/", "backups/"]
 
     /// Append whichever of Macotron's ignore lines are missing, keeping the user's own.
+    /// A line the user negated (`!backups/`) counts as present.
     private func mergeGitignore() throws {
         let url = root.appending(path: ".gitignore")
-        let existing = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        let exists = FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
+        // Unreadable or not UTF-8: leave it alone rather than write over it.
+        guard let existing = exists ? try? String(contentsOf: url, encoding: .utf8) : "" else { return }
         let have = Set(existing.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) })
-        let missing = Self.gitignoreLines.filter { !have.contains($0) }
+        let missing = Self.gitignoreLines.filter { !have.contains($0) && !have.contains("!" + $0) }
         guard !missing.isEmpty else { return }
         let separator = existing.isEmpty || existing.hasSuffix("\n") ? "" : "\n"
         try (existing + separator + missing.joined(separator: "\n") + "\n")
