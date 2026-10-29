@@ -342,6 +342,17 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
             name: NSWindow.didResignKeyNotification,
             object: p
         )
+        if fullscreen {
+            // A display change leaves the panel at the old screen's frame:
+            // wrong size, its buttons possibly off every screen, and still
+            // covering what's underneath.
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(screensDidChange),
+                name: NSApplication.didChangeScreenParametersNotification,
+                object: nil
+            )
+        }
     }
 
     private static func embed(_ webView: WKWebView, glass: PanelGlass, size: NSSize, frameless: Bool, fullscreen: Bool = false) -> NSView {
@@ -393,10 +404,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
             panel.level = .statusBar
             panel.hasShadow = false
             let point = NSEvent.mouseLocation
-            let screen = NSScreen.screens.first { $0.frame.contains(point) } ?? NSScreen.main
-            if let screen {
-                panel.setFrame(screen.frame, display: true)
-            }
+            fit(to: NSScreen.screens.first { $0.frame.contains(point) })
         } else {
             panel.center()
         }
@@ -407,6 +415,16 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
             self?.focusDefaultField()
             DispatchQueue.main.async { self?.blurArmed = true }
         }
+    }
+
+    private func fit(to screen: NSScreen?) {
+        if let screen = screen ?? NSScreen.main {
+            panel.setFrame(screen.frame, display: true)
+        }
+    }
+
+    @objc private func screensDidChange(_ notification: Notification) {
+        fit(to: panel.screen)
     }
 
     /// Reveal an already-open panel without reloading its page.
@@ -541,6 +559,7 @@ final class PanelHost: NSObject, WKScriptMessageHandler, WKUIDelegate, WKNavigat
         NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: panel)
         NotificationCenter.default.removeObserver(self, name: NSWindow.didBecomeKeyNotification, object: panel)
         NotificationCenter.default.removeObserver(self, name: NSWindow.didResignKeyNotification, object: panel)
+        NotificationCenter.default.removeObserver(self, name: NSApplication.didChangeScreenParametersNotification, object: nil)
     }
 
     private func handleKey(_ event: NSEvent) -> Bool {
