@@ -47,6 +47,8 @@ struct ToastLayoutTests {
         #expect(ToastLayout.line("Copied", "  ") == "Copied")
         // A title that brings its own colon must not end up with two.
         #expect(ToastLayout.line("Tiles:", "moved") == "Tiles: moved")
+        // A sentence title runs on instead of gaining ".:".
+        #expect(ToastLayout.line("Hidden.", "Make room.") == "Hidden. Make room.")
     }
 
     @Test("success is green")

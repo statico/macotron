@@ -56,6 +56,8 @@ enum ToastLayout {
     static func line(_ title: String, _ body: String?) -> String {
         let extra = body?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if extra.isEmpty { return title }
+        // A title that is already a sentence reads on into the body.
+        if let last = title.last, ".!?".contains(last) { return "\(title) \(extra)" }
         // A toast is one line, so the title needs a separator to read as a
         // label. Plugins pass a name as the title, such as "Tiles", and a
         // sentence as the body.
@@ -171,7 +173,7 @@ public final class ToastHost {
     private func makePanel() -> NSPanel {
         let title = NSTextField(labelWithString: "")
         title.font = .systemFont(ofSize: 15, weight: .medium)
-        title.alignment = .center
+        title.alignment = .natural
         title.lineBreakMode = .byWordWrapping
         title.maximumNumberOfLines = 0
         title.usesSingleLineMode = false
@@ -193,10 +195,10 @@ public final class ToastHost {
         let row = NSStackView(views: [icon, title])
         row.orientation = .horizontal
         row.alignment = .centerY
-        row.spacing = 8
+        row.spacing = 10
         // A wrapped message needs room above and below, or the two lines sit
         // against the edge of the panel.
-        row.edgeInsets = NSEdgeInsets(top: 12, left: 18, bottom: 12, right: 18)
+        row.edgeInsets = NSEdgeInsets(top: 16, left: 22, bottom: 16, right: 22)
         row.translatesAutoresizingMaskIntoConstraints = false
         self.row = row
 
@@ -244,7 +246,7 @@ public final class ToastHost {
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView(frame: .zero)
             glass.style = .regular
-            glass.cornerRadius = 18
+            glass.cornerRadius = 22
             glass.contentView = box
             return glass
         }
@@ -253,7 +255,7 @@ public final class ToastHost {
         visual.state = .active
         visual.blendingMode = .behindWindow
         visual.wantsLayer = true
-        visual.layer?.cornerRadius = 18
+        visual.layer?.cornerRadius = 22
         visual.layer?.masksToBounds = true
         visual.addSubview(box)
         box.translatesAutoresizingMaskIntoConstraints = false
@@ -270,7 +272,7 @@ public final class ToastHost {
         let anchor = ToastAnchor.rect()
         // The text may use the panel width less the insets, the icon, and the
         // gap beside it. Keep this in step with makePanel.
-        let chrome: CGFloat = 18 * 2 + 18 + 8
+        let chrome: CGFloat = 22 * 2 + 18 + 10
         titleField?.preferredMaxLayoutWidth = min(
             ToastLayout.maxWidth - chrome,
             max(80, anchor.width - ToastLayout.margin * 2 - chrome)
