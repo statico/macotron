@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>1.0.3</title>
+            <sparkle:version>1.0.3</sparkle:version>
+            <sparkle:shortVersionString>1.0.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Fri, 30 Oct 2026 03:41:33 +0000</pubDate>
+            <description><![CDATA[<ul><li>Toasts: more padding, no ".:" joins</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v1.0.3/Macotron-1.0.3.dmg" type="application/octet-stream" sparkle:edSignature="Zi/+yr2LYSsk6h1VmEg0AyC4ZeB3gKn/CS7UaevwiJirZDyBaI3thnS7z3+5+QOP8dKcUqBfGCmNm478corvAw==" length="10529708" />
+        </item>
+        <item>
             <title>1.0.2</title>
             <sparkle:version>1.0.2</sparkle:version>
             <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
