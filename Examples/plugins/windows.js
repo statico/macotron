@@ -141,11 +141,35 @@ function neighborDisplay(current, delta) {
     return displays[(Math.max(i, 0) + delta + displays.length) % displays.length].id;
 }
 
+// Keep the window's place on its screen: the left half of one display lands
+// on the left half of the next. Display frames are Cocoa (bottom-left), window
+// frames top-left, so flip by the height of the display at the origin.
 function moveToDisplay(delta) {
     const win = macotron.window.focused();
-    if (win) {
-        macotron.window.moveToFraction(win.id, { x: 0, y: 0, w: 1, h: 1, display: neighborDisplay(win.display, delta), gap: opts.gap });
+    if (!win) return;
+    const target = neighborDisplay(win.display, delta);
+    const displays = macotron.display.list();
+    const here = displays.find((d) => d.id === win.display);
+    const main = displays.find((d) => d.frame.x === 0 && d.frame.y === 0);
+    let frac = { x: 0, y: 0, w: 1, h: 1 };
+    if (here && main) {
+        const v = here.visibleFrame;
+        const top = main.frame.height - v.y - v.height;
+        const clamp = (n) => Math.min(1, Math.max(0, n));
+        // moveToFraction pads every side by the gap, so measure the padded
+        // tile or each hop would shrink the window.
+        const g = opts.gap || 0;
+        const f = win.frame;
+        const w = clamp((f.width + 2 * g) / v.width);
+        const h = clamp((f.height + 2 * g) / v.height);
+        frac = {
+            x: Math.min(clamp((f.x - g - v.x) / v.width), 1 - w),
+            y: Math.min(clamp((f.y - g - top) / v.height), 1 - h),
+            w,
+            h,
+        };
     }
+    macotron.window.moveToFraction(win.id, Object.assign({ display: target, gap: opts.gap }, frac));
 }
 
 macotron.keyboard.on("Left Half", "ctrl+opt+left", () => cycle("left", [LEFT_HALF, RIGHT_HALF], 0));

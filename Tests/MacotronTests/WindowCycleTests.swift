@@ -65,6 +65,42 @@ struct WindowCycleTests {
         _ = PluginHarness.run(e, "__win.number = 200")
         #expect(Self.press(e, "Left Half") == "1:0,0,0.5,1")
     }
+
+    /// Display A is main (1000×800, a 25pt menu bar); B sits at `b`.
+    static func moveToDisplay(window: String, b: String) throws -> String {
+        let e = try PluginHarness.load(plugin: "windows.js", mock: Self.mock)
+        return PluginHarness.run(e, """
+            macotron.display.list = () => [
+                { id: 1, frame: { x: 0, y: 0, width: 1000, height: 800 }, visibleFrame: { x: 0, y: 0, width: 1000, height: 775 } },
+                { id: 2, frame: \(b), visibleFrame: \(b) },
+            ];
+            __win.frame = \(window);
+            var __to = null;
+            macotron.window.moveToFraction = (id, f) => { __to = [f.display, f.x, f.y, f.w, f.h].join(","); return true; };
+            __keys["Next Display"](); __to
+            """)
+    }
+
+    @Test("the left half of one display lands on the left half of the next")
+    func sideBySide() throws {
+        #expect(try Self.moveToDisplay(
+            window: "{ x: 0, y: 25, width: 500, height: 775 }",
+            b: "{ x: 1000, y: 0, width: 1000, height: 800 }") == "2,0,0,0.5,1")
+    }
+
+    @Test("a display stacked above keeps the quarter")
+    func stacked() throws {
+        #expect(try Self.moveToDisplay(
+            window: "{ x: 0, y: 25, width: 500, height: 387.5 }",
+            b: "{ x: 0, y: 800, width: 1000, height: 800 }") == "2,0,0,0.5,0.5")
+    }
+
+    @Test("a window bigger than its display is clamped to the whole screen")
+    func clamped() throws {
+        #expect(try Self.moveToDisplay(
+            window: "{ x: -100, y: 0, width: 1200, height: 900 }",
+            b: "{ x: 1000, y: 0, width: 1000, height: 800 }") == "2,0,0,1,1")
+    }
 }
 
 private func js(_ string: String) -> String {

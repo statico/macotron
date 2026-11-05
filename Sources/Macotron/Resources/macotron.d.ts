@@ -156,6 +156,7 @@ declare const macotron: {
             minimized: boolean;
             /** The window server's own number. Unlike `id`, it survives a retitle, a raise, and another window closing. Host API 1.5 and newer. */
             number?: number;
+            /** Screen points, origin at the top-left of the main display, +y down. Same space as `move`. */
             frame: { x: number; y: number; width: number; height: number };
         }>;
         focused(): {
@@ -168,6 +169,7 @@ declare const macotron: {
             minimized: boolean;
             /** The window server's own number. Unlike `id`, it survives a retitle, a raise, and another window closing. Host API 1.5 and newer. */
             number?: number;
+            /** Screen points, origin at the top-left of the main display, +y down. Same space as `move`. */
             frame: { x: number; y: number; width: number; height: number };
         } | null;
         /** Raise, unminimize, and activate the window's app. */
@@ -974,7 +976,9 @@ declare const macotron: {
             width: number;
             height: number;
             main: boolean;
+            /** Cocoa screen points: origin at the bottom-left of the main display, +y up. Window frames are top-left; flip with the main display's height. */
             frame: { x: number; y: number; width: number; height: number };
+            /** `frame` minus the menu bar and Dock, in the same bottom-left space. */
             visibleFrame: { x: number; y: number; width: number; height: number };
             scale: number;
             rotation: number;
