@@ -1,6 +1,6 @@
 //! Newline-delimited JSON over stdin/stdout. See docs/12-file-index.md.
 
-use macotron_index::{apply, mtime_of, trace, Config, Hit, Index, Query};
+use macotron_index::{apply, mtime_of, trace, Config, Hit, Index, Query, REWALK_ABOVE};
 use notify::{RecursiveMode, Watcher};
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -14,7 +14,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 const QUIET: Duration = Duration::from_millis(500);
 const MAX_BURST: Duration = Duration::from_secs(5);
-const REWALK_ABOVE: usize = 10_000;
+/// Minimum gap between a finished build and a rewalk it triggers, so steady
+/// churn cannot keep the CPU in back-to-back walks.
+const REWALK_GAP: Duration = Duration::from_secs(60);
 
 fn yes() -> bool {
     true
@@ -66,7 +68,9 @@ fn start_build(shared: &Arc<Shared>, cfg: Config) {
 
 /// Builds the index, swaps it in, then watches the roots until superseded.
 /// The watcher starts before the walk so nothing changed mid-walk is missed.
+/// A superseded build stops walking as soon as it notices.
 fn run(shared: Arc<Shared>, cfg: Config, gen: u64) {
+    let stale = || shared.gen.load(SeqCst) != gen;
     let (tx, rx) = mpsc::channel();
     let mut watcher = notify::recommended_watcher(move |r| {
         let _ = tx.send(r);
@@ -75,7 +79,8 @@ fn run(shared: Arc<Shared>, cfg: Config, gen: u64) {
     .ok();
     let mut watching = watcher.is_some();
     if let Some(w) = &mut watcher {
-        for r in &cfg.roots {
+        // A nested root's events already arrive through its outer root.
+        for r in cfg.roots.iter().filter(|r| !cfg.roots.iter().any(|o| o != *r && r.starts_with(o))) {
             if let Err(e) = w.watch(r, RecursiveMode::Recursive) {
                 trace!("watch {}: {e}", r.display());
                 watching = false;
@@ -83,16 +88,17 @@ fn run(shared: Arc<Shared>, cfg: Config, gen: u64) {
         }
     }
     let t = Instant::now();
-    let idx = Index::build(&cfg);
+    let idx = Index::build_until(&cfg, &stale);
     trace!("built {} entries in {:?}, rss {} MB", idx.len(), t.elapsed(), macotron_index::resident_bytes() >> 20);
     {
         // Lock first: a newer build that already landed must not be overwritten.
         let mut w = shared.index.write().unwrap_or_else(|e| e.into_inner());
-        if shared.gen.load(SeqCst) != gen {
+        if stale() {
             return;
         }
         *w = idx;
     }
+    let built = Instant::now();
     shared.last_indexed.store(now(), SeqCst);
     shared.indexing.store(false, SeqCst);
     shared.watching.store(watching, SeqCst);
@@ -100,7 +106,7 @@ fn run(shared: Arc<Shared>, cfg: Config, gen: u64) {
         return;
     }
     loop {
-        if shared.gen.load(SeqCst) != gen {
+        if stale() {
             return;
         }
         let first = match rx.recv_timeout(Duration::from_secs(1)) {
@@ -114,7 +120,9 @@ fn run(shared: Arc<Shared>, cfg: Config, gen: u64) {
         let mut absorb = |ev: notify::Result<notify::Event>, paths: &mut HashSet<PathBuf>| match ev {
             Ok(ev) => {
                 rescan |= ev.need_rescan();
-                paths.extend(ev.paths);
+                // Narrowed now, so ignored churn and the mid-walk backlog cannot fill the burst.
+                let idx = shared.index.read().unwrap_or_else(|e| e.into_inner());
+                paths.extend(ev.paths.iter().filter_map(|p| idx.narrow(p)));
             }
             Err(e) => trace!("fsevents: {e}"),
         };
@@ -127,7 +135,10 @@ fn run(shared: Arc<Shared>, cfg: Config, gen: u64) {
         }
         if rescan || paths.len() > REWALK_ABOVE {
             trace!("rewalk: rescan={rescan} paths={}", paths.len());
-            if shared.gen.load(SeqCst) == gen {
+            while !stale() && built.elapsed() < REWALK_GAP {
+                std::thread::sleep(Duration::from_secs(1));
+            }
+            if !stale() {
                 start_build(&shared, cfg);
             }
             return;

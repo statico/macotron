@@ -69,6 +69,9 @@ impl Config {
     }
 }
 
+/// A burst of more distinct paths than this (after `Index::narrow`) rewalks.
+pub const REWALK_ABOVE: usize = 10_000;
+
 const NONE: u32 = u32::MAX;
 const DIR: u8 = 1;
 const DEAD: u8 = 2;
@@ -382,6 +385,14 @@ impl Index {
         (self.ents[id as usize].flags & DEAD == 0).then_some((id, h))
     }
 
+    /// The path `apply` needs for an FSEvents path: the path itself if indexed,
+    /// else its nearest indexed ancestor, whose re-listing applies every ignore
+    /// rule and still finds anything new. Churn inside an ignored folder thus
+    /// folds into one path. `None` outside every root.
+    pub fn narrow(&self, path: &Path) -> Option<PathBuf> {
+        path.ancestors().find(|a| self.lookup(a).is_some()).map(Path::to_path_buf)
+    }
+
     /// Tombstones an entry. Its path-map key stays; `lookup` rejects DEAD
     /// entries and a re-created path lands in `map.extra`, checked first.
     fn remove(&mut self, id: u32) {
@@ -423,8 +434,16 @@ impl Index {
     /// Full walk of every root. Inserts stream in while the walk runs, so
     /// nothing bigger than a chunk of entries is ever held aside.
     pub fn build(cfg: &Config) -> Index {
+        Index::build_until(cfg, &|| false)
+    }
+
+    /// `build`, abandoned early (with a partial index) once `stop` returns true.
+    pub fn build_until(cfg: &Config, stop: &(dyn Fn() -> bool + Sync)) -> Index {
         let mut idx = Index::new(cfg.clone());
         for root in &cfg.roots {
+            if stop() {
+                break;
+            }
             let Ok(meta) = std::fs::symlink_metadata(root) else {
                 trace!("root missing: {}", root.display());
                 continue;
@@ -435,7 +454,7 @@ impl Index {
             let before = idx.ents.len();
             let (tx, rx) = mpsc::channel();
             std::thread::scope(|s| {
-                s.spawn(|| walk(cfg, root, root, None, tx));
+                s.spawn(|| walk(cfg, root, root, None, tx, stop));
                 for mut chunk in rx {
                     chunk.retain(|r| r.depth > 0);
                     sort_raws(&mut chunk);
@@ -644,14 +663,15 @@ fn walker(cfg: &Config, root: &Path, from: &Path) -> Result<WalkBuilder, ignore:
 /// Per-thread collector. A chunk is sent as soon as it holds a directory, and
 /// the walker only descends after `visit` returns, so every chunk reaches the
 /// channel before any chunk holding that directory's children.
-struct Visitor {
+struct Visitor<'s> {
     buf: Vec<Raw>,
     tx: mpsc::Sender<Vec<Raw>>,
     /// Other configured roots: pruned here, walked on their own.
     skip: Vec<PathBuf>,
+    stop: &'s (dyn Fn() -> bool + Sync),
 }
 
-impl Visitor {
+impl Visitor<'_> {
     fn flush(&mut self) {
         if !self.buf.is_empty() {
             let _ = self.tx.send(std::mem::take(&mut self.buf));
@@ -659,8 +679,11 @@ impl Visitor {
     }
 }
 
-impl ignore::ParallelVisitor for Visitor {
+impl ignore::ParallelVisitor for Visitor<'_> {
     fn visit(&mut self, entry: Result<DirEntry, ignore::Error>) -> WalkState {
+        if (self.stop)() {
+            return WalkState::Quit;
+        }
         let e = match entry {
             Ok(e) => e,
             Err(err) => {
@@ -682,21 +705,28 @@ impl ignore::ParallelVisitor for Visitor {
     }
 }
 
-impl Drop for Visitor {
+impl Drop for Visitor<'_> {
     fn drop(&mut self) {
         self.flush();
     }
 }
 
-struct Builder(mpsc::Sender<Vec<Raw>>, Vec<PathBuf>);
+struct Builder<'s>(mpsc::Sender<Vec<Raw>>, Vec<PathBuf>, &'s (dyn Fn() -> bool + Sync));
 
-impl<'s> ignore::ParallelVisitorBuilder<'s> for Builder {
+impl<'s> ignore::ParallelVisitorBuilder<'s> for Builder<'s> {
     fn build(&mut self) -> Box<dyn ignore::ParallelVisitor + 's> {
-        Box::new(Visitor { buf: Vec::new(), tx: self.0.clone(), skip: self.1.clone() })
+        Box::new(Visitor { buf: Vec::new(), tx: self.0.clone(), skip: self.1.clone(), stop: self.2 })
     }
 }
 
-fn walk(cfg: &Config, root: &Path, from: &Path, max_depth: Option<usize>, tx: mpsc::Sender<Vec<Raw>>) {
+fn walk(
+    cfg: &Config,
+    root: &Path,
+    from: &Path,
+    max_depth: Option<usize>,
+    tx: mpsc::Sender<Vec<Raw>>,
+    stop: &(dyn Fn() -> bool + Sync),
+) {
     let mut b = match walker(cfg, root, from) {
         Ok(b) => b,
         Err(e) => {
@@ -706,12 +736,12 @@ fn walk(cfg: &Config, root: &Path, from: &Path, max_depth: Option<usize>, tx: mp
     };
     b.max_depth(max_depth);
     let skip = cfg.roots.iter().filter(|r| r.as_path() != from).cloned().collect();
-    b.build_parallel().visit(&mut Builder(tx, skip));
+    b.build_parallel().visit(&mut Builder(tx, skip, stop));
 }
 
 fn collect(cfg: &Config, root: &Path, from: &Path, max_depth: Option<usize>) -> Vec<Raw> {
     let (tx, rx) = mpsc::channel();
-    walk(cfg, root, from, max_depth, tx);
+    walk(cfg, root, from, max_depth, tx, &|| false);
     let mut raws: Vec<Raw> = rx.into_iter().flatten().collect();
     sort_raws(&mut raws);
     raws

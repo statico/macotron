@@ -1,4 +1,4 @@
-use macotron_index::{apply, Config, Index, Query};
+use macotron_index::{apply, Config, Index, Query, REWALK_ABOVE};
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -292,4 +292,29 @@ fn nested_roots() {
     assert_eq!(names(&idx, "new.txt"), vec!["new.txt"]);
     assert_eq!(names(&idx, "c.txt")[0], "c.txt");
     assert_eq!(idx.len(), 10);
+}
+
+#[test]
+fn churn_in_ignored_folder_does_not_rewalk() {
+    let t = tempfile::tempdir().unwrap();
+    tree(t.path(), &["repo/.gitignore", "repo/src/a.rs", "repo/tmp/seed.txt"]);
+    fs::write(t.path().join("repo/.gitignore"), "tmp/\n").unwrap();
+    let c = cfg(t.path());
+    let root = c.roots[0].clone();
+    let lock = RwLock::new(Index::build(&c));
+    // One burst: 2·REWALK_ABOVE writes inside the ignored folder, plus one real change.
+    tree(t.path(), &["repo/src/b.rs"]);
+    let idx = lock.read().unwrap();
+    let paths: HashSet<PathBuf> = (0..2 * REWALK_ABOVE)
+        .map(|i| root.join(format!("repo/tmp/run/{}/f{i}.txt", i % 50)))
+        .chain([root.join("repo/src/b.rs")])
+        .filter_map(|p| idx.narrow(&p))
+        .collect();
+    drop(idx);
+    assert!(paths.len() <= REWALK_ABOVE, "{} paths would rewalk", paths.len());
+    assert_eq!(paths.len(), 2); // repo (tmp's nearest indexed ancestor) and repo/src
+    apply(&lock, paths);
+    let idx = lock.read().unwrap();
+    assert_eq!(names(&idx, "b.rs"), vec!["b.rs"]);
+    assert!(names(&idx, "seed").is_empty());
 }
