@@ -104,10 +104,11 @@ public final class URLSchemeModule: NativeModule {
             let urlString = JSBridge.toString(ctx, argv[0]) ?? ""
             var bundleID: String?
             var profile: String?
-            if argc >= 2 {
+            // `undefined` would stringify to "undefined" and open nothing.
+            if argc >= 2, !JS_IsUndefined(argv[1]), !JS_IsNull(argv[1]) {
                 bundleID = JSBridge.toString(ctx, argv[1])
             }
-            if argc >= 3 {
+            if argc >= 3, !JS_IsUndefined(argv[2]), !JS_IsNull(argv[2]) {
                 profile = JSBridge.toString(ctx, argv[2])
             }
 
