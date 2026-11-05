@@ -1,0 +1,26 @@
+# Scans every community plugin with Typesafe once a day and opens a
+# "Needs review" issue for each new file it flags. Nothing is blocked
+# automatically: blocking is a commit to site/blocked.json.
+name: Plugin scan
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+concurrency: plugin-scan
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 scripts/scan-plugins.py
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

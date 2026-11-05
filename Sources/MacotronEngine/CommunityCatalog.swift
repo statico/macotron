@@ -103,6 +103,7 @@ public enum CommunityCatalog {
     /// `macotron-plugin-weather` installs as `weather.js`. Only the first
     /// matching prefix is dropped, so the longest one has to come first. Two
     /// repositories can still collide here; that lands in the overwrite warning.
+    /// scripts/scan-plugins.py copies this and `candidates`: change both together.
     public static func filename(forRepo name: String) -> String {
         var base = name.lowercased()
         for prefix in ["macotron-plugin-", "macotron-plugin.", "macotron-", "macotron."]

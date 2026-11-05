@@ -87,6 +87,29 @@
 
 <h2 id="malicious-plugins">Malicious plugins</h2>
 <p>If you find a plugin in the wild that steals data or runs hidden code, report it the same way. Include where it’s published and its SHA-256 hash. Known-bad hashes go into the blocklist, which every copy of Macotron checks before it runs a plugin.</p>
+<p>Every community plugin is also scanned once a day. Anything the scan flags gets a person’s review before it is blocked.</p>
+
+<h2 id="blocked">Blocked plugins</h2>
+<p>The live list is <a href="/blocked.json">/blocked.json</a>. A blocked hash stops those exact bytes. A blocked GitHub account can’t publish or update plugins in Macotron.</p>
+<table id="blocked-list" style="overflow-wrap: anywhere">
+  <thead><tr><th>Blocked</th><th>Reason</th></tr></thead>
+  <tbody><tr><td colspan="2">Nothing is blocked.</td></tr></tbody>
+</table>
+<script>
+fetch("/blocked.json").then((r) => r.json()).then((list) => {
+  const rows = [
+    ...(list.owners || []).map((o) => ["GitHub account " + o.login, o.reason]),
+    ...(list.blocked || []).map((b) => ["SHA-256 " + b.sha256, b.reason]),
+  ];
+  if (!rows.length) return;
+  const body = document.querySelector("#blocked-list tbody");
+  body.replaceChildren(...rows.map((cells) => {
+    const tr = document.createElement("tr");
+    for (const text of cells) tr.appendChild(document.createElement("td")).textContent = text || "";
+    return tr;
+  }));
+}).catch(() => {});
+</script>
 </article>
   </main>
   <footer>
