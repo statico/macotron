@@ -243,7 +243,11 @@ ${url ? `<button class="primary" onclick='send({ url: ${JSON.stringify(url)} })'
 <script>
 function send(msg) { webkit.messageHandlers.macotron.postMessage(msg); }
 const start = ${event.start};
+// Close on its own after an hour so an unattended Mac isn't left behind a
+// stale overlay. Wall-clock, so time asleep counts.
+const expires = Date.now() + 60 * 60000;
 setInterval(() => {
+  if (Date.now() >= expires) send({ close: true });
   const m = Math.round((Date.now() - start) / 60000);
   document.getElementById("cd").textContent = m ? "Started " + m + "m ago" : "Starting now";
 }, 1000);
