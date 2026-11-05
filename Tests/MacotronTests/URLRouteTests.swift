@@ -66,6 +66,22 @@ struct URLRouteTests {
         #expect(URLOpen.applicationURL(bundleID: "io.statico.macotron.missing-app") == nil)
     }
 
+    /// AppKit drops `arguments` for a running app, so a profile needs a new
+    /// instance to reach Chrome.
+    @Test("a profile forces a new instance carrying --profile-directory")
+    func profileConfiguration() {
+        let config = URLOpen.configuration(profile: "Profile 1")
+        #expect(config.arguments == ["--profile-directory=Profile 1"])
+        #expect(config.createsNewApplicationInstance)
+    }
+
+    @Test("no profile opens in the running app")
+    func noProfileConfiguration() {
+        let config = URLOpen.configuration(profile: nil)
+        #expect(config.arguments.isEmpty)
+        #expect(!config.createsNewApplicationInstance)
+    }
+
     /// Macotron registers for mailto/http/https, so it appears in its own
     /// candidate list. Handing an unrouted link back to itself would loop.
     @Test("unrouted links never hand back to Macotron")

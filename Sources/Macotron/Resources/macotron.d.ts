@@ -308,6 +308,7 @@ declare const macotron: {
 
     url: {
         on(scheme: string, host: string | RegExp, callback: (event: { url: string; scheme: string; host: string; path: string; query?: string; sourceBundle?: string }) => void): void;
+        /** `profile` is a Chromium profile folder such as `Default` or `Profile 1`, passed as `--profile-directory`. Chromium browsers only. */
         open(url: string, bundleID?: string, profile?: string): boolean;
         setDefaultHandler(scheme: string): boolean;
         onFallback(callback: (event: { url: string; scheme: string; host: string; path: string; query?: string; sourceBundle?: string }) => void): void;

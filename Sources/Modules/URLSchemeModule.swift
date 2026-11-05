@@ -23,14 +23,24 @@ enum URLOpen {
             .first { Bundle(url: $0)?.bundleIdentifier != macotronBundleID }
     }
 
+    /// `profile` is a Chromium profile folder (`Default`, `Profile 1`).
+    /// AppKit applies `arguments` only on launch, so a running Chrome would
+    /// drop `--profile-directory`; a new instance gets the flag, hands the URL
+    /// to the running one, and exits. Chromium only: Safari or Firefox would
+    /// start a second copy.
+    static func configuration(profile: String?) -> NSWorkspace.OpenConfiguration {
+        let config = NSWorkspace.OpenConfiguration()
+        if let profile {
+            config.arguments = ["--profile-directory=\(profile)"]
+            config.createsNewApplicationInstance = true
+        }
+        return config
+    }
+
     static func open(_ url: URL, bundleID: String?, profile: String? = nil) -> Bool {
         if let bundleID {
-            let config = NSWorkspace.OpenConfiguration()
-            if let profile {
-                config.arguments = ["--profile-directory=\(profile)"]
-            }
             guard let appURL = applicationURL(bundleID: bundleID) else { return false }
-            NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config)
+            NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: configuration(profile: profile))
             return true
         }
         NSWorkspace.shared.open(url)

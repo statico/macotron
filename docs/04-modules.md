@@ -124,7 +124,7 @@ Host CSS defines system colors as variables: `--macotron-accent`, `--macotron-ac
 
 **Display modes:** `display.nightShift`, `trueTone`, and `grayscale` plus the matching `set*` calls.
 
-**URL routing:** `url.on("https", "example.com", callback)` matches the host and its subdomains. Pass a `RegExp` to match hosts by pattern. `url.onFallback` handles misses; anything still unhandled goes to the next system handler for that scheme.
+**URL routing:** `url.on("https", "example.com", callback)` matches the host and its subdomains. Pass a `RegExp` to match hosts by pattern. `url.onFallback` handles misses; anything still unhandled goes to the next system handler for that scheme. `url.open(url, bundleID?, profile?)` opens in a given app; `profile` is a Chromium profile folder (`Default`, `Profile 1`, passed as `--profile-directory`) and works only with Chromium browsers, even when the browser is already running.
 
 **AX:** `ax.focused`, `selectedText` (a promise — reading it can poll a Chromium tree for up to 300ms), `children`, `parent`, `press`, `setValue`, `find`.
 
