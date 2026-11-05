@@ -180,6 +180,8 @@ declare const macotron: {
         move(id: number, frame: { x?: number; y?: number; width?: number; height?: number }): boolean;
         /** Fractions of the window's current display. Pass `display` from `macotron.display.list()` to send it to another screen. `gap` keeps that many points between the window and the screen edges (and tiled neighbors); default 0. */
         moveToFraction(id: number, frac: { x?: number; y?: number; w?: number; h?: number; display?: number; gap?: number }): boolean;
+        /** Put a tiled window back where it was before its first `moveToFraction` or snap. False when it was never tiled or has moved since. Host API 1.6 and newer. */
+        unsnap(id: number): boolean;
         /** Show or hide the snap destination overlay. Pass `null` to hide. */
         previewFraction(frac: { x?: number; y?: number; w?: number; h?: number; display?: number; gap?: number } | null): boolean;
         /** Flash an outline around a window, to show where the focus went. With no id, the focused window. */
@@ -192,6 +194,8 @@ declare const macotron: {
             threshold?: number;
             corner?: number;
             gap?: number;
+            /** Dragging a tiled window out of its tile gives back the size it had before. Default true. Host API 1.6 and newer. */
+            restoreOnDrag?: boolean;
             zones?: {
                 left?: { x: number; y: number; w: number; h: number };
                 right?: { x: number; y: number; w: number; h: number };

@@ -183,6 +183,9 @@
 <p><code>display</code> is an id from <a href="/docs/api-display.html">macotron.display.list()</a>; without it, the window stays on its current display. <code>gap</code> keeps that many points between the window and each edge of its tile. The default is 0.</p>
 <p>Returns <code>false</code> if the window ended up more than 8 points away from the size you asked for. That usually means the app has a minimum size larger than the tile.</p>
 
+<h3 id="unsnap-id-number-boolean">unsnap(id: number): boolean</h3>
+<p>Puts a tiled window back where it was before its first <code>moveToFraction</code> or snap. Tiling it again in between keeps that first place. Returns <code>false</code> if the window was never tiled or has been moved since. Host API 1.6 and newer.</p>
+
 <h3 id="minimize-id-number-on-boolean-boolean">minimize(id: number, on?: boolean): boolean</h3>
 <p>Minimizes the window to the Dock. Pass <code>false</code> to bring it back. The default is <code>true</code>.</p>
 
@@ -210,6 +213,7 @@
     <tr><td><code>threshold</code></td><td>20</td><td>How close to an edge, in points, the pointer must be.</td></tr>
     <tr><td><code>corner</code></td><td>80</td><td>How close to a corner, in points, counts as the corner. Corners win over edges.</td></tr>
     <tr><td><code>gap</code></td><td>0</td><td>Points between a snapped window and its tile edges.</td></tr>
+    <tr><td><code>restoreOnDrag</code></td><td>true</td><td>Dragging a tiled window out of its tile gives back the size it had before. Host API 1.6 and newer.</td></tr>
     <tr><td><code>zones</code></td><td>See below</td><td>A map from slot to a fraction <code>{ x, y, w, h }</code>, as in <code>moveToFraction</code>. It replaces the whole default map, so a slot you leave out is turned off.</td></tr>
     <tr><td><code>modifiers</code></td><td>None</td><td>A map from keys such as <code>"shift"</code> or <code>"cmd+shift"</code> to another zone map. The map is used while those keys are held. If several match, the one with the most keys wins.</td></tr>
   </tbody>

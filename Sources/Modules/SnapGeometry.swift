@@ -146,3 +146,63 @@ enum SnapGeometry {
         )
     }
 }
+
+/// Where each tiled window sat before its first tile, so it can go back.
+/// Keyed by window number. A second tile keeps the first `before`; a window
+/// moved by hand since its last tile starts a new entry.
+struct TileHistory {
+    struct Entry: Equatable {
+        var before: CGRect
+        var placed: CGRect
+    }
+
+    /// Apps settle a few points off the requested frame; Electron can settle late.
+    static let slack: CGFloat = 8
+    // ponytail: fixed cap with linear eviction, prune on window close if it ever matters.
+    static let limit = 300
+
+    private var entries: [CGWindowID: Entry] = [:]
+    private var order: [CGWindowID] = []
+
+    static func same(_ a: CGRect, _ b: CGRect) -> Bool {
+        abs(a.minX - b.minX) <= slack && abs(a.minY - b.minY) <= slack
+            && abs(a.width - b.width) <= slack && abs(a.height - b.height) <= slack
+    }
+
+    mutating func tiled(_ id: CGWindowID, from: CGRect, to: CGRect) {
+        if let entry = entries[id], Self.same(from, entry.placed) {
+            entries[id]?.placed = to
+        } else {
+            entries[id] = Entry(before: from, placed: to)
+        }
+        order.removeAll { $0 == id }
+        order.append(id)
+        if order.count > Self.limit { entries[order.removeFirst()] = nil }
+    }
+
+    /// The entry, only while the window still sits where it was tiled.
+    func entry(_ id: CGWindowID, at frame: CGRect) -> Entry? {
+        guard let entry = entries[id], Self.same(frame, entry.placed) else { return nil }
+        return entry
+    }
+
+    mutating func remove(_ id: CGWindowID) {
+        entries[id] = nil
+        order.removeAll { $0 == id }
+    }
+}
+
+enum DragRestore {
+    /// A tiled window dragged out takes back `size`. The top edge stays put;
+    /// the left edge stays put too unless the grab point would fall off the
+    /// narrower window, in which case it keeps its place along the width.
+    /// Top-left coordinates.
+    static func frame(from frame: CGRect, size: CGSize, cursor: CGPoint) -> CGRect {
+        let grab = cursor.x - frame.minX
+        var x = frame.minX
+        if grab > size.width - 20 {
+            x = cursor.x - size.width * (grab / frame.width)
+        }
+        return CGRect(origin: CGPoint(x: x, y: frame.minY), size: size)
+    }
+}

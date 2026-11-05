@@ -87,7 +87,7 @@ private final class WindowSnapState: @unchecked Sendable {
 @MainActor
 public final class WindowModule: NativeModule {
     public let name = "window"
-    public let moduleVersion = 9
+    public let moduleVersion = 10
 
     private weak var engine: Engine?
     private var eventTap: CFMachPort?
@@ -98,6 +98,10 @@ public final class WindowModule: NativeModule {
     private var snapGap: CGFloat = 0
     private var snapZones: [String: SnapZone] = SnapGeometry.defaultZones
     private var snapModifierSets: [(flags: CGEventFlags, zones: [String: SnapZone])] = []
+    private var restoreOnDrag = true
+    /// Set at the start of a drag on a tiled window; applied once it really moves.
+    private var pendingDragRestore: (number: CGWindowID, size: CGSize, placed: CGRect)?
+    private static var tileHistory = TileHistory()
 
     public init() {}
 
@@ -150,6 +154,13 @@ public final class WindowModule: NativeModule {
             let windowID = JSBridge.toInt32(ctx, argv[0])
             let opts = argv[1]
             return WindowModule.jsMoveToFraction(ctx, windowID: windowID, opts: opts)
+        }
+
+        // ---------- unsnap(id) ----------
+        JSBridge.fn(ctx, windowObj, "unsnap", 1) { ctx, _, argc, argv -> JSValue in
+            guard let ctx, let argv, argc >= 1 else { return QJS_NewBool(ctx!, 0) }
+            if Engine.isDryRun(ctx) { return QJS_NewBool(ctx, 1) }
+            return QJS_NewBool(ctx, WindowModule.unsnap(windowID: JSBridge.toInt32(ctx, argv[0])) ? 1 : 0)
         }
 
         // ---------- setSnapEnabled(enabled) ----------
@@ -384,6 +395,18 @@ public final class WindowModule: NativeModule {
         return QJS_NewBool(ctx, ok ? 1 : 0)
     }
 
+    /// unsnap(id) -> bool: put a tiled window back where it was before its first tile.
+    private static func unsnap(windowID: Int32) -> Bool {
+        guard let win = WindowAX.resolve(id: windowID),
+              let number = WindowAX.windowNumber(win),
+              let entry = tileHistory.entry(number, at: WindowAX.frame(win)) else { return false }
+        tileHistory.remove(number)
+        _ = setWindowSize(win, size: entry.before.size)
+        _ = setWindowPosition(win, point: entry.before.origin)
+        _ = setWindowSize(win, size: entry.before.size)
+        return true
+    }
+
     /// restore([{app, bundleID?, title?, frame, display?}]) -> { restored, missing }
     private static func jsRestore(_ ctx: OpaquePointer, entries: JSValue) -> JSValue {
         let raw = JSBridge.jsToSwift(ctx, entries)
@@ -583,8 +606,31 @@ public final class WindowModule: NativeModule {
             return true
         }
         guard due, let win = Self.focusedAXWindow() else { return }
-        let origin = WindowAX.frame(win).origin
-        WindowSnapState.shared.withDrag { $0.sample(windowOrigin: origin) }
+        let frame = WindowAX.frame(win)
+        let (baseline, moved) = WindowSnapState.shared.withDrag { drag -> (Bool, Bool) in
+            let baseline = drag.windowOrigin == nil
+            drag.sample(windowOrigin: frame.origin)
+            return (baseline, drag.movedWindow)
+        }
+        if baseline {
+            pendingDragRestore = nil
+            if restoreOnDrag, let number = WindowAX.windowNumber(win),
+               let entry = Self.tileHistory.entry(number, at: frame) {
+                pendingDragRestore = (number, entry.before.size, entry.placed)
+            }
+        } else if moved, let pending = pendingDragRestore {
+            // Dragged out of its tile: take back the size it had before, under the cursor.
+            pendingDragRestore = nil
+            // A left-edge resize moves the origin too; only a move keeps the size.
+            guard WindowAX.windowNumber(win) == pending.number,
+                  TileHistory.same(CGRect(origin: pending.placed.origin, size: frame.size), pending.placed) else { return }
+            Self.tileHistory.remove(pending.number)
+            let mouse = NSEvent.mouseLocation
+            let cursor = Self.cocoaRectToAX(CGRect(origin: mouse, size: .zero)).origin
+            let target = DragRestore.frame(from: frame, size: pending.size, cursor: cursor)
+            _ = Self.setWindowSize(win, size: target.size)
+            _ = Self.setWindowPosition(win, point: target.origin)
+        }
     }
 
     private func updateSnapPreview(at point: CGPoint) {
@@ -651,6 +697,9 @@ public final class WindowModule: NativeModule {
         }
         if let gap = JSBridge.double(ctx, opts, "gap") {
             snapGap = max(0, CGFloat(gap))
+        }
+        if let restore = JSBridge.bool(ctx, opts, "restoreOnDrag") {
+            restoreOnDrag = restore
         }
 
         let zonesVal = JSBridge.getProperty(ctx, opts, "zones")
@@ -788,6 +837,12 @@ public final class WindowModule: NativeModule {
         let position = setWindowPosition(win, point: origin)
         let finalSize = setWindowSize(win, size: size)
         guard firstSize || position || finalSize else { return false }
+        // Runs after the refused-size fix below, so `placed` is where it ended up.
+        defer {
+            if let number = WindowAX.windowNumber(win) {
+                tileHistory.tiled(number, from: currentFrame, to: WindowAX.frame(win))
+            }
+        }
         // Accessibility reports success for a size the window never took. An
         // app with a minimum size larger than the tile keeps its own size and
         // covers its neighbour, which reads as "tiling forgot this window".

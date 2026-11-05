@@ -236,7 +236,7 @@ refresh();</code></pre>
 <p>Store API keys and other secrets with a <code>password</code> option or <a href="/docs/api-keychain.html">macotron.keychain</a>, never in <code>localStorage</code> or the source.</p>
 
 <h2 id="api-version-pragma">API version pragma</h2>
-<p>The plugin API has a version, <code>macotron.version.api</code> (currently <code>1.5.0</code>). If your plugin uses a call added in a later version, say so in a comment in the first 20 lines:</p>
+<p>The plugin API has a version, <code>macotron.version.api</code> (currently <code>1.6.0</code>). If your plugin uses a call added in a later version, say so in a comment in the first 20 lines:</p>
 <pre><code class="language-javascript"><span class="tok-cmt">// @macotron needs 1.5</span></code></pre>
 <p>Macotron loads the plugin only when its own API version is the same or higher. An older Macotron reports "Needs Macotron API 1.5" instead of failing partway. A file with no pragma counts as <code>needs 1.0</code>.</p>
 
