@@ -93,6 +93,14 @@
          first launch to ask whether it may check at all. -->
     <key>SUEnableAutomaticChecks</key>
     <true/>
+    <!-- No silent downloads. Sparkle 2 offers an update it already downloaded
+         or staged again on every later check, without reading the feed, and a
+         menu bar app rarely quits to install it. So 1.0.3, staged weeks ago,
+         is what "Check for Updates" offers while 1.0.5 is out, and each
+         install moves up one release at a time. A check that always reads
+         the feed always offers the newest. -->
+    <key>SUAllowsAutomaticUpdates</key>
+    <false/>
     <!-- Check the signature before mounting. Sparkle otherwise hands an
          unverified disk image to hdiutil, so a hijacked feed would get the
          kernel to parse an attacker's file before anything rejects it. -->

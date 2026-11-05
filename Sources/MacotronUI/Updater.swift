@@ -27,12 +27,21 @@ final class UpdateReminder: NSObject, SPUStandardUserDriverDelegate {
     }
 }
 
+/// A fresh query string on every check, so no CDN or proxy between here and
+/// Vercel can answer with an older feed. Sparkle already skips the local cache.
+final class UpdateFeed: NSObject, SPUUpdaterDelegate {
+    func feedParameters(for updater: SPUUpdater, sendingSystemProfile: Bool) -> [[String: String]] {
+        [["key": "t", "value": String(Int(Date().timeIntervalSince1970))]]
+    }
+}
+
 @MainActor
 public enum Updater {
     private static let reminder = UpdateReminder()
+    private static let feed = UpdateFeed()
     private static let controller = SPUStandardUpdaterController(
         startingUpdater: true,
-        updaterDelegate: nil,
+        updaterDelegate: feed,
         userDriverDelegate: reminder
     )
 
