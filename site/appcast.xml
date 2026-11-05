@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>1.0.5</title>
+            <sparkle:version>1.0.5</sparkle:version>
+            <sparkle:shortVersionString>1.0.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Thu, 05 Nov 2026 19:17:34 +0000</pubDate>
+            <description><![CDATA[<ul><li>Meetings: overlay closes itself after 60 minutes</li><li>url.open: honor the Chrome profile when Chrome is running</li><li>Browser Picker: Chrome profiles and path rules</li><li>Blocklist: block GitHub owners, refetch every 4 hours</li><li>Blocklist: document owners, add the empty list</li><li>Daily community plugin scan with Typesafe</li><li>SECURITY.md: describe owner blocks and the daily plugin scan</li><li>Windows: pull a window that refused its tile size back on screen</li><li>Windows: continue a tile cycle only for the same window in the same place</li><li>Windows: keep a window's place on its screen when moving to another display</li><li>Windows: restore a tiled window by hotkey or by dragging it out</li><li>Windows: drag-restore only on a real drag; review fixes</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v1.0.5/Macotron-1.0.5.dmg" type="application/octet-stream" sparkle:edSignature="nildX+WBk3E7xVRAPcrmGcqA4QZQlwZ40Zr+JOBXeK4MVKsUis86OP9xbX/qfC+KFJB+sx+xX/POQR+WXyTSBQ==" length="10547254" />
+        </item>
+        <item>
             <title>1.0.4</title>
             <sparkle:version>1.0.4</sparkle:version>
             <sparkle:shortVersionString>1.0.4</sparkle:shortVersionString>
