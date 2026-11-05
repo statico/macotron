@@ -537,7 +537,8 @@ public final class MenuBarManager: NSObject {
         addSeparator()
         let pending = Updater.pendingVersion
         addRow(
-            pending.map { "Update to \($0)..." } ?? "Check for Updates...",
+            Updater.replacedOnDisk ? "Relaunch to Update..."
+                : pending.map { "Update to \($0)..." } ?? "Check for Updates...",
             symbol: pending == nil ? "arrow.down.circle" : "sparkles"
         ) { [weak self] in self?.onCheckForUpdates?() }
 

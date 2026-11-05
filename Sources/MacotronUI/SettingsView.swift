@@ -952,8 +952,8 @@ public struct SettingsView: View {
                         .pickerStyle(.segmented)
                         .labelsHidden()
                         .frame(width: 280, alignment: .leading)
-                        Button(Updater.pendingVersion.map { "Update to \($0)..." }
-                            ?? "Check Now") {
+                        Button(Updater.replacedOnDisk ? "Relaunch to Update..."
+                            : Updater.pendingVersion.map { "Update to \($0)..." } ?? "Check Now") {
                             Updater.checkForUpdates()
                         }
                     }

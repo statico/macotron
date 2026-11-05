@@ -42,6 +42,7 @@ let package = Package(
             name: "MacotronUI",
             dependencies: [
                 "MacotronEngine",
+                "SMCKit",
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
             path: "Sources/MacotronUI"

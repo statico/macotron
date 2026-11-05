@@ -1,6 +1,7 @@
 // Updater.swift — Sparkle self-updates
 import AppKit
 import MacotronEngine
+import SMCKit
 import Sparkle
 
 /// Sparkle shows a background app's scheduled update window behind everything
@@ -30,6 +31,16 @@ final class UpdateReminder: NSObject, SPUStandardUserDriverDelegate {
 /// A fresh query string on every check, so no CDN or proxy between here and
 /// Vercel can answer with an older feed. Sparkle already skips the local cache.
 final class UpdateFeed: NSObject, SPUUpdaterDelegate {
+    /// Once Homebrew or a drag-install replaces the bundle, this process no
+    /// longer matches its signature, and Sparkle's installer rejects it
+    /// (-67030) with only "Update Error". Skip checks until a relaunch.
+    func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
+        guard MacotronHelperService.appReplacedOnDisk else { return }
+        throw NSError(domain: "Macotron", code: 1, userInfo: [
+            NSLocalizedDescriptionKey: "Macotron was replaced on disk since it started. Relaunch it.",
+        ])
+    }
+
     func feedParameters(for updater: SPUUpdater, sendingSystemProfile: Bool) -> [[String: String]] {
         [["key": "t", "value": String(Int(Date().timeIntervalSince1970))]]
     }
@@ -56,8 +67,40 @@ public enum Updater {
     /// later, after the appcast fetch, so keep fronting it for a few seconds.
     public static func checkForUpdates() {
         AppActivation.activate("check for updates")
+        if replacedOnDisk {
+            offerRelaunch()
+            return
+        }
         controller.checkForUpdates(nil)
         frontSparkleWindows(attempts: 12)
+    }
+
+    /// The bundle on disk is not the code running, so updating waits for a
+    /// relaunch. The menu and Settings offer one instead of a check.
+    public static var replacedOnDisk: Bool {
+        MacotronHelperService.appReplacedOnDisk
+    }
+
+    private static func offerRelaunch() {
+        let key = "CFBundleShortVersionString"
+        // infoDictionary is cached at launch, so read the plist on disk.
+        let installed = NSDictionary(contentsOf: Bundle.main.bundleURL.appendingPathComponent("Contents/Info.plist"))?[key] as? String
+        let running = Bundle.main.infoDictionary?[key] as? String
+        let alert = NSAlert()
+        alert.messageText = "Relaunch Macotron"
+        alert.informativeText = installed != nil && installed != running
+            ? "Macotron \(installed!) was installed while \(running ?? "an older version") kept running. Relaunch to use it."
+            : "Macotron was replaced on disk since it started. Relaunch to use the new copy."
+        alert.addButton(withTitle: "Relaunch")
+        alert.addButton(withTitle: "Later")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        // Wait for this process to exit, or open would just activate it.
+        let relaunch = Process()
+        relaunch.executableURL = URL(fileURLWithPath: "/bin/sh")
+        relaunch.arguments = ["-c", "while /bin/kill -0 $1 2>/dev/null; do sleep 0.2; done; /usr/bin/open \"$0\"",
+                              Bundle.main.bundlePath, String(getpid())]
+        guard (try? relaunch.run()) != nil else { return }
+        NSApp.terminate(nil)
     }
 
     private static func frontSparkleWindows(attempts: Int) {
