@@ -541,7 +541,7 @@ public final class SettingsState {
     }
 
     public func allowsInstall(of plugin: CatalogPlugin, override: Bool) -> Bool {
-        guard PluginBlocklist.reason(hash: plugin.bundleHash) == nil else { return false }
+        guard PluginBlocklist.reason(hash: plugin.bundleHash, owner: plugin.origin?.owner) == nil else { return false }
         guard let report = scanReport else {
             // The scan is advice, not a gate. Someone who presses the button
             // before it lands has approved these bytes themselves, which is
@@ -588,6 +588,7 @@ public final class SettingsState {
             }
             do {
                 communityEntries = try await CommunityCatalog.search()
+                    .filter { PluginBlocklist.reason(owner: $0.owner) == nil }
                 communityFetchedAt = .now
                 await refreshCommunityUpdates()
             } catch {

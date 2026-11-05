@@ -130,12 +130,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // The kill switch. Off the launch path: plugins already loaded from the
         // cached list, and a plugin that turns out to be blocked is unloaded as
-        // soon as the fresh list lands.
+        // soon as the fresh list lands. Refetched every few hours, because a
+        // menu bar app can run for weeks without a relaunch.
         Task { @MainActor [weak self] in
-            guard await PluginBlocklist.refresh() else { return }
-            guard let self, self.workspace != nil else { return }
-            self.moduleManager?.reloadAll()
-            self.refreshIntegrity()
+            while !Task.isCancelled {
+                if await PluginBlocklist.refresh(), let self, self.workspace != nil {
+                    self.moduleManager?.reloadAll()
+                    self.refreshIntegrity()
+                }
+                try? await Task.sleep(for: .seconds(4 * 3600))
+            }
         }
 
         // Off the launch path: this connects to the daemon, which launchd may

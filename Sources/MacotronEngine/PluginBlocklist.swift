@@ -5,7 +5,10 @@
 // checked before the trust ledger and before hot reload.
 //
 // The file lives beside appcast.xml on the update host and is usually empty:
-//   { "blocked": [ { "sha256": "…", "reason": "Sends the clipboard away." } ] }
+//   { "blocked": [ { "sha256": "…", "reason": "Sends the clipboard away." } ],
+//     "owners":  [ { "login": "someone", "reason": "Published malware." } ] }
+// A hash stops bytes. An owner stops the next push: their repositories leave
+// the Community list and nothing of theirs installs or updates.
 import Foundation
 import os
 
@@ -15,12 +18,24 @@ public enum PluginBlocklist {
 
     private static let logger = Logger(subsystem: "io.statico.macotron", category: "blocklist")
     private static var reasons: [String: String] = [:]
+    private static var owners: [String: String] = [:]
     private static var loadedCache = false
 
     /// nil means the bytes are not blocked.
     public static func reason(hash: String) -> String? {
         loadCacheIfNeeded()
         return reasons[hash.lowercased()]
+    }
+
+    /// nil means the GitHub account is not blocked.
+    public static func reason(owner: String) -> String? {
+        loadCacheIfNeeded()
+        return owners[owner.lowercased()]
+    }
+
+    /// nil means neither the bytes nor their GitHub owner is blocked.
+    public static func reason(hash: String, owner: String?) -> String? {
+        reason(hash: hash) ?? owner.flatMap(reason(owner:))
     }
 
     /// Answers true when the set changed, so the caller can reload plugins.
@@ -39,24 +54,27 @@ public enum PluginBlocklist {
         }
         // A cached list is never dropped for a smaller live one without proof
         // the fetch worked, and it just did.
-        guard parsed != reasons else { return false }
-        reasons = parsed
+        guard parsed.hashes != reasons || parsed.owners != owners else { return false }
+        (reasons, owners) = (parsed.hashes, parsed.owners)
         writeCache(data)
-        logger.info("blocklist now holds \(parsed.count) hashes")
+        logger.info("blocklist now holds \(reasons.count) hashes, \(owners.count) owners")
         return true
     }
 
-    static func parse(_ data: Data) -> [String: String]? {
+    static func parse(_ data: Data) -> (hashes: [String: String], owners: [String: String])? {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let rows = root["blocked"] as? [[String: Any]] else {
             return nil
         }
-        var out: [String: String] = [:]
-        for row in rows {
-            guard let hash = (row["sha256"] as? String)?.lowercased(), !hash.isEmpty else { continue }
-            out[hash] = (row["reason"] as? String) ?? "Blocked by Macotron."
+        func table(_ rows: [[String: Any]], key: String) -> [String: String] {
+            var out: [String: String] = [:]
+            for row in rows {
+                guard let id = (row[key] as? String)?.lowercased(), !id.isEmpty else { continue }
+                out[id] = (row["reason"] as? String) ?? "Blocked by Macotron."
+            }
+            return out
         }
-        return out
+        return (table(rows, key: "sha256"), table(root["owners"] as? [[String: Any]] ?? [], key: "login"))
     }
 
     // MARK: - Cache
@@ -78,7 +96,7 @@ public enum PluginBlocklist {
         guard let cacheURL, let data = try? Data(contentsOf: cacheURL), let parsed = parse(data) else {
             return
         }
-        reasons = parsed
+        (reasons, owners) = (parsed.hashes, parsed.owners)
     }
 
     private static func writeCache(_ data: Data) {
@@ -87,8 +105,9 @@ public enum PluginBlocklist {
     }
 
     /// Tests only.
-    public static func reset(to entries: [String: String]) {
+    public static func reset(to entries: [String: String], owners blockedOwners: [String: String] = [:]) {
         reasons = entries
+        owners = blockedOwners
         loadedCache = true
     }
 }

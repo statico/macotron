@@ -84,7 +84,7 @@ private struct CatalogInstallSheet: View {
             if let origin = plugin.origin {
                 CommunityProvenance(origin: origin)
             }
-            if let reason = PluginBlocklist.reason(hash: plugin.bundleHash) {
+            if let reason = PluginBlocklist.reason(hash: plugin.bundleHash, owner: plugin.origin?.owner) {
                 scanBanner("hand.raised.fill", "Blocked by Macotron: \(reason)", .red)
             }
             if let overwrite = state.overwrite {
@@ -149,7 +149,7 @@ private struct CatalogInstallSheet: View {
     /// queue of reviews can be walked through on Return.
     @ViewBuilder
     private var primaryButton: some View {
-        if PluginBlocklist.reason(hash: plugin.bundleHash) == nil {
+        if PluginBlocklist.reason(hash: plugin.bundleHash, owner: plugin.origin?.owner) == nil {
             liveButton
         }
     }

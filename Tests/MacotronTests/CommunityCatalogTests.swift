@@ -85,6 +85,15 @@ struct PluginBlocklistTests {
         #expect(PluginBlocklist.reason(hash: PluginHash.sha256(source: source)) != nil)
     }
 
+    @Test("a blocked owner blocks any bytes they publish")
+    func blockedOwner() {
+        defer { PluginBlocklist.reset(to: [:]) }
+        PluginBlocklist.reset(to: [:], owners: ["badguy": "Malware."])
+        #expect(PluginBlocklist.reason(hash: "fresh", owner: "BadGuy") == "Malware.")
+        #expect(PluginBlocklist.reason(hash: "fresh", owner: "someone") == nil)
+        #expect(PluginBlocklist.reason(hash: "fresh", owner: nil) == nil)
+    }
+
     @Test("the published file parses, uppercase hashes included")
     func parseFile() {
         let data = Data("""
@@ -92,12 +101,15 @@ struct PluginBlocklistTests {
           {"sha256": "AABB", "reason": "Nope."},
           {"sha256": "ccdd"},
           {"reason": "no hash"}
-        ]}
+        ],
+        "owners": [{"login": "BadGuy", "reason": "Malware."}]}
         """.utf8)
         let parsed = PluginBlocklist.parse(data)
-        #expect(parsed?.count == 2)
-        #expect(parsed?["aabb"] == "Nope.")
-        #expect(parsed?["ccdd"] == "Blocked by Macotron.")
+        #expect(parsed?.hashes.count == 2)
+        #expect(parsed?.hashes["aabb"] == "Nope.")
+        #expect(parsed?.hashes["ccdd"] == "Blocked by Macotron.")
+        #expect(parsed?.owners == ["badguy": "Malware."])
+        #expect(PluginBlocklist.parse(Data(#"{"blocked": []}"#.utf8))?.owners.isEmpty == true)
         #expect(PluginBlocklist.parse(Data("not json".utf8)) == nil)
     }
 }
