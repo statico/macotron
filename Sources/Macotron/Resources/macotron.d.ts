@@ -194,7 +194,7 @@ declare const macotron: {
             threshold?: number;
             corner?: number;
             gap?: number;
-            /** Dragging a tiled window out of its tile gives back the size it had before. Default true. Host API 1.6 and newer. */
+            /** Dragging a tiled window out of its tile gives back the size it had before. Needs snapping enabled. Default true. Host API 1.6 and newer. */
             restoreOnDrag?: boolean;
             zones?: {
                 left?: { x: number; y: number; w: number; h: number };

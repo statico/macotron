@@ -108,7 +108,7 @@ const LAST_TWO_THIRDS = { x: 1 / 3, y: 0, w: 2 / 3, h: 1 };
 let lastCycle = { name: "", key: null, frame: null, frameIndex: -1 };
 
 function sameFrame(a, b) {
-    return !!a && !!b && ["x", "y", "width", "height"].every((k) => Math.abs(a[k] - b[k]) <= 2);
+    return !!a && !!b && ["x", "y", "width", "height"].every((k) => Math.abs(a[k] - b[k]) <= 8);
 }
 
 function cycle(name, frames, start) {

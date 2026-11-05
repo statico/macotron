@@ -67,13 +67,15 @@ struct WindowCycleTests {
     }
 
     /// Display A is main (1000×800, a 25pt menu bar); B sits at `b`.
-    static func moveToDisplay(window: String, b: String) throws -> String {
-        let e = try PluginHarness.load(plugin: "windows.js", mock: Self.mock)
+    static func moveToDisplay(window: String, b: String, from: Int = 1, gap: Int = 0) throws -> String {
+        let e = try PluginHarness.load(plugin: "windows.js", mock: Self.mock.replacingOccurrences(
+            of: "plugin: () => ({})", with: "plugin: () => ({ gap: \(gap) })"))
         return PluginHarness.run(e, """
             macotron.display.list = () => [
                 { id: 1, frame: { x: 0, y: 0, width: 1000, height: 800 }, visibleFrame: { x: 0, y: 0, width: 1000, height: 775 } },
                 { id: 2, frame: \(b), visibleFrame: \(b) },
             ];
+            __win.display = \(from);
             __win.frame = \(window);
             var __to = null;
             macotron.window.moveToFraction = (id, f) => { __to = [f.display, f.x, f.y, f.w, f.h].join(","); return true; };
@@ -93,6 +95,16 @@ struct WindowCycleTests {
         #expect(try Self.moveToDisplay(
             window: "{ x: 0, y: 25, width: 500, height: 387.5 }",
             b: "{ x: 0, y: 800, width: 1000, height: 800 }") == "2,0,0,0.5,0.5")
+    }
+
+    /// B is left of and below main, so its Cocoa y is negative. Its AX top is
+    /// 800 - (-200 + 1080) = -80. A left half with gap 8 on B goes to A whole.
+    @Test("a gapped tile on a display with negative coordinates keeps its fractions")
+    func negativeWithGap() throws {
+        #expect(try Self.moveToDisplay(
+            window: "{ x: -1912, y: -72, width: 944, height: 1064 }",
+            b: "{ x: -1920, y: -200, width: 1920, height: 1080 }",
+            from: 2, gap: 8) == "1,0,0,0.5,1")
     }
 
     @Test("a window bigger than its display is clamped to the whole screen")

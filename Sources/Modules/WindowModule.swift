@@ -600,7 +600,9 @@ public final class WindowModule: NativeModule {
     private func trackDraggedWindow() {
         let now = Date()
         let due = WindowSnapState.shared.withDrag { drag -> Bool in
-            if drag.movedWindow { return false }
+            // flagsChanged lands here with no button down; a hotkey that
+            // moves the window must not look like a drag.
+            if drag.start == nil || drag.movedWindow { return false }
             if let last = drag.lastWindowCheck, now.timeIntervalSince(last) < 0.08 { return false }
             drag.lastWindowCheck = now
             return true
@@ -615,7 +617,8 @@ public final class WindowModule: NativeModule {
         if baseline {
             pendingDragRestore = nil
             if restoreOnDrag, let number = WindowAX.windowNumber(win),
-               let entry = Self.tileHistory.entry(number, at: frame) {
+               let entry = Self.tileHistory.entry(number, at: frame),
+               !TileHistory.same(CGRect(origin: frame.origin, size: entry.before.size), frame) {
                 pendingDragRestore = (number, entry.before.size, entry.placed)
             }
         } else if moved, let pending = pendingDragRestore {
