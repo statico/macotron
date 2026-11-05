@@ -67,11 +67,20 @@ Delisting a repository stops discovery. It never stops code that is already
 installed on a machine. `https://macotron.statico.io/blocked.json` does:
 
 ```json
-{ "blocked": [{ "sha256": "…", "reason": "Sends the clipboard to a server." }] }
+{
+  "blocked": [{ "sha256": "…", "reason": "Sends the clipboard to a server." }],
+  "owners": [{ "login": "someone", "reason": "Published malware." }]
+}
 ```
 
-The app fetches the file at launch and caches it in Application Support, so a
-Mac that starts up offline still refuses. A blocked hash is checked before the
+A hash stops those exact bytes. An owner stops the next push: the account's
+repositories leave the Community list, and nothing from them installs or
+updates. Code from that account that is already installed keeps running
+unless its hash is also on the list, so block both.
+
+The app fetches the file at launch and every four hours after that. It caches
+the file in Application Support, so a Mac that starts up offline still
+refuses. A blocked hash is checked before the
 trust ledger and before hot reload. Blocked bytes do not load, do not install,
 and cannot be approved with **Run Anyway**.
 
