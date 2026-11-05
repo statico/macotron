@@ -30,4 +30,6 @@ Out of scope:
 
 ## Malicious plugins
 
-If you find a plugin in the wild that steals data or runs hidden code, report it the same way. Include where it's published and its SHA-256 hash. Known-bad hashes go into the blocklist, which every copy of Macotron checks before it runs a plugin.
+If you find a plugin in the wild that steals data or runs hidden code, report it the same way. Include where it's published and its SHA-256 hash. Known-bad hashes go into the blocklist, which every copy of Macotron checks before it runs a plugin. The blocklist can also name a GitHub account: that account's plugins leave the Community list and can't be installed or updated. Macotron fetches the list at launch and every four hours. The current list is at [macotron.statico.io/blocked.json](https://macotron.statico.io/blocked.json).
+
+A [daily scan](.github/workflows/plugin-scan.yml) checks every community plugin, meaning every repository with the `macotron-plugin` topic. It sends each new version of a plugin file to [Typesafe](https://typesafe.ai) and asks whether the code hides its purpose, steals data, runs code it decoded or downloaded, or tries to talk a reviewer into approving it. A plugin it flags gets a "Needs review" issue. Nothing is blocked until a person reads the code.
