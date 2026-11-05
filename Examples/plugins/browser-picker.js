@@ -3,13 +3,17 @@
 // `<dataDir>/Local State`.
 const BROWSERS = {
   chrome: { id: "com.google.Chrome", label: "Chrome", dataDir: "~/Library/Application Support/Google/Chrome" },
+  chromebeta: { id: "com.google.Chrome.beta", label: "Chrome Beta", dataDir: "~/Library/Application Support/Google/Chrome Beta" },
+  chromedev: { id: "com.google.Chrome.dev", label: "Chrome Dev", dataDir: "~/Library/Application Support/Google/Chrome Dev" },
+  chromecanary: { id: "com.google.Chrome.canary", label: "Chrome Canary", dataDir: "~/Library/Application Support/Google/Chrome Canary" },
   safari: { id: "com.apple.Safari", label: "Safari" },
   firefox: { id: "org.mozilla.firefox", label: "Firefox" },
   edge: { id: "com.microsoft.edgemac", label: "Edge", dataDir: "~/Library/Application Support/Microsoft Edge" },
   arc: { id: "company.thebrowser.Browser", label: "Arc" },
+  brave: { id: "com.brave.Browser", label: "Brave", dataDir: "~/Library/Application Support/BraveSoftware/Brave-Browser" },
 };
 
-const RULES_HELP = "One rule per line: pattern browser[:profile]. The first matching line wins. The pattern is a host (matches subdomains), host/path (path prefix), * (any link), or a regex on the host such as /^github\\./i. A Chrome or Edge profile is its folder (find it in chrome://version under Profile Path) or its name.";
+const RULES_HELP = "One rule per line: pattern browser[:profile]. The first matching line wins. The pattern is a host (matches subdomains), host/path (path prefix), * (any link), or a regex on the host such as /^github\\./i. A Chrome, Edge, or Brave profile is its folder (find it in chrome://version under Profile Path) or its name.";
 
 const opts = macotron.plugin({
   title: "Browser Picker",
@@ -87,7 +91,8 @@ function parseRule(line) {
   const colon = rest.indexOf(":");
   const name = colon < 0 ? rest : rest.slice(0, colon).trim();
   let profile = colon < 0 ? undefined : rest.slice(colon + 1).trim() || undefined;
-  const browser = BROWSERS[name];
+  // "Chrome Beta", "chrome beta", and "chromebeta" are all the same browser.
+  const browser = BROWSERS[name.toLowerCase().replace(/\s+/g, "")];
   if (!browser && (!name.includes(".") || /\s/.test(name))) throw new Error(`unknown browser "${name}"`);
   const matchesHost = hostMatcher(pattern);
   if (profile && !browser?.dataDir) {

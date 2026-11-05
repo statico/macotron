@@ -104,6 +104,15 @@ struct BrowserPickerTests {
         #expect(PluginHarness.run(e, "__checks[0].ok") == "false")
     }
 
+    @Test("a browser name ignores case and spaces")
+    func browserNames() throws {
+        let e = try Self.load("youtube.com Chrome Beta\nyoutu.be chromebeta\nnotion.so Safari")
+        #expect(Self.go(e, "https://youtube.com/") == "com.google.Chrome.beta")
+        #expect(Self.go(e, "https://youtu.be/") == "com.google.Chrome.beta")
+        #expect(Self.go(e, "https://notion.so/") == Self.safari)
+        #expect(PluginHarness.run(e, "__checks[0].ok") == "true")
+    }
+
     @Test("the first matching line wins")
     func firstMatch() throws {
         let e = try Self.load("* safari\nyoutube.com chrome")
