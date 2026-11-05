@@ -102,14 +102,22 @@ const LAST_THIRD = { x: 2 / 3, y: 0, w: 1 / 3, h: 1 };
 const FIRST_TWO_THIRDS = { x: 0, y: 0, w: 2 / 3, h: 1 };
 const LAST_TWO_THIRDS = { x: 1 / 3, y: 0, w: 2 / 3, h: 1 };
 
-let lastCycle = { name: "", windowId: null, frameIndex: -1 };
+// A repeat press continues the cycle only while the window is still where the
+// last press put it. `id` is recycled across windows, so key on `number`; and
+// a window moved by hand starts over instead of jumping to the next tile.
+let lastCycle = { name: "", key: null, frame: null, frameIndex: -1 };
+
+function sameFrame(a, b) {
+    return !!a && !!b && ["x", "y", "width", "height"].every((k) => Math.abs(a[k] - b[k]) <= 2);
+}
 
 function cycle(name, frames, start) {
     const win = macotron.window.focused();
     if (!win) return;
     const displays = macotron.display.list();
     let displayIndex = Math.max(0, displays.findIndex((d) => d.id === win.display));
-    const same = lastCycle.name === name && lastCycle.windowId === win.id;
+    const key = win.number ?? win.id;
+    const same = lastCycle.name === name && lastCycle.key === key && sameFrame(win.frame, lastCycle.frame);
     let frameIndex = start || 0;
     if (same) {
         frameIndex = lastCycle.frameIndex + 1;
@@ -120,9 +128,10 @@ function cycle(name, frames, start) {
             }
         }
     }
-    lastCycle = { name, windowId: win.id, frameIndex };
     const display = displays[displayIndex] && displays[displayIndex].id;
     macotron.window.moveToFraction(win.id, Object.assign({ display, gap: opts.gap }, frames[frameIndex]));
+    const placed = macotron.window.focused();
+    lastCycle = { name, key, frame: placed && placed.frame, frameIndex };
 }
 
 function neighborDisplay(current, delta) {
