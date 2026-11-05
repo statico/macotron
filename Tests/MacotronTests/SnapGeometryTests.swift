@@ -112,4 +112,44 @@ struct SnapGeometryTests {
         )
         #expect(active["left"]?.w == 0.5)
     }
+
+    // MARK: - placeRefused (top-left coordinates, menu bar 25pt)
+
+    let visible = CGRect(x: 0, y: 25, width: 1000, height: 775)
+
+    func tile(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> CGRect {
+        CGRect(x: visible.minX + x * visible.width, y: visible.minY + y * visible.height,
+               width: w * visible.width, height: h * visible.height)
+    }
+
+    @Test("a too-wide half stays flush with its screen edge")
+    func refusedHalves() {
+        let size = CGSize(width: 700, height: 775)
+        #expect(SnapGeometry.placeRefused(size: size, tile: tile(0, 0, 0.5, 1), visible: visible).x == 0)
+        #expect(SnapGeometry.placeRefused(size: size, tile: tile(0.5, 0, 0.5, 1), visible: visible).x == 300)
+    }
+
+    @Test("a window that refused to grow hugs the edge and centres on the free axis")
+    func refusedToGrow() {
+        let p = SnapGeometry.placeRefused(size: CGSize(width: 300, height: 400), tile: tile(0.5, 0, 0.5, 1), visible: visible)
+        #expect(p == CGPoint(x: 700, y: 212.5))
+    }
+
+    @Test("a tile equally far from both edges centres the window")
+    func refusedCenterThird() {
+        let p = SnapGeometry.placeRefused(size: CGSize(width: 434, height: 775), tile: tile(1.0 / 3, 0, 1.0 / 3, 1), visible: visible)
+        #expect(abs(p.x - 283) < 0.01)
+    }
+
+    @Test("a window larger than the screen pins to the top-left, below the menu bar")
+    func refusedHuge() {
+        let p = SnapGeometry.placeRefused(size: CGSize(width: 1200, height: 900), tile: tile(0, 0, 1, 1), visible: visible)
+        #expect(p == CGPoint(x: 0, y: 25))
+    }
+
+    @Test("a refused bottom-right quarter stays fully on screen")
+    func refusedQuarter() {
+        let p = SnapGeometry.placeRefused(size: CGSize(width: 600, height: 500), tile: tile(0.5, 0.5, 0.5, 0.5), visible: visible)
+        #expect(p == CGPoint(x: 400, y: 300))
+    }
 }

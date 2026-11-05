@@ -119,4 +119,30 @@ enum SnapGeometry {
         let y = visible.minY + (1 - zone.y - zone.h) * visible.height + g
         return CGRect(x: x, y: y, width: width, height: height)
     }
+
+    /// Where to put a window that kept its own size instead of the tile's.
+    /// Each axis stays flush with the tile side nearer the screen edge, so a
+    /// too-wide left half still hugs the left edge and spills toward the
+    /// middle; a tile equally far from both edges centres the window. The
+    /// result never leaves `visible`. All rects share one coordinate space.
+    static func placeRefused(size: CGSize, tile: CGRect, visible: CGRect) -> CGPoint {
+        func axis(_ length: CGFloat, _ tileMin: CGFloat, _ tileMax: CGFloat, _ visMin: CGFloat, _ visMax: CGFloat) -> CGFloat {
+            let toMin = tileMin - visMin
+            let toMax = visMax - tileMax
+            let origin: CGFloat
+            if abs(toMin - toMax) < 1 {
+                origin = (tileMin + tileMax - length) / 2
+            } else if toMin < toMax {
+                origin = tileMin
+            } else {
+                origin = tileMax - length
+            }
+            // Larger than the screen: pin to the top-left, never above the menu bar.
+            return max(visMin, min(origin, visMax - length))
+        }
+        return CGPoint(
+            x: axis(size.width, tile.minX, tile.maxX, visible.minX, visible.maxX),
+            y: axis(size.height, tile.minY, tile.maxY, visible.minY, visible.maxY)
+        )
+    }
 }

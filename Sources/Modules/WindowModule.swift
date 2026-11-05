@@ -800,6 +800,10 @@ public final class WindowModule: NativeModule {
                 move: \(app, privacy: .public) kept \(Int(landed.width))x\(Int(landed.height)) \
                 instead of \(Int(size.width))x\(Int(size.height))
                 """)
+            // Left where it is, the window sits at the tile's corner at its own
+            // size and runs off the screen or over its neighbour. Pull it back.
+            let fixed = SnapGeometry.placeRefused(size: landed.size, tile: CGRect(origin: origin, size: size), visible: vis)
+            _ = setWindowPosition(win, point: fixed)
             return false
         }
         return true
