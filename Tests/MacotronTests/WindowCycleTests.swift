@@ -113,6 +113,56 @@ struct WindowCycleTests {
             window: "{ x: -100, y: 0, width: 1200, height: 900 }",
             b: "{ x: 1000, y: 0, width: 1000, height: 800 }") == "2,0,0,1,1")
     }
+
+    /// Two 1000-wide displays. The main one (1) is listed first though the
+    /// external one (2) sits to its left, like a built-in screen. Each press
+    /// reports "display:x" for where the window landed.
+    static func across(_ keys: [String], from: Int, displays: Int = 2, across: Bool = true, cycle: Bool = false) throws -> [String] {
+        let e = try PluginHarness.load(plugin: "windows.js", mock: Self.mock.replacingOccurrences(
+            of: "plugin: () => ({})",
+            with: "plugin: () => ({ acrossDisplays: \(across), cycleDisplays: \(cycle) })"))
+        _ = PluginHarness.run(e, """
+            var __d = [
+                { id: 1, frame: { x: 0, y: 0, width: 1000, height: 800 } },
+                { id: 2, frame: { x: -1000, y: 0, width: 1000, height: 800 } },
+            ].slice(0, \(displays));
+            macotron.display.list = () => __d;
+            __win.display = \(from);
+            macotron.window.moveToFraction = (id, f) => {
+                const d = __d.find((d) => d.id === f.display);
+                __win.display = d.id;
+                __win.frame = { x: d.frame.x + f.x * 1000, y: f.y * 800, width: f.w * 1000, height: f.h * 800 };
+                return true;
+            };
+            """)
+        return keys.map { PluginHarness.run(e, "__keys[\(js($0))](); __win.display + ':' + __win.frame.x") }
+    }
+
+    @Test("repeated Left Half walks to the display on the left and stops there")
+    func acrossLeft() throws {
+        #expect(try Self.across(Array(repeating: "Left Half", count: 4), from: 1)
+            == ["1:0", "2:-500", "2:-1000", "2:-1000"])
+    }
+
+    @Test("repeated Right Half walks to the display on the right and stops there")
+    func acrossRight() throws {
+        #expect(try Self.across(Array(repeating: "Right Half", count: 4), from: 2)
+            == ["2:-500", "1:0", "1:500", "1:500"])
+    }
+
+    @Test("with one display the halves still flip")
+    func acrossOneDisplay() throws {
+        #expect(try Self.across(Array(repeating: "Left Half", count: 3), from: 1, displays: 1)
+            == ["1:0", "1:500", "1:0"])
+    }
+
+    @Test("with the option off, halves flip and cycleDisplays follows list order")
+    func acrossOff() throws {
+        #expect(try Self.across(Array(repeating: "Left Half", count: 3), from: 1, across: false)
+            == ["1:0", "1:500", "1:0"])
+        #expect(try Self.across(Array(repeating: "Left Half", count: 3), from: 1, across: false, cycle: true)
+            == ["1:0", "1:500", "2:-1000"])
+    }
 }
 
 private func js(_ string: String) -> String {

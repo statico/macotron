@@ -52,6 +52,12 @@ const opts = macotron.plugin({
             label: "Cycle through displays",
             default: false,
         },
+        acrossDisplays: {
+            type: "boolean",
+            label: "Repeat to move between displays",
+            help: "Press Left Half or Right Half again to send the window to the display on that side.",
+            default: false,
+        },
     },
 });
 
@@ -111,7 +117,25 @@ function sameFrame(a, b) {
     return !!a && !!b && ["x", "y", "width", "height"].every((k) => Math.abs(a[k] - b[k]) <= 8);
 }
 
-function cycle(name, frames, start) {
+// The nearest display to the left (dir -1) or right (dir 1) by frame center,
+// or -1. display.list() is not in spatial order. x runs the same way in Cocoa
+// and top-left coordinates, so no flip.
+function sideNeighbor(displays, i, dir) {
+    const cx = (d) => d.frame.x + d.frame.width / 2;
+    const here = cx(displays[i]);
+    let best = -1;
+    let bestDx = Infinity;
+    displays.forEach((d, j) => {
+        const dx = (cx(d) - here) * dir;
+        if (dx > 0 && dx < bestDx) [best, bestDx] = [j, dx];
+    });
+    return best;
+}
+
+// `dir` marks Left Half (-1) and Right Half (1). With acrossDisplays, their
+// second step is the opposite half of the neighbor display, so repeats walk
+// across the screens and stop at the outermost one.
+function cycle(name, frames, start, dir) {
     const win = macotron.window.focused();
     if (!win) return;
     const displays = macotron.display.list();
@@ -121,7 +145,11 @@ function cycle(name, frames, start) {
     let frameIndex = start || 0;
     if (same) {
         frameIndex = lastCycle.frameIndex + 1;
-        if (frameIndex >= frames.length) {
+        if (dir && opts.acrossDisplays && displays.length > 1) {
+            const next = frameIndex === 1 ? sideNeighbor(displays, displayIndex, dir) : -1;
+            if (next < 0) frameIndex = 0;
+            else displayIndex = next;
+        } else if (frameIndex >= frames.length) {
             frameIndex = 0;
             if (opts.cycleDisplays && displays.length > 1) {
                 displayIndex = (displayIndex + 1) % displays.length;
@@ -172,8 +200,8 @@ function moveToDisplay(delta) {
     macotron.window.moveToFraction(win.id, Object.assign({ display: target, gap: opts.gap }, frac));
 }
 
-macotron.keyboard.on("Left Half", "ctrl+opt+left", () => cycle("left", [LEFT_HALF, RIGHT_HALF], 0));
-macotron.keyboard.on("Right Half", "ctrl+opt+right", () => cycle("right", [RIGHT_HALF, LEFT_HALF], 0));
+macotron.keyboard.on("Left Half", "ctrl+opt+left", () => cycle("left", [LEFT_HALF, RIGHT_HALF], 0, -1));
+macotron.keyboard.on("Right Half", "ctrl+opt+right", () => cycle("right", [RIGHT_HALF, LEFT_HALF], 0, 1));
 macotron.keyboard.on("Top Half", "ctrl+opt+up", () => cycle("top", [TOP_HALF, BOTTOM_HALF], 0));
 macotron.keyboard.on("Bottom Half", "ctrl+opt+down", () => cycle("bottom", [BOTTOM_HALF, TOP_HALF], 0));
 macotron.keyboard.on("Full Screen", "ctrl+opt+return", () => cycle("full", [{ x: 0, y: 0, w: 1, h: 1 }], 0));
@@ -207,8 +235,8 @@ if (opts.snapModifier && opts.snapModifier !== "none") {
 }
 macotron.window.snap(snapOpts);
 
-macotron.command("Tile Left Half", "Snap focused window left", () => cycle("left", [LEFT_HALF, RIGHT_HALF], 0));
-macotron.command("Tile Right Half", "Snap focused window right", () => cycle("right", [RIGHT_HALF, LEFT_HALF], 0));
+macotron.command("Tile Left Half", "Snap focused window left", () => cycle("left", [LEFT_HALF, RIGHT_HALF], 0, -1));
+macotron.command("Tile Right Half", "Snap focused window right", () => cycle("right", [RIGHT_HALF, LEFT_HALF], 0, 1));
 macotron.command("Tile Full Screen", "Maximize focused window", () => cycle("full", [{ x: 0, y: 0, w: 1, h: 1 }], 0));
 macotron.command("Restore Window", "Put the focused window back where it was before tiling", unsnap);
 macotron.command("Toggle Window Snap", "Enable or disable drag-to-edge snapping", () => {
