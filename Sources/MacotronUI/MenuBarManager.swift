@@ -287,7 +287,7 @@ public final class MenuBarManager: NSObject {
             badge.widthAnchor.constraint(equalToConstant: side),
             badge.heightAnchor.constraint(equalToConstant: side),
             badge.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -1),
-            badge.topAnchor.constraint(equalTo: button.topAnchor, constant: 4),
+            badge.centerYAnchor.constraint(equalTo: button.centerYAnchor),
         ])
         badgeView = badge
         switch state {
