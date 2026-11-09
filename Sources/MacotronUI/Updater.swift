@@ -2,7 +2,10 @@
 import AppKit
 import MacotronEngine
 import SMCKit
+import OSLog
 import Sparkle
+
+private let logger = Logger(subsystem: "io.statico.macotron", category: "updater")
 
 /// Sparkle shows a background app's scheduled update window behind everything
 /// else, and Macotron has no Dock icon to notice it by. Opting into gentle
@@ -46,19 +49,36 @@ final class UpdateFeed: NSObject, SPUUpdaterDelegate {
     }
 }
 
+/// The user already said yes in the update alert, which shows the release
+/// notes. Sparkle then asks again with an "Install and Relaunch" window once
+/// the download finishes, so answer that one for them.
+final class OneConfirmationUserDriver: SPUStandardUserDriver {
+    override func showReady(toInstallAndRelaunch reply: @escaping (SPUUserUpdateChoice) -> Void) {
+        reply(.install)
+    }
+}
+
 @MainActor
 public enum Updater {
     private static let reminder = UpdateReminder()
     private static let feed = UpdateFeed()
-    private static let controller = SPUStandardUpdaterController(
-        startingUpdater: true,
-        updaterDelegate: feed,
-        userDriverDelegate: reminder
-    )
+    private static let updater: SPUUpdater = {
+        let driver = OneConfirmationUserDriver(hostBundle: .main, delegate: reminder)
+        let updater = SPUUpdater(hostBundle: .main, applicationBundle: .main, userDriver: driver, delegate: feed)
+        do {
+            try updater.start()
+        } catch {
+            logger.error("updater failed to start: \(error.localizedDescription, privacy: .public)")
+            startError = error
+        }
+        return updater
+    }()
+    /// Why Sparkle would not start, shown when the user asks for a check.
+    private static var startError: Error?
 
     /// Touches the lazy static so the scheduled background check starts.
     public static func start() {
-        _ = controller
+        _ = updater
     }
 
     /// Sparkle activates the app itself before showing its window, but the
@@ -71,7 +91,15 @@ public enum Updater {
             offerRelaunch()
             return
         }
-        controller.checkForUpdates(nil)
+        _ = updater
+        if let startError {
+            let alert = NSAlert()
+            alert.messageText = "Unable to Check for Updates"
+            alert.informativeText = startError.localizedDescription
+            alert.runModal()
+            return
+        }
+        updater.checkForUpdates()
         frontSparkleWindows(attempts: 12)
     }
 
@@ -131,12 +159,10 @@ public enum Updater {
     /// Sparkle keeps both settings in the app's UserDefaults itself.
     public static var frequency: UpdateFrequency {
         get {
-            let updater = controller.updater
             guard updater.automaticallyChecksForUpdates else { return .never }
             return updater.updateCheckInterval >= UpdateFrequency.weekly.interval ? .weekly : .daily
         }
         set {
-            let updater = controller.updater
             updater.automaticallyChecksForUpdates = newValue != .never
             if newValue != .never { updater.updateCheckInterval = newValue.interval }
         }
