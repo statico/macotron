@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>1.0.8</title>
+            <sparkle:version>1.0.8</sparkle:version>
+            <sparkle:shortVersionString>1.0.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Thu, 12 Nov 2026 20:36:48 +0000</pubDate>
+            <description><![CDATA[<ul><li>Updates: skip the second "Install and Relaunch" window</li><li>Menu bar: center the status dot vertically, like the system's</li><li>Browser Picker: open the rule's Chrome profile when Chrome is running</li><li>Site: refresh sitemap dates</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v1.0.8/Macotron-1.0.8.dmg" type="application/octet-stream" sparkle:edSignature="eL9iy/nrXeE9cbk8uMxLL7YAoUAgBRg6FmG54DD30SCltFTh3UEeBfdj+SJmmO2Gmfvj6OB6uk8VX3Y40d0+DA==" length="10554597" />
+        </item>
+        <item>
             <title>1.0.7</title>
             <sparkle:version>1.0.7</sparkle:version>
             <sparkle:shortVersionString>1.0.7</sparkle:shortVersionString>
