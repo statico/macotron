@@ -25,13 +25,17 @@ enum URLOpen {
 
     /// `profile` is a Chromium profile folder (`Default`, `Profile 1`).
     /// AppKit applies `arguments` only on launch, so a running Chrome would
-    /// drop `--profile-directory`; a new instance gets the flag, hands the URL
-    /// to the running one, and exits. Chromium only: Safari or Firefox would
-    /// start a second copy.
-    static func configuration(profile: String?) -> NSWorkspace.OpenConfiguration {
+    /// drop `--profile-directory`. A new instance gets the flag and the URL on
+    /// its command line, like `open -n --args`, and forwards both to the
+    /// running one before it exits. The URL has to be an argument: sent as an
+    /// open-URL event it reaches Chrome without the profile. Chromium only:
+    /// Safari or Firefox would start a second copy.
+    static func configuration(profile: String?, url: URL) -> NSWorkspace.OpenConfiguration {
         let config = NSWorkspace.OpenConfiguration()
-        if let profile {
-            config.arguments = ["--profile-directory=\(profile)"]
+        // A scheme means the argument starts with a letter, so a plugin can
+        // never slip a Chrome flag in as the "URL".
+        if let profile, url.scheme != nil {
+            config.arguments = ["--profile-directory=\(profile)", url.absoluteString]
             config.createsNewApplicationInstance = true
         }
         return config
@@ -40,7 +44,12 @@ enum URLOpen {
     static func open(_ url: URL, bundleID: String?, profile: String? = nil) -> Bool {
         if let bundleID {
             guard let appURL = applicationURL(bundleID: bundleID) else { return false }
-            NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: configuration(profile: profile))
+            let config = configuration(profile: profile, url: url)
+            if config.createsNewApplicationInstance {
+                NSWorkspace.shared.openApplication(at: appURL, configuration: config)
+            } else {
+                NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config)
+            }
             return true
         }
         NSWorkspace.shared.open(url)

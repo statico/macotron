@@ -44,11 +44,19 @@ const problems = [];
 // exactly one profile. Guessing between two "Work" profiles would send links
 // to the wrong account, so anything ambiguous comes back null.
 function profileFolder(browser, profile) {
+  // macOS guards another app's data behind a "would like to access data from
+  // other apps" prompt. Checking that a folder exists does not trigger it, so
+  // a folder name never needs Local State.
+  if (/^(Default|Profile \d+)$/.test(profile)) {
+    return macotron.fs.exists(`${browser.dataDir}/${profile}`)
+      ? { folder: profile }
+      : { error: `no ${browser.label} profile folder "${profile}"` };
+  }
   let cache;
   try {
     cache = JSON.parse(macotron.fs.read(browser.dataDir + "/Local State")).profile.info_cache;
   } catch {
-    return { error: `can't read ${browser.label} profiles` };
+    return { error: `can't read the ${browser.label} profile list, so "${profile}" can't be looked up. macOS may be blocking it: allow Macotron when asked, or use the profile's folder name, such as Profile 1` };
   }
   if (cache[profile]) return { folder: profile };
   const named = Object.keys(cache).filter((folder) => cache[folder].name?.toLowerCase() === profile.toLowerCase());

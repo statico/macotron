@@ -155,7 +155,7 @@ github.com/acme chrome:Profile 1
   <li><code>*</code> matches every link. Put it last to choose a browser or profile for everything your other rules miss.</li>
   <li>A pattern written as <code>/pattern/flags</code> is a JavaScript regular expression, tested against the link's host.</li>
   <li>The browser is its name, such as <code>chrome</code>, <code>Chrome Beta</code>, or <code>brave</code>. Case and spaces do not matter. For any other app, use its bundle ID, such as <code>com.vivaldi.Vivaldi</code>.</li>
-  <li>For Chrome, Edge, and Brave, add a colon and a profile: <code>chrome:Profile 1</code>. The profile runs to the end of the line. Use the profile's folder name, which <code>chrome://version</code> shows at the end of <b>Profile Path</b>, or its name if no other profile has the same name.</li>
+  <li>For Chrome, Edge, and Brave, add a colon and a profile: <code>chrome:Profile 1</code>. The profile runs to the end of the line. Use the profile's folder name, which <code>chrome://version</code> shows at the end of <b>Profile Path</b>, or its name if no other profile has the same name. A name means reading the browser's profile list, which macOS may ask you to allow. A folder name never does.</li>
 </ul>
 <p>A rule the plugin can't use is listed in the plugin's checks in Settings. A rule with a bad pattern or an unknown browser is skipped. A rule with a profile that can't be found opens links without a profile. A link whose browser isn't installed goes to the <b>Unmatched links</b> setting.</p>
 <p>The default rules send YouTube links to Safari.</p>

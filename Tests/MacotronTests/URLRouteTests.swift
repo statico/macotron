@@ -67,17 +67,24 @@ struct URLRouteTests {
     }
 
     /// AppKit drops `arguments` for a running app, so a profile needs a new
-    /// instance to reach Chrome.
-    @Test("a profile forces a new instance carrying --profile-directory")
+    /// instance, with the URL on its command line, to reach Chrome.
+    @Test("a profile forces a new instance carrying --profile-directory and the URL")
     func profileConfiguration() {
-        let config = URLOpen.configuration(profile: "Profile 1")
-        #expect(config.arguments == ["--profile-directory=Profile 1"])
+        let config = URLOpen.configuration(profile: "Profile 1", url: u("https://youtu.be/x?a=1&b=2"))
+        #expect(config.arguments == ["--profile-directory=Profile 1", "https://youtu.be/x?a=1&b=2"])
         #expect(config.createsNewApplicationInstance)
+    }
+
+    @Test("a schemeless URL never reaches Chrome's command line")
+    func schemelessProfileURL() {
+        let config = URLOpen.configuration(profile: "Default", url: URL(string: "--remote-debugging-port=9222")!)
+        #expect(config.arguments.isEmpty)
+        #expect(!config.createsNewApplicationInstance)
     }
 
     @Test("no profile opens in the running app")
     func noProfileConfiguration() {
-        let config = URLOpen.configuration(profile: nil)
+        let config = URLOpen.configuration(profile: nil, url: u("https://example.com/"))
         #expect(config.arguments.isEmpty)
         #expect(!config.createsNewApplicationInstance)
     }

@@ -10,9 +10,9 @@ struct BrowserPickerTests {
     /// Two profiles share the name "Work" on purpose.
     static let localState = #"{"profile":{"info_cache":{"Default":{"name":"Personal"},"Profile 1":{"name":"Work"},"Profile 2":{"name":"Work"},"Profile 3":{"name":"Side"}}}}"#
 
-    static func load(_ rules: String, unmatched: String = "ask") throws -> Engine {
+    static func load(_ rules: String, unmatched: String = "ask", blocked: Bool = false) throws -> Engine {
         try PluginHarness.load(plugin: "browser-picker.js", mock: """
-            var __handlers = {}, __opened = [], __checks = [], __panels = 0;
+            var __handlers = {}, __opened = [], __checks = [], __panels = 0, __blocked = \(blocked);
             var macotron = {
                 plugin: () => ({ defaultBrowser: \(js(unmatched)), rules: \(js(rules)) }),
                 url: {
@@ -21,7 +21,10 @@ struct BrowserPickerTests {
                     open: (url, id, profile) => { __opened.push(profile === undefined ? id : id + "|" + profile); return true; },
                 },
                 fs: {
+                    exists: (p) => ["Default", "Profile 1", "Profile 2", "Profile 3"]
+                        .some((f) => p === "~/Library/Application Support/Google/Chrome/" + f),
                     read: (p) => {
+                        if (__blocked) throw new Error("Operation not permitted");
                         if (p === "~/Library/Application Support/Google/Chrome/Local State") return \(js(localState));
                         throw new Error("missing " + p);
                     },
@@ -111,6 +114,14 @@ struct BrowserPickerTests {
         #expect(Self.go(e, "https://youtu.be/") == "com.google.Chrome.beta")
         #expect(Self.go(e, "https://notion.so/") == Self.safari)
         #expect(PluginHarness.run(e, "__checks[0].ok") == "true")
+    }
+
+    @Test("a folder name works when macOS blocks the profile list")
+    func folderWithoutLocalState() throws {
+        let e = try Self.load("youtube.com chrome:Profile 1\nexample.com chrome:Profile 9", blocked: true)
+        #expect(Self.go(e, "https://youtube.com/") == Self.chrome + "|Profile 1")
+        #expect(Self.go(e, "https://example.com/") == Self.chrome)
+        #expect(PluginHarness.run(e, "__checks[0].ok") == "false")
     }
 
     @Test("the first matching line wins")
