@@ -679,6 +679,7 @@ enum PluginMenu {
             NSImage(systemSymbolName: $0, accessibilityDescription: nil)
         }
         if let stamp { item.image?.setName(stamp) }
+        item.keepImageVisible()
     }
 
     private static func sameShape(_ menu: NSMenu, _ entries: [MenuBarEntry]) -> Bool {

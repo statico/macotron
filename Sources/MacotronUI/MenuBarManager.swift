@@ -572,7 +572,7 @@ public final class MenuBarManager: NSObject {
         item.target = box
         if let symbol {
             item.image = Self.menuSymbol(symbol)
-            Self.keepImageVisible(item)
+            item.keepImageVisible()
         }
         menu.addItem(item)
         return item
@@ -608,7 +608,7 @@ public final class MenuBarManager: NSObject {
             systemSymbolName: "exclamationmark.triangle.fill",
             accessibilityDescription: nil
         )?.withSymbolConfiguration(.init(paletteColors: [.systemRed]))
-        Self.keepImageVisible(item)
+        item.keepImageVisible()
 
         let hint = addRow("Open Settings to grant…") { [weak self] in self?.onOpenPermissions?() }
         hint.attributedTitle = NSAttributedString(
@@ -648,24 +648,12 @@ public final class MenuBarManager: NSObject {
 
     /// Blue row matching the blue arrow the Plugins tab badges a row with.
     /// Permissions outrank it: that menu is already telling a louder story.
-    /// macOS 27 hides menu item images by default, for every app built
-    /// against the macOS 26 SDK or newer. Our few icons carry meaning, so ask
-    /// for them back one item at a time, which is what Apple tells us to do.
-    private static func keepImageVisible(_ item: NSMenuItem) {
-        // Set by name, not by symbol. The property arrived in the macOS 27
-        // SDK, and the release runner still builds against an older one, where
-        // the symbol does not exist to compile against. responds(to:) makes
-        // this a no-op on macOS 26 and earlier. 1 is .visible.
-        guard item.responds(to: Selector(("setPreferredImageVisibility:"))) else { return }
-        item.setValue(1, forKey: "preferredImageVisibility")
-    }
-
     private func addPluginUpdatesRowIfNeeded() {
         guard missingPermissions.isEmpty, pluginUpdateCount > 0 else { return }
         let text = Self.updateLabel(pluginUpdateCount) + " available"
         let item = addRow(text) { [weak self] in self?.onOpenPluginUpdates?() }
         item.image = Self.menuSymbol("arrow.down.circle.fill", color: .systemBlue)
-        Self.keepImageVisible(item)
+        item.keepImageVisible()
         item.attributedTitle = NSAttributedString(
             string: text,
             attributes: [
@@ -692,5 +680,19 @@ extension MenuBarManager: NSMenuDelegate {
             shownUpdateVersion = Updater.pendingVersion
             rebuildMenu()
         }
+    }
+}
+
+extension NSMenuItem {
+    /// macOS 27 hides menu item images by default, for every app built
+    /// against the macOS 26 SDK or newer. Icons that carry meaning (ours, and
+    /// any a plugin asks for) opt back in one item at a time, as Apple says to.
+    func keepImageVisible() {
+        // Set by name, not by symbol. The property arrived in the macOS 27
+        // SDK, and the release runner still builds against an older one, where
+        // the symbol does not exist to compile against. responds(to:) makes
+        // this a no-op on macOS 26 and earlier. 1 is .visible.
+        guard responds(to: Selector(("setPreferredImageVisibility:"))) else { return }
+        setValue(1, forKey: "preferredImageVisibility")
     }
 }
