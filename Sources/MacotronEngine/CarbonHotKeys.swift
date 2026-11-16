@@ -28,25 +28,31 @@ public final class CarbonHotKeys: @unchecked Sendable {
     private var nextID: UInt32 = 1
     private var slots: [UInt32: Slot] = [:]
     private var eventHandler: EventHandlerRef?
-    private var wakeObservers: [NSObjectProtocol] = []
+    private var observers: [NSObjectProtocol] = []
 
     private init() {
         installEventHandler()
-        let center = NSWorkspace.shared.notificationCenter
+        // macOS sometimes stops delivering a registration with no error (seen on
+        // macOS 26 after a day of uptime); registering again revives it. Do that
+        // whenever the user is likely to reach for a shortcut next.
+        let workspace = NSWorkspace.shared.notificationCenter
         let names: [NSNotification.Name] = [
             NSWorkspace.didWakeNotification,
             NSWorkspace.screensDidWakeNotification,
             NSWorkspace.sessionDidBecomeActiveNotification,
+            NSWorkspace.didActivateApplicationNotification,
         ]
         for name in names {
-            wakeObservers.append(center.addObserver(
-                forName: name,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                self?.reregisterAll()
+            observers.append(workspace.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
+                self?.reregisterAll(reason: note.name.rawValue)
             })
         }
+        // Covers the Macotron menu, which opens without activating the app.
+        observers.append(NotificationCenter.default.addObserver(
+            forName: NSMenu.didBeginTrackingNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.reregisterAll(reason: "menu")
+        })
     }
 
     public static func modifiers(from flags: CGEventFlags) -> UInt32 {
@@ -64,16 +70,7 @@ public final class CarbonHotKeys: @unchecked Sendable {
         defer { lock.unlock() }
         let id = nextID
         nextID &+= 1
-        var ref: EventHotKeyRef?
-        let hotKeyID = EventHotKeyID(signature: Self.signature, id: id)
-        let status = RegisterEventHotKey(
-            keyCode,
-            carbonModifiers,
-            hotKeyID,
-            GetEventDispatcherTarget(),
-            0,
-            &ref
-        )
+        let (status, ref) = Self.registerRef(id: id, keyCode: keyCode, mods: carbonModifiers)
         guard status == noErr, let ref else {
             logger.error("RegisterEventHotKey failed: \(status) key=\(keyCode) mods=\(carbonModifiers)")
             return nil
@@ -122,33 +119,46 @@ public final class CarbonHotKeys: @unchecked Sendable {
         }
     }
 
-    private func reregisterAll() {
+    /// Exclusive, as Hammerspoon does, so another app cannot take the combo
+    /// out from under us.
+    private static func registerRef(id: UInt32, keyCode: UInt32, mods: UInt32) -> (OSStatus, EventHotKeyRef?) {
+        var ref: EventHotKeyRef?
+        let status = RegisterEventHotKey(
+            keyCode,
+            mods,
+            EventHotKeyID(signature: signature, id: id),
+            GetEventDispatcherTarget(),
+            OptionBits(kEventHotKeyExclusive),
+            &ref
+        )
+        return (status, ref)
+    }
+
+    private func reregisterAll(reason: String) {
         lock.lock()
         let snapshot = slots
         lock.unlock()
+        guard !snapshot.isEmpty else { return }
+        var failed = 0
         for (id, slot) in snapshot {
             if let ref = slot.ref {
                 UnregisterEventHotKey(ref)
             }
-            var ref: EventHotKeyRef?
-            let hotKeyID = EventHotKeyID(signature: Self.signature, id: id)
-            let status = RegisterEventHotKey(
-                slot.keyCode,
-                slot.mods,
-                hotKeyID,
-                GetEventDispatcherTarget(),
-                0,
-                &ref
-            )
+            let (status, ref) = Self.registerRef(id: id, keyCode: slot.keyCode, mods: slot.mods)
             lock.lock()
-            if status == noErr {
+            if slots[id] == nil {
+                // Unregistered while we looped.
+                if let ref { UnregisterEventHotKey(ref) }
+            } else if status == noErr {
                 slots[id]?.ref = ref
             } else {
+                failed += 1
                 logger.error("Re-register hotkey \(id) failed: \(status)")
                 slots[id]?.ref = nil
             }
             lock.unlock()
         }
+        logger.info("re-registered \(snapshot.count) hotkeys (\(reason, privacy: .public)), \(failed) failed")
     }
 }
 
