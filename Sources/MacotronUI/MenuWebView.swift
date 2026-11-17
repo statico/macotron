@@ -7,7 +7,7 @@ import WebKit
 /// The page keeps running while the menu is open, but menu tracking swallows
 /// mouse events before the web content sees them, so treat it as a display:
 /// put clickable things in ordinary rows above or below.
-final class MenuWebView: NSView {
+final class MenuWebView: NSView, WKNavigationDelegate {
     private let webView: WKWebView
     private(set) var html: String
 
@@ -27,6 +27,14 @@ final class MenuWebView: NSView {
         // a wider menu. Track the width and centre the page inside it.
         autoresizingMask = [.width]
         addSubview(webView)
+        webView.navigationDelegate = self
+        webView.loadHTMLString(Self.page(html), baseURL: nil)
+    }
+
+    /// The web process can be killed while the menu sits closed (sleep, memory
+    /// pressure), which leaves a blank row. The markup rarely changes, so
+    /// update(html:) would never reload it: do it here.
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         webView.loadHTMLString(Self.page(html), baseURL: nil)
     }
 
