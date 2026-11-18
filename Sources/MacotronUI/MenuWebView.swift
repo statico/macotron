@@ -33,8 +33,19 @@ final class MenuWebView: NSView, WKNavigationDelegate {
 
     /// The web process can be killed while the menu sits closed (sleep, memory
     /// pressure), which leaves a blank row. The markup rarely changes, so
-    /// update(html:) would never reload it: do it here.
+    /// update(html:) would never reload it. Reload when the menu next opens,
+    /// not here: a page that kills its process on load would otherwise reload
+    /// in a tight loop and starve the main thread (and the event taps on it).
+    private var processDied = false
+
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        processDied = true
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard window != nil, processDied else { return }
+        processDied = false
         webView.loadHTMLString(Self.page(html), baseURL: nil)
     }
 
