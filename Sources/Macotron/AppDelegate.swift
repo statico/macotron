@@ -242,9 +242,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self.refreshModulesSoon()
             // Once per launch: the state flaps on every lid open and display
             // change, and the fix is the user's to make.
-            if !ids.isEmpty, !self.announcedOccludedStatus {
+            if ids.isEmpty {
+                MenuBarTip.shared.hide()
+            } else if !self.announcedOccludedStatus {
                 self.announcedOccludedStatus = true
-                ToastHost.shared.warn("A Macotron menu bar item is hidden by the notch.", "Make room in the menu bar.")
+                let title = "A Macotron menu bar item is hidden by the notch."
+                let shown = MenuBarTip.shared.show(
+                    title: title,
+                    fix: "Click to choose which items show in the menu bar."
+                ) { Permission.menuBar.openSystemSettings() }
+                if !shown { ToastHost.shared.warn(title, "Make room in the menu bar.") }
             }
         }
         // Menu bar visibility reads like a permission: something outside
