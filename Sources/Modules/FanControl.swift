@@ -140,6 +140,15 @@ public final class FanController: @unchecked Sendable {
         lock.unlock()
     }
 
+    /// Called on the JS thread when a plugin asks for a floor, before the XPC
+    /// round trip. The request itself is the claim: it must count even when
+    /// loading finishes, and `endReload` runs, before the helper answers.
+    func claim() {
+        lock.lock()
+        claimed = true
+        lock.unlock()
+    }
+
     /// Nothing claimed the floor this time round: the plugin that set it is
     /// gone or disabled, so give the fans back to macOS.
     func endReload() {

@@ -564,6 +564,7 @@ public final class SystemModule: NativeModule {
                 percent = Int(JSBridge.toInt32(ctx, argv[0]))
             }
             let requested = percent
+            if requested != nil, !Engine.isDryRun(ctx) { FanController.shared.claim() }
             return JSBridge.promise(ctx, dryRun: FanController.shared.setFloor(percent, dryRun: true).js) {
                 .value(FanController.shared.setFloor(requested, dryRun: false).js)
             }
