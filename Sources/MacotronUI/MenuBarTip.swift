@@ -107,14 +107,15 @@ private final class TipView: NSView {
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 10
-        row.edgeInsets = NSEdgeInsets(top: 18, left: 14, bottom: 18, right: 18)
         row.translatesAutoresizingMaskIntoConstraints = false
         addSubview(row)
         NSLayoutConstraint.activate([
-            row.leadingAnchor.constraint(equalTo: leadingAnchor),
-            row.trailingAnchor.constraint(equalTo: trailingAnchor),
-            row.topAnchor.constraint(equalTo: topAnchor),
-            row.bottomAnchor.constraint(equalTo: bottomAnchor),
+            // Constraints, not edgeInsets: the popover sized itself as if the
+            // stack's top and bottom insets were not there.
+            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -18),
+            row.topAnchor.constraint(equalTo: topAnchor, constant: 16),
+            row.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -16),
         ])
 
         setAccessibilityElement(true)
