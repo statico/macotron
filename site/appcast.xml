@@ -9,6 +9,15 @@
         <language>en</language>
         <!-- newest first -->
         <item>
+            <title>1.0.12</title>
+            <sparkle:version>1.0.12</sparkle:version>
+            <sparkle:shortVersionString>1.0.12</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <pubDate>Thu, 19 Nov 2026 05:37:23 +0000</pubDate>
+            <description><![CDATA[<ul><li>Reload a menu web row when its web process dies</li><li>Reload a dead menu web row on menu open, not in a loop</li><li>Keep the fan floor across a plugin reload</li><li>Point at the notch when it hides a menu bar item</li><li>Pad the notch tip with constraints</li><li>Load menu web rows only while the menu is open</li></ul>]]></description>
+            <enclosure url="https://github.com/statico/macotron/releases/download/v1.0.12/Macotron-1.0.12.dmg" type="application/octet-stream" sparkle:edSignature="mL802bh8ECf+aOTyBWGGihyHPooComdO4OBfgqfWasTkeCUal02xH68690cmAi8tde4u62kHLWWAvPf/yLreAA==" length="10562053" />
+        </item>
+        <item>
             <title>1.0.11</title>
             <sparkle:version>1.0.11</sparkle:version>
             <sparkle:shortVersionString>1.0.11</sparkle:shortVersionString>
