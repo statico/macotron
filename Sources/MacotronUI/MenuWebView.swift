@@ -7,7 +7,7 @@ import WebKit
 /// The page keeps running while the menu is open, but menu tracking swallows
 /// mouse events before the web content sees them, so treat it as a display:
 /// put clickable things in ordinary rows above or below.
-final class MenuWebView: NSView, WKNavigationDelegate {
+final class MenuWebView: NSView {
     private let webView: WKWebView
     private(set) var html: String
 
@@ -27,26 +27,15 @@ final class MenuWebView: NSView, WKNavigationDelegate {
         // a wider menu. Track the width and centre the page inside it.
         autoresizingMask = [.width]
         addSubview(webView)
-        webView.navigationDelegate = self
-        webView.loadHTMLString(Self.page(html), baseURL: nil)
     }
 
-    /// The web process can be killed while the menu sits closed (sleep, memory
-    /// pressure), which leaves a blank row. The markup rarely changes, so
-    /// update(html:) would never reload it. Reload when the menu next opens,
-    /// not here: a page that kills its process on load would otherwise reload
-    /// in a tight loop and starve the main thread (and the event taps on it).
-    private var processDied = false
-
-    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        processDied = true
-    }
-
+    /// Load only while the menu is on screen. On macOS 27 a page loaded while
+    /// the menu is closed (no window) stays blank when the menu opens, and so
+    /// does one left detached long enough. Loading on every open also brings
+    /// back a page whose web process died while the menu was closed.
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        guard window != nil, processDied else { return }
-        processDied = false
-        webView.loadHTMLString(Self.page(html), baseURL: nil)
+        if window != nil { webView.loadHTMLString(Self.page(html), baseURL: nil) }
     }
 
     override func layout() {
@@ -73,7 +62,7 @@ final class MenuWebView: NSView, WKNavigationDelegate {
         }
         guard html != self.html else { return }
         self.html = html
-        webView.loadHTMLString(Self.page(html), baseURL: nil)
+        if window != nil { webView.loadHTMLString(Self.page(html), baseURL: nil) }
     }
 
     static func page(_ html: String) -> String {
